@@ -121,20 +121,20 @@ python3 scripts/make_vul_specs.py \
   --out specs/libxml2_62911_vul
 ```
 
-## LLM Refinement 
+## LLM Refinement (example)
 
-### Set config (example)
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+
+chmod +x run_pipeline.sh 
 ```
-SA_OUT_DIR="sa_outputs/libxml2_62911_vul" \
-DATASET_ROOT="dataset" \
-TARGET_VUL="62911/libxml2_62911_vul:dict.c:541" \
-RULE_ID="local.oob.memfunc.length-misuse" \
-LLM_MODEL="deepseek-chat" \
-LLM_API_BASE="https://api.deepseek.com"
-```
-### Run LLM refinement 
-```
-bash iterate_llm_refinement.sh
+./run_pipeline.sh \
+  --sa-out sa_outputs/libxml2_62911_vul \
+  --dataset dataset \
+  --target "62911/libxml2_62911_vul:dict.c:541" \
+  --rule local.oob.memfunc.length-misuse \
+  --spec specs/libxml2_62911_vul/000_dict.c_541_local.oob.memfunc.length-misuse.json \
+  --model deepseek-chat \
+  --api-base https://api.deepseek.com
 ```
 
 
