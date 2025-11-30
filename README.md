@@ -1,9 +1,13 @@
 # SAILR
 Automated pipeline for CodeQL-based and LLM-assisted symbolic execution with KLEE.
 
+---
+
 ## Prerequisites
+
 ### System packages
-```
+
+```bash
 sudo apt update && sudo apt install -y \
     unzip wget git python3 python3-pip \
     build-essential autoconf automake libtool pkg-config \
@@ -21,7 +25,6 @@ sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 140 \
 
 sudo update-alternatives --install /usr/bin/llvm-link llvm-link /usr/lib/llvm-14/bin/llvm-link 140
 sudo update-alternatives --install /usr/bin/opt       opt       /usr/lib/llvm-14/bin/opt       140
-
 ```
 Verify:
 ```
@@ -31,7 +34,7 @@ opt --version
 ```
 All should print 14.0.6.
 
-Python dependencies:
+### Python dependencies:
 ```
 pip install --upgrade openai --break-system-packages
 python3 -m pip install --user requests pyyaml --break-system-packages
@@ -86,27 +89,32 @@ ls ~/tools/klee/include/klee/klee.h
 python3 install_codeql.py
 source ~/.bashrc
 ```
-## Extract dataset (example)
-Source code:
+## Dataset extraction (CyberGym example)
+SAILR assumes a frozen dataset snapshot under ./dataset/… and, optionally, metadata from the CyberGym repo.
+
+1. Extract source code for a task
 ```
 python3 extract_from_cybergym.py arvo:62911 libxml2
+# Produces: ./dataset/62911/libxml2_62911_vul/...
 ```
-Metadata for ground truth:
+
+2. Fetch ground-truth metadata (optional)
 ```
 python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
 ```
-## Static Analysis Phase
-### Download queries (example)
+This pulls task manifests / metadata that SAILR can later use when evaluating refinement quality.
+
+## Static Analysis Phase (CodeQL)
+### Download queries 
 ```
 codeql pack download codeql/cpp-queries
 codeql pack install rules/oob-pack
-```
-```
 codeql pack install rules/uaf-pack \
   --search-path "/home/shafi/codeql-cli/codeql:/home/shafi/.codeql/packages"
 ```
-### Run CodeQL (example)
+### Run CodeQL 
 chmod +x codeql_scan.sh 
+
 ```
 ./codeql_scan.sh \
   PROJECT_NAME=libxml2_62911_vul \
@@ -116,6 +124,12 @@ chmod +x codeql_scan.sh
   CONTEXT_LINES=5 \
   ALSO_CPP=false
 ```
+This produces, under ```sa_outputs/libxml2_62911_vul```, artifacts like:
+
+- findings.json / findings.jsonl / findings.csv
+- codeql-results.sarif
+- fact_pack.json
+- compile_commands.json
 
 ### Extract Vul Specs (example)
 ```
@@ -124,14 +138,21 @@ python3 scripts/make_vul_specs.py \
   --facts sa_outputs/libxml2_62911_vul/fact_pack.json \
   --out specs/libxml2_62911_vul
 ```
+This generates one JSON spec per finding (entrypoint, rule id, location, etc).
 
-## LLM Refinement (example)
+## LLM Refinement Only (inner loop)
+```run_llm_refinement.sh``` is the LLM + KLEE refinement loop given a single vulnerability spec.
 
-export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
-
-chmod +x run_pipeline.sh 
+### Set your API key:
 ```
-./run_pipeline.sh \
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+```
+### Run
+
+```
+chmod +x run_llm_refinement.sh
+
+./run_llm_refinement.sh \
   --sa-out sa_outputs/libxml2_62911_vul \
   --dataset dataset \
   --target "62911/libxml2_62911_vul:dict.c:541" \
@@ -142,4 +163,33 @@ chmod +x run_pipeline.sh
 ```
 
 
+## One-button end-to-end pipeline
+```run_pipeline_full.sh``` orchestrates everything for a single finding
+
+1. Fetch CyberGym metadata
+2. Extract dataset snapshot
+3. Run CodeQL
+4. Build vul specs
+5. Call run_llm_refinement.sh on the chosen spec
+
+Make it executable:
+
+```
+chmod +x run_pipeline_full.sh
+chmod +x run_llm_refinement.sh
+chmod +x codeql_scan.sh
+```
+Example usage for the libxml2 OOB case:
+```
+./run_pipeline_full.sh \
+  --task        arvo:62911 \
+  --project     libxml2 \
+  --rule        local.oob.memfunc.length-misuse \
+  --query-suites "rules/oob-pack/suites/oob-read.qls" \
+  --target      "62911/libxml2_62911_vul:dict.c:541" \
+  --spec        specs/libxml2_62911_vul/000_dict.c_541_local.oob.memfunc.length-misuse.json \
+  --model       deepseek-chat \
+  --api-base    https://api.deepseek.com
+
+```
   
