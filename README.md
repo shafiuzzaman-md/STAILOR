@@ -253,15 +253,30 @@ drivers/sa_manual/<project_name>/<SPEC_ID>.c        # SA-driven Manual Harness
 drivers/llm_entry/<project_name>/<SPEC_ID>.c        # LLM Harness (entrypoint)
 drivers/sa_llm/<project_name>/<SPEC_ID>.c           # SA-driven LLM Harness
 ```
-### Running all baselines for a spec
+
+These are generated automatically from the specs using a single LLM call per (mode, spec).
+
+#### Generate drivers for all specs in specs/libxml2_62911_vul:
+```
+chmod +x generate_baseline_drivers.py
+
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+
+./generate_baseline_drivers.py \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul \
+  --model deepseek-chat \
+  --api-base https://api.deepseek.com \
+  --modes manual_entry,sa_manual,llm_entry,sa_llm
+```
+### Running all baselines
 Make the helper scripts executable:
 ```
-chmod +x run_se_driver.sh run_baselines_for_spec.sh run_baselines_all_specs.sh
-
-
+chmod +x generate_baseline_drivers.py run_se_driver.sh run_baselines_for_spec.sh run_baselines_all_specs.sh
 ```
 
-Example for libxml2_62911_vul and the OOB spec:
+Example for libxml2_62911_vul and a single OOB spec:
 ```
 ./run_baselines_for_spec.sh \
   --project-name libxml2_62911_vul \
@@ -271,7 +286,7 @@ Example for libxml2_62911_vul and the OOB spec:
   --klee-flags  "--search=dfs --max-time=600"
 
 ```
-
+#### Run baselines for all specs in a project:
 ```
 ./run_baselines_all_specs.sh \
   --project-name libxml2_62911_vul \
@@ -279,4 +294,30 @@ Example for libxml2_62911_vul and the OOB spec:
   --spec-dir specs/libxml2_62911_vul \
   --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
   --klee-flags  "--search=dfs --max-time=600"
+```
+
+
+# Metrics and Result Artifacts
+
+SAILR and the baselines both write structured artifacts that we use to compute
+evaluation metrics such as:
+
+- **Reached** – Did symbolic execution reach the *target location* from the spec?
+- **Detected** – Did KLEE trigger the assertion / error condition at that location?
+- **False Positive (FP)** – Spec claims a bug, but KLEE cannot confirm it
+  (target reached but assertion never fires, within the time budget).
+- **Runtime** – Wall-clock time spent in KLEE for this (spec, configuration).
+- **# LLM iterations** – Number of refinement iterations (SAILR only; baselines are single-shot).
+
+## Aggregating statistics
+
+```
+chmod +x summarize_results.py
+
+python3 summarize_results.py \
+  --project-name libxml2_62911_vul \
+  --sailr-out out \
+  --se-root se_runs \
+  --out-csv tables/libxml2_62911_vul_summary.csv
+
 ```
