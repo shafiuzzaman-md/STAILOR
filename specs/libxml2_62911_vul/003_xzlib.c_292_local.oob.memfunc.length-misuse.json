@@ -1,0 +1,92 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse@xzlib.c:292",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/LLMSE/libxml2_62911_vul/xzlib.c",
+  "line": 292,
+  "column": 35,
+  "end_line": 292,
+  "end_column": 41,
+  "message": "Compare length '6' is not string-bounded; if either input is a C-string, memcmp/bcmp may read past it (possible OOB read).",
+  "context": {
+    "contextStart": 272,
+    "contextEnd": 312,
+    "snippet": "\n#ifdef LIBXML_ZLIB_ENABLED\nstatic int\nxz_avail_zstrm(xz_statep state)\n{\n    int ret;\n    state->strm.avail_in = state->zstrm.avail_in;\n    state->strm.next_in = state->zstrm.next_in;\n    ret = xz_avail(state);\n    state->zstrm.avail_in = (uInt) state->strm.avail_in;\n    state->zstrm.next_in = (Bytef *) state->strm.next_in;\n    return ret;\n}\n#endif\n\nstatic int\nis_format_xz(xz_statep state)\n{\n    lzma_stream *strm = &(state->strm);\n\n    return strm->avail_in >= 6 && memcmp(state->in, \"\\3757zXZ\", 6) == 0;\n}\n\nstatic int\nis_format_lzma(xz_statep state)\n{\n    lzma_stream *strm = &(state->strm);\n\n    lzma_filter filter;\n    lzma_options_lzma *opt;\n    uint32_t dict_size;\n    uint64_t uncompressed_size;\n    size_t i;\n\n    if (strm->avail_in < 13)\n        return 0;\n\n    filter.id = LZMA_FILTER_LZMA1;\n    if (lzma_properties_decode(&filter, NULL, state->in, 5) != LZMA_OK)\n        return 0;\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 292,
+    "column_start": 35,
+    "column_end": 41
+  },
+  "facts": {
+    "suspect_calls": [
+      "is_format_lzma",
+      "is_format_xz",
+      "lzma_properties_decode",
+      "memcmp",
+      "xz_avail",
+      "xz_avail_zstrm"
+    ],
+    "pointer_vars": [
+      "opt",
+      "strm"
+    ],
+    "length_vars": [
+      "avail_in",
+      "dict_size",
+      "in",
+      "next_in",
+      "return",
+      "uncompressed_size"
+    ],
+    "bounds_hints": [
+      {
+        "var": "avail_in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "dict_size",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "next_in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "uncompressed_size",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

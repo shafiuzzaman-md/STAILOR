@@ -1,0 +1,81 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse@dict.c:541",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/LLMSE/libxml2_62911_vul/dict.c",
+  "line": 541,
+  "column": 26,
+  "end_line": 541,
+  "end_column": 32,
+  "message": "Compare length 'len' is not string-bounded; if either input is a C-string, memcmp/bcmp may read past it (possible OOB read).",
+  "context": {
+    "contextStart": 521,
+    "contextEnd": 561,
+    "snippet": "    int found = 0;\n\n    mask = dict->size - 1;\n    pos = hashValue & mask;\n    entry = &dict->table[pos];\n\n    if (entry->hashValue != 0) {\n        /*\n         * Robin hood hashing: abort if the displacement of the entry\n         * is smaller than the displacement of the key we look for.\n         * This also stops at the correct position when inserting.\n         */\n        displ = 0;\n\n        do {\n            if (entry->hashValue == hashValue) {\n                if (prefix == NULL) {\n                    /*\n                     * name is not necessarily null-terminated.\n                     */\n                    if ((memcmp(entry->name, name, len) == 0) &&\n                        (entry->name[len] == 0)) {\n                        found = 1;\n                        break;\n                    }\n                } else {\n                    if (xmlStrQEqual(prefix, name, entry->name)) {\n                        found = 1;\n                        break;\n                    }\n                }\n            }\n\n            displ++;\n            pos++;\n            entry++;\n            if ((pos & mask) == 0)\n                entry = dict->table;\n        } while ((entry->hashValue != 0) &&\n                 (((pos - entry->hashValue) & mask) >= displ));\n    }"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 541,
+    "column_start": 26,
+    "column_end": 32
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcmp",
+      "xmlStrQEqual"
+    ],
+    "pointer_vars": [
+      "is"
+    ],
+    "length_vars": [
+      "Robin",
+      "len",
+      "position",
+      "than",
+      "when"
+    ],
+    "bounds_hints": [
+      {
+        "var": "Robin",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "position",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "than",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "when",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}
