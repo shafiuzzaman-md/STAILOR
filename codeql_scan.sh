@@ -73,7 +73,7 @@ fi
 echo "[i] Running CodeQL analysis once for project: ${PROJECT_NAME}"
 echo "[dbg] run_codeql_analysis.py ${args[*]}"
 # time the run; wrapper should use parse_known_args() and forward extra flags
-LOGLEVEL=DEBUG time python3 run_codeql_analysis.py "${args[@]}"
+LOGLEVEL=DEBUG time python3 scripts/run_codeql_analysis.py "${args[@]}"
 
 OUT_ROOT="sa_outputs/${PROJECT_NAME}"
 
