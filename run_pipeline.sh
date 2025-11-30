@@ -6,14 +6,17 @@ set -euo pipefail
 ###############################################################################
 usage() {
   cat <<EOF
-Usage: $0 --sa-out DIR --dataset ROOT --target PROJECT:FILE:LINE --rule RULEID --spec PATH
+Usage: $0 --sa-out DIR --dataset ROOT --target PROJECT:FILE:LINE --rule RULEID --spec PATH_OR_DIR
 
 Required:
   --sa-out DIR               Static analysis output directory (findings.json, facts, CCDB)
   --dataset ROOT             Dataset root directory
   --target P:F:L             Target vulnerability (project:file:line)
   --rule RULEID              Vulnerability rule id (e.g., local.oob.memfunc.length-misuse)
-  --spec PATH                Path to spec JSON (produced by make_vul_specs.py)
+  --spec PATH_OR_DIR         Either:
+                               - Full path to spec JSON, OR
+                               - Directory containing spec JSON; the script will
+                                 look for 000_<file>_<line>_<rule>.json in it.
 
 Optional:
   --model NAME               LLM model (default: deepseek-chat)
@@ -43,7 +46,7 @@ while [[ $# -gt 0 ]]; do
     --dataset)  DATASET_ROOT="$2"; shift 2;;
     --target)   TARGET_VUL="$2"; shift 2;;
     --rule)     RULE_ID="$2"; shift 2;;
-    --spec)     SPEC_PATH="$2"; shift 2;;
+    --spec)     SPEC_INPUT="$2"; shift 2;;
     --model)    LLM_MODEL="$2"; shift 2;;
     --api-base) LLM_API_BASE="$2"; shift 2;;
     --max-a)    MAX_A="$2"; shift 2;;
@@ -62,7 +65,7 @@ done
 [[ -z "${DATASET_ROOT:-}"  ]] && usage
 [[ -z "${TARGET_VUL:-}"    ]] && usage
 [[ -z "${RULE_ID:-}"       ]] && usage
-[[ -z "${SPEC_PATH:-}"     ]] && usage
+[[ -z "${SPEC_INPUT:-}"    ]] && usage
 
 ###############################################################################
 # Extract PROJECT / FILE / LINE
@@ -76,13 +79,50 @@ STEM="${VUL_FILE}_${VUL_LINE}"
 SRC_ROOT="${DATASET_ROOT}/${PROJECT}"
 
 ###############################################################################
+# Resolve SPEC path (file or directory + pattern)
+###############################################################################
+# Pattern we expect (but we don't hardcode the directory)
+SPEC_BASENAME="000_${STEM}_${RULE_ID}.json"
+
+if [[ -f "${SPEC_INPUT}" ]]; then
+  # Exact file path given
+  SPEC="${SPEC_INPUT}"
+else
+  # Treat SPEC_INPUT as a directory, try a few candidates
+  CANDIDATES=(
+    "${SPEC_INPUT}/${SPEC_BASENAME}"
+    "${SA_OUT_DIR}/${SPEC_BASENAME}"
+    "${SA_OUT_DIR}/specs/${SPEC_BASENAME}"
+  )
+
+  SPEC=""
+  for c in "${CANDIDATES[@]}"; do
+    if [[ -f "$c" ]]; then
+      SPEC="$c"
+      break
+    fi
+  done
+
+  if [[ -z "${SPEC}" ]]; then
+    echo "[!] Could not resolve SPEC file." >&2
+    echo "    Tried the following locations:" >&2
+    for c in "${CANDIDATES[@]}"; do
+      echo "      - $c" >&2
+    done
+    echo >&2
+    echo "    You can either:" >&2
+    echo "      - Pass the full spec path with --spec /absolute/or/relative/path.json" >&2
+    echo "      - Or pass a directory and ensure ${SPEC_BASENAME} exists there." >&2
+    exit 1
+  fi
+fi
+
+###############################################################################
 # Paths
 ###############################################################################
 FINDINGS="${SA_OUT_DIR}/findings.json"
 FACTS="${SA_OUT_DIR}/fact_pack.json"
 CCDB="${SA_OUT_DIR}/compile_commands.json"
-
-SPEC="${SPEC_PATH}"
 
 PLAN="out/plans/plan_${STEM}.json"
 HISTORY="out/plans/history_${STEM}.json"
@@ -125,13 +165,6 @@ echo "  SPEC         = ${SPEC}"
 echo "  LLM_MODEL    = ${LLM_MODEL}"
 echo "  LLM_API_BASE = ${LLM_API_BASE}"
 echo
-
-# Spec must exist
-if [[ ! -f "${SPEC}" ]]; then
-  echo "[!] Spec not found: ${SPEC}" >&2
-  echo "    You must run make_vul_specs.py to generate it." >&2
-  exit 1
-fi
 
 ###############################################################################
 # PIPELINE
