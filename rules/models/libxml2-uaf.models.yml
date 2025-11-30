@@ -1,0 +1,15 @@
+extensions:
+  # Treat these as allocators (returning newly allocated memory)
+  - addsTo:
+      pack: codeql/cpp-all
+      extensible: allocationModel
+    data:
+      - ["", "", false, "xmlMalloc",  "", "", "ReturnValue", "allocator", "manual"]
+      - ["", "", false, "xmlRealloc", "", "", "ReturnValue", "allocator", "manual"]
+
+  # Treat these as deallocators (first argument is freed)
+  - addsTo:
+      pack: codeql/cpp-all
+      extensible: deallocationModel
+    data:
+      - ["", "", false, "xmlFree", "", "", "Argument[0]", "deallocator", "manual"]

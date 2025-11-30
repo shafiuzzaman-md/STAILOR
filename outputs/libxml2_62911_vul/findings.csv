@@ -1,0 +1,111 @@
+ruleId,ruleName,severity,precision,cwe,file,startLine,startColumn,endLine,endColumn,message,helpUri,contextStart,contextEnd,snippet
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,3334,5,3334,11,High-coverage OOB risk: length/count may be unbounded for memset().,,3329,3339,"    if (strings == NULL) {
+        PyErr_SetString(PyExc_MemoryError, """");
+        return -1;
+    }
+
+    memset(strings, 0 , sizeof(xmlChar *) * count);
+
+    {
+        int idx;
+        for (idx=0; idx < count; ++idx) {
+            char* s = PyBytes_AsString"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,3280,5,3280,11,High-coverage OOB risk: length/count may be unbounded for memset().,,3275,3285,"    if (nodeSet->nodeTab == NULL) {
+        xmlFree(nodeSet);
+        PyErr_SetString(PyExc_MemoryError, """");
+        return -1;
+    }
+    memset(nodeSet->nodeTab, 0 ,
+           nodeSet->nodeMax * sizeof(xmlNodePtr));
+
+    {
+        int idx;
+        for (idx=0; idx < nodeSet->nodeMax; ++idx) {"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,3182,3,3182,9,High-coverage OOB risk: length/count may be unbounded for memset().,,3177,3187,"		pyCtxt = xmlMalloc(sizeof(xmlSchemaValidCtxtPyCtxt));
+		if (pyCtxt == NULL) {
+			py_retval = libxml_intWrap(-1);
+			return(py_retval);
+		}
+		memset(pyCtxt, 0, sizeof(xmlSchemaValidCtxtPyCtxt));
+	}
+
+	/* TODO: check warn and error is a function ! */
+	Py_XDECREF(pyCtxt->error);
+	Py_XINCREF(pyobj_error);"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,3030,9,3030,15,High-coverage OOB risk: length/count may be unbounded for memset().,,3025,3035,"        pyCtxt = xmlMalloc(sizeof(xmlRelaxNGValidCtxtPyCtxt));
+        if (pyCtxt == NULL) {
+            py_retval = libxml_intWrap(-1);
+            return(py_retval);
+        }
+        memset(pyCtxt, 0, sizeof(xmlRelaxNGValidCtxtPyCtxt));
+    }
+    
+    /* TODO: check warn and error is a function ! */
+    Py_XDECREF(pyCtxt->error);
+    Py_XINCREF(pyobj_error);"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,1856,5,1856,11,High-coverage OOB risk: length/count may be unbounded for memset().,,1851,1861,"    pyCtxt = xmlMalloc(sizeof(xmlValidCtxtPyCtxt));
+    if (pyCtxt == NULL) {
+            py_retval = libxml_intWrap(-1);
+            return(py_retval);
+    }
+    memset(pyCtxt, 0, sizeof(xmlValidCtxtPyCtxt));
+
+    
+    /* TODO: check warn and error is a function ! */
+    Py_XDECREF(pyCtxt->error);
+    Py_XINCREF(pyobj_error);"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,1670,2,1670,8,High-coverage OOB risk: length/count may be unbounded for memset().,,1665,1675,"	pyCtxt = xmlMalloc(sizeof(xmlParserCtxtPyCtxt));
+	if (pyCtxt == NULL) {
+	    py_retval = libxml_intWrap(-1);
+	    return(py_retval);
+	}
+	memset(pyCtxt,0,sizeof(xmlParserCtxtPyCtxt));
+	ctxt->_private = pyCtxt;
+    }
+    else {
+	pyCtxt = (xmlParserCtxtPyCtxtPtr)ctxt->_private;
+    }"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,349,2,349,8,High-coverage OOB risk: length/count may be unbounded for memcpy().,,344,354,"	printf(""xmlPythonFileRead: result is not a String\n"");
+	Py_DECREF(ret);
+	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,351,2,351,8,High-coverage OOB risk: length/count may be unbounded for memcpy().,,346,356,"	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}
+
+/**"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,287,2,287,8,High-coverage OOB risk: length/count may be unbounded for memcpy().,,282,292,"	printf(""xmlPythonFileReadRaw: result is not a String\n"");
+	Py_DECREF(ret);
+	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}"
+local.oob.memfunc.length-misuse.maxcover.v4,local.oob.memfunc.length-misuse.maxcover.v4,warning,low,"CWE-120,CWE-125,CWE-787",/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c,289,2,289,8,High-coverage OOB risk: length/count may be unbounded for memcpy().,,284,294,"	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}
+
+/**"

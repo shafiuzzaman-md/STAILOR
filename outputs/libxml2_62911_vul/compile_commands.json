@@ -1,0 +1,297 @@
+[
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/buf.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/buf.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/buf.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/c14n.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/catalog.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/catalog.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/catalog.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/chvalid.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/chvalid.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/chvalid.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/debugXML.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/debugXML.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/debugXML.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/dict.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/encoding.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/entities.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/entities.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/entities.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/error.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/error.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/error.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/globals.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/globals.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/globals.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/hash.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/HTMLparser.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLtree.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/HTMLtree.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLtree.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/legacy.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/legacy.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/legacy.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/list.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/list.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/list.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanoftp.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/nanoftp.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanoftp.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/nanohttp.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/parser.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/parserInternals.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/pattern.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/relaxng.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/SAX.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/SAX2.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/schematron.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/threads.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/threads.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/threads.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/tree.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/uri.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/valid.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/valid.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/valid.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xinclude.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xinclude.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xinclude.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xlink.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xlink.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xlink.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlIO.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlIO.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlIO.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmemory.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlmemory.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmemory.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmodule.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlmodule.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmodule.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlreader.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlreader.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlreader.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlregexp.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlregexp.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlsave.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlsave.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlsave.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlschemas.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemas.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlschemastypes.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlstring.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlstring.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlstring.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlunicode.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlunicode.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlunicode.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlwriter.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xmlwriter.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlwriter.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpath.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xpath.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpath.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpointer.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xpointer.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpointer.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xzlib.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2_EXPORTS -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -D_REENTRANT -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2.dir/xzlib.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xzlib.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlcatalog.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/xmlcatalog.dir/xmlcatalog.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlcatalog.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmllint.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/xmllint.dir/xmllint.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmllint.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/runtest.dir/runtest.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runxmlconf.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/runxmlconf.dir/runxmlconf.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runxmlconf.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runsuite.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/runsuite.dir/runsuite.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runsuite.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testapi.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/testapi.dir/testapi.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testapi.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/testchar.dir/testchar.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/testdict.dir/testdict.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testModule.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/testModule.dir/testModule.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testModule.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/testlimits.dir/testlimits.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testrecurse.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/testrecurse.dir/testrecurse.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testrecurse.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testThreads.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DSYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\" -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -o CMakeFiles/testThreads.dir/testThreads.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testThreads.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build/libxml2-py.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2Mod_EXPORTS -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include -isystem /usr/include/python3.12  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2Mod.dir/libxml2-py.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build/libxml2-py.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2Mod_EXPORTS -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include -isystem /usr/include/python3.12  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2Mod.dir/python/libxml.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c"
+  },
+  {
+    "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/types.c",
+    "directory": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+    "command": "/usr/bin/cc -DLibXml2Mod_EXPORTS -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build -I/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include -isystem /usr/include/python3.12  -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args -O3 -DNDEBUG -fPIC -o CMakeFiles/LibXml2Mod.dir/python/types.c.o -c /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/types.c"
+  }
+]

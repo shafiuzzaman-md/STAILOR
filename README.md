@@ -102,17 +102,31 @@ codeql pack install rules/uaf-pack \
   --search-path "/home/shafi/codeql-cli/codeql:/home/shafi/.codeql/packages"
 ```
 ### Run CodeQL (example)
+chmod +x codeql_scan.sh 
 ```
-./01_codeql_scan.sh \
-  PROJECT_NAME=libxml2_66502_vul \
-  SRC_ROOT=./dataset/66502/libxml2_66502_vul \
+./codeql_scan.sh \
+  PROJECT_NAME=libxml2_62911_vul \
+  SRC_ROOT=./dataset/62911/libxml2_62911_vul \
   BUILD_CMD="./build.sh" \
-  QUERY_SUITES="rules/uaf-pack/suites/uaf.qls" \
+  QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
   CONTEXT_LINES=5 \
   ALSO_CPP=false
 ```
 
+### Extract Vul Specs (example)
+```
+python3 scripts/make_vul_specs.py \
+  --findings libxml2_66502_vul/findings.json \
+  --facts fact_pack.json \
+  --out out/specs
+```
+```
+cd ~/LLMSE/outputs/libxml2_62911_vul/llmse_cegir
+SPEC=out/specs/000_dict.c_541_local.oob.memfunc.length-misuse.json
+```
+
 ## LLM Refinement 
+export DEEPSEEK_API_KEY=""
 ```
 bash scripts/run_full_cegir_dict.sh
 ```

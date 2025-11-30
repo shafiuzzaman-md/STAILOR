@@ -1,0 +1,14 @@
+# rules/oob-pack/suites/oob-read.qls
+- description: OOB read/overflow bundle (by IDs from official pack)
+  from: codeql/cpp-queries
+  queries: '.'
+  include:
+    id:
+      - cpp/overflow-buffer                     # Buffer read/write past bounds
+      - cpp/invalid-pointer-deref               # Deref of invalid pointer
+      - cpp/static-buffer-overflow              # Overflow of fixed-size array.
+      - cpp/offset-use-before-range-check       # Access before bounds check
+
+# local custom heuristic (lives in this pack)
+- query: queries//oob_memcmp_length_misuse.ql   # memcmp without length bound
+- query: queries//oob-length-misuse-maxcover.ql

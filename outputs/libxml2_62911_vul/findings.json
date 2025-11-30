@@ -1,0 +1,414 @@
+{
+  "results": [
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 3334,
+      "startColumn": 5,
+      "endLine": 3334,
+      "endColumn": 11,
+      "contextStart": 3329,
+      "contextEnd": 3339,
+      "snippet": "    if (strings == NULL) {\n        PyErr_SetString(PyExc_MemoryError, \"\");\n        return -1;\n    }\n\n    memset(strings, 0 , sizeof(xmlChar *) * count);\n\n    {\n        int idx;\n        for (idx=0; idx < count; ++idx) {\n            char* s = PyBytes_AsString",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "a1a12a0c4f89ee14:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 3280,
+      "startColumn": 5,
+      "endLine": 3280,
+      "endColumn": 11,
+      "contextStart": 3275,
+      "contextEnd": 3285,
+      "snippet": "    if (nodeSet->nodeTab == NULL) {\n        xmlFree(nodeSet);\n        PyErr_SetString(PyExc_MemoryError, \"\");\n        return -1;\n    }\n    memset(nodeSet->nodeTab, 0 ,\n           nodeSet->nodeMax * sizeof(xmlNodePtr));\n\n    {\n        int idx;\n        for (idx=0; idx < nodeSet->nodeMax; ++idx) {",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "db9c0f3ae8ca759a:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 3182,
+      "startColumn": 3,
+      "endLine": 3182,
+      "endColumn": 9,
+      "contextStart": 3177,
+      "contextEnd": 3187,
+      "snippet": "\t\tpyCtxt = xmlMalloc(sizeof(xmlSchemaValidCtxtPyCtxt));\n\t\tif (pyCtxt == NULL) {\n\t\t\tpy_retval = libxml_intWrap(-1);\n\t\t\treturn(py_retval);\n\t\t}\n\t\tmemset(pyCtxt, 0, sizeof(xmlSchemaValidCtxtPyCtxt));\n\t}\n\n\t/* TODO: check warn and error is a function ! */\n\tPy_XDECREF(pyCtxt->error);\n\tPy_XINCREF(pyobj_error);",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "aea4974d0343a6db:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 3030,
+      "startColumn": 9,
+      "endLine": 3030,
+      "endColumn": 15,
+      "contextStart": 3025,
+      "contextEnd": 3035,
+      "snippet": "        pyCtxt = xmlMalloc(sizeof(xmlRelaxNGValidCtxtPyCtxt));\n        if (pyCtxt == NULL) {\n            py_retval = libxml_intWrap(-1);\n            return(py_retval);\n        }\n        memset(pyCtxt, 0, sizeof(xmlRelaxNGValidCtxtPyCtxt));\n    }\n    \n    /* TODO: check warn and error is a function ! */\n    Py_XDECREF(pyCtxt->error);\n    Py_XINCREF(pyobj_error);",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "52594d579af0ebb8:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 1856,
+      "startColumn": 5,
+      "endLine": 1856,
+      "endColumn": 11,
+      "contextStart": 1851,
+      "contextEnd": 1861,
+      "snippet": "    pyCtxt = xmlMalloc(sizeof(xmlValidCtxtPyCtxt));\n    if (pyCtxt == NULL) {\n            py_retval = libxml_intWrap(-1);\n            return(py_retval);\n    }\n    memset(pyCtxt, 0, sizeof(xmlValidCtxtPyCtxt));\n\n    \n    /* TODO: check warn and error is a function ! */\n    Py_XDECREF(pyCtxt->error);\n    Py_XINCREF(pyobj_error);",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "9e423ad3457a8742:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 1670,
+      "startColumn": 2,
+      "endLine": 1670,
+      "endColumn": 8,
+      "contextStart": 1665,
+      "contextEnd": 1675,
+      "snippet": "\tpyCtxt = xmlMalloc(sizeof(xmlParserCtxtPyCtxt));\n\tif (pyCtxt == NULL) {\n\t    py_retval = libxml_intWrap(-1);\n\t    return(py_retval);\n\t}\n\tmemset(pyCtxt,0,sizeof(xmlParserCtxtPyCtxt));\n\tctxt->_private = pyCtxt;\n    }\n    else {\n\tpyCtxt = (xmlParserCtxtPyCtxtPtr)ctxt->_private;\n    }",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "1a7004fa69297161:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 349,
+      "startColumn": 2,
+      "endLine": 349,
+      "endColumn": 8,
+      "contextStart": 344,
+      "contextEnd": 354,
+      "snippet": "\tprintf(\"xmlPythonFileRead: result is not a String\\n\");\n\tPy_DECREF(ret);\n\treturn(-1);\n    }\n    if (lenread > len)\n\tmemcpy(buffer, data, len);\n    else\n\tmemcpy(buffer, data, lenread);\n    Py_DECREF(ret);\n    return(lenread);\n}",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "129ddbd3232e6b5a:2",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 351,
+      "startColumn": 2,
+      "endLine": 351,
+      "endColumn": 8,
+      "contextStart": 346,
+      "contextEnd": 356,
+      "snippet": "\treturn(-1);\n    }\n    if (lenread > len)\n\tmemcpy(buffer, data, len);\n    else\n\tmemcpy(buffer, data, lenread);\n    Py_DECREF(ret);\n    return(lenread);\n}\n\n/**",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "c9b3e7a9114d6764:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 287,
+      "startColumn": 2,
+      "endLine": 287,
+      "endColumn": 8,
+      "contextStart": 282,
+      "contextEnd": 292,
+      "snippet": "\tprintf(\"xmlPythonFileReadRaw: result is not a String\\n\");\n\tPy_DECREF(ret);\n\treturn(-1);\n    }\n    if (lenread > len)\n\tmemcpy(buffer, data, len);\n    else\n\tmemcpy(buffer, data, lenread);\n    Py_DECREF(ret);\n    return(lenread);\n}",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "129ddbd3232e6b5a:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    },
+    {
+      "ruleId": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "ruleName": "local.oob.memfunc.length-misuse.maxcover.v4",
+      "severity": "warning",
+      "precision": "low",
+      "cwe": [
+        "CWE-120",
+        "CWE-125",
+        "CWE-787"
+      ],
+      "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+      "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+      "startLine": 289,
+      "startColumn": 2,
+      "endLine": 289,
+      "endColumn": 8,
+      "contextStart": 284,
+      "contextEnd": 294,
+      "snippet": "\treturn(-1);\n    }\n    if (lenread > len)\n\tmemcpy(buffer, data, len);\n    else\n\tmemcpy(buffer, data, lenread);\n    Py_DECREF(ret);\n    return(lenread);\n}\n\n/**",
+      "helpUri": null,
+      "properties": {
+        "tags": [
+          "security",
+          "external/cwe/cwe-125",
+          "external/cwe/cwe-787",
+          "external/cwe/cwe-120"
+        ],
+        "description": "High-coverage, AST-only heuristic. Intentionally permissive to feed symbolic execution.\n Skips only the most obviously safe sizeof(dest) pattern and direct strlen/strnlen bounds.",
+        "id": "local.oob.memfunc.length-misuse.maxcover.v4",
+        "kind": "problem",
+        "name": "OOB-risk (max coverage): length/count not clearly bounded",
+        "precision": "low",
+        "problem.severity": "warning",
+        "shortDescription": "Broadly flags mem*,strn* calls where the count argument\n                   isn\u2019t trivially tied to destination capacity or string length."
+      },
+      "partialFingerprints": {
+        "primaryLocationLineHash": "7183a1a53869958f:1",
+        "primaryLocationStartColumnFingerprint": "0"
+      },
+      "codeFlows": []
+    }
+  ]
+}

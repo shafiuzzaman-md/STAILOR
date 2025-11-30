@@ -1,0 +1,16 @@
+# rules/uaf-pack/suites/uaf-libxml2.qls
+
+- description: Stock UAF baseline (built-in CodeQL)
+  from: codeql/cpp-queries
+  queries: .
+  include:
+    id: [ cpp/use-after-free ]
+
+- description: libxml2 CWE-416 free-then-use (intra; field-collapse)
+  query: queries/cwe-416-libxml2-free-then-use-intra-fieldcollapse.ql
+
+- description: libxml2 CWE-416 free-then-dereference (intra)
+  query: queries/cwe-416-libxml2-free-then-deref-intra.ql
+
+- description: libxml2 CWE-416 free-then-call-arg (intra; field-collapse + light agg steps)
+  query: queries/cwe-416-libxml2-free-then-callarg-intra-fieldcollapse.ql
