@@ -641,7 +641,7 @@ def main():
 
     project = args.project_name
     source_root = Path(args.source_path).resolve()
-    outputs_root = Path.cwd() / "outputs" / project
+    outputs_root = Path.cwd() / "sa_outputs" / project
     outputs_root.mkdir(parents=True, exist_ok=True)
 
     db_path = outputs_root / "codeql-db"

@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2025-11-30T16:59:09.920748+00:00",
+  "timestamp_utc": "2025-11-30T17:21:04.508354+00:00",
   "project": "libxml2_62911_vul",
   "args": {
     "query_suites": [
@@ -15,12 +15,12 @@
   "codeql_version": "CodeQL command-line toolchain release 2.22.1.\nCopyright (C) 2019-2025 GitHub, Inc.\nUnpacked in: /home/shafi/codeql-cli/codeql\n   Analysis results depend critically on separately distributed query and\n   extractor modules. To list modules that are visible to the toolchain,\n   use 'codeql resolve packs' and 'codeql resolve languages'.",
   "installed_packs": {},
   "paths": {
-    "outputs_root": "/mnt/WorkDrive/SAILR/outputs/libxml2_62911_vul",
-    "db_path": "/mnt/WorkDrive/SAILR/outputs/libxml2_62911_vul/codeql-db",
-    "sarif": "/mnt/WorkDrive/SAILR/outputs/libxml2_62911_vul/codeql-results.sarif",
-    "json": "/mnt/WorkDrive/SAILR/outputs/libxml2_62911_vul/findings.json",
-    "jsonl": "/mnt/WorkDrive/SAILR/outputs/libxml2_62911_vul/findings.jsonl",
-    "csv": "/mnt/WorkDrive/SAILR/outputs/libxml2_62911_vul/findings.csv",
-    "ccdb": "/mnt/WorkDrive/SAILR/outputs/libxml2_62911_vul/compile_commands.json"
+    "outputs_root": "/mnt/WorkDrive/SAILR/sa_outputs/libxml2_62911_vul",
+    "db_path": "/mnt/WorkDrive/SAILR/sa_outputs/libxml2_62911_vul/codeql-db",
+    "sarif": "/mnt/WorkDrive/SAILR/sa_outputs/libxml2_62911_vul/codeql-results.sarif",
+    "json": "/mnt/WorkDrive/SAILR/sa_outputs/libxml2_62911_vul/findings.json",
+    "jsonl": "/mnt/WorkDrive/SAILR/sa_outputs/libxml2_62911_vul/findings.jsonl",
+    "csv": "/mnt/WorkDrive/SAILR/sa_outputs/libxml2_62911_vul/findings.csv",
+    "ccdb": "/mnt/WorkDrive/SAILR/sa_outputs/libxml2_62911_vul/compile_commands.json"
   }
 }

@@ -116,9 +116,9 @@ chmod +x codeql_scan.sh
 ### Extract Vul Specs (example)
 ```
 python3 scripts/make_vul_specs.py \
-  --findings libxml2_66502_vul/findings.json \
-  --facts fact_pack.json \
-  --out out/specs
+  --findings sa_outputs/libxml2_62911_vul/findings.json \
+  --facts sa_outputs/libxml2_62911_vul/fact_pack.json \
+  --out specs/libxml2_62911_vul
 ```
 ```
 cd ~/LLMSE/outputs/libxml2_62911_vul/llmse_cegir

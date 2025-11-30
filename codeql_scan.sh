@@ -75,7 +75,7 @@ echo "[dbg] run_codeql_analysis.py ${args[*]}"
 # time the run; wrapper should use parse_known_args() and forward extra flags
 LOGLEVEL=DEBUG time python3 run_codeql_analysis.py "${args[@]}"
 
-OUT_ROOT="outputs/${PROJECT_NAME}"
+OUT_ROOT="sa_outputs/${PROJECT_NAME}"
 
 echo
 echo "[i] Artifacts ready in ${OUT_ROOT}:"
