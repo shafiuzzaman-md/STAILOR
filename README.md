@@ -98,6 +98,10 @@ python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
 ## Static Analysis Phase
 ### Download queries (example)
 ```
+codeql pack download codeql/cpp-queries
+codeql pack install rules/oob-pack
+```
+```
 codeql pack install rules/uaf-pack \
   --search-path "/home/shafi/codeql-cli/codeql:/home/shafi/.codeql/packages"
 ```
