@@ -224,3 +224,59 @@ export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
 
 ```
 
+# Baseline Symbolic-Execution Configurations (manual / non-iterative)
+To compare SAILR with simpler workflows, we run four SE baselines for each spec.
+
+1. Manual Harness (entrypoint)
+– Hand-written KLEE harness that calls the entrypoint, no static-analysis info.
+
+2. SA driven Manual Harness (entrypoint + target + assertion)
+– Hand-written harness, but designed using SA output (entrypoint, suspicious call site, assertion at target).
+
+
+3. LLM Harness (entrypoint)
+– Single-shot LLM-generated harness that calls the entrypoint, but without passing the CodeQL spec.
+
+4. SA driven LLM Harness (entrypoint + target + assertion)
+– Single-shot LLM-generated harness using the SA spec (entrypoint, target, assertion), without SAILR’s counterexample-guided refinement loop.
+
+### Baseline drivers
+For each project and spec, we use a canonical <SPEC_ID>:
+```
+specs/<project_name>/<SPEC_ID>.json
+# e.g. SPEC_ID = 000_dict.c_541_local.oob.memfunc.length-misuse
+```
+Baseline driver sources are expected at:
+```
+drivers/manual_entry/<project_name>/<SPEC_ID>.c     # Manual Harness (entrypoint)
+drivers/sa_manual/<project_name>/<SPEC_ID>.c        # SA-driven Manual Harness
+drivers/llm_entry/<project_name>/<SPEC_ID>.c        # LLM Harness (entrypoint)
+drivers/sa_llm/<project_name>/<SPEC_ID>.c           # SA-driven LLM Harness
+```
+### Running all baselines for a spec
+Make the helper scripts executable:
+```
+chmod +x run_se_driver.sh run_baselines_for_spec.sh run_baselines_all_specs.sh
+
+
+```
+
+Example for libxml2_62911_vul and the OOB spec:
+```
+./run_baselines_for_spec.sh \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec specs/libxml2_62911_vul/000_dict.c_541_local.oob.memfunc.length-misuse.json \
+  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
+  --klee-flags  "--search=dfs --max-time=600"
+
+```
+
+```
+./run_baselines_all_specs.sh \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul \
+  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
+  --klee-flags  "--search=dfs --max-time=600"
+```
