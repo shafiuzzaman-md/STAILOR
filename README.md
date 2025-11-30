@@ -164,7 +164,7 @@ chmod +x run_llm_refinement.sh
 
 
 ## One-button end-to-end pipeline
-```run_pipeline_full.sh``` orchestrates everything for a single finding
+### ```run_pipeline_full.sh``` orchestrates everything for a single finding
 
 1. Fetch CyberGym metadata
 2. Extract dataset snapshot
@@ -181,6 +181,7 @@ chmod +x codeql_scan.sh
 ```
 Example usage for the libxml2 OOB case:
 ```
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
 ./run_pipeline_full.sh \
   --task        arvo:62911 \
   --project     libxml2 \
@@ -192,4 +193,34 @@ Example usage for the libxml2 OOB case:
   --api-base    https://api.deepseek.com
 
 ```
+
+### Batch mode: run LLM over all specs
   
+```run_pipeline_all_specs.sh``` (project-level batch refinement)
+
+This script does:
+1. Extract dataset
+2. Fetch CyberGym metadata
+3. Run CodeQL once
+4. Generate all specs
+5. Loop over every *.json in specs/<project_name>/ and run run_llm_refinement.sh for each.
+
+Make it executable:
+```
+chmod +x run_pipeline_all_specs.sh
+```
+
+Example usage:
+```
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+
+./run_pipeline_all_specs.sh \
+  --task        arvo:62911 \
+  --project     libxml2 \
+  --rule        local.oob.memfunc.length-misuse \
+  --query-suites "rules/oob-pack/suites/oob-read.qls" \
+  --model       deepseek-chat \
+  --api-base    https://api.deepseek.com
+
+```
+
