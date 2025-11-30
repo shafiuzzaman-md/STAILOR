@@ -122,13 +122,15 @@ python3 scripts/make_vul_specs.py \
 ```
 
 ## LLM Refinement 
-
-- export DEEPSEEK_API_KEY=""
-- set the config for the potentail vulnerability to confirm in ```iterate_llm_refinement.sh```
-- run LLM refinement loop:
-  ```
-  bash scripts/iterate_llm_refinement.sh
-  ```
+```
+SA_OUT_DIR="sa_outputs/libxml2_62911_vul" \
+DATASET_ROOT="dataset" \
+TARGET_VUL="62911/libxml2_62911_vul:dict.c:541" \
+RULE_ID="local.oob.memfunc.length-misuse" \
+LLM_MODEL="deepseek-chat" \
+LLM_API_BASE="https://api.deepseek.com" \
+bash scripts/iterate_llm_refinement.sh
+```
 
 
   
