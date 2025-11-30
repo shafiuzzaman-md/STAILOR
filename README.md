@@ -120,15 +120,15 @@ python3 scripts/make_vul_specs.py \
   --facts sa_outputs/libxml2_62911_vul/fact_pack.json \
   --out specs/libxml2_62911_vul
 ```
-```
-cd ~/LLMSE/outputs/libxml2_62911_vul/llmse_cegir
-SPEC=out/specs/000_dict.c_541_local.oob.memfunc.length-misuse.json
-```
 
 ## LLM Refinement 
-export DEEPSEEK_API_KEY=""
-```
-bash scripts/run_full_cegir_dict.sh
-```
+
+- export DEEPSEEK_API_KEY=""
+- set the config for the potentail vulnerability to confirm in ```scripts/run_full_cegir_dict.sh```
+- run LLM refinement loop:
+  ```
+  bash scripts/run_full_cegir_dict.sh
+  ```
+
 
   
