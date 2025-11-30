@@ -1,6 +1,6 @@
 runs/
 codeql-db/
-datset/
+dataset/
 
 # Python bytecode
 __pycache__/
