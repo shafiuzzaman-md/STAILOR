@@ -1,6 +1,7 @@
 runs/
 codeql-db/
 dataset/
+cybergym_data/
 
 # Python bytecode
 __pycache__/
