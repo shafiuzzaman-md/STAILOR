@@ -1,0 +1,59 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xpath.c:6225",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpath.c",
+  "line": 6225,
+  "column": 5,
+  "end_line": 6225,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 6220,
+    "contextEnd": 6230,
+    "snippet": "        /* TODO: Propagate memory error. */\n        xmlXPathErrMemory(NULL, \"comparing nodesets\\n\");\n\txmlFree(values1);\n\treturn(0);\n    }\n    memset(values1, 0, ns1->nodeNr * sizeof(xmlChar *));\n    values2 = (xmlChar **) xmlMalloc(ns2->nodeNr * sizeof(xmlChar *));\n    if (values2 == NULL) {\n        /* TODO: Propagate memory error. */\n        xmlXPathErrMemory(NULL, \"comparing nodesets\\n\");\n\txmlFree(hashs1);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 6225,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlFree",
+      "xmlMalloc",
+      "xmlXPathErrMemory"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

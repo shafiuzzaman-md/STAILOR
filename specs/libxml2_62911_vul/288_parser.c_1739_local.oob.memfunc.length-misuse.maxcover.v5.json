@@ -1,0 +1,70 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@parser.c:1739",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c",
+  "line": 1739,
+  "column": 9,
+  "end_line": 1739,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 1734,
+    "contextEnd": 1744,
+    "snippet": "        newHash = xmlMalloc(newSize * sizeof(newHash[0]));\n        if (newHash == NULL) {\n            xmlErrMemory(ctxt, NULL);\n            return(-1);\n        }\n        memset(newHash, 0, newSize * sizeof(newHash[0]));\n\n        for (i = 0; i < ctxt->nsdb->hashSize; i++) {\n            unsigned hv = ctxt->nsdb->hash[i].hashValue;\n            unsigned newIndex;\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 1739,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlErrMemory",
+      "xmlMalloc"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [
+      "hashSize",
+      "newSize",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "hashSize",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "newSize",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

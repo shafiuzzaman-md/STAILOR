@@ -1,0 +1,62 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@runtest.c:3539",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c",
+  "line": 3539,
+  "column": 2,
+  "end_line": 3539,
+  "end_column": 8,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 3534,
+    "contextEnd": 3544,
+    "snippet": "    if (snprintf(pattern, 499, \"./test/schemas/%s_*.xml\", prefix) >= 499)\n        pattern[499] = 0;\n\n    if (base[len] == '_') {\n        len += 2;\n\tmemcpy(prefix, base, len);\n\tprefix[len] = 0;\n    }\n\n    globbuf.gl_offs = 0;\n    glob(pattern, GLOB_DOOFFS, NULL, &globbuf);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 3539,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [
+      "glob",
+      "memcpy",
+      "snprintf"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "len",
+      "pattern"
+    ],
+    "bounds_hints": [
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "pattern",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@pattern.c:209",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c",
+  "line": 209,
+  "column": 5,
+  "end_line": 209,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 204,
+    "contextEnd": 214,
+    "snippet": "    if (cur == NULL) {\n\tERROR(NULL, NULL, NULL,\n\t\t\"xmlNewPattern : malloc failed\\n\");\n\treturn(NULL);\n    }\n    memset(cur, 0, sizeof(xmlPattern));\n    cur->maxStep = 10;\n    cur->steps = (xmlStepOpPtr) xmlMalloc(cur->maxStep * sizeof(xmlStepOp));\n    if (cur->steps == NULL) {\n        xmlFree(cur);\n\tERROR(NULL, NULL, NULL,"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 209,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "ERROR",
+      "memset",
+      "xmlFree",
+      "xmlMalloc"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [
+      "return",
+      "xmlNewPattern",
+      "xmlPattern"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "xmlNewPattern",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "xmlPattern",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@relaxng.c:1279",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c",
+  "line": 1279,
+  "column": 9,
+  "end_line": 1279,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 1274,
+    "contextEnd": 1284,
+    "snippet": "            xmlMalloc(sizeof(xmlRelaxNGValidState));\n        if (ret == NULL) {\n            xmlRngVErrMemory(ctxt, \"allocating states\\n\");\n            return (NULL);\n        }\n        memset(ret, 0, sizeof(xmlRelaxNGValidState));\n    }\n    attrs = ret->attrs;\n    maxAttrs = ret->maxAttrs;\n    memcpy(ret, state, sizeof(xmlRelaxNGValidState));\n    ret->attrs = attrs;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 1279,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "memset",
+      "xmlMalloc",
+      "xmlRngVErrMemory"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testlimits.c:184",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c",
+  "line": 184,
+  "column": 13,
+  "end_line": 184,
+  "end_column": 19,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 179,
+    "contextEnd": 189,
+    "snippet": "\n    if (instate == 0) {\n        if (len >= rlen) {\n            len = rlen;\n            rlen = 0;\n            memcpy(buffer, current, len);\n            instate = 1;\n            curlen = 0;\n            dotlen = maxlen / 10;\n        } else {\n            memcpy(buffer, current, len);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 184,
+    "column_start": 13,
+    "column_end": 19
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "curlen",
+      "dotlen",
+      "len",
+      "maxlen",
+      "rlen"
+    ],
+    "bounds_hints": [
+      {
+        "var": "curlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "dotlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "maxlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "rlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testlimits.c:207",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c",
+  "line": 207,
+  "column": 9,
+  "end_line": 207,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 202,
+    "contextEnd": 212,
+    "snippet": "            rlen -= len;\n            current += len;\n        }\n    } else if (instate == 1) {\n        if (len > CHUNK) len = CHUNK;\n        memcpy(buffer, &filling[0], len);\n        curlen += len;\n        if (curlen >= maxlen) {\n            rlen = strlen(hugeTests[currentTest].end);\n            current = hugeTests[currentTest].end;\n            instate = 2;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 207,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "strlen"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "curlen",
+      "len",
+      "maxlen",
+      "rlen",
+      "strlen"
+    ],
+    "bounds_hints": [
+      {
+        "var": "curlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "maxlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "rlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "strlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

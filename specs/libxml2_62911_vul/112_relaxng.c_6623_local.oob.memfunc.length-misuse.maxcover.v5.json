@@ -1,0 +1,57 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@relaxng.c:6623",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c",
+  "line": 6623,
+  "column": 5,
+  "end_line": 6623,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 6618,
+    "contextEnd": 6628,
+    "snippet": "        (xmlRelaxNGParserCtxtPtr) xmlMalloc(sizeof(xmlRelaxNGParserCtxt));\n    if (ret == NULL) {\n        xmlRngPErrMemory(NULL, \"building parser\\n\");\n        return (NULL);\n    }\n    memset(ret, 0, sizeof(xmlRelaxNGParserCtxt));\n    ret->URL = xmlStrdup((const xmlChar *) URL);\n    ret->error = xmlGenericError;\n    ret->userData = xmlGenericErrorContext;\n    return (ret);\n}"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 6623,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlMalloc",
+      "xmlRngPErrMemory",
+      "xmlStrdup"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

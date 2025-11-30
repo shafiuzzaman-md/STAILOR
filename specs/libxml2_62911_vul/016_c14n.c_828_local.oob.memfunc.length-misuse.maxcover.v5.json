@@ -1,0 +1,48 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@c14n.c:828",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c",
+  "line": 828,
+  "column": 9,
+  "end_line": 828,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 823,
+    "contextEnd": 833,
+    "snippet": "     */\n    if(visible && has_visibly_utilized_empty_ns &&\n\t    !has_empty_ns && !has_empty_ns_in_inclusive_list) {\n        static xmlNs ns_default;\n\n        memset(&ns_default, 0, sizeof(ns_default));\n\n        already_rendered = xmlExcC14NVisibleNsStackFind(ctx->ns_rendered, &ns_default, ctx);\n\tif(!already_rendered) {\n\t    xmlC14NPrintNamespaces(&ns_default, ctx);\n\t}"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 828,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlC14NPrintNamespaces",
+      "xmlExcC14NVisibleNsStackFind"
+    ],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@valid.c:2061",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/valid.c",
+  "line": 2061,
+  "column": 5,
+  "end_line": 2061,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 2056,
+    "contextEnd": 2066,
+    "snippet": "    cur = (xmlAttributePtr) xmlMalloc(sizeof(xmlAttribute));\n    if (cur == NULL) {\n\txmlVErrMemory(NULL, \"malloc failed\");\n\treturn(NULL);\n    }\n    memset(cur, 0, sizeof(xmlAttribute));\n    cur->type = XML_ATTRIBUTE_DECL;\n    cur->atype = attr->atype;\n    cur->def = attr->def;\n    cur->tree = xmlCopyEnumeration(attr->tree);\n    if (attr->elem != NULL)"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 2061,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlCopyEnumeration",
+      "xmlMalloc",
+      "xmlVErrMemory"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return",
+      "xmlCopyEnumeration"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "xmlCopyEnumeration",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

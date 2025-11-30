@@ -1,0 +1,57 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testlimits.c:262",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c",
+  "line": 262,
+  "column": 28,
+  "end_line": 262,
+  "end_column": 35,
+  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
+  "context": {
+    "contextStart": 257,
+    "contextEnd": 267,
+    "snippet": " *\n * Returns 1 if yes and 0 if another Input module should be used\n */\nstatic int\ncrazyMatch(const char * URI) {\n    if ((URI != NULL) && (!strncmp(URI, \"crazy:\", 6)))\n        return(1);\n    return(0);\n}\n\n/**"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 262,
+    "column_start": 28,
+    "column_end": 35
+  },
+  "facts": {
+    "suspect_calls": [
+      "crazyMatch",
+      "strncmp"
+    ],
+    "pointer_vars": [
+      "URI"
+    ],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

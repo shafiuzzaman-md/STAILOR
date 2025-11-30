@@ -1,0 +1,50 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlregexp.c:3928",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
+  "line": 3928,
+  "column": 7,
+  "end_line": 3928,
+  "end_column": 13,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 3923,
+    "contextEnd": 3933,
+    "snippet": "\t\t     */\n\t\t    if (exec->errString != NULL)\n\t\t\txmlFree(exec->errString);\n\t\t    exec->errString = xmlStrdup(value);\n\t\t    exec->errState = exec->state;\n\t\t    memcpy(exec->errCounts, exec->counts,\n\t\t\t   exec->comp->nbCounters * sizeof(int));\n\t\t}\n\t\texec->state = exec->comp->states[trans->to];\n\t\texec->transno = 0;\n\t\tif (trans->atom != NULL) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 3928,
+    "column_start": 7,
+    "column_end": 13
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "xmlFree",
+      "xmlStrdup"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

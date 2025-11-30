@@ -1,0 +1,54 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@parser.c:11212",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c",
+  "line": 11212,
+  "column": 9,
+  "end_line": 11212,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memchr().",
+  "context": {
+    "contextStart": 11207,
+    "contextEnd": 11217,
+    "snippet": "        cur = ctxt->input->cur + 1;\n    } else {\n        cur = ctxt->input->cur + ctxt->checkIndex;\n    }\n\n    if (memchr(cur, c, ctxt->input->end - cur) == NULL) {\n        size_t index = ctxt->input->end - ctxt->input->cur;\n\n        if (index > LONG_MAX) {\n            ctxt->checkIndex = 0;\n            return(1);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 11212,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memchr"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

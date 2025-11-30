@@ -1,0 +1,57 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@globals.c:837",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/globals.c",
+  "line": 837,
+  "column": 5,
+  "end_line": 837,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 832,
+    "contextEnd": 842,
+    "snippet": "        fprintf(stderr, \"libxml2: Failed to allocate globals for thread\\n\"\n                        \"libxml2: See xmlCheckThreadLocalStorage\\n\");\n        abort();\n    }\n\n    memset(gs, 0, sizeof(xmlGlobalState));\n    xmlInitGlobalState(gs);\n    return (gs);\n}\n#endif\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 837,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "abort",
+      "fprintf",
+      "memset",
+      "xmlInitGlobalState"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

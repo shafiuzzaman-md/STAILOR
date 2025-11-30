@@ -1,0 +1,46 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlcatalog.c:128",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlcatalog.c",
+  "line": 128,
+  "column": 2,
+  "end_line": 128,
+  "end_column": 8,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 123,
+    "contextEnd": 133,
+    "snippet": "\t}\n\n\t/*\n\t * Parse the argument string\n\t */\n\tmemset(arg, 0, sizeof(arg));\n\twhile ((*cur == ' ') || (*cur == '\\t')) cur++;\n\ti = 0;\n\twhile ((*cur != '\\n') && (*cur != '\\r') && (*cur != 0)) {\n\t    if (*cur == 0)\n\t\tbreak;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 128,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset"
+    ],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

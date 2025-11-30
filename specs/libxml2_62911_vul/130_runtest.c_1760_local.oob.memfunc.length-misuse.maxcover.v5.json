@@ -1,0 +1,51 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@runtest.c:1760",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c",
+  "line": 1760,
+  "column": 9,
+  "end_line": 1760,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 1755,
+    "contextEnd": 1765,
+    "snippet": "\tret = 0;\n    } else\n#endif\n    {\n        xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);\n        memcpy(ctxt->sax, emptySAXHandler, sizeof(xmlSAXHandler));\n        xmlCtxtUseOptions(ctxt, options);\n        xmlParseDocument(ctxt);\n        ret = ctxt->wellFormed ? 0 : ctxt->errNo;\n        xmlFreeDoc(ctxt->myDoc);\n        xmlFreeParserCtxt(ctxt);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 1760,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "xmlCreateFileParserCtxt",
+      "xmlCtxtUseOptions",
+      "xmlFreeDoc",
+      "xmlFreeParserCtxt",
+      "xmlParseDocument"
+    ],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

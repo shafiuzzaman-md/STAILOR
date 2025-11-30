@@ -1,0 +1,82 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testlimits.c:115",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c",
+  "line": 115,
+  "column": 27,
+  "end_line": 115,
+  "end_column": 34,
+  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
+  "context": {
+    "contextStart": 110,
+    "contextEnd": 120,
+    "snippet": " *\n * Returns an Input context or NULL in case or error\n */\nstatic void *\nhugeOpen(const char * URI) {\n    if ((URI == NULL) || (strncmp(URI, \"huge:\", 5)))\n        return(NULL);\n\n    for (currentTest = 0;currentTest < sizeof(hugeTests)/sizeof(hugeTests[0]);\n         currentTest++)\n         if (!strcmp(hugeTests[currentTest].name, URI))"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 115,
+    "column_start": 27,
+    "column_end": 34
+  },
+  "facts": {
+    "suspect_calls": [
+      "hugeOpen",
+      "strcmp",
+      "strncmp"
+    ],
+    "pointer_vars": [
+      "URI",
+      "hugeOpen"
+    ],
+    "length_vars": [
+      "an",
+      "hugeOpen",
+      "in",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "an",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "hugeOpen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "hugeOpen",
+        "relation": "<= sizeof(hugeOpen)",
+        "source": "name-affinity"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

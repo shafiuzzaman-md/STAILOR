@@ -1,0 +1,62 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@HTMLparser.c:2318",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c",
+  "line": 2318,
+  "column": 5,
+  "end_line": 2318,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 2313,
+    "contextEnd": 2323,
+    "snippet": "    input = (xmlParserInputPtr) xmlMalloc(sizeof(htmlParserInput));\n    if (input == NULL) {\n        htmlErrMemory(ctxt, \"couldn't allocate a new input stream\\n\");\n\treturn(NULL);\n    }\n    memset(input, 0, sizeof(htmlParserInput));\n    input->filename = NULL;\n    input->directory = NULL;\n    input->base = NULL;\n    input->cur = NULL;\n    input->buf = NULL;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 2318,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "htmlErrMemory",
+      "memset",
+      "xmlMalloc"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "couldn",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "couldn",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

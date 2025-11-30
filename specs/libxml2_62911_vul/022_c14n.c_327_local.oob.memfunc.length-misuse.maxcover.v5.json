@@ -1,0 +1,70 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@c14n.c:327",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c",
+  "line": 327,
+  "column": 2,
+  "end_line": 327,
+  "end_column": 8,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 322,
+    "contextEnd": 332,
+    "snippet": "        cur->nodeTab = (xmlNodePtr*) xmlMalloc(XML_NAMESPACES_DEFAULT * sizeof(xmlNodePtr));\n\tif ((cur->nsTab == NULL) || (cur->nodeTab == NULL)) {\n\t    xmlC14NErrMemory(\"adding node to stack\");\n\t    return;\n\t}\n\tmemset(cur->nsTab, 0 , XML_NAMESPACES_DEFAULT * sizeof(xmlNsPtr));\n\tmemset(cur->nodeTab, 0 , XML_NAMESPACES_DEFAULT * sizeof(xmlNodePtr));\n        cur->nsMax = XML_NAMESPACES_DEFAULT;\n    } else if(cur->nsMax == cur->nsCurEnd) {\n\tvoid *tmp;\n\tint tmpSize;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 327,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlC14NErrMemory",
+      "xmlMalloc"
+    ],
+    "pointer_vars": [
+      "sizeof",
+      "tmp"
+    ],
+    "length_vars": [
+      "return",
+      "tmpSize"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "tmpSize",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "tmpSize",
+        "relation": "<= sizeof(tmp)",
+        "source": "name-affinity"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@nanohttp.c:541",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c",
+  "line": 541,
+  "column": 22,
+  "end_line": 541,
+  "end_column": 26,
+  "message": "High-coverage OOB risk: length/count may be unbounded for recv().",
+  "context": {
+    "contextStart": 536,
+    "contextEnd": 546,
+    "snippet": "            }\n            ctxt->inptr = ctxt->in + d_inptr;\n            ctxt->content = ctxt->in + d_content;\n            ctxt->inrptr = ctxt->in + d_inrptr;\n        }\n        ctxt->last = recv(ctxt->fd, ctxt->inptr, XML_NANO_HTTP_CHUNK, 0);\n        if (ctxt->last > 0) {\n            ctxt->inptr += ctxt->last;\n            return (ctxt->last);\n        }\n        if (ctxt->last == 0) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 541,
+    "column_start": 22,
+    "column_end": 26
+  },
+  "facts": {
+    "suspect_calls": [
+      "recv"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "in",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

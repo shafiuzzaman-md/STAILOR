@@ -1,0 +1,62 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemas.c:5201",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
+  "line": 5201,
+  "column": 5,
+  "end_line": 5201,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 5196,
+    "contextEnd": 5206,
+    "snippet": "    if (ret == NULL) {\n\txmlSchemaPErrMemory(pctxt,\n\t    \"allocating redefinition info\", NULL);\n\treturn (NULL);\n    }\n    memset(ret, 0, sizeof(xmlSchemaRedef));\n    ret->item = item;\n    ret->targetBucket = targetBucket;\n    ret->refName = refName;\n    ret->refTargetNs = refTargetNs;\n    if (WXS_CONSTRUCTOR(pctxt)->redefs == NULL)"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 5201,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "WXS_CONSTRUCTOR",
+      "memset",
+      "xmlSchemaPErrMemory"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "redefinition",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "redefinition",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

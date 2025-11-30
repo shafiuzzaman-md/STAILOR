@@ -1,0 +1,48 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testThreads.c:106",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testThreads.c",
+  "line": 106,
+  "column": 9,
+  "end_line": 106,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 101,
+    "contextEnd": 111,
+    "snippet": "        int ret;\n\n\txmlLoadCatalog(catalog);\n\n#ifdef HAVE_PTHREAD_H\n        memset(tid, 0xff, sizeof(*tid)*num_threads);\n\n\tfor (i = 0; i < num_threads; i++) {\n\t    ret = pthread_create(&tid[i], NULL, thread_specific_data,\n\t\t\t\t (void *) &threadParams[i]);\n\t    if (ret != 0) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 106,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "pthread_create",
+      "xmlLoadCatalog"
+    ],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemas.c:23689",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
+  "line": 23689,
+  "column": 7,
+  "end_line": 23689,
+  "end_column": 13,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 23684,
+    "contextEnd": 23694,
+    "snippet": "\t\t\txmlSchemaIDCFreeBinding(parBind);\n\t\t\tgoto internal_error;\n\t\t    }\n\t\t    parBind->sizeNodes = bind->nbNodes;\n\t\t    parBind->nbNodes = bind->nbNodes;\n\t\t    memcpy(parBind->nodeTable, bind->nodeTable,\n\t\t\tbind->nbNodes * sizeof(xmlSchemaPSVIIDCNodePtr));\n\t\t}\n\t    }\n\t    if (bind->dupls) {\n\t\t/*"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 23689,
+    "column_start": 7,
+    "column_end": 13
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "xmlSchemaIDCFreeBinding"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}
