@@ -122,14 +122,19 @@ python3 scripts/make_vul_specs.py \
 ```
 
 ## LLM Refinement 
+
+### Set config (example)
 ```
 SA_OUT_DIR="sa_outputs/libxml2_62911_vul" \
 DATASET_ROOT="dataset" \
 TARGET_VUL="62911/libxml2_62911_vul:dict.c:541" \
 RULE_ID="local.oob.memfunc.length-misuse" \
 LLM_MODEL="deepseek-chat" \
-LLM_API_BASE="https://api.deepseek.com" \
-bash scripts/iterate_llm_refinement.sh
+LLM_API_BASE="https://api.deepseek.com"
+```
+### Run LLM refinement 
+```
+bash iterate_llm_refinement.sh
 ```
 
 
