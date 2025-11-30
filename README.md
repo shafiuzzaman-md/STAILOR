@@ -124,10 +124,10 @@ python3 scripts/make_vul_specs.py \
 ## LLM Refinement 
 
 - export DEEPSEEK_API_KEY=""
-- set the config for the potentail vulnerability to confirm in ```scripts/run_full_cegir_dict.sh```
+- set the config for the potentail vulnerability to confirm in ```iterate_llm_refinement.sh```
 - run LLM refinement loop:
   ```
-  bash scripts/run_full_cegir_dict.sh
+  bash scripts/iterate_llm_refinement.sh
   ```
 
 
