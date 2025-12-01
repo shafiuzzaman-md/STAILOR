@@ -1,0 +1,24 @@
+{
+  "schema": "llmse.factpack.v1",
+  "project": "binutils_55933_vul",
+  "generated_utc": "2025-12-01T01:49:41.045968+00:00",
+  "facts": [],
+  "build_context": {
+    "sampled_include_paths": [
+      "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/build",
+      "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include",
+      "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python"
+    ],
+    "sampled_defines": [
+      "LibXml2Mod_EXPORTS",
+      "LibXml2_EXPORTS",
+      "NDEBUG",
+      "SYSCONFDIR=\\\"/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/_inst/etc\\\"",
+      "_REENTRANT"
+    ]
+  },
+  "notes": [
+    "Heuristic, over-approximated. Safe to feed to LLM/stub planner.",
+    "Bounds hints are suggestions; treat as refinements only if corroborated."
+  ]
+}

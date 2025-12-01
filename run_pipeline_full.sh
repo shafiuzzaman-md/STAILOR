@@ -118,7 +118,7 @@ done
 : "${SPEC_PATH:?Missing --spec}"
 
 TASK_NUM="${TASK_ID#*:}"                       # arvo:62911 -> 62911
-PROJECT_NAME="${PROJECT_SHORT}_${TASK_NUM}_vul"
+PROJECT_NAME="${PROJECT_SHORT}_${TASK_NUM}"
 SRC_ROOT="${DATASET_ROOT}/${TASK_NUM}/${PROJECT_NAME}"
 SA_OUT_DIR="${SA_ROOT}/${PROJECT_NAME}"
 SPEC_DIR="$(dirname "$SPEC_PATH")"

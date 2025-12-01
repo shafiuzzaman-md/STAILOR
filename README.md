@@ -94,7 +94,7 @@ SAILR assumes a frozen dataset snapshot under ./dataset/… and, optionally, met
 
 1. Extract source code for a task
 ```
-python3 extract_from_cybergym.py arvo:62911 libxml2
+python3 extract_from_cybergym.py arvo:55933 binutils
 # Produces: ./dataset/62911/libxml2_62911_vul/...
 ```
 
@@ -117,8 +117,8 @@ chmod +x codeql_scan.sh
 
 ```
 ./codeql_scan.sh \
-  PROJECT_NAME=libxml2_62911_vul \
-  SRC_ROOT=./dataset/62911/libxml2_62911_vul \
+  PROJECT_NAME=binutils_55933_vul \
+  SRC_ROOT=./dataset/55933/binutils_55933_vul \
   BUILD_CMD="./build.sh" \
   QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
   CONTEXT_LINES=5 \
@@ -183,7 +183,7 @@ Example usage for the libxml2 OOB case:
 ```
 export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
 ./run_pipeline_full.sh \
-  --task        arvo:62911 \
+  --task        arvo:62911_vul \
   --project     libxml2 \
   --rule        local.oob.memfunc.length-misuse \
   --query-suites "rules/oob-pack/suites/oob-read.qls" \

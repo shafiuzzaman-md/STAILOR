@@ -5,8 +5,10 @@ extract_from_cybergym.py
 Minimal extractor: copies ONLY source trees from task images to a tidy dataset/
 layout. No metadata handling.
 
-Copies:
-  • /src/<project> → ./dataset/<id>/<project>_<id>_{vul,fix}
+Copies (best-effort):
+  • /src/<project>        → ./dataset/<id>/<project>_<id>_{vul,fix}
+  • /src/<project>-gdb    → ...    (e.g., binutils → binutils-gdb)
+  • /src                  → ...    (last-resort fallback)
 
 Usage:
   python3 extract_from_cybergym.py arvo:66502 libxml2
@@ -34,7 +36,11 @@ def have(cmd: str) -> bool:
 def ensure_docker():
     if not have("docker"):
         raise SystemExit("docker not found. Install Docker Engine and retry.")
-    if subprocess.run(["docker", "info"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
+    if subprocess.run(
+        ["docker", "info"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ).returncode != 0:
         raise SystemExit("Docker daemon not reachable. Start Docker and retry.")
 
 # ---------- docker helpers ----------
@@ -42,27 +48,81 @@ def docker_pull(image: str):
     run(["docker", "pull", image])
 
 def docker_rm(name: str):
-    subprocess.run(["docker", "rm", "-f", name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        ["docker", "rm", "-f", name],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 def docker_create(name: str, image: str):
     docker_rm(name)
     run(["docker", "create", "--name", name, image, "/bin/true"])
 
 def docker_cp_dir(name: str, src_dir: str, host_dst: Path) -> bool:
+    """Copy a directory from container -> host_dst.
+
+    Returns True on success, False on failure.
+    """
     if host_dst.exists():
         shutil.rmtree(host_dst)
     host_dst.parent.mkdir(parents=True, exist_ok=True)
-    cp = subprocess.run(["docker", "cp", f"{name}:{src_dir}", str(host_dst)],
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cp = subprocess.run(
+        ["docker", "cp", f"{name}:{src_dir}", str(host_dst)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     if cp.returncode != 0:
-        if host_dst.exists() and not any(host_dst.iterdir()):
-            shutil.rmtree(host_dst, ignore_errors=True)
+        # Clean up any empty/partial directory we might have created.
+        if host_dst.exists():
+            try:
+                # Only remove if it's empty or obviously partial.
+                if not any(host_dst.iterdir()):
+                    shutil.rmtree(host_dst, ignore_errors=True)
+            except Exception:
+                pass
         return False
+
+    # Fix ownership so the current user can modify the files.
     try:
-        run(["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(host_dst)], check=False, quiet=True)
+        run(
+            ["chown", "-R", f"{os.getuid()}:{os.getgid()}", str(host_dst)],
+            check=False,
+            quiet=True,
+        )
     except Exception:
         pass
     return True
+
+def docker_cp_project_best_effort(
+    container_name: str,
+    project: str,
+    host_dst: Path,
+) -> bool:
+    """
+    Try a sequence of candidate paths inside the container until one works.
+
+    Order:
+      1. /src/<project>
+      2. /src/<project>-gdb      (e.g., binutils → binutils-gdb)
+      3. /src                    (fallback for odd layouts)
+    """
+    candidates = [
+        f"/src/{project}",
+        f"/src/{project}-gdb",
+        "/src",
+    ]
+
+    for src in candidates:
+        print(f"[INFO] Trying {container_name}:{src} → {host_dst}")
+        if docker_cp_dir(container_name, src, host_dst):
+            print(f"[INFO] Copied from {src} in {container_name}")
+            return True
+
+    print(
+        f"[WARN] None of the candidate paths {candidates} "
+        f"were found in container {container_name}"
+    )
+    return False
 
 # ---------- namespace → image repo ----------
 def repo_for(ns: str) -> str:
@@ -160,11 +220,16 @@ def install_codeql_build_sh(dst_dirs: list[Path]) -> None:
 
 # ---------- main ----------
 def main():
-    ap = argparse.ArgumentParser(description="Extract vulnerable/fixed sources from a single task (no metadata).")
+    ap = argparse.ArgumentParser(
+        description="Extract vulnerable/fixed sources from a single task (no metadata)."
+    )
     ap.add_argument("task", help="Task id: arvo:<id> or oss-fuzz:<id> (e.g., arvo:66502)")
-    ap.add_argument("project", help="Project name under /src (e.g., libxml2)")
-    ap.add_argument("--out-root", default="./dataset",
-                    help="Directory under which to save extracted outputs (default: ./dataset)")
+    ap.add_argument("project", help="Logical project name (e.g., libxml2, binutils)")
+    ap.add_argument(
+        "--out-root",
+        default="./dataset",
+        help="Directory under which to save extracted outputs (default: ./dataset)",
+    )
     args = ap.parse_args()
 
     if ":" not in args.task:
@@ -187,13 +252,15 @@ def main():
 
     vul_out = base_dir / f"{args.project}_{tid}_vul"
     fix_out = base_dir / f"{args.project}_{tid}_fix"
-    src_path = f"/src/{args.project}"
 
-    got_vul = docker_cp_dir(vul_name, src_path, vul_out)
-    got_fix = docker_cp_dir(fix_name, src_path, fix_out)
+    got_vul = docker_cp_project_best_effort(vul_name, args.project, vul_out)
+    got_fix = docker_cp_project_best_effort(fix_name, args.project, fix_out)
 
     if not got_vul or not got_fix:
-        print("[INFO] One or both images lack /src/<project>; copied what was available.")
+        print(
+            "[INFO] One or both images did not expose a clean /src/<project> tree; "
+            "used best-effort fallbacks (see logs above)."
+        )
 
     # Install CodeQL build.sh into present trees
     install_codeql_build_sh([d for d in [vul_out, fix_out] if d.exists()])
@@ -204,9 +271,14 @@ def main():
 
     print("\n[OK] Done.")
     print(f"  Output root: {base_dir}")
-    if vul_out.exists(): print(f"  Vulnerable: {vul_out}")
-    if fix_out.exists(): print(f"  Fixed     : {fix_out}")
-    print("  Tip       : run ./build.sh inside each directory to build (autoconf/automake/libtool/pkg-config may be required)")
+    if vul_out.exists():
+        print(f"  Vulnerable: {vul_out}")
+    if fix_out.exists():
+        print(f"  Fixed     : {fix_out}")
+    print(
+        "  Tip       : run ./build.sh inside each directory to build "
+        "(autoconf/automake/libtool/pkg-config may be required)"
+    )
 
 if __name__ == "__main__":
     main()
