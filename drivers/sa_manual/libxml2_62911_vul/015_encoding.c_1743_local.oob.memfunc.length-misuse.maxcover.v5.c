@@ -1,23 +1,43 @@
-#include <klee/klee.h>
-#include "encoding.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 015_encoding.c_1743_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/015_encoding.c_1743_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c
+// Entry     : isolat1ToUTF8
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c:1743
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    char name[100];
-    klee_make_symbolic(name, sizeof(name), "name");
-    
-    // Ensure null termination for string safety
-    name[99] = '\0';
-    
-    xmlCharEncodingHandlerPtr result = xmlFindCharEncodingHandler(name);
-    
-    // Assertion for potential vulnerability at line 1743
-    // Check that if memory allocation succeeds, memset doesn't overflow
-    if (result != NULL) {
-        // The vulnerability is about potential memset length misuse
-        // We can't directly check the internal memset, but we can verify
-        // the structure was properly allocated and initialized
-        klee_assert(result->name != NULL);  // If name is NULL, allocation failed after memset
-    }
-    
+#include <klee/klee.h>
+#include "encoding.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `isolat1ToUTF8`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c
+    //   Line : 1743
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // isolat1ToUTF8(/* TODO: args */);
+
     return 0;
 }

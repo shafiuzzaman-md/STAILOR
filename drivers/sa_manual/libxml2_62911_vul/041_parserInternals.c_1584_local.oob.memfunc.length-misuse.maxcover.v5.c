@@ -1,27 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 041_parserInternals.c_1584_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/041_parserInternals.c_1584_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c
+// Entry     : xmlDetectEncoding
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c:1584
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "parserInternals.h"
-#include "xmlmemory.h"
+#include "parserInternals.c"
 
-int main() {
-    // Initialize a parser context
-    xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt("", 0);
-    if (ctxt == NULL) return 1;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlDetectEncoding`
+    // using klee_make_symbolic(...) as needed.
 
-    // Create a new input stream - this calls xmlNewInputStream
-    xmlParserInputPtr input = xmlNewInputStream(ctxt);
-    
-    // The suspicious line is line 1584: memset(input, 0, sizeof(xmlParserInput));
-    // After this memset, we want to check if the allocation was successful and properly initialized
-    if (input != NULL) {
-        // Check that the input structure was properly zero-initialized
-        // We can check a few fields that should be zero after memset
-        klee_assert(input->line == 1);  // This gets set after memset
-        klee_assert(input->col == 1);   // This gets set after memset
-    }
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Cleanup
-    if (input != NULL) xmlFreeInputStream(input);
-    if (ctxt != NULL) xmlFreeParserCtxt(ctxt);
-    
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c
+    //   Line : 1584
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlDetectEncoding(/* TODO: args */);
+
     return 0;
 }

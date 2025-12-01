@@ -1,33 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 097_testlimits.c_201_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/097_testlimits.c_201_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c:201
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testlimits.c"
 
-int main() {
-    // Initialize global state
-    fillFilling();
-    
-    // Symbolic inputs for hugeRead parameters
-    void* context;
-    char buffer[4096];
-    int len;
-    
-    klee_make_symbolic(&context, sizeof(context), "context");
-    klee_make_symbolic(buffer, sizeof(buffer), "buffer");
-    klee_make_symbolic(&len, sizeof(len), "len");
-    
-    // Initialize module state variables
-    instate = 2; // Set state to trigger the suspicious path
-    rlen = 4096; // Set remaining length
-    current = buffer; // Set current pointer to buffer
-    
-    // Call the function under test
-    int result = hugeRead(context, buffer, len);
-    
-    // Assertion for the suspicious memcpy at line 201
-    // Check that len doesn't exceed the bounds of the source buffer
-    if (instate == 2 && len > 0 && len < rlen) {
-        klee_assert(len <= 4096); // Buffer size constraint
-        klee_assert(current + len <= buffer + sizeof(buffer)); // Bounds check
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+    //   Line : 201
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
     return 0;
 }

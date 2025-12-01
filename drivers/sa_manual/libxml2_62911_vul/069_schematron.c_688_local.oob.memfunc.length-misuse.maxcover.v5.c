@@ -1,29 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 069_schematron.c_688_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/069_schematron.c_688_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+// Entry     : xmlSchematronParse
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c:688
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "schematron.c"
 
-int main() {
-    // Symbolic inputs for xmlSchematronNewMemParserCtxt
-    int size;
-    char buffer[1024];
-    
-    klee_make_symbolic(&size, sizeof(size), "size");
-    klee_make_symbolic(buffer, sizeof(buffer), "buffer");
-    
-    // Call the entry function - xmlSchematronNewMemParserCtxt is the most relevant
-    // based on the suspicious line 688 in the memory parser context creation
-    xmlSchematronParserCtxtPtr ctxt = xmlSchematronNewMemParserCtxt(buffer, size);
-    
-    // Add assertion to check for potential vulnerability
-    // The suspicious line is memset(ret, 0, sizeof(xmlSchematronParserCtxt)) at line 688
-    // We want to ensure the allocation was successful before the memset
-    if (ctxt != NULL) {
-        // Check that the allocated structure is properly initialized
-        // This is a basic sanity check - the actual vulnerability might be more complex
-        klee_assert(ctxt->dict != NULL || ctxt->xctxt != NULL);
-        
-        // Clean up
-        xmlSchematronFreeParserCtxt(ctxt);
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSchematronParse`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+    //   Line : 688
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSchematronParse(/* TODO: args */);
+
     return 0;
 }

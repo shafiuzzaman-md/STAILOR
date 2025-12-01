@@ -1,55 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 107_testThreads.c_106_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/107_testThreads.c_106_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testThreads.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testThreads.c:106
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testThreads.c"
 
 int main(void) {
-    unsigned int repeat;
-    int status = 0;
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
 
-    xmlInitParser();
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    if (xmlCheckThreadLocalStorage() != 0) {
-        return 1;
-    }
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testThreads.c
+    //   Line : 106
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
 
-#if defined(LIBXML_THREAD_ENABLED) && defined(LIBXML_CATALOG_ENABLED)
-    for (repeat = 0; repeat < TEST_REPEAT_COUNT; repeat++) {
-        unsigned int i;
-        int ret;
-        pthread_t tid[num_threads];
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-        xmlLoadCatalog(catalog);
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
 
-#ifdef HAVE_PTHREAD_H
-        memset(tid, 0xff, sizeof(*tid)*num_threads);
-        klee_assert(sizeof(*tid)*num_threads <= sizeof(tid));
-
-        for (i = 0; i < num_threads; i++) {
-            ret = pthread_create(&tid[i], NULL, thread_specific_data,
-                     (void *) &threadParams[i]);
-            if (ret != 0) {
-                exit(1);
-            }
-        }
-        for (i = 0; i < num_threads; i++) {
-            void *result;
-            ret = pthread_join(tid[i], &result);
-            if (ret != 0) {
-                exit(1);
-            }
-        }
-#endif /* pthreads */
-
-        xmlCatalogCleanup();
-
-        for (i = 0; i < num_threads; i++) {
-            if (threadParams[i].okay == 0) {
-                status = 1;
-            }
-        }
-    }
-#endif /* LIBXML_THREADS_ENABLED */
-
-    xmlCleanupParser();
-
-    return status;
+    return 0;
 }

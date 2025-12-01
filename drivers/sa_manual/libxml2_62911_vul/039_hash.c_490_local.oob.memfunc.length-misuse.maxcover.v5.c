@@ -1,47 +1,43 @@
-#include <klee/klee.h>
-#include "hash.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 039_hash.c_490_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/039_hash.c_490_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c:490
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize hash table
-    xmlHashTablePtr hash = xmlHashCreate(0);
-    if (hash == NULL) return 0;
-    
-    // Make symbolic keys and lengths
-    xmlChar key[256];
-    xmlChar key2[256];
-    xmlChar key3[256];
-    size_t lengths[3];
-    
-    klee_make_symbolic(key, sizeof(key), "key");
-    klee_make_symbolic(key2, sizeof(key2), "key2");
-    klee_make_symbolic(key3, sizeof(key3), "key3");
-    klee_make_symbolic(lengths, sizeof(lengths), "lengths");
-    
-    // Ensure keys are null-terminated for safety
-    key[255] = '\0';
-    key2[255] = '\0';
-    key3[255] = '\0';
-    
-    // Set up hash table to take the non-dict path
-    hash->dict = NULL;
-    hash->size = 0;
-    hash->nbElems = 0;
-    hash->randomSeed = 0;
-    
-    // Call the internal update function
-    // We'll use xmlHashAddEntry3 as the public entry point that calls xmlHashUpdateInternal
-    int result = xmlHashAddEntry3(hash, key, key2, key3, NULL);
-    
-    // The vulnerability check: at line 490, we copy lengths[0] + 1 bytes
-    // Assert that we don't overflow the allocated buffer
-    if (hash->dict == NULL && key != NULL) {
-        // The allocation at line 487 is for lengths[0] + 1 bytes
-        // The memcpy at line 490 copies lengths[0] + 1 bytes
-        // This should be safe by construction, but we add the assertion
-        // to match the SA finding about potential length misuse
-        klee_assert(1); // This will always pass, matching the pattern
-    }
-    
-    xmlHashFree(hash, NULL);
+#include <klee/klee.h>
+#include "hash.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlHashRemoveEntry3`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+    //   Line : 490
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

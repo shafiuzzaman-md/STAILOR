@@ -1,27 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 040_hash.c_498_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/040_hash.c_498_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c:498
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "hash.c"
-#include "dict.c"
 
-int main() {
-    xmlHashTablePtr hash = xmlHashCreate(0);
-    if (hash == NULL) return 0;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlHashRemoveEntry3`
+    // using klee_make_symbolic(...) as needed.
 
-    unsigned key2_len;
-    klee_make_symbolic(&key2_len, sizeof(key2_len), "key2_len");
-    klee_assume(key2_len < 100);
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    xmlChar key2[100];
-    klee_make_symbolic(key2, sizeof(key2), "key2");
-    key2[key2_len] = '\0';
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+    //   Line : 498
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
 
-    xmlChar key[10] = "test";
-    
-    size_t lengths[3] = {4, key2_len, 0};
-    
-    int result = xmlHashUpdateInternal(hash, key, key2, NULL, NULL, NULL, 0);
-    
-    klee_assert(lengths[1] < 100);
-    
-    xmlHashFree(hash, NULL);
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

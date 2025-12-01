@@ -1,28 +1,43 @@
-#include <klee/klee.h>
-#include "nanohttp.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 126_nanohttp.c_671_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/126_nanohttp.c_671_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+// Entry     : xmlNanoHTTPMethodRedir
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c:671
+// Message   : High-coverage OOB risk: length/count may be unbounded for strncmp().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize a symbolic HTTP context
-    xmlNanoHTTPCtxt ctxt;
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    
-    // Initialize context fields that might be used
-    ctxt.returnValue = 0;
-    ctxt.version = 0;
-    ctxt.contentType = NULL;
-    ctxt.mimeType = NULL;
-    ctxt.encoding = NULL;
-    
-    // Create a symbolic line buffer
-    char line[1024];
-    klee_make_symbolic(line, sizeof(line), "line");
-    
-    // Call the target function
-    xmlNanoHTTPScanAnswer(&ctxt, line);
-    
-    // Add assertion for potential OOB - check that line is properly null-terminated
-    // before strncmp call at line 671
-    klee_assert(line[1023] == '\0');
-    
+#include <klee/klee.h>
+#include "nanohttp.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlNanoHTTPMethodRedir`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+    //   Line : 671
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for strncmp().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlNanoHTTPMethodRedir(/* TODO: args */);
+
     return 0;
 }

@@ -1,59 +1,43 @@
-#include <klee/klee.h>
-#include "SAX2.h"
-#include "parser.h"
-#include "tree.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 002_SAX2.c_1887_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/002_SAX2.c_1887_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+// Entry     : xmlSAX2AttributeInternal
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c:1887
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize parser context
-    xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt("", 0);
-    if (ctxt == NULL) return 1;
-    
-    // Initialize a node for the context
-    ctxt->node = xmlNewNode(NULL, BAD_CAST "test");
-    if (ctxt->node == NULL) return 1;
-    
-    // Initialize freeAttrs list with at least one attribute
-    xmlAttrPtr attr = (xmlAttrPtr)xmlMalloc(sizeof(xmlAttr));
-    if (attr == NULL) return 1;
-    
-    ctxt->freeAttrs = attr;
-    ctxt->freeAttrsNr = 1;
-    attr->next = NULL;
-    
-    // Make symbolic inputs for the function parameters
-    xmlChar localname_buf[32];
-    xmlChar prefix_buf[32];
-    xmlChar value_buf[64];
-    xmlChar valueend_buf[64];
-    
-    klee_make_symbolic(localname_buf, sizeof(localname_buf), "localname");
-    klee_make_symbolic(prefix_buf, sizeof(prefix_buf), "prefix");
-    klee_make_symbolic(value_buf, sizeof(value_buf), "value");
-    klee_make_symbolic(valueend_buf, sizeof(valueend_buf), "valueend");
-    
-    // Ensure valueend >= value for valid length calculation
-    klee_assume(valueend_buf >= value_buf);
-    klee_assume((valueend_buf - value_buf) < sizeof(value_buf));
-    
-    // Null terminate the buffers
-    localname_buf[31] = 0;
-    prefix_buf[31] = 0;
-    value_buf[63] = 0;
-    valueend_buf[63] = 0;
-    
-    // Call the target function
-    xmlSAX2AttributeNs(ctxt, localname_buf, prefix_buf, value_buf, valueend_buf);
-    
-    // Assertion to check for potential vulnerability at line 1887
-    // The memset should not write beyond the allocated xmlAttr structure
-    if (ctxt->freeAttrs != NULL) {
-        // Check that we're not accessing invalid memory
-        klee_assert(ctxt->freeAttrsNr >= 0);
-    }
-    
-    // Cleanup
-    xmlFreeNode(ctxt->node);
-    xmlFreeParserCtxt(ctxt);
-    
+#include <klee/klee.h>
+#include "SAX2.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSAX2AttributeInternal`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+    //   Line : 1887
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSAX2AttributeInternal(/* TODO: args */);
+
     return 0;
 }

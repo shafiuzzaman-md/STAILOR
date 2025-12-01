@@ -1,35 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 090_runtest.c_3963_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/090_runtest.c_3963_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c:3963
+// Message   : High-coverage OOB risk: length/count may be unbounded for fgets().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "runtest.c"
 
-int main() {
-    // Initialize symbolic inputs for patternTest parameters
-    char filename[100];
-    char result_file[100];
-    char err_file[100];
-    int options;
-    
-    klee_make_symbolic(filename, sizeof(filename), "filename");
-    klee_make_symbolic(result_file, sizeof(result_file), "result_file");
-    klee_make_symbolic(err_file, sizeof(err_file), "err_file");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    
-    // Ensure null-terminated strings
-    filename[99] = '\0';
-    result_file[99] = '\0';
-    err_file[99] = '\0';
-    
-    // Call the target function
-    int ret = patternTest(filename, result_file, err_file, options);
-    
-    // Add assertion to check for potential buffer overflow
-    // The suspicious line 3963 uses fgets with sizeof(str)-1 where str is 1024 bytes
-    // We add a general assertion to check if any buffer operations might exceed bounds
-    char str[1024];
-    klee_make_symbolic(str, sizeof(str), "str");
-    
-    // Assert that string length doesn't exceed buffer size
-    int len = strlen(str);
-    klee_assert(len < sizeof(str));
-    
-    return ret;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+    //   Line : 3963
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for fgets().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
+    return 0;
 }

@@ -1,28 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 079_testdict.c_408_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/079_testdict.c_408_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c:408
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testdict.c"
 
-int main() {
-    // Initialize global arrays
-    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
-    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
-    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
-    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
-    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
-    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
-    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
-    
-    // Make test2 symbolic to explore potential OOB access
-    klee_make_symbolic(test2, NB_STRINGS_MAX * sizeof(test2[0]), "test2");
-    
-    // This is the suspicious line - add assertion for bounds check
-    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
-    klee_assert(test2 != NULL && "Potential NULL pointer dereference");
-    
-    // Clean up
-    xmlFree(strings1);
-    xmlFree(strings2);
-    xmlFree(test1);
-    xmlFree(test2);
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+    //   Line : 408
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
     return 0;
 }

@@ -1,47 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 095_testlimits.c_189_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/095_testlimits.c_189_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c:189
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testlimits.c"
 
-int main() {
-    // Initialize global variables
-    currentTest = 0;
-    instate = 0;
-    curlen = 0;
-    maxlen = 64 * 1024 * 1024;
-    dotlen = maxlen / 10;
-    
-    // Initialize filling array
-    fillFilling();
-    
-    // Initialize hugeTests array (simplified)
-    // We'll use a minimal setup to trigger the suspicious line
-    hugeTests[0].name = "huge:test";
-    hugeTests[0].start = "test_data";
-    hugeTests[0].end = "end_data";
-    
-    // Set up context for hugeRead
-    char *context = hugeOpen("huge:test");
-    
-    // Make buffer and len symbolic
-    char buffer[4096];
-    int len;
-    klee_make_symbolic(&len, sizeof(len), "len");
-    
-    // Constrain len to reasonable bounds but allow negative values to test the check
-    klee_assume(len >= -100);
-    klee_assume(len <= 4096);
-    
-    // Call the target function
-    int result = hugeRead(context, buffer, len);
-    
-    // Assertion based on suspicious line 189 - check buffer bounds
-    // The suspicious memcpy copies 'len' bytes from 'current' to 'buffer'
-    // We want to ensure we don't read beyond the bounds of either buffer
-    if (context != NULL && buffer != NULL && len >= 0 && instate == 0 && len < rlen) {
-        klee_assert(len <= 4096);  // Buffer size check
-        if (current != NULL) {
-            klee_assert(len <= strlen(current));  // Source bounds check
-        }
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+    //   Line : 189
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
     return 0;
 }

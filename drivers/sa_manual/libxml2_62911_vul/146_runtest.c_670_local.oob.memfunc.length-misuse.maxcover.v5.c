@@ -1,44 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 146_runtest.c_670_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/146_runtest.c_670_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c:670
+// Message   : High-coverage OOB risk: length/count may be unbounded for read().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "runtest.c"
 
-int main() {
-    char r1[100];
-    char r2[100];
-    int fd1, fd2;
-    char bytes1[4096];
-    char bytes2[4096];
-    int res1, res2;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
 
-    klee_make_symbolic(r1, sizeof(r1), "r1");
-    klee_make_symbolic(r2, sizeof(r2), "r2");
-    r1[sizeof(r1)-1] = '\0';
-    r2[sizeof(r2)-1] = '\0';
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    fd1 = open(r1, O_RDONLY);
-    if (fd1 < 0) return 0;
-    
-    fd2 = open(r2, O_RDONLY);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+    //   Line : 670
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for read().
 
-    while (1) {
-        res1 = read(fd1, bytes1, 4096);
-        res2 = fd2 >= 0 ? read(fd2, bytes2, 4096) : 0;
-        
-        klee_assert(res1 >= 0 && res1 <= 4096);
-        
-        if ((res1 != res2) || (res1 < 0)) {
-            close(fd1);
-            if (fd2 >= 0) close(fd2);
-            return 0;
-        }
-        if (res1 == 0) break;
-        if (memcmp(bytes1, bytes2, res1) != 0) {
-            close(fd1);
-            if (fd2 >= 0) close(fd2);
-            return 0;
-        }
-    }
-    
-    close(fd1);
-    if (fd2 >= 0) close(fd2);
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
     return 0;
 }

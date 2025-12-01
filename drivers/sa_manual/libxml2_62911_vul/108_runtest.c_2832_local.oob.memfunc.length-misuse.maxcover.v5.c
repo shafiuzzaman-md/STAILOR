@@ -1,26 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 108_runtest.c_2832_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/108_runtest.c_2832_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c:2832
+// Message   : High-coverage OOB risk: length/count may be unbounded for fgets().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "runtest.c"
 
-int main() {
-    // Initialize global variables
-    temp_directory = NULL;
-    xpathDocument = NULL;
-    xpathOutput = NULL;
-    nb_tests = 0;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
 
-    // Create symbolic inputs for xpathCommonTest parameters
-    char filename[256];
-    char result[256];
-    
-    klee_make_symbolic(filename, sizeof(filename), "filename");
-    klee_make_symbolic(result, sizeof(result), "result");
-    
-    // Ensure null-terminated strings
-    filename[255] = '\0';
-    result[255] = '\0';
-    
-    // Call the function that contains the suspicious line
-    int ret = xpathCommonTest(filename, result, 0, 1);
-    
-    return ret;
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+    //   Line : 2832
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for fgets().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
+    return 0;
 }

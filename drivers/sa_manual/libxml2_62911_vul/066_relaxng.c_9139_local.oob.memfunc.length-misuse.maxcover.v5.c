@@ -1,35 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 066_relaxng.c_9139_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/066_relaxng.c_9139_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+// Entry     : xmlRelaxNGValidateDoc
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c:9139
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "relaxng.c"
 
-int main() {
-    xmlRelaxNGValidCtxt ctxt;
-    xmlRelaxNGDefine define;
-    xmlRelaxNGPartition partitions;
-    xmlRelaxNGValidState state;
-    xmlNode seq_node;
-    
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    klee_make_symbolic(&define, sizeof(define), "define");
-    klee_make_symbolic(&partitions, sizeof(partitions), "partitions");
-    klee_make_symbolic(&state, sizeof(state), "state");
-    klee_make_symbolic(&seq_node, sizeof(seq_node), "seq_node");
-    
-    ctxt.state = &state;
-    state.seq = &seq_node;
-    define.data = &partitions;
-    
-    klee_make_symbolic(&partitions.nbgroups, sizeof(partitions.nbgroups), "nbgroups");
-    klee_assume(partitions.nbgroups >= 0);
-    klee_assume(partitions.nbgroups < 1000);
-    
-    xmlNodePtr *list = (xmlNodePtr *) xmlMalloc(partitions.nbgroups * sizeof(xmlNodePtr));
-    if (list == NULL) {
-        return -1;
-    }
-    
-    klee_assert(partitions.nbgroups >= 0);
-    memset(list, 0, partitions.nbgroups * sizeof(xmlNodePtr));
-    
-    xmlFree(list);
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlRelaxNGValidateDoc`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+    //   Line : 9139
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlRelaxNGValidateDoc(/* TODO: args */);
+
     return 0;
 }

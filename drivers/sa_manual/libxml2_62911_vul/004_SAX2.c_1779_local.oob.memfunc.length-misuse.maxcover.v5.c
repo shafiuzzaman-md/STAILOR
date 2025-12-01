@@ -1,37 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 004_SAX2.c_1779_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/004_SAX2.c_1779_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+// Entry     : xmlSAX2StartElement
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c:1779
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "SAX2.c"
 
-int main() {
-    xmlParserCtxt ctxt;
-    xmlNode node;
-    xmlChar str_buf[64];
-    int len;
-    
-    // Initialize parser context
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    ctxt.freeElems = NULL;
-    ctxt.freeElemsNr = 0;
-    ctxt.dictNames = 1;
-    ctxt.options = XML_PARSE_COMPACT;
-    ctxt.dict = NULL;
-    
-    // Initialize node
-    klee_make_symbolic(&node, sizeof(node), "node");
-    
-    // Make string buffer and length symbolic
-    klee_make_symbolic(str_buf, sizeof(str_buf), "str_buf");
-    klee_make_symbolic(&len, sizeof(len), "len");
-    
-    // Constrain length to be reasonable but potentially problematic
-    klee_assume(len >= 0);
-    klee_assume(len < 64);
-    
-    // Call the target function
-    xmlSAX2TextNode(&ctxt, str_buf, len);
-    
-    // Assertion for the suspicious memcpy at line 1779
-    // Check that len doesn't exceed the size of the properties field
-    klee_assert(len <= sizeof(node.properties));
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSAX2StartElement`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+    //   Line : 1779
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSAX2StartElement(/* TODO: args */);
+
     return 0;
 }

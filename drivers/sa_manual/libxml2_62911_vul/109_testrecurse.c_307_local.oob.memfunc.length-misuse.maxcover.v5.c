@@ -1,80 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 109_testrecurse.c_307_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/109_testrecurse.c_307_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testrecurse.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testrecurse.c:307
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "testrecurse.h"
+#include "testrecurse.c"
 
-#define MAX_NODES 1000
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
 
-// Global variables from the original code
-static char *current = NULL;
-static int rlen = 0;
-static int curseg = 0;
-static struct hugeDoc *hugeDocParts = NULL;
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-// Stub structure for hugeDoc
-struct hugeDoc {
-    char *URL;
-    char *start;
-    char *segment;
-    char *finish;
-};
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testrecurse.c
+    //   Line : 307
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
 
-// Stub table - we'll make it symbolic
-struct hugeDoc hugeDocTable[2];
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-int main() {
-    // Initialize global variables
-    current = NULL;
-    rlen = 0;
-    curseg = 0;
-    hugeDocParts = NULL;
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
 
-    // Make symbolic inputs for hugeRead parameters
-    char buffer[1024];
-    int len;
-    
-    // Make buffer symbolic
-    klee_make_symbolic(buffer, sizeof(buffer), "buffer");
-    
-    // Make len symbolic with reasonable bounds
-    klee_make_symbolic(&len, sizeof(len), "len");
-    klee_assume(len >= -1);
-    klee_assume(len <= 2000);
-    
-    // Initialize context - we'll use a simple approach
-    char context_data[1024];
-    void *context = context_data;
-    klee_make_symbolic(context_data, sizeof(context_data), "context_data");
-    
-    // Initialize hugeDocTable with symbolic data
-    for (int i = 0; i < 2; i++) {
-        klee_make_symbolic(&hugeDocTable[i].URL, sizeof(char*), "hugeDocTable_URL");
-        klee_make_symbolic(&hugeDocTable[i].start, sizeof(char*), "hugeDocTable_start");
-        klee_make_symbolic(&hugeDocTable[i].segment, sizeof(char*), "hugeDocTable_segment");
-        klee_make_symbolic(&hugeDocTable[i].finish, sizeof(char*), "hugeDocTable_finish");
-    }
-    
-    // Set up initial state for the test
-    // We'll simulate that hugeOpen was called and set up the globals
-    current = hugeDocTable[0].start;
-    if (current != NULL) {
-        rlen = 100;  // Reasonable initial length
-    }
-    hugeDocParts = &hugeDocTable[0];
-    curseg = 0;
-    
-    // Call the target function
-    int result = hugeRead(context, buffer, len);
-    
-    // Add assertion near the suspicious line (line 307)
-    // The vulnerability is a potential memcpy length misuse
-    // Check that if we're copying data, the source buffer has enough data
-    if (len >= 0 && current != NULL && buffer != NULL) {
-        // This assertion will fail if we try to copy more data than available
-        // from the current buffer, which could lead to out-of-bounds read
-        klee_assert(!(len > 0 && rlen < len));
-    }
-    
     return 0;
 }
-
-// Include the actual implementation
-#include "testrecurse.c"

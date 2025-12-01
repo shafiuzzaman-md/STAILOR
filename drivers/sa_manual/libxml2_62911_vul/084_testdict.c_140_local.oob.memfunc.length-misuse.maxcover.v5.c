@@ -1,38 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 084_testdict.c_140_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/084_testdict.c_140_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c:140
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testdict.c"
 
-int main() {
-    // Initialize global variables
-    nbErrors = 0;
-    
-    // Initialize string arrays
-    for (int i = 0; i < NB_STRINGS_MAX; i++) {
-        strings1[i] = NULL;
-        strings2[i] = NULL;
-        test1[i] = NULL;
-        test2[i] = NULL;
-    }
-    
-    // Generate test strings
-    generate_strings();
-    
-    // Create parent dictionary
-    xmlDictPtr parent = xmlDictCreate();
-    if (parent == NULL) {
-        return 1;
-    }
-    
-    // Initialize test1 array with lookups in parent dictionary
-    for (int i = 0; i < NB_STRINGS_MAX; i++) {
-        test1[i] = xmlDictLookup(parent, strings1[i], -1);
-    }
-    
-    // Call the vulnerable function
-    int result = test_subdict(parent);
-    
-    // Cleanup
-    xmlDictFree(parent);
-    clean_strings();
-    
-    return result;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+    //   Line : 140
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
+    return 0;
 }

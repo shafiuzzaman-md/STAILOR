@@ -1,40 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 032_hash.c_1134_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/032_hash.c_1134_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c:1134
+// Message   : High-coverage OOB risk: length/count may be unbounded for memmove().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "hash.h"
+#include "hash.c"
 
-int main() {
-    // Initialize symbolic hash table
-    xmlHashTablePtr hash = xmlHashCreate(8);
-    if (hash == NULL) return -1;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlHashRemoveEntry3`
+    // using klee_make_symbolic(...) as needed.
 
-    // Create symbolic keys
-    xmlChar key1[10], key2[10], key3[10];
-    klee_make_symbolic(key1, sizeof(key1), "key1");
-    klee_make_symbolic(key2, sizeof(key2), "key2"); 
-    klee_make_symbolic(key3, sizeof(key3), "key3");
-    
-    // Add some entries to populate the hash table
-    int payload1 = 1, payload2 = 2, payload3 = 3;
-    xmlHashAddEntry3(hash, key1, key2, key3, &payload1);
-    xmlHashAddEntry3(hash, key1, key2, NULL, &payload2);
-    xmlHashAddEntry3(hash, key1, NULL, NULL, &payload3);
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Call the target function
-    int result = xmlHashRemoveEntry3(hash, key1, key2, key3, NULL);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+    //   Line : 1134
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memmove().
 
-    // Assertion for potential memmove OOB
-    // Check that the memmove at line 1134 doesn't exceed table bounds
-    if (hash->table != NULL && hash->size > 0) {
-        xmlHashEntry *entry = hash->table;
-        xmlHashEntry *next = entry + 1;
-        xmlHashEntry *end = &hash->table[hash->size];
-        
-        // Assert that the memmove source and destination are within table bounds
-        klee_assert(entry >= hash->table && entry < end);
-        klee_assert(next >= hash->table && next < end);
-        klee_assert((char*)end - (char*)next >= 0);
-        klee_assert((char*)end - (char*)next <= (char*)end - (char*)hash->table);
-    }
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    xmlHashFree(hash, NULL);
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

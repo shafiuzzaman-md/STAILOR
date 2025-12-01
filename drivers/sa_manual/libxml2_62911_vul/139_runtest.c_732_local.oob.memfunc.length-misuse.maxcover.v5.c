@@ -1,26 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 139_runtest.c_732_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/139_runtest.c_732_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c:732
+// Message   : High-coverage OOB risk: length/count may be unbounded for read().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "runtest.c"
 
-int main() {
-    const char *filename;
-    const char *mem;
-    int size;
-    char filename_buf[256];
-    char mem_buf[4096];
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
 
-    klee_make_symbolic(filename_buf, sizeof(filename_buf), "filename_buf");
-    klee_make_symbolic(mem_buf, sizeof(mem_buf), "mem_buf");
-    klee_make_symbolic(&size, sizeof(size), "size");
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    filename = filename_buf;
-    mem = mem_buf;
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+    //   Line : 732
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for read().
 
-    filename_buf[255] = '\0';
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    klee_assume(size >= 0);
-    klee_assume(size <= 4096);
-
-    int result = compareFileMem(filename, mem, size);
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
 
     return 0;
 }

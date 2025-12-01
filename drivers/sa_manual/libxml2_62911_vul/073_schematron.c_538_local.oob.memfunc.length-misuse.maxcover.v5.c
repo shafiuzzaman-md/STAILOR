@@ -1,51 +1,43 @@
-#include <klee/klee.h>
-#include "schematron.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 073_schematron.c_538_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/073_schematron.c_538_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+// Entry     : xmlSchematronParse
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c:538
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize parser context
-    xmlSchematronParserCtxtPtr ctxt = (xmlSchematronParserCtxtPtr)xmlMalloc(sizeof(xmlSchematronParserCtxt));
-    klee_assume(ctxt != NULL);
-    memset(ctxt, 0, sizeof(xmlSchematronParserCtxt));
-    
-    // Initialize schema
-    xmlSchematronPtr schema = (xmlSchematronPtr)xmlMalloc(sizeof(xmlSchematron));
-    klee_assume(schema != NULL);
-    memset(schema, 0, sizeof(xmlSchematron));
-    
-    // Initialize node
-    xmlNodePtr node = (xmlNodePtr)xmlMalloc(sizeof(xmlNode));
-    klee_assume(node != NULL);
-    memset(node, 0, sizeof(xmlNode));
-    
-    // Create symbolic name buffer
-    #define NAME_SIZE 16
-    xmlChar name[NAME_SIZE];
-    klee_make_symbolic(name, sizeof(name), "name");
-    name[NAME_SIZE - 1] = 0; // Ensure null termination
-    
-    // Call the target function
-    xmlSchematronPatternPtr result = xmlSchematronAddPattern(ctxt, schema, node, name);
-    
-    // Assertion based on suspicious line 538 - check if allocation succeeded before memset
-    if (result != NULL) {
-        // The memset at line 538 should be safe if allocation succeeded
-        // Add assertion to check we can access the structure
-        klee_assert(1); // Basic safety check
-    }
-    
-    // Cleanup
-    if (result != NULL) {
-        xmlFree(result);
-    }
-    if (schema != NULL) {
-        xmlFree(schema);
-    }
-    if (ctxt != NULL) {
-        xmlFree(ctxt);
-    }
-    if (node != NULL) {
-        xmlFree(node);
-    }
-    
+#include <klee/klee.h>
+#include "schematron.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSchematronParse`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+    //   Line : 538
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSchematronParse(/* TODO: args */);
+
     return 0;
 }

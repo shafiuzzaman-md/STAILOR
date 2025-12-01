@@ -1,27 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 110_relaxng.c_6691_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/110_relaxng.c_6691_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+// Entry     : xmlRelaxNGCopyValidState
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c:6691
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "relaxng.c"
 
-int main() {
-    // Create a symbolic xmlDoc structure
-    xmlDoc doc;
-    klee_make_symbolic(&doc, sizeof(xmlDoc), "doc");
-    
-    // Call the entry function
-    xmlRelaxNGParserCtxtPtr ctxt = xmlRelaxNGNewDocParserCtxt(&doc);
-    
-    // Add assertion near the suspicious line
-    if (ctxt != NULL) {
-        // Check for potential memory issues in the memset at line 6691
-        // The memset writes to ret which was allocated with xmlMalloc
-        // We can't directly check the allocation size, but we can verify
-        // the pointer is valid and the size is reasonable
-        klee_assert(ctxt != NULL);
-    }
-    
-    // Clean up if needed
-    if (ctxt != NULL) {
-        xmlRelaxNGFreeParserCtxt(ctxt);
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlRelaxNGCopyValidState`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+    //   Line : 6691
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlRelaxNGCopyValidState(/* TODO: args */);
+
     return 0;
 }

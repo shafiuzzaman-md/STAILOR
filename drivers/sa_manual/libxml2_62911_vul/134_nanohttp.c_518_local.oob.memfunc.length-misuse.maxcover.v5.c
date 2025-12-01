@@ -1,47 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+// Entry     : xmlNanoHTTPMethodRedir
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c:518
+// Message   : High-coverage OOB risk: length/count may be unbounded for memmove().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "nanohttp.c"
 
-int main() {
-    // Initialize the HTTP context structure
-    xmlNanoHTTPCtxt ctxt;
-    
-    // Symbolic initialization of buffer pointers and lengths
-    klee_make_symbolic(&ctxt.in, sizeof(ctxt.in), "ctxt_in");
-    klee_make_symbolic(&ctxt.inrptr, sizeof(ctxt.inrptr), "ctxt_inrptr");
-    klee_make_symbolic(&ctxt.inptr, sizeof(ctxt.inptr), "ctxt_inptr");
-    klee_make_symbolic(&ctxt.content, sizeof(ctxt.content), "ctxt_content");
-    klee_make_symbolic(&ctxt.inlen, sizeof(ctxt.inlen), "ctxt_inlen");
-    klee_make_symbolic(&ctxt.state, sizeof(ctxt.state), "ctxt_state");
-    klee_make_symbolic(&ctxt.fd, sizeof(ctxt.fd), "ctxt_fd");
-    klee_make_symbolic(&ctxt.last, sizeof(ctxt.last), "ctxt_last");
-    
-    // Set up conditions to reach the suspicious memmove call
-    ctxt.state = XML_NANO_HTTP_READ;
-    
-    // Allocate initial buffer if NULL
-    if (ctxt.in == NULL) {
-        ctxt.in = (char *) xmlMallocAtomic(65000);
-        if (ctxt.in != NULL) {
-            ctxt.inlen = 65000;
-            ctxt.inptr = ctxt.content = ctxt.inrptr = ctxt.in;
-        }
-    }
-    
-    // Set up conditions for the memmove path
-    if (ctxt.in != NULL && ctxt.inrptr != NULL) {
-        // Ensure we take the memmove path
-        klee_assume(ctxt.inrptr > ctxt.in + XML_NANO_HTTP_CHUNK);
-        
-        int delta = ctxt.inrptr - ctxt.in;
-        int len = ctxt.inptr - ctxt.inrptr;
-        
-        // Add assertion for potential memmove length misuse
-        // Check that len doesn't exceed available buffer space
-        klee_assert(len >= 0 && len <= ctxt.inlen);
-        
-        // Call the suspicious function
-        xmlNanoHTTPRecv(&ctxt);
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlNanoHTTPMethodRedir`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+    //   Line : 518
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memmove().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlNanoHTTPMethodRedir(/* TODO: args */);
+
     return 0;
 }

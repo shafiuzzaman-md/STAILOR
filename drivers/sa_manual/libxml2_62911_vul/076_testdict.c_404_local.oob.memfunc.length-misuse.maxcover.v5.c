@@ -1,46 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 076_testdict.c_404_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/076_testdict.c_404_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c:404
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testdict.c"
 
-int main() {
-    // Initialize global variables
-    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
-    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
-    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
-    
-    // Make the size symbolic to test potential overflow
-    unsigned sym_size;
-    klee_make_symbolic(&sym_size, sizeof(sym_size), "sym_size");
-    klee_assume(sym_size <= NB_STRINGS_MAX * sizeof(strings2[0]));
-    
-    // Call the vulnerable memset with symbolic size
-    memset(strings2, 0, sym_size);
-    
-    // Assertion to check for potential buffer overflow
-    klee_assert(sym_size <= NB_STRINGS_MAX * sizeof(strings2[0]));
-    
-    // Continue with the rest of the test
-    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
-    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
-    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
-    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
 
-    fill_string_pool(strings1, seeds1);
-    fill_string_pool(strings2, seeds2);
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    xmlDictPtr dict = xmlDictCreate();
-    if (dict == NULL) {
-        return 1;
-    }
-    
-    int result = test_dict(dict);
-    result |= test_subdict(dict);
-    
-    xmlDictFree(dict);
-    clean_strings();
-    xmlFree(strings1);
-    xmlFree(strings2);
-    xmlFree(test1);
-    xmlFree(test2);
-    
-    return result;
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+    //   Line : 404
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
+    return 0;
 }

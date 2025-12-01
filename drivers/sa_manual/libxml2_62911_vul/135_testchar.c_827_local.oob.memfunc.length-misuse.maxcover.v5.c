@@ -1,48 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 135_testchar.c_827_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/135_testchar.c_827_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c
+// Entry     : testDocumentRanges
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c:827
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcmp().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testchar.c"
 
 int main(void) {
-    LIBXML_TEST_VERSION
-    xmlSetStructuredErrorFunc(NULL, errorHandler);
-    
-    int ret = testUTF8Chunks();
-    
-    // KLEE assertion for potential out-of-bounds access
-    // The loop at line 826-832 compares chunks of 7 bytes from 'out' buffer
-    // We need to ensure we don't read beyond allocated memory
-    xmlParserCtxtPtr ctxt = xmlCreatePushParserCtxt(NULL, NULL, NULL, 0, NULL);
-    xmlChar *out;
-    int outSize;
-    
-    // Set up similar conditions to trigger the vulnerable path
-    xmlParseChunk(ctxt, "<d>", 3, 0);
-    
-    char *buf = xmlMalloc(1000 * 2 + 1);
-    for (int i = 0; i < 2000; i += 2)
-        memcpy(buf + i, "\xCE\xB1", 2);
-    buf[2000] = '\xCE';
-    xmlParseChunk(ctxt, buf, 2001, 0);
-    xmlFree(buf);
-    
-    xmlParseChunk(ctxt, "\xB1</d>", 4, 0);
-    xmlParseChunk(ctxt, NULL, 0, 0);
-    
-    xmlDocDumpMemory(ctxt->myDoc, &out, &outSize);
-    
-    // Assertion for potential out-of-bounds memory access
-    // Check that we don't read beyond the allocated output buffer
-    int i;
-    for (i = 25; i < 25 + 1001 * 7; i += 7) {
-        klee_assert(i + 7 <= outSize);  // Ensure we don't read past buffer end
-        if (memcmp(out + i, "&#x3B1;", 7) != 0) {
-            break;
-        }
-    }
-    
-    xmlFree(out);
-    xmlFreeDoc(ctxt->myDoc);
-    xmlFreeParserCtxt(ctxt);
-    xmlCleanupParser();
-    
-    return ret;
+    // TODO: initialize concrete / symbolic arguments for `testDocumentRanges`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c
+    //   Line : 827
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcmp().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // testDocumentRanges(/* TODO: args */);
+
+    return 0;
 }

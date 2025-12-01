@@ -1,29 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 072_testdict.c_507_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/072_testdict.c_507_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c:507
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testdict.c"
 
-int main() {
-    // Initialize symbolic parameters for pool_new
-    size_t num_entries;
-    size_t num_keys;
-    xmlChar id;
-    
-    klee_make_symbolic(&num_entries, sizeof(num_entries), "num_entries");
-    klee_make_symbolic(&num_keys, sizeof(num_keys), "num_keys");
-    klee_make_symbolic(&id, sizeof(id), "id");
-    
-    // Call pool_new which contains the suspicious memset
-    StringPool* pool = pool_new(num_entries, num_keys, id);
-    
-    // Assertion to check for potential buffer overflow in memset
-    // The suspicious line is: memset(ret->strings, 0, num_strings * sizeof(ret->strings[0]));
-    // Check that the allocation size matches the memset size
-    size_t allocated_size = pool->num_entries * pool->num_keys * sizeof(pool->strings[0]);
-    size_t memset_size = pool->num_strings * sizeof(pool->strings[0]);
-    
-    klee_assert(allocated_size == memset_size);
-    
-    // Clean up
-    pool_free(pool);
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+    //   Line : 507
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
     return 0;
 }

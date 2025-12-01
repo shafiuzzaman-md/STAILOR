@@ -1,52 +1,43 @@
-#include <klee/klee.h>
-#include "parser.h"
-#include "parserInternals.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 079_parser.c_11212_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/079_parser.c_11212_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c
+// Entry     : xmlParserNsLookup
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c:11212
+// Message   : High-coverage OOB risk: length/count may be unbounded for memchr().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    xmlParserCtxtPtr ctxt;
-    xmlParserInputPtr input;
-    
-    // Initialize parser context symbolically
-    ctxt = xmlCreateMemoryParserCtxt("", 0);
-    if (ctxt == NULL) return -1;
-    
-    // Make input buffer symbolic
-    size_t buf_size = 100;
-    char* buffer = (char*)malloc(buf_size);
-    klee_make_symbolic(buffer, buf_size, "buffer");
-    
-    // Initialize parser input
-    input = xmlNewInputStream(ctxt);
-    if (input == NULL) {
-        xmlFreeParserCtxt(ctxt);
-        return -1;
-    }
-    
-    input->base = buffer;
-    input->cur = buffer;
-    input->end = buffer + buf_size;
-    ctxt->input = input;
-    
-    // Make checkIndex symbolic
-    klee_make_symbolic(&ctxt->checkIndex, sizeof(ctxt->checkIndex), "checkIndex");
-    
-    // Call the target function
-    int result = xmlParseLookupChar(ctxt, 'a');
-    
-    // Assertion for potential OOB in memchr call
-    const xmlChar* cur;
-    if (ctxt->checkIndex == 0) {
-        cur = ctxt->input->cur + 1;
-    } else {
-        cur = ctxt->input->cur + ctxt->checkIndex;
-    }
-    
-    // Check if memchr could access out of bounds
-    klee_assert(cur >= ctxt->input->base && 
-                cur <= ctxt->input->end && 
-                (ctxt->input->end - cur) <= (ctxt->input->end - ctxt->input->base));
-    
-    xmlFreeParserCtxt(ctxt);
-    free(buffer);
+#include <klee/klee.h>
+#include "parser.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlParserNsLookup`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c
+    //   Line : 11212
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memchr().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlParserNsLookup(/* TODO: args */);
+
     return 0;
 }

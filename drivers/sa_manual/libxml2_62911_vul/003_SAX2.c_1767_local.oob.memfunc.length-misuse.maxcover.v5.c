@@ -1,36 +1,43 @@
-#include <klee/klee.h>
-#include "SAX2.h"
-#include "parser.h"
-#include "tree.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+// Entry     : xmlSAX2StartElement
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c:1767
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize parser context symbolically
-    xmlParserCtxtPtr ctxt;
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    
-    // Assume ctxt is valid for the vulnerable path
-    klee_assume(ctxt != NULL);
-    
-    // Initialize freeElems to NULL to trigger the malloc path
-    klee_assume(ctxt->freeElems == NULL);
-    
-    // Symbolic inputs for xmlSAX2TextNode parameters
-    const xmlChar *str;
-    int len;
-    
-    klee_make_symbolic(&str, sizeof(str), "str");
-    klee_make_symbolic(&len, sizeof(len), "len");
-    
-    // Call the vulnerable function
-    xmlNodePtr ret = xmlSAX2TextNode(ctxt, str, len);
-    
-    // Assertion for potential vulnerability at line 1767
-    // Check if ret is non-null before memset operation
-    if (ret != NULL) {
-        // The memset at line 1767 should be safe if ret points to valid memory
-        // Add assertion to check if ret points to valid allocated memory
-        klee_assert(__klee_is_reachable(ret));
-    }
-    
+#include <klee/klee.h>
+#include "SAX2.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSAX2StartElement`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+    //   Line : 1767
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSAX2StartElement(/* TODO: args */);
+
     return 0;
 }

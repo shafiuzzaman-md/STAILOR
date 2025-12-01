@@ -262,9 +262,25 @@ chmod +x run_manual_entry_batch.sh
 
 ```
 
-2. SA driven Manual Harness (entrypoint + target + assertion)
-– Hand-written harness, but designed using SA output (entrypoint, suspicious call site, assertion at target).
+2. SA driven Manual Harness (entrypoint + target + assertion): Hand-written harness, but designed using SA output (entrypoint, suspicious call site, assertion at target).
 
+```
+chmod +x generate_sa_manual_drivers.sh
+./generate_sa_manual_drivers.sh \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul
+
+chmod +x run_sa_manual_all_specs.sh
+
+./run_sa_manual_all_specs.sh \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul \
+  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
+  --klee-flags  "--search=dfs --max-time=600"
+
+```
 
 3. LLM Harness (entrypoint)
 – Single-shot LLM-generated harness that calls the entrypoint, but without passing the CodeQL spec.
@@ -274,68 +290,6 @@ chmod +x run_manual_entry_batch.sh
 
 
 
-
-
-
-
-
-
-
-### Baseline drivers
-For each project and spec, we use a canonical <SPEC_ID>:
-```
-specs/<project_name>/<SPEC_ID>.json
-# e.g. SPEC_ID = 000_dict.c_541_local.oob.memfunc.length-misuse
-```
-Baseline driver sources are expected at:
-```
-drivers/manual_entry/<project_name>/<SPEC_ID>.c     # Manual Harness (entrypoint)
-drivers/sa_manual/<project_name>/<SPEC_ID>.c        # SA-driven Manual Harness
-drivers/llm_entry/<project_name>/<SPEC_ID>.c        # LLM Harness (entrypoint)
-drivers/sa_llm/<project_name>/<SPEC_ID>.c           # SA-driven LLM Harness
-```
-
-These are generated automatically from the specs using a single LLM call per (mode, spec).
-
-#### Generate drivers for all specs in specs/libxml2_62911_vul:
-```
-chmod +x generate_baseline_drivers.py
-
-export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
-
-./generate_baseline_drivers.py \
-  --project-name libxml2_62911_vul \
-  --src-root ./dataset/62911/libxml2_62911_vul \
-  --spec-dir specs/libxml2_62911_vul \
-  --model deepseek-chat \
-  --api-base https://api.deepseek.com \
-  --modes manual_entry,sa_manual,llm_entry,sa_llm
-```
-### Running all baselines
-Make the helper scripts executable:
-```
-chmod +x generate_baseline_drivers.py run_se_driver.sh run_baselines_for_spec.sh run_baselines_all_specs.sh
-```
-
-Example for libxml2_62911_vul and a single OOB spec:
-```
-./run_baselines_for_spec.sh \
-  --project-name libxml2_62911_vul \
-  --src-root ./dataset/62911/libxml2_62911_vul \
-  --spec specs/libxml2_62911_vul/000_dict.c_541_local.oob.memfunc.length-misuse.json \
-  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
-  --klee-flags  "--search=dfs --max-time=600"
-
-```
-#### Run baselines for all specs in a project:
-```
-./run_baselines_all_specs.sh \
-  --project-name libxml2_62911_vul \
-  --src-root ./dataset/62911/libxml2_62911_vul \
-  --spec-dir specs/libxml2_62911_vul \
-  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
-  --klee-flags  "--search=dfs --max-time=600"
-```
 
 
 # Metrics and Result Artifacts

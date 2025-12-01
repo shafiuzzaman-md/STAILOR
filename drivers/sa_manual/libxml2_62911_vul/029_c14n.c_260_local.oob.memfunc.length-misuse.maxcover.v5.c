@@ -1,28 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 029_c14n.c_260_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/029_c14n.c_260_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NExecute
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c:260
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "c14n.c"
 
-int main() {
-    // Initialize symbolic inputs for xmlC14NIsNodeInNodeset
-    void* user_data;
-    xmlNodePtr node;
-    xmlNodePtr parent;
-    
-    // Make inputs symbolic
-    klee_make_symbolic(&user_data, sizeof(user_data), "user_data");
-    klee_make_symbolic(&node, sizeof(node), "node");
-    klee_make_symbolic(&parent, sizeof(parent), "parent");
-    
-    // Call the target function
-    int result = xmlC14NIsNodeInNodeset(user_data, node, parent);
-    
-    // Assertion to check for potential memory safety issue at line 260
-    // The memcpy at line 260 copies from 'node' to stack variable 'ns'
-    // We want to ensure node is valid for this operation
-    if (node != NULL && node->type == XML_NAMESPACE_DECL) {
-        // Check that node points to valid memory for sizeof(xmlNs) bytes
-        // This is a conservative check - in reality we'd need to know the actual allocation size
-        klee_assert(node != NULL);
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlC14NExecute`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+    //   Line : 260
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlC14NExecute(/* TODO: args */);
+
     return 0;
 }

@@ -1,31 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 083_testlimits.c_1334_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/083_testlimits.c_1334_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : runtest
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c:1334
+// Message   : High-coverage OOB risk: length/count may be unbounded for strncmp().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testlimits.c"
 
-int main() {
-    const char *filename;
-    size_t limit;
-    int options;
-    int fail;
-    
-    // Make symbolic inputs for readerTest parameters
-    klee_make_symbolic(&filename, sizeof(filename), "filename");
-    klee_make_symbolic(&limit, sizeof(limit), "limit");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    klee_make_symbolic(&fail, sizeof(fail), "fail");
-    
-    // Call the suspicious function
-    int result = readerTest(filename, limit, options, fail);
-    
-    // Add assertion near the suspicious line (1334)
-    // The vulnerability involves potential length misuse in strncmp
-    if (fail) {
-        // Check if we're in the vulnerable path
-        if (strncmp(filename, "crazy:", 6) == 0) {
-            // Add assertion to detect potential out-of-bounds access
-            // This checks that crazy_indx is within reasonable bounds
-            klee_assert(crazy_indx < 1000000);
-        }
-    }
-    
-    return result;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `runtest`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+    //   Line : 1334
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for strncmp().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // runtest(/* TODO: args */);
+
+    return 0;
 }

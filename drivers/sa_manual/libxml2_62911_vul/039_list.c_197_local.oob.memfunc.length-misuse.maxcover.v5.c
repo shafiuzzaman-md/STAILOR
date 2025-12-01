@@ -1,34 +1,43 @@
-#include "list.c"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 039_list.c_197_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/039_list.c_197_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/list.c
+// Entry     : xmlListInsert
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/list.c:197
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
+#include "list.c"
 
-typedef struct _xmlLink xmlLink;
-typedef struct _xmlList xmlList;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlListInsert`
+    // using klee_make_symbolic(...) as needed.
 
-struct _xmlLink {
-    void *data;
-    xmlLink *next;
-    xmlLink *prev;
-};
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-struct _xmlList {
-    xmlLink *sentinel;
-    void (*linkDeallocator)(void *);
-    int (*linkCompare)(const void *, const void *);
-};
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/list.c
+    //   Line : 197
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
 
-int xmlLinkCompare(const void *data1, const void *data2) {
-    return 0;
-}
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-int main() {
-    xmlListDeallocator deallocator = NULL;
-    xmlListDataCompare compare = xmlLinkCompare;
-    
-    xmlListPtr l = xmlListCreate(deallocator, compare);
-    
-    if (l != NULL) {
-        klee_assert(l->sentinel != NULL);
-    }
-    
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlListInsert(/* TODO: args */);
+
     return 0;
 }

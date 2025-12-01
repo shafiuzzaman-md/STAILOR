@@ -1,30 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 121_nanohttp.c_1222_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/121_nanohttp.c_1222_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+// Entry     : xmlNanoHTTPMethodRedir
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c:1222
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "nanohttp.c"
 
-int main() {
-    // Initialize symbolic inputs for xmlNanoHTTPRead parameters
-    void *ctx;
-    char dest[1024];
-    int len;
-    
-    // Make context symbolic (approximated as a buffer)
-    char ctx_buffer[1024];
-    klee_make_symbolic(ctx_buffer, sizeof(ctx_buffer), "ctx_buffer");
-    ctx = (void*)ctx_buffer;
-    
-    // Make len symbolic
-    klee_make_symbolic(&len, sizeof(len), "len");
-    
-    // Call the target function
-    int result = xmlNanoHTTPRead(ctx, dest, len);
-    
-    // Add assertion for potential OOB at line 1222
-    // The memcpy uses len, which should be bounded by available data
-    if (ctx != NULL) {
-        xmlNanoHTTPCtxtPtr ctxt = (xmlNanoHTTPCtxtPtr)ctx;
-        // Check that len doesn't exceed the destination buffer size
-        klee_assert(len <= sizeof(dest));
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlNanoHTTPMethodRedir`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+    //   Line : 1222
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlNanoHTTPMethodRedir(/* TODO: args */);
+
     return 0;
 }
