@@ -1,21 +1,21 @@
-#include <klee/klee.h>
-#include "c14n.c"
-#include "tree.h"
-#include "xpath.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 029_c14n.c_260_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/029_c14n.c_260_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NExecute
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize symbolic inputs for xmlC14NIsNodeInNodeset
-    void* user_data;
-    xmlNodePtr node;
-    xmlNodePtr parent;
-    
-    // Make inputs symbolic
-    klee_make_symbolic(&user_data, sizeof(user_data), "user_data");
-    klee_make_symbolic(&node, sizeof(node), "node");
-    klee_make_symbolic(&parent, sizeof(parent), "parent");
-    
-    // Call the function that contains the suspicious line
-    int result = xmlC14NIsNodeInNodeset(user_data, node, parent);
-    
+#include "c14n.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlC14NExecute`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlC14NExecute(/* TODO: args */);
+
     return 0;
 }

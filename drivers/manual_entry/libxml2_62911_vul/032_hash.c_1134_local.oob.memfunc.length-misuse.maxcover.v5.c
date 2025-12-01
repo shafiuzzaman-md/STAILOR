@@ -1,20 +1,21 @@
-#include <klee/klee.h>
-#include "hash.c"
-#include "dict.c"
-#include "xmlmemory.c"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 032_hash.c_1134_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/032_hash.c_1134_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlHashTablePtr hash;
-    xmlChar key[10];
-    xmlChar key2[10];
-    xmlChar key3[10];
-    
-    klee_make_symbolic(&hash, sizeof(hash), "hash");
-    klee_make_symbolic(key, sizeof(key), "key");
-    klee_make_symbolic(key2, sizeof(key2), "key2");
-    klee_make_symbolic(key3, sizeof(key3), "key3");
-    
-    xmlHashRemoveEntry3(hash, key, key2, key3, NULL);
-    
+#include "hash.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlHashRemoveEntry3`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

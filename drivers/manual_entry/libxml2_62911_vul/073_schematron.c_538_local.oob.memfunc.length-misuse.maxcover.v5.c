@@ -1,40 +1,21 @@
-#include <klee/klee.h>
-#include "schematron.h"
-#include "parser.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 073_schematron.c_538_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/073_schematron.c_538_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+// Entry     : xmlSchematronParse
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlSchematronParserCtxtPtr ctxt;
-    xmlSchematronPtr schema;
-    xmlNodePtr node;
-    xmlChar* name;
+#include "schematron.c"
 
-    ctxt = (xmlSchematronParserCtxtPtr)xmlMalloc(sizeof(xmlSchematronParserCtxt));
-    if (ctxt != NULL) {
-        klee_make_symbolic(ctxt, sizeof(xmlSchematronParserCtxt), "ctxt");
-    }
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlSchematronParse`
+    // and uncomment the call below once you know the correct signature.
 
-    schema = (xmlSchematronPtr)xmlMalloc(sizeof(xmlSchematron));
-    if (schema != NULL) {
-        klee_make_symbolic(schema, sizeof(xmlSchematron), "schema");
-    }
-
-    node = (xmlNodePtr)xmlMalloc(sizeof(xmlNode));
-    if (node != NULL) {
-        klee_make_symbolic(node, sizeof(xmlNode), "node");
-    }
-
-    name = (xmlChar*)xmlMalloc(16);
-    if (name != NULL) {
-        klee_make_symbolic(name, 16, "name");
-        name[15] = '\0';
-    }
-
-    xmlSchematronAddPattern(ctxt, schema, node, name);
-
-    if (ctxt != NULL) xmlFree(ctxt);
-    if (schema != NULL) xmlFree(schema);
-    if (node != NULL) xmlFree(node);
-    if (name != NULL) xmlFree(name);
+    // xmlSchematronParse(/* TODO: args */);
 
     return 0;
 }

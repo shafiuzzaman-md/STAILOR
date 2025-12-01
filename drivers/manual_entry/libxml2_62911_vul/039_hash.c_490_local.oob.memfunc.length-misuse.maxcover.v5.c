@@ -1,33 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 039_hash.c_490_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/039_hash.c_490_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "hash.c"
 
-int main() {
-    // Initialize hash table structure
-    xmlHashTable hash;
-    hash.dict = NULL;
-    hash.size = 8;
-    hash.nbElems = 0;
-    hash.randomSeed = 0x12345678;
-    hash.table = (xmlHashEntry*)xmlMalloc(sizeof(xmlHashEntry) * hash.size);
-    for (int i = 0; i < hash.size; i++) {
-        hash.table[i].hashValue = 0;
-    }
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlHashRemoveEntry3`
+    // and uncomment the call below once you know the correct signature.
 
-    // Create symbolic keys
-    xmlChar key[32];
-    xmlChar key2[32];
-    xmlChar key3[32];
-    
-    klee_make_symbolic(key, sizeof(key), "key");
-    klee_make_symbolic(key2, sizeof(key2), "key2");
-    klee_make_symbolic(key3, sizeof(key3), "key3");
-
-    // Create symbolic payload
-    void* payload;
-    klee_make_symbolic(&payload, sizeof(payload), "payload");
-
-    // Call the target function
-    xmlHashUpdateInternal(&hash, key, key2, key3, payload, NULL, 1);
+    // xmlHashRemoveEntry3(/* TODO: args */);
 
     return 0;
 }

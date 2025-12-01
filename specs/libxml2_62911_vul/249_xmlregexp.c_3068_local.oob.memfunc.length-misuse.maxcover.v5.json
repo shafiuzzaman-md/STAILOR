@@ -1,64 +1,65 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlregexp.c:3068",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
-  "line": 3068,
   "column": 2,
-  "end_line": 3068,
-  "end_column": 8,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 3063,
     "contextEnd": 3073,
+    "contextStart": 3063,
     "snippet": "\t    xmlRegexpErrMemory(NULL, \"saving regexp\");\n\t    exec->maxRollbacks = 0;\n            exec->status = XML_REGEXP_OUT_OF_MEMORY;\n\t    return;\n\t}\n\tmemset(exec->rollbacks, 0,\n\t       exec->maxRollbacks * sizeof(xmlRegExecRollback));\n    } else if (exec->nbRollbacks >= exec->maxRollbacks) {\n\txmlRegExecRollback *tmp;\n\tint len = exec->maxRollbacks;\n"
   },
-  "target_statement": {
-    "text": null,
-    "line": 3068,
-    "column_start": 2,
-    "column_end": 8
-  },
+  "end_column": 8,
+  "end_line": 3068,
+  "entrypoint": "xmlFAGenerateTransitions",
   "facts": {
-    "suspect_calls": [
-      "memset",
-      "xmlRegexpErrMemory"
-    ],
-    "pointer_vars": [
-      "sizeof",
-      "tmp"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "len"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
     ],
     "length_vars": [
       "len",
       "return"
     ],
-    "bounds_hints": [
-      {
-        "var": "len",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [
+      "sizeof",
+      "tmp"
+    ],
+    "suspect_calls": [
+      "memset",
+      "xmlRegexpErrMemory"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlregexp.c:3068",
+  "line": 3068,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 8,
+    "column_start": 2,
+    "line": 3068,
+    "text": null
   }
 }

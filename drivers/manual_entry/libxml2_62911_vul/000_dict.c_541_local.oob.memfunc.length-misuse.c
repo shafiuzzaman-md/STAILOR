@@ -1,5 +1,5 @@
-#include <klee/klee.h>
-#include "dict.h"
+#include "klee/klee.h"
+#include "../../../dataset/62911/libxml2_62911_vul/dict.c"
 
 int main() {
     char buffer[1024];

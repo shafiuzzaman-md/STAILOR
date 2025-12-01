@@ -1,69 +1,70 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@nanohttp.c:1108",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c",
-  "line": 1108,
   "column": 3,
-  "end_line": 1108,
-  "end_column": 9,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 1103,
     "contextEnd": 1113,
+    "contextStart": 1103,
     "snippet": "\t\t/* A records (IPv4) */\n\t\tif ((unsigned int) h->h_length > sizeof(ia)) {\n\t\t    __xmlIOErr(XML_FROM_HTTP, 0, \"address size mismatch\\n\");\n\t\t    return INVALID_SOCKET;\n\t\t}\n\t\tmemcpy (&ia, h->h_addr_list[i], h->h_length);\n\t\tsockin.sin_family = h->h_addrtype;\n\t\tsockin.sin_addr = ia;\n\t\tsockin.sin_port = (unsigned short)htons ((unsigned short)port);\n\t\taddr = (struct sockaddr *) &sockin;\n\t    } else"
   },
-  "target_statement": {
-    "text": null,
-    "line": 1108,
-    "column_start": 3,
-    "column_end": 9
-  },
+  "end_column": 9,
+  "end_line": 1108,
+  "entrypoint": "xmlNanoHTTPMethod",
   "facts": {
-    "suspect_calls": [
-      "__xmlIOErr",
-      "htons",
-      "memcpy",
-      "records"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "h_length"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "sockin"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "h_length",
       "return",
       "sockin"
     ],
-    "bounds_hints": [
-      {
-        "var": "h_length",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "sockin",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "__xmlIOErr",
+      "htons",
+      "memcpy",
+      "records"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@nanohttp.c:1108",
+  "line": 1108,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 9,
+    "column_start": 3,
+    "line": 1108,
+    "text": null
   }
 }

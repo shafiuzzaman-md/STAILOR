@@ -94,7 +94,7 @@ SAILR assumes a frozen dataset snapshot under ./dataset/… and, optionally, met
 
 1. Extract source code for a task
 ```
-python3 extract_from_cybergym.py arvo:55933 binutils
+python3 extract_from_cybergym.py arvo:62911 libxml2
 # Produces: ./dataset/62911/libxml2_62911_vul/...
 ```
 
@@ -117,8 +117,8 @@ chmod +x codeql_scan.sh
 
 ```
 ./codeql_scan.sh \
-  PROJECT_NAME=binutils_55933_vul \
-  SRC_ROOT=./dataset/55933/binutils_55933_vul \
+  PROJECT_NAME=libxml2_62911_vul \
+  SRC_ROOT=./dataset/62911/libxml2_62911_vul \
   BUILD_CMD="./build.sh" \
   QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
   CONTEXT_LINES=5 \
@@ -224,11 +224,43 @@ export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
 
 ```
 
+# Infer entrypoint
+```
+chmod +x llm_infer_entrypoints.py
+
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+
+./llm_infer_entrypoints.py \
+  --spec-dir specs/libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --model deepseek-chat \
+  --api-base https://api.deepseek.com \
+  --prompt-file prompts/entrypoint_prompt.txt
+```
+
 # Baseline Symbolic-Execution Configurations (manual / non-iterative)
 To compare SAILR with simpler workflows, we run four SE baselines for each spec.
 
-1. Manual Harness (entrypoint)
-– Hand-written KLEE harness that calls the entrypoint, no static-analysis info.
+1. Manual Harness (entrypoint): Hand-written KLEE harness that calls the entrypoint, no static-analysis info.
+```
+chmod +x generate_manual_entry_drivers.sh
+
+./generate_manual_entry_drivers.sh \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul
+
+chmod +x run_manual_entry_batch.sh
+
+./run_manual_entry_batch.sh \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul \
+  --out-root se_runs \
+  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
+  --klee-flags "--search=dfs --max-time=3600"
+
+```
 
 2. SA driven Manual Harness (entrypoint + target + assertion)
 – Hand-written harness, but designed using SA output (entrypoint, suspicious call site, assertion at target).
@@ -239,6 +271,15 @@ To compare SAILR with simpler workflows, we run four SE baselines for each spec.
 
 4. SA driven LLM Harness (entrypoint + target + assertion)
 – Single-shot LLM-generated harness using the SA spec (entrypoint, target, assertion), without SAILR’s counterexample-guided refinement loop.
+
+
+
+
+
+
+
+
+
 
 ### Baseline drivers
 For each project and spec, we use a canonical <SPEC_ID>:
@@ -320,4 +361,17 @@ python3 summarize_results.py \
   --se-root se_runs \
   --out-csv tables/libxml2_62911_vul_summary.csv
 
+```
+
+
+
+# Duplicate spec remove
+Dry run first (recommended):
+```
+chmod +x dedup_specs_by_site.sh
+./dedup_specs_by_site.sh specs/libxml2_62911_vul
+```
+Actually delete duplicates:
+```
+DRY_RUN=0 ./dedup_specs_by_site.sh specs/libxml2_62911_vul
 ```

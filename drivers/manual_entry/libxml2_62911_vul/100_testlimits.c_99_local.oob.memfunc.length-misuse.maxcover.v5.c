@@ -1,29 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 100_testlimits.c_99_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/100_testlimits.c_99_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "testlimits.c"
 
-int main() {
-    // Initialize global state
-    verbose = 0;
-    tests_quiet = 0;
-    timeout = 0;
-    current = NULL;
-    rlen = 0;
-    currentTest = 0;
-    instate = 0;
-    maxlen = 64 * 1024 * 1024;
-    curlen = 0;
-    dotlen = 0;
-    
-    // Initialize filling array
-    fillFilling();
-    
-    // Create symbolic URI input for hugeMatch
-    char URI[256];
-    klee_make_symbolic(URI, sizeof(URI), "URI");
-    URI[255] = '\0'; // Ensure null termination
-    
-    // Call the function at the suspicious line - hugeMatch
-    int result = hugeMatch(URI);
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
+
+    // main(/* TODO: args */);
+
     return 0;
 }

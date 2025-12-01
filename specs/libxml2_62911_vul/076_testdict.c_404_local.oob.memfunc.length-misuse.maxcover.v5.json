@@ -1,49 +1,50 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testdict.c:404",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c",
-  "line": 404,
   "column": 5,
-  "end_line": 404,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 399,
     "contextEnd": 409,
+    "contextStart": 399,
     "snippet": "    int ret = 0;\n\n    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));\n    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));\n    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));\n    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));\n    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));\n    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));\n    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));\n    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));\n"
   },
-  "target_statement": {
-    "text": null,
-    "line": 404,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 404,
+  "entrypoint": "main",
   "facts": {
-    "suspect_calls": [
-      "memset",
-      "xmlMalloc"
-    ],
+    "bounds_hints": [],
+    "length_vars": [],
     "pointer_vars": [
       "sizeof"
     ],
-    "length_vars": [],
-    "bounds_hints": []
+    "suspect_calls": [
+      "memset",
+      "xmlMalloc"
+    ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testdict.c:404",
+  "line": 404,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 404,
+    "text": null
   }
 }

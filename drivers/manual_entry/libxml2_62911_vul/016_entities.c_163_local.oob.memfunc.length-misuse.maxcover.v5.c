@@ -1,24 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/entities.c
+// Entry     : xmlEncodeEntitiesInternal
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "entities.c"
-#include "tree.h"
-#include "parser.h"
 
-int main() {
-    xmlDictPtr dict;
-    xmlChar name[32];
-    int type;
-    xmlChar ExternalID[32];
-    xmlChar SystemID[32];
-    xmlChar content[64];
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlEncodeEntitiesInternal`
+    // and uncomment the call below once you know the correct signature.
 
-    klee_make_symbolic(&dict, sizeof(dict), "dict");
-    klee_make_symbolic(name, sizeof(name), "name");
-    klee_make_symbolic(&type, sizeof(type), "type");
-    klee_make_symbolic(ExternalID, sizeof(ExternalID), "ExternalID");
-    klee_make_symbolic(SystemID, sizeof(SystemID), "SystemID");
-    klee_make_symbolic(content, sizeof(content), "content");
-
-    xmlCreateEntity(dict, name, type, ExternalID, SystemID, content);
+    // xmlEncodeEntitiesInternal(/* TODO: args */);
 
     return 0;
 }

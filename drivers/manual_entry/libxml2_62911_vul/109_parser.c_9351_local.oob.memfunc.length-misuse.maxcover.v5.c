@@ -1,22 +1,21 @@
-#include <klee/klee.h>
-#include "parser.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 109_parser.c_9351_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/109_parser.c_9351_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c
+// Entry     : xmlParserNsLookup
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlParserCtxtPtr ctxt;
-    int aindex;
-    unsigned size;
-    const xmlChar *name;
-    const xmlChar *uri;
-    unsigned hashValue;
+#include "parser.c"
 
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    klee_make_symbolic(&aindex, sizeof(aindex), "aindex");
-    klee_make_symbolic(&size, sizeof(size), "size");
-    klee_make_symbolic(&name, sizeof(name), "name");
-    klee_make_symbolic(&uri, sizeof(uri), "uri");
-    klee_make_symbolic(&hashValue, sizeof(hashValue), "hashValue");
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlParserNsLookup`
+    // and uncomment the call below once you know the correct signature.
 
-    xmlAttrHashInsert(ctxt, aindex, &size, name, uri, hashValue);
+    // xmlParserNsLookup(/* TODO: args */);
 
     return 0;
 }

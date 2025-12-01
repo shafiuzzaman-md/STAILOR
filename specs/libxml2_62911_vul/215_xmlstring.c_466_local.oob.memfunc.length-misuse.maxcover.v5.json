@@ -1,61 +1,62 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlstring.c:466",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlstring.c",
-  "line": 466,
   "column": 5,
-  "end_line": 466,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 461,
     "contextEnd": 471,
+    "contextStart": 461,
     "snippet": "        return(NULL);\n    ret = (xmlChar *) xmlRealloc(cur, (size_t) size + len + 1);\n    if (ret == NULL) {\n        return(cur);\n    }\n    memcpy(&ret[size], add, len);\n    ret[size + len] = 0;\n    return(ret);\n}\n\n/**"
   },
-  "target_statement": {
-    "text": null,
-    "line": 466,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 466,
+  "entrypoint": "xmlStrndup",
   "facts": {
-    "suspect_calls": [
-      "memcpy",
-      "xmlRealloc"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "len"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "len",
       "return"
     ],
-    "bounds_hints": [
-      {
-        "var": "len",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "memcpy",
+      "xmlRealloc"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlstring.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlstring.c:466",
+  "line": 466,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 466,
+    "text": null
   }
 }

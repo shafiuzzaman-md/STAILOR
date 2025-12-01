@@ -1,56 +1,57 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@valid.c:883",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/valid.c",
-  "line": 883,
   "column": 6,
-  "end_line": 883,
-  "end_column": 12,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 878,
     "contextEnd": 888,
+    "contextStart": 878,
     "snippet": "\t    tmp = (xmlElementContentPtr) xmlMalloc(sizeof(xmlElementContent));\n\t    if (tmp == NULL) {\n\t\txmlVErrMemory(NULL, \"malloc failed\");\n\t\treturn(ret);\n\t    }\n\t    memset(tmp, 0, sizeof(xmlElementContent));\n\t    tmp->type = cur->type;\n\t    tmp->ocur = cur->ocur;\n\t    prev->c2 = tmp;\n\t    tmp->parent = prev;\n\t    if (cur->name != NULL) {"
   },
-  "target_statement": {
-    "text": null,
-    "line": 883,
-    "column_start": 6,
-    "column_end": 12
-  },
+  "end_column": 12,
+  "end_line": 883,
+  "entrypoint": "xmlAddElementDecl",
   "facts": {
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
+    ],
+    "length_vars": [
+      "return"
+    ],
+    "pointer_vars": [],
     "suspect_calls": [
       "memset",
       "xmlMalloc",
       "xmlVErrMemory"
-    ],
-    "pointer_vars": [],
-    "length_vars": [
-      "return"
-    ],
-    "bounds_hints": [
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/valid.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@valid.c:883",
+  "line": 883,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 12,
+    "column_start": 6,
+    "line": 883,
+    "text": null
   }
 }

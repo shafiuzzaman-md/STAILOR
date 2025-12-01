@@ -1,33 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 002_SAX2.c_1887_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/002_SAX2.c_1887_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+// Entry     : xmlSAX2AttributeInternal
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "SAX2.c"
 
-int main() {
-    // Initialize parser context
-    xmlParserCtxtPtr ctxt;
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    
-    // Initialize localname parameter
-    xmlChar localname_buf[32];
-    klee_make_symbolic(localname_buf, sizeof(localname_buf), "localname");
-    const xmlChar *localname = localname_buf;
-    
-    // Initialize prefix parameter
-    xmlChar prefix_buf[16];
-    klee_make_symbolic(prefix_buf, sizeof(prefix_buf), "prefix");
-    const xmlChar *prefix = prefix_buf;
-    
-    // Initialize value parameter
-    xmlChar value_buf[64];
-    klee_make_symbolic(value_buf, sizeof(value_buf), "value");
-    const xmlChar *value = value_buf;
-    
-    // Initialize valueend parameter
-    xmlChar valueend_buf[64];
-    klee_make_symbolic(valueend_buf, sizeof(valueend_buf), "valueend");
-    const xmlChar *valueend = valueend_buf;
-    
-    // Call the target function
-    xmlSAX2AttributeNs(ctxt, localname, prefix, value, valueend);
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlSAX2AttributeInternal`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlSAX2AttributeInternal(/* TODO: args */);
+
     return 0;
 }

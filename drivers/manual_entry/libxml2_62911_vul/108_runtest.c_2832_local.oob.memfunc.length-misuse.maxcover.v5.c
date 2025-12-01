@@ -1,25 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 108_runtest.c_2832_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/108_runtest.c_2832_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "runtest.c"
 
-int main() {
-    // Initialize symbolic inputs for xpathCommonTest parameters
-    char filename[256];
-    char result[256];
-    int xptr;
-    int expr;
-    
-    // Make inputs symbolic
-    klee_make_symbolic(filename, sizeof(filename), "filename");
-    klee_make_symbolic(result, sizeof(result), "result");
-    klee_make_symbolic(&xptr, sizeof(xptr), "xptr");
-    klee_make_symbolic(&expr, sizeof(expr), "expr");
-    
-    // Ensure null termination for string inputs
-    filename[255] = '\0';
-    result[255] = '\0';
-    
-    // Call the entry function xpathCommonTest
-    xpathCommonTest(filename, result, xptr, expr);
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
+
+    // main(/* TODO: args */);
+
     return 0;
 }

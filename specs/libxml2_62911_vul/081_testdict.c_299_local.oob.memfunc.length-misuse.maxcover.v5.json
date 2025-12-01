@@ -1,70 +1,71 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testdict.c:299",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c",
-  "line": 299,
   "column": 5,
-  "end_line": 299,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 294,
     "contextEnd": 304,
+    "contextStart": 294,
     "snippet": "    xmlChar prefix[40];\n    xmlChar *cur, *pref;\n    const xmlChar *tmp;\n\n    /* Cast to avoid buggy warning on MSVC. */\n    memset((void *) test1, 0, sizeof(test1));\n\n    /*\n     * Fill in NB_STRINGS_MIN, at this point the dictionary should not grow\n     * and we allocate all those doing the fast key computations\n     */"
   },
-  "target_statement": {
-    "text": null,
-    "line": 299,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 299,
+  "entrypoint": "main",
   "facts": {
-    "suspect_calls": [
-      "memset"
-    ],
-    "pointer_vars": [
-      "and",
-      "cur",
-      "tmp"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "NB_STRINGS_MIN"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "in"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "on"
+      }
     ],
     "length_vars": [
       "NB_STRINGS_MIN",
       "in",
       "on"
     ],
-    "bounds_hints": [
-      {
-        "var": "NB_STRINGS_MIN",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "in",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "on",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [
+      "and",
+      "cur",
+      "tmp"
+    ],
+    "suspect_calls": [
+      "memset"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testdict.c:299",
+  "line": 299,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 299,
+    "text": null
   }
 }

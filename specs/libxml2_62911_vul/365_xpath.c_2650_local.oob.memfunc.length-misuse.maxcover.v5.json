@@ -1,61 +1,62 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xpath.c:2650",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpath.c",
-  "line": 2650,
   "column": 6,
-  "end_line": 2650,
-  "end_column": 13,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memmove().",
   "context": {
-    "contextStart": 2645,
     "contextEnd": 2655,
+    "contextStart": 2645,
     "snippet": "\t    size = strlen(work) + 1;\n\t    if (size > buffersize) {\n\t\twork[buffersize - 1] = 0;\n\t\tsize = buffersize;\n\t    }\n\t    memmove(buffer, work, size);\n\t}\n\tbreak;\n    }\n}\n"
   },
-  "target_statement": {
-    "text": null,
-    "line": 2650,
-    "column_start": 6,
-    "column_end": 13
-  },
+  "end_column": 13,
+  "end_line": 2650,
+  "entrypoint": "xmlXPathCmpNodesExt",
   "facts": {
-    "suspect_calls": [
-      "memmove",
-      "strlen"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "buffersize"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "strlen"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "buffersize",
       "strlen"
     ],
-    "bounds_hints": [
-      {
-        "var": "buffersize",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "strlen",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "memmove",
+      "strlen"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpath.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xpath.c:2650",
+  "line": 2650,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memmove().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 13,
+    "column_start": 6,
+    "line": 2650,
+    "text": null
   }
 }

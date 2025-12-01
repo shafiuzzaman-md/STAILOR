@@ -1,62 +1,63 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@runtest.c:670",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c",
-  "line": 670,
   "column": 16,
-  "end_line": 670,
-  "end_column": 20,
-  "message": "High-coverage OOB risk: length/count may be unbounded for read().",
   "context": {
-    "contextStart": 665,
     "contextEnd": 675,
+    "contextStart": 665,
     "snippet": "    fd1 = open(r1, RD_FLAGS);\n    if (fd1 < 0)\n        return(-1);\n    fd2 = open(r2, RD_FLAGS);\n    while (1) {\n        res1 = read(fd1, bytes1, 4096);\n        res2 = fd2 >= 0 ? read(fd2, bytes2, 4096) : 0;\n\tif ((res1 != res2) || (res1 < 0)) {\n\t    close(fd1);\n            if (fd2 >= 0)\n                close(fd2);"
   },
-  "target_statement": {
-    "text": null,
-    "line": 670,
-    "column_start": 16,
-    "column_end": 20
-  },
+  "end_column": 20,
+  "end_line": 670,
+  "entrypoint": "main",
   "facts": {
-    "suspect_calls": [
-      "close",
-      "open",
-      "read"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "open"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "open",
       "return"
     ],
-    "bounds_hints": [
-      {
-        "var": "open",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "close",
+      "open",
+      "read"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@runtest.c:670",
+  "line": 670,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for read().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 20,
+    "column_start": 16,
+    "line": 670,
+    "text": null
   }
 }

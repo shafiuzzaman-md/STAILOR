@@ -1,13 +1,21 @@
-#include <klee/klee.h>
-#include "encoding.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 015_encoding.c_1743_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/015_encoding.c_1743_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c
+// Entry     : isolat1ToUTF8
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    char name[100];
-    klee_make_symbolic(name, sizeof(name), "name");
-    
-    // Ensure null termination for string safety
-    name[99] = '\0';
-    
-    xmlFindCharEncodingHandler(name);
+#include "encoding.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `isolat1ToUTF8`
+    // and uncomment the call below once you know the correct signature.
+
+    // isolat1ToUTF8(/* TODO: args */);
+
     return 0;
 }

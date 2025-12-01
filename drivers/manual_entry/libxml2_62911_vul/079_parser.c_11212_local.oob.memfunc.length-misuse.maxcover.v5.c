@@ -1,38 +1,21 @@
-#include <klee/klee.h>
-#include "parser.h"
-#include "tree.h"
-#include "xmlstring.h"
-#include "xmlerror.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 079_parser.c_11212_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/079_parser.c_11212_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c
+// Entry     : xmlParserNsLookup
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlParserCtxtPtr ctxt;
-    int c;
+#include "parser.c"
 
-    // Initialize parser context symbolically
-    ctxt = xmlCreateParserCtxt();
-    if (ctxt == NULL) return -1;
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlParserNsLookup`
+    // and uncomment the call below once you know the correct signature.
 
-    // Make input buffer symbolic
-    klee_make_symbolic(ctxt->input, sizeof(xmlParserInput), "input");
-    if (ctxt->input != NULL) {
-        klee_make_symbolic(ctxt->input->cur, sizeof(xmlChar*), "input_cur");
-        klee_make_symbolic(ctxt->input->end, sizeof(xmlChar*), "input_end");
-        
-        // Ensure cur and end pointers are properly bounded
-        klee_assume(ctxt->input->cur <= ctxt->input->end);
-        klee_assume(ctxt->input->end - ctxt->input->cur < 1024); // Reasonable bound
-    }
+    // xmlParserNsLookup(/* TODO: args */);
 
-    // Make checkIndex symbolic
-    klee_make_symbolic(&ctxt->checkIndex, sizeof(int), "checkIndex");
-    
-    // Make character parameter symbolic
-    klee_make_symbolic(&c, sizeof(int), "c");
-
-    // Call the target function
-    xmlParseLookupChar(ctxt, c);
-
-    // Cleanup
-    xmlFreeParserCtxt(ctxt);
     return 0;
 }

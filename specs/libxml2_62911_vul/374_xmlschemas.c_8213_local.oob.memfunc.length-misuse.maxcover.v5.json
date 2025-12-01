@@ -1,68 +1,69 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemas.c:8213",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
-  "line": 8213,
   "column": 5,
-  "end_line": 8213,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 8208,
     "contextEnd": 8218,
+    "contextStart": 8208,
     "snippet": "        xmlSchemaPErrMemory(ctxt,\n\t    \"allocating a 'selector' of an identity-constraint definition\",\n\t    NULL);\n        return (NULL);\n    }\n    memset(item, 0, sizeof(xmlSchemaIDCSelect));\n    /*\n    * Attribute \"xpath\" (mandatory).\n    */\n    attr = xmlSchemaGetPropNode(node, \"xpath\");\n    if (attr == NULL) {"
   },
-  "target_statement": {
-    "text": null,
-    "line": 8213,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 8213,
+  "entrypoint": "xmlSchemaFormatQName",
   "facts": {
-    "suspect_calls": [
-      "memset",
-      "xmlSchemaGetPropNode",
-      "xmlSchemaPErrMemory"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "an"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "definition"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "an",
       "definition",
       "return"
     ],
-    "bounds_hints": [
-      {
-        "var": "an",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "definition",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "memset",
+      "xmlSchemaGetPropNode",
+      "xmlSchemaPErrMemory"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemas.c:8213",
+  "line": 8213,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 8213,
+    "text": null
   }
 }

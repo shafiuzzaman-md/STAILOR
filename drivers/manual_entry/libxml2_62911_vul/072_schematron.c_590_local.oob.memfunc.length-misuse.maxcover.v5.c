@@ -1,38 +1,21 @@
-#include <klee/klee.h>
-#include "schematron.h"
-#include "dict.h"
-#include "xmlmemory.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 072_schematron.c_590_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/072_schematron.c_590_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+// Entry     : xmlSchematronParse
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize symbolic inputs for xmlSchematronNewSchematron
-    xmlSchematronParserCtxtPtr ctxt;
-    
-    // Allocate and initialize parser context
-    ctxt = (xmlSchematronParserCtxtPtr)xmlMalloc(sizeof(xmlSchematronParserCtxt));
-    if (ctxt == NULL) return 1;
-    
-    // Initialize parser context fields
-    memset(ctxt, 0, sizeof(xmlSchematronParserCtxt));
-    ctxt->dict = xmlDictCreate();
-    if (ctxt->dict == NULL) {
-        xmlFree(ctxt);
-        return 1;
-    }
-    
-    // Make the dict field symbolic to explore different states
-    klee_make_symbolic(&ctxt->dict, sizeof(ctxt->dict), "ctxt_dict");
-    
-    // Call the target function
-    xmlSchematronPtr result = xmlSchematronNewSchematron(ctxt);
-    
-    // Cleanup
-    if (result != NULL) {
-        xmlSchematronFree(result);
-    }
-    if (ctxt->dict != NULL) {
-        xmlDictFree(ctxt->dict);
-    }
-    xmlFree(ctxt);
-    
+#include "schematron.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlSchematronParse`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlSchematronParse(/* TODO: args */);
+
     return 0;
 }

@@ -1,62 +1,63 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xpath.c:4734",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpath.c",
-  "line": 4734,
   "column": 5,
-  "end_line": 4734,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 4729,
     "contextEnd": 4739,
+    "contextStart": 4729,
     "snippet": "    ret = (xmlXPathObjectPtr) xmlMalloc(sizeof(xmlXPathObject));\n    if (ret == NULL) {\n        xmlXPathErrMemory(NULL, \"copying object\\n\");\n\treturn(NULL);\n    }\n    memcpy(ret, val , sizeof(xmlXPathObject));\n    switch (val->type) {\n\tcase XPATH_BOOLEAN:\n\tcase XPATH_NUMBER:\n#ifdef LIBXML_XPTR_LOCS_ENABLED\n\tcase XPATH_POINT:"
   },
-  "target_statement": {
-    "text": null,
-    "line": 4734,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 4734,
+  "entrypoint": "xmlXPathCmpNodesExt",
   "facts": {
-    "suspect_calls": [
-      "memcpy",
-      "xmlMalloc",
-      "xmlXPathErrMemory"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "XPATH_BOOLEAN"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "XPATH_BOOLEAN",
       "return"
     ],
-    "bounds_hints": [
-      {
-        "var": "XPATH_BOOLEAN",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "memcpy",
+      "xmlMalloc",
+      "xmlXPathErrMemory"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xpath.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xpath.c:4734",
+  "line": 4734,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 4734,
+    "text": null
   }
 }

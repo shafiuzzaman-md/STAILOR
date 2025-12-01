@@ -1,31 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 099_runtest.c_3328_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/099_runtest.c_3328_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "runtest.c"
 
-int main() {
-    // Initialize global variables used in the test
-    urip_current = 0;
-    urip_success = 1;
-    urip_cur = urip_res;
-    urip_rlen = strlen(urip_res);
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
 
-    // Make symbolic inputs for uriPathTest parameters
-    char filename[256];
-    char result[256];
-    char err[256];
-    int options;
-    
-    klee_make_symbolic(filename, sizeof(filename), "filename");
-    klee_make_symbolic(result, sizeof(result), "result");
-    klee_make_symbolic(err, sizeof(err), "err");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    
-    // Ensure null termination for string parameters
-    filename[255] = '\0';
-    result[255] = '\0';
-    err[255] = '\0';
-    
-    // Call the entry function
-    int ret = uriPathTest(filename, result, err, options);
-    
+    // main(/* TODO: args */);
+
     return 0;
 }

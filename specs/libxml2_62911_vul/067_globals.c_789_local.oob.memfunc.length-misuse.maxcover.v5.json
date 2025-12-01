@@ -1,48 +1,49 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@globals.c:789",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/globals.c",
-  "line": 789,
   "column": 5,
-  "end_line": 789,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 784,
     "contextEnd": 794,
+    "contextStart": 784,
     "snippet": "\n    gs->gs_xmlParserInputBufferCreateFilenameValue =\n        xmlParserInputBufferCreateFilenameValueThrDef;\n    gs->gs_xmlOutputBufferCreateFilenameValue =\n        xmlOutputBufferCreateFilenameValueThrDef;\n    memset(&gs->gs_xmlLastError, 0, sizeof(xmlError));\n\n    xmlMutexUnlock(&xmlThrDefMutex);\n\n#ifdef HAVE_POSIX_THREADS\n    pthread_setspecific(globalkey, gs);"
   },
-  "target_statement": {
-    "text": null,
-    "line": 789,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 789,
+  "entrypoint": "xmlCheckThreadLocalStorage",
   "facts": {
+    "bounds_hints": [],
+    "length_vars": [],
+    "pointer_vars": [],
     "suspect_calls": [
       "memset",
       "pthread_setspecific",
       "xmlMutexUnlock"
-    ],
-    "pointer_vars": [],
-    "length_vars": [],
-    "bounds_hints": []
+    ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/globals.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@globals.c:789",
+  "line": 789,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 789,
+    "text": null
   }
 }

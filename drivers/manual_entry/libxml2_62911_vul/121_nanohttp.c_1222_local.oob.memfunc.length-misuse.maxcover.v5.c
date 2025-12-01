@@ -1,28 +1,21 @@
-#include <klee/klee.h>
-#include "nanohttp.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 121_nanohttp.c_1222_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/121_nanohttp.c_1222_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+// Entry     : xmlNanoHTTPMethodRedir
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize a mock HTTP context structure
-    struct _xmlNanoHTTPCtxt ctxt;
-    
-    // Symbolic buffer for input data
-    char inbuf[1024];
-    klee_make_symbolic(inbuf, sizeof(inbuf), "inbuf");
-    
-    // Initialize context fields
-    ctxt.inrptr = inbuf;
-    ctxt.inptr = inbuf + 512;  // Point inptr 512 bytes ahead of inrptr
-    
-    // Symbolic destination buffer
-    char dest[1024];
-    klee_make_symbolic(dest, sizeof(dest), "dest");
-    
-    // Symbolic length parameter
-    int len;
-    klee_make_symbolic(&len, sizeof(len), "len");
-    
-    // Call the target function
-    xmlNanoHTTPRead(&ctxt, dest, len);
-    
+#include "nanohttp.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlNanoHTTPMethodRedir`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlNanoHTTPMethodRedir(/* TODO: args */);
+
     return 0;
 }

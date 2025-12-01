@@ -1,0 +1,28 @@
+You are helping to choose a symbolic execution entrypoint for a C program.
+
+We have a static-analysis finding with the following metadata:
+
+- ruleId: {rule_id}
+- file: {file_name}
+- line: {line}
+
+The C source file content is below:
+
+```c
+{src_code}
+Task:
+Identify the single most appropriate function to use as the entrypoint for a symbolic execution harness that is meant to reach and confirm the above finding.
+
+Prefer:
+
+top-level functions (not static helpers if there is a clear externally-visible wrapper),
+
+functions that are reachable from the suspicious line,
+
+functions that reflect realistic usage (e.g., test drivers, CLI handlers, "main" style functions).
+
+Respond ONLY with a JSON object of the form:
+
+{{"entrypoint": "<FUNCTION_NAME>"}}
+
+Do NOT add any commentary, markdown, or extra fields.

@@ -1,14 +1,21 @@
-#include <klee/klee.h>
-#include "parserInternals.h"
-#include "tree.h"
-#include "xmlmemory.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 031_parserInternals.c_2149_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/031_parserInternals.c_2149_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c
+// Entry     : xmlDetectEncoding
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlParserCtxtPtr ctxt = xmlNewParserCtxt();
-    
-    if (ctxt != NULL) {
-        xmlFreeParserCtxt(ctxt);
-    }
-    
+#include "parserInternals.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlDetectEncoding`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlDetectEncoding(/* TODO: args */);
+
     return 0;
 }

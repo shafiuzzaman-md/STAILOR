@@ -1,18 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 083_testlimits.c_1334_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/083_testlimits.c_1334_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : runtest
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "testlimits.c"
 
-int main() {
-    const char *filename;
-    size_t limit;
-    int options;
-    int fail;
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `runtest`
+    // and uncomment the call below once you know the correct signature.
 
-    klee_make_symbolic(&filename, sizeof(filename), "filename");
-    klee_make_symbolic(&limit, sizeof(limit), "limit");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    klee_make_symbolic(&fail, sizeof(fail), "fail");
+    // runtest(/* TODO: args */);
 
-    readerTest(filename, limit, options, fail);
-    
     return 0;
 }

@@ -1,24 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+// Entry     : xmlSAX2StartElement
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "SAX2.c"
-#include "parser.h"
-#include "tree.h"
 
-int main() {
-    // Initialize parser context
-    xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt("", 0);
-    if (ctxt == NULL) return 1;
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlSAX2StartElement`
+    // and uncomment the call below once you know the correct signature.
 
-    // Make symbolic inputs for xmlSAX2TextNode parameters
-    xmlChar str_buf[256];
-    int len;
-    
-    klee_make_symbolic(str_buf, sizeof(str_buf), "str_buf");
-    klee_make_symbolic(&len, sizeof(len), "len");
-    
-    // Call the target function
-    xmlSAX2TextNode(ctxt, str_buf, len);
-    
-    // Cleanup
-    xmlFreeParserCtxt(ctxt);
+    // xmlSAX2StartElement(/* TODO: args */);
+
     return 0;
 }

@@ -1,18 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 076_testdict.c_404_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/076_testdict.c_404_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testdict.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "testdict.c"
 
-int main() {
-    klee_make_symbolic(&NB_STRINGS_MAX, sizeof(NB_STRINGS_MAX), "NB_STRINGS_MAX");
-    klee_make_symbolic(&NB_STRINGS_MIN, sizeof(NB_STRINGS_MIN), "NB_STRINGS_MIN");
-    klee_make_symbolic(&NB_STRINGS_NS, sizeof(NB_STRINGS_NS), "NB_STRINGS_NS");
-    
-    klee_assume(NB_STRINGS_MAX > 0);
-    klee_assume(NB_STRINGS_MIN > 0);
-    klee_assume(NB_STRINGS_NS > 0);
-    klee_assume(NB_STRINGS_MIN <= NB_STRINGS_MAX);
-    klee_assume(NB_STRINGS_NS <= NB_STRINGS_MAX);
-    
-    testall_dict();
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
+
+    // main(/* TODO: args */);
+
     return 0;
 }

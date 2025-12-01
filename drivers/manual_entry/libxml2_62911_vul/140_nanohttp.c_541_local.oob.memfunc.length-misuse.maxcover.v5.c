@@ -1,31 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+// Entry     : xmlNanoHTTPMethodRedir
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "nanohttp.c"
 
-int main() {
-    xmlNanoHTTPCtxt ctxt;
-    
-    // Initialize context fields
-    klee_make_symbolic(&ctxt.fd, sizeof(ctxt.fd), "fd");
-    klee_make_symbolic(&ctxt.state, sizeof(ctxt.state), "state");
-    klee_make_symbolic(&ctxt.inlen, sizeof(ctxt.inlen), "inlen");
-    
-    // Allocate and initialize buffer pointers
-    ctxt.in = (char*)malloc(65000);
-    ctxt.inptr = ctxt.in;
-    ctxt.inrptr = ctxt.in;
-    ctxt.content = ctxt.in;
-    
-    if (ctxt.in != NULL) {
-        klee_make_symbolic(ctxt.in, 65000, "in_buffer");
-    }
-    
-    // Call the function under test
-    int result = xmlNanoHTTPRecv(&ctxt);
-    
-    // Cleanup
-    if (ctxt.in != NULL) {
-        free(ctxt.in);
-    }
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlNanoHTTPMethodRedir`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlNanoHTTPMethodRedir(/* TODO: args */);
+
     return 0;
 }

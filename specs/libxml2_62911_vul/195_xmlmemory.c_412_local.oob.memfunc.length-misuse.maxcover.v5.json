@@ -1,64 +1,65 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlmemory.c:412",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmemory.c",
-  "line": 412,
   "column": 5,
-  "end_line": 412,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 407,
     "contextEnd": 417,
+    "contextStart": 407,
     "snippet": "        Mem_Tag_Err(p);\n        goto error;\n    }\n    if (xmlMemStopAtBlock == p->mh_number) xmlMallocBreakpoint();\n    p->mh_tag = ~MEMTAG;\n    memset(target, -1, p->mh_size);\n    xmlMutexLock(&xmlMemMutex);\n    debugMemSize -= p->mh_size;\n    debugMemBlocks--;\n#ifdef MEM_LIST\n    debugmem_list_delete(p);"
   },
-  "target_statement": {
-    "text": null,
-    "line": 412,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 412,
+  "entrypoint": "xmlMallocLoc",
   "facts": {
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "debugMemSize"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "mh_size"
+      }
+    ],
+    "length_vars": [
+      "debugMemSize",
+      "mh_size"
+    ],
+    "pointer_vars": [],
     "suspect_calls": [
       "Mem_Tag_Err",
       "debugmem_list_delete",
       "memset",
       "xmlMallocBreakpoint",
       "xmlMutexLock"
-    ],
-    "pointer_vars": [],
-    "length_vars": [
-      "debugMemSize",
-      "mh_size"
-    ],
-    "bounds_hints": [
-      {
-        "var": "debugMemSize",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "mh_size",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmemory.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlmemory.c:412",
+  "line": 412,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 412,
+    "text": null
   }
 }

@@ -1,63 +1,64 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testchar.c:821",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c",
-  "line": 821,
   "column": 9,
-  "end_line": 821,
-  "end_column": 16,
-  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
   "context": {
-    "contextStart": 816,
     "contextEnd": 826,
+    "contextStart": 816,
     "snippet": "\n    xmlParseChunk(ctxt, \"\\xB1</d>\", 4, 0);\n    xmlParseChunk(ctxt, NULL, 0, 0);\n\n    xmlDocDumpMemory(ctxt->myDoc, &out, &outSize);\n    if (strncmp((char *) out, \"<?xml version=\\\"1.0\\\"?>\\n<d>\", 25) != 0) {\n        fprintf(stderr, \"failed UTF-8 chunk test 2-1\\n\");\n        ret += 1;\n        goto error;\n    }\n    for (i = 25; i < 25 + 1001 * 7; i += 7) {"
   },
-  "target_statement": {
-    "text": null,
-    "line": 821,
-    "column_start": 9,
-    "column_end": 16
-  },
+  "end_column": 16,
+  "end_line": 821,
+  "entrypoint": "main",
   "facts": {
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "outSize"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "version"
+      }
+    ],
+    "length_vars": [
+      "outSize",
+      "version"
+    ],
+    "pointer_vars": [],
     "suspect_calls": [
       "fprintf",
       "strncmp",
       "xmlDocDumpMemory",
       "xmlParseChunk"
-    ],
-    "pointer_vars": [],
-    "length_vars": [
-      "outSize",
-      "version"
-    ],
-    "bounds_hints": [
-      {
-        "var": "outSize",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "version",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testchar.c:821",
+  "line": 821,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 16,
+    "column_start": 9,
+    "line": 821,
+    "text": null
   }
 }

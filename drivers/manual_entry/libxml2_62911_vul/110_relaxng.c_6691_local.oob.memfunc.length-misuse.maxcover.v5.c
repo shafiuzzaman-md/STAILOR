@@ -1,22 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 110_relaxng.c_6691_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/110_relaxng.c_6691_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+// Entry     : xmlRelaxNGCopyValidState
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "relaxng.c"
 
-int main() {
-    // Create a symbolic xmlDoc structure
-    // We'll approximate xmlDoc with a simple buffer since the exact structure is complex
-    char doc_buffer[1024];
-    klee_make_symbolic(doc_buffer, sizeof(doc_buffer), "doc_buffer");
-    
-    // Cast to xmlDocPtr (this is an approximation)
-    xmlDocPtr doc = (xmlDocPtr)doc_buffer;
-    
-    // Call the entry function
-    xmlRelaxNGParserCtxtPtr result = xmlRelaxNGNewDocParserCtxt(doc);
-    
-    // Clean up if result was created
-    if (result != NULL) {
-        xmlRelaxNGFreeParserCtxt(result);
-    }
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlRelaxNGCopyValidState`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlRelaxNGCopyValidState(/* TODO: args */);
+
     return 0;
 }

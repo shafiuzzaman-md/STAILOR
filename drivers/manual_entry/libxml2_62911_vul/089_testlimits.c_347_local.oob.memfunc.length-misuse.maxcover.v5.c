@@ -1,37 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 089_testlimits.c_347_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/089_testlimits.c_347_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "testlimits.c"
 
-int main() {
-    // Initialize global variables
-    crazy_indx = 0;
-    rlen = 0;
-    current = NULL;
-    instate = 0;
-    curlen = 0;
-    maxlen = 1024;  // Reasonable default
-    CHUNK = 256;    // Reasonable default
-    
-    // Make crazy buffer symbolic
-    char crazy_buf[1024];
-    klee_make_symbolic(crazy_buf, sizeof(crazy_buf), "crazy_buf");
-    crazy = crazy_buf;
-    
-    // Make context symbolic (simulate file handle)
-    void* context;
-    klee_make_symbolic(&context, sizeof(context), "context");
-    
-    // Make buffer symbolic
-    char buffer[1024];
-    klee_make_symbolic(buffer, sizeof(buffer), "buffer");
-    
-    // Make len symbolic with reasonable bounds
-    int len;
-    klee_make_symbolic(&len, sizeof(len), "len");
-    klee_assume(len >= 0);
-    klee_assume(len <= 1024);
-    
-    // Call the suspicious function
-    crazyRead(context, buffer, len);
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
+
+    // main(/* TODO: args */);
+
     return 0;
 }
