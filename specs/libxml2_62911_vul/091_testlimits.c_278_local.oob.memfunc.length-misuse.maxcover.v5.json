@@ -1,36 +1,45 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testlimits.c:278",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c",
-  "line": 278,
   "column": 27,
-  "end_line": 278,
-  "end_column": 34,
-  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
   "context": {
-    "contextStart": 273,
     "contextEnd": 283,
+    "contextStart": 273,
     "snippet": " *\n * Returns an Input context or NULL in case or error\n */\nstatic void *\ncrazyOpen(const char * URI) {\n    if ((URI == NULL) || (strncmp(URI, \"crazy:\", 6)))\n        return(NULL);\n\n    if (crazy_indx > strlen(crazy))\n        return(NULL);\n    reset_timout();"
   },
-  "target_statement": {
-    "text": null,
-    "line": 278,
-    "column_start": 27,
-    "column_end": 34
-  },
+  "end_column": 34,
+  "end_line": 278,
+  "entrypoint": "main",
   "facts": {
-    "suspect_calls": [
-      "crazyOpen",
-      "reset_timout",
-      "strlen",
-      "strncmp"
-    ],
-    "pointer_vars": [
-      "URI",
-      "crazyOpen"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "an"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "crazyOpen"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "in"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "strlen"
+      },
+      {
+        "relation": "<= sizeof(crazyOpen)",
+        "source": "name-affinity",
+        "var": "crazyOpen"
+      }
     ],
     "length_vars": [
       "an",
@@ -39,51 +48,43 @@
       "return",
       "strlen"
     ],
-    "bounds_hints": [
-      {
-        "var": "an",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "crazyOpen",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "in",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "strlen",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "crazyOpen",
-        "relation": "<= sizeof(crazyOpen)",
-        "source": "name-affinity"
-      }
+    "pointer_vars": [
+      "URI",
+      "crazyOpen"
+    ],
+    "suspect_calls": [
+      "crazyOpen",
+      "reset_timout",
+      "strlen",
+      "strncmp"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testlimits.c:278",
+  "line": 278,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 34,
+    "column_start": 27,
+    "line": 278,
+    "text": null
   }
 }

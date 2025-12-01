@@ -1,21 +1,21 @@
-#include <klee/klee.h>
-#include "HTMLparser.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 053_HTMLparser.c_2284_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/053_HTMLparser.c_2284_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+// Entry     : htmlParseComment
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    unsigned char out_buf[1024];
-    int outlen = 1024;
-    unsigned char in_buf[1024];
-    int inlen;
-    int quoteChar;
+#include "HTMLparser.c"
 
-    klee_make_symbolic(&inlen, sizeof(inlen), "inlen");
-    klee_make_symbolic(in_buf, sizeof(in_buf), "in_buf");
-    klee_make_symbolic(&quoteChar, sizeof(quoteChar), "quoteChar");
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `htmlParseComment`
+    // and uncomment the call below once you know the correct signature.
 
-    klee_assume(inlen >= 0);
-    klee_assume(inlen <= 1024);
-
-    htmlEncodeEntities(out_buf, &outlen, in_buf, &inlen, quoteChar);
+    // htmlParseComment(/* TODO: args */);
 
     return 0;
 }

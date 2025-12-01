@@ -1,35 +1,21 @@
-#include <klee/klee.h>
-#include "python/libxml.c"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 141_libxml.c_3030_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/141_libxml.c_3030_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c
+// Entry     : libxml_xmlCreatePushParser
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize Python runtime for libxml2 bindings
-    Py_Initialize();
-    
-    // Create symbolic inputs for the function parameters
-    PyObject* pyobj_ctx;
-    PyObject* pyobj_error;
-    PyObject* pyobj_warn;
-    PyObject* pyobj_arg = Py_None;
-    
-    // We need to create valid PyObject pointers for the context
-    // For KLEE, we'll use concrete NULL pointers and let the function handle errors
-    pyobj_ctx = NULL;
-    pyobj_error = NULL;
-    pyobj_warn = NULL;
-    
-    // Create a tuple of arguments as expected by the function
-    PyObject* args = PyTuple_New(3);
-    PyTuple_SetItem(args, 0, pyobj_ctx);
-    PyTuple_SetItem(args, 1, pyobj_error);
-    PyTuple_SetItem(args, 2, pyobj_warn);
-    
-    // Call the target function
-    PyObject* result = libxml_xmlRelaxNGSetValidErrors(NULL, args);
-    
-    // Cleanup
-    Py_XDECREF(args);
-    Py_XDECREF(result);
-    Py_Finalize();
-    
+#include "libxml.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `libxml_xmlCreatePushParser`
+    // and uncomment the call below once you know the correct signature.
+
+    // libxml_xmlCreatePushParser(/* TODO: args */);
+
     return 0;
 }

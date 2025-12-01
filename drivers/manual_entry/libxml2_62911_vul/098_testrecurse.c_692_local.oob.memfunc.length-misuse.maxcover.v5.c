@@ -1,28 +1,21 @@
-#include <klee/klee.h>
-#include "testrecurse.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 098_testrecurse.c_692_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/098_testrecurse.c_692_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testrecurse.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize symbolic inputs for recursiveDetectTest parameters
-    char filename[256];
-    char result[256];
-    char err[256];
-    int options;
-    
-    klee_make_symbolic(filename, sizeof(filename), "filename");
-    klee_make_symbolic(result, sizeof(result), "result");
-    klee_make_symbolic(err, sizeof(err), "err");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    
-    // Ensure null termination for string parameters
-    filename[255] = '\0';
-    result[255] = '\0';
-    err[255] = '\0';
-    
-    // Initialize libxml2
-    initializeLibxml2();
-    
-    // Call the entry function
-    int ret = recursiveDetectTest(filename, result, err, options);
-    
-    return ret;
+#include "testrecurse.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
+
+    // main(/* TODO: args */);
+
+    return 0;
 }

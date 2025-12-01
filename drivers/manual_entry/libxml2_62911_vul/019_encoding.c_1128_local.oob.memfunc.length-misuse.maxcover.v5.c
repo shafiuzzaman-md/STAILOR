@@ -1,24 +1,21 @@
-#include <klee/klee.h>
-#include "encoding.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 019_encoding.c_1128_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/019_encoding.c_1128_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c
+// Entry     : isolat1ToUTF8
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize global state
-    xmlCharEncodingAliases = NULL;
-    xmlCharEncodingAliasesNb = 0;
-    xmlCharEncodingAliasesMax = 0;
+#include "encoding.c"
 
-    // Add some initial encoding aliases to populate the array
-    xmlAddEncodingAlias("UTF-8", "TEST1");
-    xmlAddEncodingAlias("UTF-16", "TEST2");
-    xmlAddEncodingAlias("ISO-8859-1", "TEST3");
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `isolat1ToUTF8`
+    // and uncomment the call below once you know the correct signature.
 
-    // Create symbolic input for alias parameter
-    char alias[100];
-    klee_make_symbolic(alias, sizeof(alias), "alias");
-    klee_assume(alias[99] == '\0'); // Ensure null termination
-
-    // Call the vulnerable function
-    xmlDelEncodingAlias(alias);
+    // isolat1ToUTF8(/* TODO: args */);
 
     return 0;
 }

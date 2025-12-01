@@ -1,64 +1,65 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@timsort.h:383",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/timsort.h",
-  "line": 383,
   "column": 5,
-  "end_line": 383,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 378,
     "contextEnd": 388,
+    "contextStart": 378,
     "snippet": "  TIM_SORT_RESIZE(store, MIN(A, B));\n  storage = store->storage;\n\n  /* left merge */\n  if (A < B) {\n    memcpy(storage, &dst[curr], A * sizeof(SORT_TYPE));\n    i = 0;\n    j = curr + A;\n\n    for (k = curr; k < curr + A + B; k++) {\n      if ((i < A) && (j < curr + A + B)) {"
   },
-  "target_statement": {
-    "text": null,
-    "line": 383,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 383,
+  "entrypoint": "TIM_SORT",
   "facts": {
-    "suspect_calls": [
-      "MIN",
-      "TIM_SORT_RESIZE",
-      "memcpy"
-    ],
-    "pointer_vars": [
-      "sizeof"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "MIN"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "TIM_SORT_RESIZE"
+      }
     ],
     "length_vars": [
       "MIN",
       "TIM_SORT_RESIZE"
     ],
-    "bounds_hints": [
-      {
-        "var": "MIN",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "TIM_SORT_RESIZE",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "suspect_calls": [
+      "MIN",
+      "TIM_SORT_RESIZE",
+      "memcpy"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/timsort.h",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@timsort.h:383",
+  "line": 383,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 383,
+    "text": null
   }
 }

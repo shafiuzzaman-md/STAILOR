@@ -1,47 +1,48 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@relaxng.c:10553",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c",
-  "line": 10553,
   "column": 9,
-  "end_line": 10553,
-  "end_column": 15,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 10548,
     "contextEnd": 10558,
+    "contextStart": 10548,
     "snippet": "        xmlRelaxNGDumpValidError(ctxt);\n#ifdef LIBXML_VALID_ENABLED\n    if (ctxt->idref == 1) {\n        xmlValidCtxt vctxt;\n\n        memset(&vctxt, 0, sizeof(xmlValidCtxt));\n        vctxt.valid = 1;\n        vctxt.error = ctxt->error;\n        vctxt.warning = ctxt->warning;\n        vctxt.userData = ctxt->userData;\n"
   },
-  "target_statement": {
-    "text": null,
-    "line": 10553,
-    "column_start": 9,
-    "column_end": 15
-  },
+  "end_column": 15,
+  "end_line": 10553,
+  "entrypoint": "xmlRelaxNGFreeDefine",
   "facts": {
+    "bounds_hints": [],
+    "length_vars": [],
+    "pointer_vars": [],
     "suspect_calls": [
       "memset",
       "xmlRelaxNGDumpValidError"
-    ],
-    "pointer_vars": [],
-    "length_vars": [],
-    "bounds_hints": []
+    ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@relaxng.c:10553",
+  "line": 10553,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 15,
+    "column_start": 9,
+    "line": 10553,
+    "text": null
   }
 }

@@ -1,22 +1,14 @@
-#include <klee/klee.h>
-#include "HTMLtree.h"
-#include "buf.h"
-#include "tree.h"
+// Auto-generated LLM_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 002_HTMLtree.c_416_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/002_HTMLtree.c_416_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLtree.c
+// Entry     : htmlGetMetaEncoding
+
+#include "HTMLtree.c"
 
 int main() {
-    xmlBufferPtr buf = xmlBufferCreate();
-    xmlDocPtr doc = xmlNewDoc((const xmlChar*)"1.0");
-    xmlNodePtr root = xmlNewNode(NULL, (const xmlChar*)"html");
-    xmlDocSetRootElement(doc, root);
-    
-    klee_make_symbolic(buf, sizeof(xmlBuffer), "buf");
-    klee_make_symbolic(doc, sizeof(xmlDoc), "doc");
-    klee_make_symbolic(root, sizeof(xmlNode), "root");
-    
-    int result = htmlNodeDump(buf, doc, root);
-    
-    xmlBufferFree(buf);
-    xmlFreeDoc(doc);
-    
+    htmlDocPtr doc = NULL;
+    const xmlChar *encoding = htmlGetMetaEncoding(doc);
     return 0;
 }

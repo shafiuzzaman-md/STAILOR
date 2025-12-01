@@ -1,35 +1,21 @@
-#include <klee/klee.h>
-#include "nanohttp.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 114_nanohttp.c_1305_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/114_nanohttp.c_1305_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+// Entry     : xmlNanoHTTPMethodRedir
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize symbolic inputs for xmlNanoHTTPMethodRedir parameters
-    char URL[256];
-    char method[16];
-    char input[256];
-    char* contentType = NULL;
-    char* redir = NULL;
-    char headers[256];
-    int ilen;
-    
-    // Make inputs symbolic
-    klee_make_symbolic(URL, sizeof(URL), "URL");
-    klee_make_symbolic(method, sizeof(method), "method");
-    klee_make_symbolic(input, sizeof(input), "input");
-    klee_make_symbolic(headers, sizeof(headers), "headers");
-    klee_make_symbolic(&ilen, sizeof(ilen), "ilen");
-    
-    // Ensure null termination for string parameters
-    URL[255] = '\0';
-    method[15] = '\0';
-    input[255] = '\0';
-    headers[255] = '\0';
-    
-    // Call the entry function
-    void* result = xmlNanoHTTPMethodRedir(URL, method, input, &contentType, &redir, headers, ilen);
-    
-    // Clean up if needed
-    if (contentType) xmlFree(contentType);
-    if (redir) xmlFree(redir);
-    
+#include "nanohttp.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlNanoHTTPMethodRedir`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlNanoHTTPMethodRedir(/* TODO: args */);
+
     return 0;
 }

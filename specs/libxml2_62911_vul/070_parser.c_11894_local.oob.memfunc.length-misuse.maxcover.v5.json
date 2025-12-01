@@ -1,69 +1,70 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@parser.c:11894",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c",
-  "line": 11894,
   "column": 11,
-  "end_line": 11894,
-  "end_column": 18,
-  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
   "context": {
-    "contextStart": 11889,
     "contextEnd": 11899,
+    "contextStart": 11889,
     "snippet": "\t\t\t * Special case to provide identical behaviour\n\t\t\t * between pull and push parsers on enpty CDATA\n\t\t\t * sections\n\t\t\t */\n\t\t\t if ((ctxt->input->cur - ctxt->input->base >= 9) &&\n\t\t\t     (!strncmp((const char *)&ctxt->input->cur[-9],\n\t\t\t               \"<![CDATA[\", 9)))\n\t\t\t     ctxt->sax->cdataBlock(ctxt->userData,\n\t\t\t                           BAD_CAST \"\", 0);\n\t\t    } else if ((ctxt->sax != NULL) && (base > 0) &&\n\t\t\t(!ctxt->disableSAX)) {"
   },
-  "target_statement": {
-    "text": null,
-    "line": 11894,
-    "column_start": 11,
-    "column_end": 18
-  },
+  "end_column": 18,
+  "end_line": 11894,
+  "entrypoint": "xmlParseExternalEntityPrivate",
   "facts": {
-    "suspect_calls": [
-      "cdataBlock",
-      "strncmp"
-    ],
-    "pointer_vars": [
-      "between",
-      "sections"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "between"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "on"
+      },
+      {
+        "relation": "<= sizeof(between)",
+        "source": "name-affinity",
+        "var": "between"
+      }
     ],
     "length_vars": [
       "between",
       "on"
     ],
-    "bounds_hints": [
-      {
-        "var": "between",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "on",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "between",
-        "relation": "<= sizeof(between)",
-        "source": "name-affinity"
-      }
+    "pointer_vars": [
+      "between",
+      "sections"
+    ],
+    "suspect_calls": [
+      "cdataBlock",
+      "strncmp"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@parser.c:11894",
+  "line": 11894,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for strncmp().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 18,
+    "column_start": 11,
+    "line": 11894,
+    "text": null
   }
 }

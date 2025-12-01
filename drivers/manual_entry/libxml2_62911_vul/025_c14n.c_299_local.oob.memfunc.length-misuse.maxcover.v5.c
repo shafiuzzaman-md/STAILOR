@@ -1,22 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 025_c14n.c_299_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/025_c14n.c_299_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NProcessAttrsAxis
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "c14n.c"
 
-int main() {
-    xmlC14NVisibleNsStackPtr stack = xmlC14NVisibleNsStackCreate();
-    
-    if (stack != NULL) {
-        klee_make_symbolic(&stack->nsMax, sizeof(stack->nsMax), "nsMax");
-        klee_make_symbolic(&stack->nsCurEnd, sizeof(stack->nsCurEnd), "nsCurEnd");
-        
-        if (stack->nsTab != NULL) {
-            klee_make_symbolic(stack->nsTab, stack->nsMax * sizeof(xmlNsPtr), "nsTab");
-        }
-        if (stack->nodeTab != NULL) {
-            klee_make_symbolic(stack->nodeTab, stack->nsMax * sizeof(xmlNodePtr), "nodeTab");
-        }
-        
-        xmlC14NVisibleNsStackDestroy(stack);
-    }
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlC14NProcessAttrsAxis`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlC14NProcessAttrsAxis(/* TODO: args */);
+
     return 0;
 }

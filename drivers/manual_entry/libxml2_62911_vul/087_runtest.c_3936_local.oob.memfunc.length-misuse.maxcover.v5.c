@@ -1,22 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 087_runtest.c_3936_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/087_runtest.c_3936_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "runtest.c"
 
-int main() {
-    char filename[500];
-    char resul[500];
-    char err[500];
-    int options;
-    
-    klee_make_symbolic(filename, sizeof(filename), "filename");
-    klee_make_symbolic(resul, sizeof(resul), "resul");
-    klee_make_symbolic(err, sizeof(err), "err");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    
-    filename[sizeof(filename)-1] = '\0';
-    resul[sizeof(resul)-1] = '\0';
-    err[sizeof(err)-1] = '\0';
-    
-    patternTest(filename, resul, err, options);
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
+
+    // main(/* TODO: args */);
+
     return 0;
 }

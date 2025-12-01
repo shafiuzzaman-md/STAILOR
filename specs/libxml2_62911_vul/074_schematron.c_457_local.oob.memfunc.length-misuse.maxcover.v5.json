@@ -1,62 +1,63 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@schematron.c:457",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c",
-  "line": 457,
   "column": 5,
-  "end_line": 457,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 452,
     "contextEnd": 462,
+    "contextStart": 452,
     "snippet": "    ret = (xmlSchematronRulePtr) xmlMalloc(sizeof(xmlSchematronRule));\n    if (ret == NULL) {\n        xmlSchematronPErrMemory(ctxt, \"allocating schema rule\", node);\n        return (NULL);\n    }\n    memset(ret, 0, sizeof(xmlSchematronRule));\n    ret->node = node;\n    ret->context = context;\n    ret->pattern = pattern;\n    ret->report = report;\n    ret->next = NULL;"
   },
-  "target_statement": {
-    "text": null,
-    "line": 457,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 457,
+  "entrypoint": "xmlSchematronParse",
   "facts": {
-    "suspect_calls": [
-      "memset",
-      "xmlMalloc",
-      "xmlSchematronPErrMemory"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "pattern"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "pattern",
       "return"
     ],
-    "bounds_hints": [
-      {
-        "var": "pattern",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "memset",
+      "xmlMalloc",
+      "xmlSchematronPErrMemory"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@schematron.c:457",
+  "line": 457,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 457,
+    "text": null
   }
 }

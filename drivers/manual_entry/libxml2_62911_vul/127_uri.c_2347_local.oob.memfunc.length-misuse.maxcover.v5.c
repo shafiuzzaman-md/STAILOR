@@ -1,31 +1,21 @@
-#include <klee/klee.h>
-#include "uri.c"
-#include "uri.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 127_uri.c_2347_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/127_uri.c_2347_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c
+// Entry     : xmlParseURI
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Create symbolic inputs for xmlBuildRelativeURI function
-    // The function signature is: xmlChar *xmlBuildRelativeURI(const xmlChar *URI, const xmlChar *base);
-    
-    // Create symbolic buffers for URI and base parameters
-    #define MAX_URI_LENGTH 256
-    xmlChar URI[MAX_URI_LENGTH];
-    xmlChar base[MAX_URI_LENGTH];
-    
-    // Make the inputs symbolic
-    klee_make_symbolic(URI, sizeof(URI), "URI");
-    klee_make_symbolic(base, sizeof(base), "base");
-    
-    // Ensure null termination for safety
-    URI[MAX_URI_LENGTH - 1] = 0;
-    base[MAX_URI_LENGTH - 1] = 0;
-    
-    // Call the function that contains the suspicious line
-    xmlChar *result = xmlBuildRelativeURI(URI, base);
-    
-    // Free the result if not NULL
-    if (result != NULL) {
-        xmlFree(result);
-    }
-    
+#include "uri.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlParseURI`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlParseURI(/* TODO: args */);
+
     return 0;
 }

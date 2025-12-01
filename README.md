@@ -282,8 +282,31 @@ chmod +x run_sa_manual_all_specs.sh
 
 ```
 
-3. LLM Harness (entrypoint)
-– Single-shot LLM-generated harness that calls the entrypoint, but without passing the CodeQL spec.
+3. LLM Harness (entrypoint): Single-shot LLM-generated harness that calls the entrypoint, but without passing the CodeQL spec.
+
+```
+chmod +x generate_llm_entry_drivers.py
+
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+
+./generate_llm_entry_drivers.py \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul \
+  --model deepseek-chat \
+  --api-base https://api.deepseek.com
+
+
+chmod +x run_llm_entry_all_specs.sh
+
+./run_llm_entry_all_specs.sh \
+  --project-name libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --spec-dir specs/libxml2_62911_vul \
+  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
+  --klee-flags "--search=dfs --max-time=600"
+
+```
 
 4. SA driven LLM Harness (entrypoint + target + assertion)
 – Single-shot LLM-generated harness using the SA spec (entrypoint, target, assertion), without SAILR’s counterexample-guided refinement loop.

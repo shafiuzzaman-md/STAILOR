@@ -1,62 +1,63 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemastypes.c:502",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c",
-  "line": 502,
   "column": 2,
-  "end_line": 502,
-  "end_column": 8,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 497,
     "contextEnd": 507,
+    "contextStart": 497,
     "snippet": "\tif (wild == NULL) {\n\t    xmlSchemaTypeErrMemory(NULL, \"could not create an attribute \"\n\t\t\"wildcard on anyType\");\n\t    goto error;\n\t}\n\tmemset(wild, 0, sizeof(xmlSchemaWildcard));\n\twild->any = 1;\n\twild->processContents = XML_SCHEMAS_ANY_LAX;\n\txmlSchemaTypeAnyTypeDef->attributeWildcard = wild;\n    }\n    xmlSchemaTypeAnySimpleTypeDef = xmlSchemaInitBasicType(\"anySimpleType\","
   },
-  "target_statement": {
-    "text": null,
-    "line": 502,
-    "column_start": 2,
-    "column_end": 8
-  },
+  "end_column": 8,
+  "end_line": 502,
+  "entrypoint": "xmlSchemaInitTypes",
   "facts": {
-    "suspect_calls": [
-      "memset",
-      "xmlSchemaInitBasicType",
-      "xmlSchemaTypeErrMemory"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "an"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "on"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "an",
       "on"
     ],
-    "bounds_hints": [
-      {
-        "var": "an",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "on",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "memset",
+      "xmlSchemaInitBasicType",
+      "xmlSchemaTypeErrMemory"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemastypes.c:502",
+  "line": 502,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 8,
+    "column_start": 2,
+    "line": 502,
+    "text": null
   }
 }

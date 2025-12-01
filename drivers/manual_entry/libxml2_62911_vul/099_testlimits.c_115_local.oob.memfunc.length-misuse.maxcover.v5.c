@@ -1,18 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 099_testlimits.c_115_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/099_testlimits.c_115_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : main
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "testlimits.c"
 
-int main() {
-    // Initialize global state
-    reset_timout();
-    fillFilling();
-    
-    // Create symbolic URI input
-    char URI[256];
-    klee_make_symbolic(URI, sizeof(URI), "URI");
-    URI[255] = '\0'; // Ensure null termination
-    
-    // Call the entry function (hugeOpen is the most likely candidate based on the suspicious line)
-    void* result = hugeOpen(URI);
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `main`
+    // and uncomment the call below once you know the correct signature.
+
+    // main(/* TODO: args */);
+
     return 0;
 }

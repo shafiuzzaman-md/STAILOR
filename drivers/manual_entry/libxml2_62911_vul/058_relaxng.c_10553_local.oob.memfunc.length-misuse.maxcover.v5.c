@@ -1,33 +1,21 @@
-#include <klee/klee.h>
-#include "relaxng.h"
-#include "tree.h"
-#include "valid.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 058_relaxng.c_10553_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/058_relaxng.c_10553_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+// Entry     : xmlRelaxNGFreeDefine
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlRelaxNGValidCtxtPtr ctxt;
-    xmlDocPtr doc;
-    xmlRelaxNGPtr schema;
-    xmlRelaxNGGrammarPtr grammar;
+#include "relaxng.c"
 
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    klee_make_symbolic(&doc, sizeof(doc), "doc");
-    klee_make_symbolic(&schema, sizeof(schema), "schema");
-    klee_make_symbolic(&grammar, sizeof(grammar), "grammar");
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlRelaxNGFreeDefine`
+    // and uncomment the call below once you know the correct signature.
 
-    if (ctxt != NULL) {
-        ctxt->schema = schema;
-        if (schema != NULL) {
-            schema->topgrammar = grammar;
-        }
-        ctxt->errNo = XML_RELAXNG_OK;
-        ctxt->state = NULL;
-        ctxt->states = NULL;
-        ctxt->idref = klee_int("idref");
-        ctxt->error = NULL;
-        ctxt->warning = NULL;
-        ctxt->userData = NULL;
-    }
+    // xmlRelaxNGFreeDefine(/* TODO: args */);
 
-    xmlRelaxNGValidateDocument(ctxt, doc);
     return 0;
 }

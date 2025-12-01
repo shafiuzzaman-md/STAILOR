@@ -1,61 +1,62 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@libxml.c:351",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
-  "line": 351,
   "column": 2,
-  "end_line": 351,
-  "end_column": 8,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 346,
     "contextEnd": 356,
+    "contextStart": 346,
     "snippet": "\treturn(-1);\n    }\n    if (lenread > len)\n\tmemcpy(buffer, data, len);\n    else\n\tmemcpy(buffer, data, lenread);\n    Py_DECREF(ret);\n    return(lenread);\n}\n\n/**"
   },
-  "target_statement": {
-    "text": null,
-    "line": 351,
-    "column_start": 2,
-    "column_end": 8
-  },
+  "end_column": 8,
+  "end_line": 351,
+  "entrypoint": "libxml_xmlCreatePushParser",
   "facts": {
-    "suspect_calls": [
-      "Py_DECREF",
-      "memcpy"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "len"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "len",
       "return"
     ],
-    "bounds_hints": [
-      {
-        "var": "len",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "Py_DECREF",
+      "memcpy"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@libxml.c:351",
+  "line": 351,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 8,
+    "column_start": 2,
+    "line": 351,
+    "text": null
   }
 }

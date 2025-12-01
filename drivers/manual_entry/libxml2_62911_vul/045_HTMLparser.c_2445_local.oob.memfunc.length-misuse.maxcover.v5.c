@@ -1,26 +1,21 @@
-#include <klee/klee.h>
-#include "HTMLparser.h"
-#include "tree.h"
-#include "parser.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 045_HTMLparser.c_2445_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/045_HTMLparser.c_2445_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+// Entry     : htmlParseComment
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlChar URI_buf[32];
-    xmlChar ExternalID_buf[32];
-    int URI_len, ExternalID_len;
-    
-    klee_make_symbolic(&URI_len, sizeof(URI_len), "URI_len");
-    klee_make_symbolic(&ExternalID_len, sizeof(ExternalID_len), "ExternalID_len");
-    
-    klee_assume(URI_len >= 0 && URI_len < 32);
-    klee_assume(ExternalID_len >= 0 && ExternalID_len < 32);
-    
-    klee_make_symbolic(URI_buf, sizeof(URI_buf), "URI_buf");
-    klee_make_symbolic(ExternalID_buf, sizeof(ExternalID_buf), "ExternalID_buf");
-    
-    xmlChar* URI = (URI_len > 0) ? URI_buf : NULL;
-    xmlChar* ExternalID = (ExternalID_len > 0) ? ExternalID_buf : NULL;
-    
-    htmlDocPtr result = htmlNewDocNoDtD(URI, ExternalID);
-    
+#include "HTMLparser.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `htmlParseComment`
+    // and uncomment the call below once you know the correct signature.
+
+    // htmlParseComment(/* TODO: args */);
+
     return 0;
 }

@@ -1,25 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 047_buf.c_728_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/047_buf.c_728_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/buf.c
+// Entry     : xmlBufAdd
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "buf.c"
-#include "tree.h"
 
-int main() {
-    xmlBufPtr buf;
-    xmlChar *str;
-    int len;
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlBufAdd`
+    // and uncomment the call below once you know the correct signature.
 
-    klee_make_symbolic(&buf, sizeof(buf), "buf");
-    klee_make_symbolic(&str, sizeof(str), "str");
-    klee_make_symbolic(&len, sizeof(len), "len");
+    // xmlBufAdd(/* TODO: args */);
 
-    if (buf != NULL) {
-        klee_make_symbolic(&buf->size, sizeof(buf->size), "buf_size");
-        klee_make_symbolic(&buf->use, sizeof(buf->use), "buf_use");
-        klee_make_symbolic(&buf->alloc, sizeof(buf->alloc), "buf_alloc");
-        klee_make_symbolic(&buf->content, sizeof(buf->content), "buf_content");
-        klee_make_symbolic(&buf->contentIO, sizeof(buf->contentIO), "buf_contentIO");
-        klee_make_symbolic(&buf->error, sizeof(buf->error), "buf_error");
-    }
-
-    xmlBufAdd(buf, str, len);
     return 0;
 }

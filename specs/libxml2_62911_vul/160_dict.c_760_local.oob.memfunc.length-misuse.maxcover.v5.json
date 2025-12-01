@@ -1,48 +1,49 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@dict.c:760",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c",
-  "line": 760,
   "column": 13,
-  "end_line": 760,
-  "end_column": 20,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memmove().",
   "context": {
-    "contextStart": 755,
     "contextEnd": 765,
+    "contextStart": 755,
     "snippet": "        if (cur < entry) {\n            /*\n             * If we traversed the end of the buffer, handle the part\n             * at the start of the buffer.\n             */\n            memmove(&dict->table[1], dict->table,\n                    (char *) cur - (char *) dict->table);\n            cur = end - 1;\n            dict->table[0] = *cur;\n        }\n"
   },
-  "target_statement": {
-    "text": null,
-    "line": 760,
-    "column_start": 13,
-    "column_end": 20
-  },
+  "end_column": 20,
+  "end_line": 760,
+  "entrypoint": "xmlDictLookup",
   "facts": {
-    "suspect_calls": [
-      "memmove"
-    ],
+    "bounds_hints": [],
+    "length_vars": [],
     "pointer_vars": [
       "at"
     ],
-    "length_vars": [],
-    "bounds_hints": []
+    "suspect_calls": [
+      "memmove"
+    ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@dict.c:760",
+  "line": 760,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memmove().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 20,
+    "column_start": 13,
+    "line": 760,
+    "text": null
   }
 }

@@ -1,23 +1,21 @@
-#include <klee/klee.h>
-#include "encoding.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 034_encoding.c_358_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/034_encoding.c_358_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c
+// Entry     : isolat1ToUTF8
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Symbolic inputs for UTF8ToUTF8 function
-    unsigned char out_buffer[256];
-    int outlen = 256;
-    unsigned char in_buffer[256];
-    int inlen = 256;
+#include "encoding.c"
 
-    // Make input buffer symbolic
-    klee_make_symbolic(in_buffer, sizeof(in_buffer), "in_buffer");
-    
-    // Initialize output buffer (can be concrete or symbolic)
-    for (int i = 0; i < 256; i++) {
-        out_buffer[i] = 0;
-    }
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `isolat1ToUTF8`
+    // and uncomment the call below once you know the correct signature.
 
-    // Call the vulnerable function
-    UTF8ToUTF8(out_buffer, &outlen, in_buffer, &inlen);
+    // isolat1ToUTF8(/* TODO: args */);
 
     return 0;
 }

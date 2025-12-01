@@ -1,26 +1,21 @@
-#include <klee/klee.h>
-#include "HTMLparser.h"
-#include "HTMLtree.h"
-#include "parserInternals.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 008_HTMLparser.c_4971_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/008_HTMLparser.c_4971_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+// Entry     : htmlParseComment
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize parser context symbolically
-    htmlParserCtxtPtr ctxt = (htmlParserCtxtPtr)malloc(sizeof(htmlParserCtxt));
-    klee_make_symbolic(ctxt, sizeof(htmlParserCtxt), "ctxt");
-    
-    // Initialize SAX handler - can be NULL to trigger the vulnerable path
-    htmlSAXHandler* sax = NULL;
-    
-    // User data can be symbolic
-    void* userData = malloc(64);
-    klee_make_symbolic(userData, 64, "userData");
-    
-    // Call the initialization function
-    int result = htmlInitParserCtxt(ctxt, sax, userData);
-    
-    // Cleanup
-    free(userData);
-    free(ctxt);
-    
-    return result;
+#include "HTMLparser.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `htmlParseComment`
+    // and uncomment the call below once you know the correct signature.
+
+    // htmlParseComment(/* TODO: args */);
+
+    return 0;
 }

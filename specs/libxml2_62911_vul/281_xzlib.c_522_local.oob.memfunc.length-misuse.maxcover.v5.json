@@ -1,69 +1,70 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xzlib.c:522",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xzlib.c",
-  "line": 522,
   "column": 9,
-  "end_line": 522,
-  "end_column": 15,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 517,
     "contextEnd": 527,
+    "contextStart": 517,
     "snippet": "     * input to output -- this assumes that the output buffer is larger than\n     * the input buffer, which also assures space for gzungetc() */\n    state->raw = state->pos;\n    state->next = state->out;\n    if (strm->avail_in) {\n        memcpy(state->next + state->have, strm->next_in, strm->avail_in);\n        state->have += strm->avail_in;\n        strm->avail_in = 0;\n    }\n    state->how = COPY;\n    state->direct = 1;"
   },
-  "target_statement": {
-    "text": null,
-    "line": 522,
-    "column_start": 9,
-    "column_end": 15
-  },
+  "end_column": 15,
+  "end_line": 522,
+  "entrypoint": "__libxml2_xzread",
   "facts": {
-    "suspect_calls": [
-      "gzungetc",
-      "memcpy"
-    ],
-    "pointer_vars": [
-      "the"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "avail_in"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "next_in"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "than"
+      }
     ],
     "length_vars": [
       "avail_in",
       "next_in",
       "than"
     ],
-    "bounds_hints": [
-      {
-        "var": "avail_in",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "next_in",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "than",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [
+      "the"
+    ],
+    "suspect_calls": [
+      "gzungetc",
+      "memcpy"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xzlib.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xzlib.c:522",
+  "line": 522,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 15,
+    "column_start": 9,
+    "line": 522,
+    "text": null
   }
 }

@@ -1,27 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 077_schematron.c_353_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/077_schematron.c_353_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+// Entry     : xmlSchematronParse
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "schematron.c"
 
-int main() {
-    xmlSchematronParserCtxtPtr ctxt;
-    xmlSchematronTestType type;
-    xmlSchematronRulePtr rule;
-    xmlNodePtr node;
-    xmlChar *test;
-    xmlChar *report;
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlSchematronParse`
+    // and uncomment the call below once you know the correct signature.
 
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    klee_make_symbolic(&type, sizeof(type), "type");
-    klee_make_symbolic(&rule, sizeof(rule), "rule");
-    klee_make_symbolic(&node, sizeof(node), "node");
-    
-    test = (xmlChar*)malloc(256 * sizeof(xmlChar));
-    report = (xmlChar*)malloc(256 * sizeof(xmlChar));
-    klee_make_symbolic(test, 256 * sizeof(xmlChar), "test");
-    klee_make_symbolic(report, 256 * sizeof(xmlChar), "report");
+    // xmlSchematronParse(/* TODO: args */);
 
-    xmlSchematronAddTest(ctxt, type, rule, node, test, report);
-
-    free(test);
-    free(report);
     return 0;
 }

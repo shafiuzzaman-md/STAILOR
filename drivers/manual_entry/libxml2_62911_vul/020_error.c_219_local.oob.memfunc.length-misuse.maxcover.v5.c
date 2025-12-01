@@ -1,64 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 020_error.c_219_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/020_error.c_219_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/error.c
+// Entry     : __xmlRaiseError
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "error.c"
 
-// Stub definitions for required types and functions
-typedef struct _xmlParserInput xmlParserInput;
-typedef struct _xmlParserInput {
-    const char *filename;
-    int line;
-    const unsigned char *cur;
-    const unsigned char *base;
-    const unsigned char *end;
-} xmlParserInput;
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `__xmlRaiseError`
+    // and uncomment the call below once you know the correct signature.
 
-typedef void (*xmlGenericErrorFunc)(void *ctx, const char *msg, ...);
+    // __xmlRaiseError(/* TODO: args */);
 
-void xmlGenericError(void *ctx, const char *msg, ...) {
-    // Stub implementation
-}
-
-void *xmlGenericErrorContext = NULL;
-
-int xmlGetUTF8Char(const unsigned char *utf, int *len) {
-    // Simple stub that returns a positive value
-    if (utf == NULL || len == NULL) return -1;
-    if (*len <= 0) return -1;
-    
-    // Return first byte as character and set length to 1
-    *len = 1;
-    return (int)(*utf);
-}
-
-int main() {
-    // Create symbolic input structure
-    xmlParserInput input;
-    
-    // Initialize concrete fields
-    input.filename = NULL;
-    input.line = 1;
-    
-    // Create symbolic buffers for the string data
-    unsigned char base_buf[256];
-    unsigned char cur_buf[256];
-    unsigned char end_buf[256];
-    
-    // Make the buffers symbolic
-    klee_make_symbolic(base_buf, sizeof(base_buf), "base_buf");
-    klee_make_symbolic(cur_buf, sizeof(cur_buf), "cur_buf"); 
-    klee_make_symbolic(end_buf, sizeof(end_buf), "end_buf");
-    
-    // Set pointers to our buffers
-    input.base = base_buf;
-    input.cur = cur_buf;
-    input.end = end_buf;
-    
-    // Ensure null termination for safety
-    base_buf[255] = 0;
-    cur_buf[255] = 0;
-    end_buf[255] = 0;
-    
-    // Call the target function
-    xmlParserPrintFileContextInternal(&input, xmlGenericError, xmlGenericErrorContext);
-    
     return 0;
 }

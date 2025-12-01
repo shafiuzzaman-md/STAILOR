@@ -1,63 +1,64 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlmodule.c:90",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmodule.c",
-  "line": 90,
   "column": 5,
-  "end_line": 90,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 85,
     "contextEnd": 95,
+    "contextStart": 85,
     "snippet": "    if (module == NULL) {\n        xmlModuleErrMemory(NULL, \"creating module\");\n        return (NULL);\n    }\n\n    memset(module, 0, sizeof(xmlModule));\n\n    module->handle = xmlModulePlatformOpen(name);\n\n    if (module->handle == NULL) {\n        xmlFree(module);"
   },
-  "target_statement": {
-    "text": null,
-    "line": 90,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 90,
+  "entrypoint": "xmlModuleOpen",
   "facts": {
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "xmlModulePlatformOpen"
+      }
+    ],
+    "length_vars": [
+      "return",
+      "xmlModulePlatformOpen"
+    ],
+    "pointer_vars": [],
     "suspect_calls": [
       "memset",
       "xmlFree",
       "xmlModuleErrMemory",
       "xmlModulePlatformOpen"
-    ],
-    "pointer_vars": [],
-    "length_vars": [
-      "return",
-      "xmlModulePlatformOpen"
-    ],
-    "bounds_hints": [
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "xmlModulePlatformOpen",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlmodule.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlmodule.c:90",
+  "line": 90,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 90,
+    "text": null
   }
 }

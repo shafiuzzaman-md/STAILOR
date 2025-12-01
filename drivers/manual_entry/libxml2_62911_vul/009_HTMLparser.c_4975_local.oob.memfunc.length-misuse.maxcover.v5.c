@@ -1,45 +1,21 @@
-#include <klee/klee.h>
-#include "HTMLparser.h"
-#include "HTMLtree.h"
-#include "parserInternals.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 009_HTMLparser.c_4975_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/009_HTMLparser.c_4975_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+// Entry     : htmlParseComment
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    htmlParserCtxtPtr ctxt;
-    htmlSAXHandler sax;
-    void* userData;
-    
-    // Allocate parser context
-    ctxt = (htmlParserCtxtPtr)xmlMalloc(sizeof(htmlParserCtxt));
-    if (ctxt == NULL) {
-        return -1;
-    }
-    
-    // Make SAX handler and user data symbolic
-    klee_make_symbolic(&sax, sizeof(htmlSAXHandler), "sax");
-    klee_make_symbolic(&userData, sizeof(void*), "userData");
-    
-    // Call the initialization function
-    int result = htmlInitParserCtxt(ctxt, &sax, userData);
-    
-    // Cleanup
-    if (ctxt != NULL) {
-        if (ctxt->dict != NULL) {
-            xmlDictFree(ctxt->dict);
-        }
-        if (ctxt->sax != NULL) {
-            xmlFree(ctxt->sax);
-        }
-        if (ctxt->inputTab != NULL) {
-            xmlFree(ctxt->inputTab);
-        }
-        if (ctxt->nodeTab != NULL) {
-            xmlFree(ctxt->nodeTab);
-        }
-        if (ctxt->nameTab != NULL) {
-            xmlFree(ctxt->nameTab);
-        }
-        xmlFree(ctxt);
-    }
-    
-    return result;
+#include "HTMLparser.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `htmlParseComment`
+    // and uncomment the call below once you know the correct signature.
+
+    // htmlParseComment(/* TODO: args */);
+
+    return 0;
 }

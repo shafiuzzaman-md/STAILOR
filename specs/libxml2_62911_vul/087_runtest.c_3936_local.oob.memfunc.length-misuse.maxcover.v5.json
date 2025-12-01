@@ -1,70 +1,71 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@runtest.c:3936",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c",
-  "line": 3936,
   "column": 5,
-  "end_line": 3936,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 3931,
     "contextEnd": 3941,
+    "contextStart": 3931,
     "snippet": "    len -= 4;\n    memcpy(xml, filename, len);\n    xml[len] = 0;\n    if (snprintf(result, 499, \"result/pattern/%s\", baseFilename(xml)) >= 499)\n        result[499] = 0;\n    memcpy(xml + len, \".xml\", 5);\n\n    if (!checkTestFile(xml) && !update_results) {\n\tfprintf(stderr, \"Missing xml file %s\\n\", xml);\n\treturn(-1);\n    }"
   },
-  "target_statement": {
-    "text": null,
-    "line": 3936,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 3936,
+  "entrypoint": "main",
   "facts": {
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "len"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "pattern"
+      },
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "return"
+      }
+    ],
+    "length_vars": [
+      "len",
+      "pattern",
+      "return"
+    ],
+    "pointer_vars": [],
     "suspect_calls": [
       "baseFilename",
       "checkTestFile",
       "fprintf",
       "memcpy",
       "snprintf"
-    ],
-    "pointer_vars": [],
-    "length_vars": [
-      "len",
-      "pattern",
-      "return"
-    ],
-    "bounds_hints": [
-      {
-        "var": "len",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "pattern",
-        "relation": ">= 0",
-        "source": "heuristic"
-      },
-      {
-        "var": "return",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@runtest.c:3936",
+  "line": 3936,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 3936,
+    "text": null
   }
 }

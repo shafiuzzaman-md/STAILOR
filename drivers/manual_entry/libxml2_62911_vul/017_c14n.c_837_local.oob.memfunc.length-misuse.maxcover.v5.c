@@ -1,22 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 017_c14n.c_837_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/017_c14n.c_837_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NProcessAttrsAxis
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "c14n.c"
 
-int main() {
-    xmlC14NCtxPtr ctx;
-    xmlNodePtr cur;
-    int visible;
-    int has_empty_ns;
-    int has_empty_ns_in_inclusive_list;
-    int has_visibly_utilized_empty_ns;
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlC14NProcessAttrsAxis`
+    // and uncomment the call below once you know the correct signature.
 
-    klee_make_symbolic(&ctx, sizeof(ctx), "ctx");
-    klee_make_symbolic(&cur, sizeof(cur), "cur");
-    klee_make_symbolic(&visible, sizeof(visible), "visible");
-    klee_make_symbolic(&has_empty_ns, sizeof(has_empty_ns), "has_empty_ns");
-    klee_make_symbolic(&has_empty_ns_in_inclusive_list, sizeof(has_empty_ns_in_inclusive_list), "has_empty_ns_in_inclusive_list");
-    klee_make_symbolic(&has_visibly_utilized_empty_ns, sizeof(has_visibly_utilized_empty_ns), "has_visibly_utilized_empty_ns");
-
-    xmlC14NProcessNamespaces(ctx, cur, visible, has_empty_ns, has_empty_ns_in_inclusive_list, has_visibly_utilized_empty_ns);
+    // xmlC14NProcessAttrsAxis(/* TODO: args */);
 
     return 0;
 }

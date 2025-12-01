@@ -1,27 +1,21 @@
-#include <klee/klee.h>
-#include "HTMLparser.h"
-#include "HTMLtree.h"
-#include "entities.h"
-#include "parser.h"
-#include "parserInternals.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 050_HTMLparser.c_2318_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/050_HTMLparser.c_2318_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+// Entry     : htmlParseComment
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    htmlParserCtxtPtr ctxt;
-    
-    // Create a symbolic parser context
-    ctxt = (htmlParserCtxtPtr)malloc(sizeof(htmlParserCtxt));
-    klee_make_symbolic(ctxt, sizeof(htmlParserCtxt), "ctxt");
-    
-    // Call the target function
-    htmlParserInputPtr result = htmlNewInputStream(ctxt);
-    
-    // Free allocated memory if any
-    if (result != NULL) {
-        free(result);
-    }
-    if (ctxt != NULL) {
-        free(ctxt);
-    }
-    
+#include "HTMLparser.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `htmlParseComment`
+    // and uncomment the call below once you know the correct signature.
+
+    // htmlParseComment(/* TODO: args */);
+
     return 0;
 }

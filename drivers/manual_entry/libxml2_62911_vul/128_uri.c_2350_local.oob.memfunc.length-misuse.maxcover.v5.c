@@ -1,27 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 128_uri.c_2350_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/128_uri.c_2350_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c
+// Entry     : xmlParseURI
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "uri.c"
 
-int main() {
-    // Create symbolic inputs for xmlBuildRelativeURI function
-    // Based on the vulnerability context, we need two URI strings
-    char base_uri[256];
-    char ref_uri[256];
-    
-    // Make the inputs symbolic
-    klee_make_symbolic(base_uri, sizeof(base_uri), "base_uri");
-    klee_make_symbolic(ref_uri, sizeof(ref_uri), "ref_uri");
-    
-    // Ensure null termination
-    base_uri[255] = '\0';
-    ref_uri[255] = '\0';
-    
-    // Call the vulnerable function - xmlBuildRelativeURI
-    xmlChar* result = xmlBuildRelativeURI((xmlChar*)ref_uri, (xmlChar*)base_uri);
-    
-    // Clean up
-    if (result != NULL) {
-        xmlFree(result);
-    }
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlParseURI`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlParseURI(/* TODO: args */);
+
     return 0;
 }

@@ -1,46 +1,47 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemastypes.c:6050",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c",
-  "line": 6050,
   "column": 4,
-  "end_line": 6050,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memmove().",
   "context": {
-    "contextStart": 6045,
     "contextEnd": 6055,
+    "contextStart": 6045,
     "snippet": "\t\t    if (dec.frac != dec.total) {\n\t\t\tint diff = dec.total - dec.frac;\n\t\t\t/*\n\t\t\t* Insert the decimal point.\n\t\t\t*/\n\t\t\tmemmove(offs + diff + 1, offs + diff, dec.frac +1);\n\t\t\toffs[diff] = '.';\n\t\t    } else {\n\t\t\tunsigned int i = 0;\n\t\t\t/*\n\t\t\t* Insert missing zeroes behind the decimal point."
   },
-  "target_statement": {
-    "text": null,
-    "line": 6050,
-    "column_start": 4,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 6050,
+  "entrypoint": "xmlSchemaInitTypes",
   "facts": {
+    "bounds_hints": [],
+    "length_vars": [],
+    "pointer_vars": [],
     "suspect_calls": [
       "memmove"
-    ],
-    "pointer_vars": [],
-    "length_vars": [],
-    "bounds_hints": []
+    ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemastypes.c:6050",
+  "line": 6050,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memmove().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 4,
+    "line": 6050,
+    "text": null
   }
 }

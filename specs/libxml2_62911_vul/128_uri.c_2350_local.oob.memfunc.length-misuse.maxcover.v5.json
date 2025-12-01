@@ -1,54 +1,55 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@uri.c:2350",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c",
-  "line": 2350,
   "column": 6,
-  "end_line": 2350,
-  "end_column": 12,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
   "context": {
-    "contextStart": 2345,
     "contextEnd": 2355,
+    "contextStart": 2345,
     "snippet": "        if ((vptr > val) && (len > 0) &&\n\t    (uptr[0] == '/') && (vptr[-1] == '/')) {\n\t    memcpy (vptr, uptr + 1, len - 1);\n\t    vptr[len - 2] = 0;\n\t} else {\n\t    memcpy (vptr, uptr, len);\n\t    vptr[len - 1] = 0;\n\t}\n    } else {\n\tvptr[len - 1] = 0;\n    }"
   },
-  "target_statement": {
-    "text": null,
-    "line": 2350,
-    "column_start": 6,
-    "column_end": 12
-  },
+  "end_column": 12,
+  "end_line": 2350,
+  "entrypoint": "xmlParseURI",
   "facts": {
-    "suspect_calls": [
-      "memcpy"
+    "bounds_hints": [
+      {
+        "relation": ">= 0",
+        "source": "heuristic",
+        "var": "len"
+      }
     ],
-    "pointer_vars": [],
     "length_vars": [
       "len"
     ],
-    "bounds_hints": [
-      {
-        "var": "len",
-        "relation": ">= 0",
-        "source": "heuristic"
-      }
+    "pointer_vars": [],
+    "suspect_calls": [
+      "memcpy"
     ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@uri.c:2350",
+  "line": 2350,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 12,
+    "column_start": 6,
+    "line": 2350,
+    "text": null
   }
 }

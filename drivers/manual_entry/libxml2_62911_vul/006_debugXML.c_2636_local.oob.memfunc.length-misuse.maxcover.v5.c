@@ -1,21 +1,21 @@
-#include <klee/klee.h>
-#include "debugXML.c"
-#include "tree.h"
-#include "valid.h"
-#include "xmlmemory.h"
-#include "parser.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/debugXML.c
+// Entry     : xmlCtxtDumpNode
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlShellCtxtPtr ctxt;
-    char *dtd;
-    xmlNodePtr node1, node2;
-    
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    klee_make_symbolic(&dtd, sizeof(dtd), "dtd");
-    klee_make_symbolic(&node1, sizeof(node1), "node1");
-    klee_make_symbolic(&node2, sizeof(node2), "node2");
-    
-    xmlShellValidate(ctxt, dtd, node1, node2);
-    
+#include "debugXML.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlCtxtDumpNode`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlCtxtDumpNode(/* TODO: args */);
+
     return 0;
 }

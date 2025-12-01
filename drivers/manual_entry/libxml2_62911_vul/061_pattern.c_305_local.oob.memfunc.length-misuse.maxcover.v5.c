@@ -1,25 +1,21 @@
-#include <klee/klee.h>
-#include "pattern.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 061_pattern.c_305_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/061_pattern.c_305_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c
+// Entry     : xmlFreePattern
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Create symbolic inputs for xmlNewPatParserContext parameters
-    char pattern_buffer[256];
-    klee_make_symbolic(pattern_buffer, sizeof(pattern_buffer), "pattern_buffer");
-    
-    // Create a symbolic xmlDictPtr (approximated as void pointer)
-    void* dict;
-    klee_make_symbolic(&dict, sizeof(dict), "dict");
-    
-    // Create symbolic namespaces array (approximated as fixed array)
-    char* namespaces[10];
-    klee_make_symbolic(namespaces, sizeof(namespaces), "namespaces");
-    
-    // Call the function under test
-    xmlPatParserContextPtr result = xmlNewPatParserContext(
-        (const xmlChar*)pattern_buffer, 
-        (xmlDictPtr)dict, 
-        (const xmlChar**)namespaces
-    );
-    
+#include "pattern.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlFreePattern`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlFreePattern(/* TODO: args */);
+
     return 0;
 }

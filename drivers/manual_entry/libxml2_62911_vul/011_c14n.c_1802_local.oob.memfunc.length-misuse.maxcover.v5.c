@@ -1,24 +1,21 @@
-#include <klee/klee.h>
-#include "c14n.h"
-#include "xmlmemory.h"
-#include "tree.h"
-#include "xmlIO.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 011_c14n.c_1802_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/011_c14n.c_1802_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NProcessAttrsAxis
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Initialize symbolic inputs for xmlC14NExecute parameters
-    xmlDocPtr doc;
-    xmlOutputBufferPtr buf;
-    int mode;
-    int with_comments;
-    
-    // Make inputs symbolic
-    klee_make_symbolic(&doc, sizeof(doc), "doc");
-    klee_make_symbolic(&buf, sizeof(buf), "buf");
-    klee_make_symbolic(&mode, sizeof(mode), "mode");
-    klee_make_symbolic(&with_comments, sizeof(with_comments), "with_comments");
-    
-    // Call the entry function
-    xmlC14NExecute(doc, NULL, NULL, mode, NULL, with_comments, buf);
-    
+#include "c14n.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlC14NProcessAttrsAxis`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlC14NProcessAttrsAxis(/* TODO: args */);
+
     return 0;
 }

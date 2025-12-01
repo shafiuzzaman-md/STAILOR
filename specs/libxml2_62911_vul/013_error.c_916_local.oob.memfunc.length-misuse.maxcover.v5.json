@@ -1,47 +1,48 @@
 {
-  "schema": "llmse.vul_spec.v1",
-  "id": "local.oob.memfunc.length-misuse.maxcover.v5@error.c:916",
-  "project": null,
-  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
-  "family": "OOB_MEMCMP",
-  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/error.c",
-  "line": 916,
   "column": 5,
-  "end_line": 916,
-  "end_column": 11,
-  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
   "context": {
-    "contextStart": 911,
     "contextEnd": 921,
+    "contextStart": 911,
     "snippet": "        xmlFree(err->str1);\n    if (err->str2 != NULL)\n        xmlFree(err->str2);\n    if (err->str3 != NULL)\n        xmlFree(err->str3);\n    memset(err, 0, sizeof(xmlError));\n    err->code = XML_ERR_OK;\n}\n\n/**\n * xmlResetLastError:"
   },
-  "target_statement": {
-    "text": null,
-    "line": 916,
-    "column_start": 5,
-    "column_end": 11
-  },
+  "end_column": 11,
+  "end_line": 916,
+  "entrypoint": "__xmlRaiseError",
   "facts": {
+    "bounds_hints": [],
+    "length_vars": [],
+    "pointer_vars": [],
     "suspect_calls": [
       "memset",
       "xmlFree"
-    ],
-    "pointer_vars": [],
-    "length_vars": [],
-    "bounds_hints": []
+    ]
   },
+  "family": "OOB_MEMCMP",
+  "file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/error.c",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@error.c:916",
+  "line": 916,
   "llm_hints": {
-    "entrypoint": {
-      "strategy": "LLM_INFER",
-      "candidates": []
-    },
     "assertions": {
       "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
       "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "entrypoint": {
+      "candidates": [],
+      "strategy": "LLM_INFER"
     },
     "notes": [
       "Non-in-path helpers should be stub candidates.",
       "Groom all in-path data structures to avoid null derefs."
     ]
+  },
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "schema": "llmse.vul_spec.v1",
+  "target_statement": {
+    "column_end": 11,
+    "column_start": 5,
+    "line": 916,
+    "text": null
   }
 }

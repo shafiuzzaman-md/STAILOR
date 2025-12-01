@@ -1,44 +1,21 @@
-#include <klee/klee.h>
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 033_hash.c_1140_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/033_hash.c_1140_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
+
 #include "hash.c"
 
-int main() {
-    // Initialize hash table structure
-    xmlHashTablePtr hash = (xmlHashTablePtr)malloc(sizeof(xmlHashTable));
-    klee_make_symbolic(hash, sizeof(xmlHashTable), "hash");
-    
-    // Symbolic size field - ensure it's a power of 2 for the mask operation
-    unsigned size;
-    klee_make_symbolic(&size, sizeof(unsigned), "size");
-    klee_assume(size > 0 && (size & (size - 1)) == 0); // power of 2
-    hash->size = size;
-    
-    // Allocate table with symbolic size
-    hash->table = (xmlHashEntry*)malloc(size * sizeof(xmlHashEntry));
-    klee_make_symbolic(hash->table, size * sizeof(xmlHashEntry), "table");
-    
-    // Initialize random seed
-    klee_make_symbolic(&hash->randomSeed, sizeof(unsigned), "randomSeed");
-    
-    // Set dict to NULL to exercise the free path
-    hash->dict = NULL;
-    
-    // Initialize nbElems
-    klee_make_symbolic(&hash->nbElems, sizeof(int), "nbElems");
-    
-    // Create symbolic keys
-    xmlChar key[32];
-    xmlChar key2[32]; 
-    xmlChar key3[32];
-    klee_make_symbolic(key, sizeof(key), "key");
-    klee_make_symbolic(key2, sizeof(key2), "key2");
-    klee_make_symbolic(key3, sizeof(key3), "key3");
-    
-    // Call the target function
-    xmlHashRemoveEntry3(hash, key, key2, key3, NULL);
-    
-    // Cleanup
-    free(hash->table);
-    free(hash);
-    
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlHashRemoveEntry3`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

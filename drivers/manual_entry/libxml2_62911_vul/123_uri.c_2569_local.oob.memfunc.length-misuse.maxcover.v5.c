@@ -1,20 +1,21 @@
-#include <klee/klee.h>
-#include "uri.c"
-#include "xmlmemory.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 123_uri.c_2569_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/123_uri.c_2569_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c
+// Entry     : xmlParseURI
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    // Create symbolic input for xmlPathToURI
-    char path_input[256];
-    klee_make_symbolic(path_input, sizeof(path_input), "path_input");
-    klee_assume(path_input[255] == '\0'); // Ensure null termination
-    
-    // Call the entry function
-    xmlChar* result = xmlPathToURI((const xmlChar*)path_input);
-    
-    // Clean up if result is not NULL
-    if (result != NULL) {
-        xmlFree(result);
-    }
-    
+#include "uri.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlParseURI`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlParseURI(/* TODO: args */);
+
     return 0;
 }

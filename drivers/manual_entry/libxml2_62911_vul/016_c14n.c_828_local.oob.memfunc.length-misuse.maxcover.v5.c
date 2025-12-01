@@ -1,38 +1,21 @@
-#include <klee/klee.h>
-#include "c14n.c"
-#include "tree.h"
-#include "xmlstring.h"
+// Auto-generated MANUAL_ENTRY driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 016_c14n.c_828_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/016_c14n.c_828_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NProcessAttrsAxis
+//
+// NOTE: This is a *skeleton* manual driver intended to compile without
+// obvious errors. The call to the entrypoint is commented out by default
+// so you can fill in the correct argument list manually if desired.
 
-int main() {
-    xmlC14NCtxPtr ctx;
-    xmlNodePtr cur;
-    int visible;
-    
-    // Allocate and initialize context
-    ctx = (xmlC14NCtxPtr)malloc(sizeof(xmlC14NCtx));
-    klee_make_symbolic(ctx, sizeof(xmlC14NCtx), "ctx");
-    
-    // Initialize context fields that might be accessed
-    ctx->inclusive_ns_prefixes = NULL;
-    ctx->ns_rendered = NULL;
-    
-    // Allocate and initialize node
-    cur = (xmlNodePtr)malloc(sizeof(xmlNode));
-    klee_make_symbolic(cur, sizeof(xmlNode), "cur");
-    
-    // Initialize node fields
-    cur->doc = NULL;
-    cur->ns = NULL;
-    cur->properties = NULL;
-    
-    // Make visibility flag symbolic
-    klee_make_symbolic(&visible, sizeof(visible), "visible");
-    
-    // Call the function - assuming it's xmlExcC14NProcessNamespaces based on context
-    xmlExcC14NProcessNamespaces(ctx, cur, visible);
-    
-    free(ctx);
-    free(cur);
-    
+#include "c14n.c"
+
+int main(void) {
+    // TODO: Provide concrete or symbolic arguments for `xmlC14NProcessAttrsAxis`
+    // and uncomment the call below once you know the correct signature.
+
+    // xmlC14NProcessAttrsAxis(/* TODO: args */);
+
     return 0;
 }
