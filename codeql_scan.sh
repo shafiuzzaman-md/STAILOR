@@ -70,12 +70,17 @@ if [[ -n "${CODEQL_VERBOSITY}" ]]; then
   args+=( "${CODEQL_VERBOSITY}" )
 fi
 
+OUT_ROOT="sa_outputs/${PROJECT_NAME}"
+mkdir -p "${OUT_ROOT}"
+TIME_LOG="${OUT_ROOT}/codeql_time.log"
+
 echo "[i] Running CodeQL analysis once for project: ${PROJECT_NAME}"
 echo "[dbg] run_codeql_analysis.py ${args[*]}"
-# time the run; wrapper should use parse_known_args() and forward extra flags
-LOGLEVEL=DEBUG time python3 scripts/run_codeql_analysis.py "${args[@]}"
+echo "[i] Timing info will be written to: ${TIME_LOG}"
 
-OUT_ROOT="sa_outputs/${PROJECT_NAME}"
+# Use /usr/bin/time so only timing goes to TIME_LOG (stdout/stderr unchanged)
+LOGLEVEL=DEBUG /usr/bin/time -p -o "${TIME_LOG}" \
+  python3 scripts/run_codeql_analysis.py "${args[@]}"
 
 echo
 echo "[i] Artifacts ready in ${OUT_ROOT}:"
@@ -84,6 +89,7 @@ echo " - compile_commands.json"
 echo " - codeql-results.sarif"
 echo " - run_meta.json"
 echo " - fact_pack.json (LLM context bundle)"
+echo " - codeql_time.log (wall-clock runtime from /usr/bin/time)"
 echo
 echo "[tip] List candidate targets from findings:"
 echo "  jq -r '.results[] | \"\(.file):\(.startLine)  |  \(.ruleId)  |  \(.message)\"' ${OUT_ROOT}/findings.json | nl -ba"
