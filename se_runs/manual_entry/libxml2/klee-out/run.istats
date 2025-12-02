@@ -1,0 +1,42 @@
+version: 1
+creator: klee
+pid: 3192485
+cmd: se_runs/manual_entry/libxml2/libxml2_manual_entry.bc
+
+
+positions: instr line
+event: Icov : CoveredInstructions
+event: Forks : Forks
+event: Ireal : InstructionRealTimes
+event: Itime : InstructionTimes
+event: I : Instructions
+event: UCdist : MinDistToUncovered
+event: Rtime : ResolveTime
+event: States : States
+event: Iuncov : UncoveredInstructions
+event: Q : Queries
+event: Qiv : QueriesInvalid
+event: Qv : QueriesValid
+event: Qtime : QueryTime
+events: Icov Forks Ireal Itime I UCdist Rtime States Iuncov Q Qiv Qv Qtime 
+ob=assembly.ll
+fl=drivers/manual_entry/libxml2_manual_entry.c
+fn=main
+19 17 1 0 0 0 1 24 0 0 0 0 0 0 0 
+20 17 1 0 0 0 1 23 0 0 0 0 0 0 0 
+21 17 1 0 0 0 1 22 0 0 0 0 0 0 0 
+22 17 1 0 0 0 1 21 0 0 0 0 0 0 0 
+23 17 1 0 0 0 1 20 0 0 0 1 0 0 0 
+24 19 1 0 0 0 1 19 0 0 0 0 0 0 0 
+25 20 1 0 0 0 1 17 0 0 0 0 0 0 0 
+26 22 1 0 0 0 1 15 0 0 0 0 0 0 0 
+27 22 1 0 0 0 1 14 0 0 0 2 0 0 0 
+28 23 1 0 0 0 1 12 0 0 0 0 0 0 0 
+29 23 1 0 0 0 1 11 0 0 0 2 0 0 0 
+30 26 1 0 0 0 1 9 0 0 0 0 0 0 0 
+31 29 1 0 0 0 1 7 0 0 0 0 0 0 0 
+32 30 1 0 0 0 1 5 0 0 0 0 0 0 0 
+33 30 1 0 0 0 1 4 0 0 0 1 0 0 0 
+34 30 1 0 0 0 1 3 0 0 0 3 2 0 11932 
+35 30 0 0 0 0 0 1 0 0 1 0 0 0 0 
+36 32 0 0 0 0 0 1 0 0 1 0 0 0 0 
