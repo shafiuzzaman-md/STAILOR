@@ -1,38 +1,43 @@
-#include <klee/klee.h>
-#include "tree.h"
-#include "parser.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 145_tree.c_9356_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/145_tree.c_9356_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c
+// Entry     : xmlStringGetNodeList
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c:9356
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize symbolic inputs for xmlDOMWrapCloneNode parameters
-    xmlNodePtr node;
-    xmlDocPtr sourceDoc;
-    xmlDocPtr destDoc;
-    xmlNodePtr destParent;
-    xmlDOMWrapCtxtPtr ctxt;
-    int options;
-    xmlNodePtr resNode;
-    
-    // Make inputs symbolic
-    klee_make_symbolic(&node, sizeof(node), "node");
-    klee_make_symbolic(&sourceDoc, sizeof(sourceDoc), "sourceDoc");
-    klee_make_symbolic(&destDoc, sizeof(destDoc), "destDoc");
-    klee_make_symbolic(&destParent, sizeof(destParent), "destParent");
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    klee_make_symbolic(&resNode, sizeof(resNode), "resNode");
-    
-    // Call the function that contains the suspicious line
-    // Based on the code context, this appears to be xmlDOMWrapCloneNode
-    int result = xmlDOMWrapCloneNode(destDoc, node, sourceDoc, destParent, &resNode, ctxt, options);
-    
-    // Add assertion to check for potential memory corruption
-    // The suspicious line is memset(clone, 0, sizeof(xmlAttr)) at line 9356
-    // This could indicate a type confusion where xmlNodePtr is used for xmlAttr allocation
-    if (node && node->type == XML_ATTRIBUTE_NODE) {
-        // Check if the allocation size mismatch could cause issues
-        // xmlAttr might be larger than xmlNode, leading to buffer overflow
-        klee_assert(sizeof(xmlAttr) <= sizeof(xmlNode) + 16); // Conservative bound check
-    }
-    
+#include <klee/klee.h>
+#include "tree.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlStringGetNodeList`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c
+    //   Line : 9356
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlStringGetNodeList(/* TODO: args */);
+
     return 0;
 }

@@ -1,36 +1,43 @@
-#include <klee/klee.h>
-#include "HTMLparser.h"
-#include "HTMLtree.h"
-#include "parserInternals.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 009_HTMLparser.c_4975_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/009_HTMLparser.c_4975_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+// Entry     : htmlParseComment
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c:4975
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize parser context
-    htmlParserCtxtPtr ctxt = (htmlParserCtxtPtr)xmlMalloc(sizeof(htmlParserCtxt));
-    if (ctxt == NULL) return -1;
-    
-    // Make sax handler symbolic to trigger the memcpy vulnerability
-    htmlSAXHandler sax;
-    klee_make_symbolic(&sax, sizeof(htmlSAXHandler), "sax");
-    
-    // Make user data symbolic
-    void* userData;
-    klee_make_symbolic(&userData, sizeof(void*), "userData");
-    
-    // Call the initialization function
-    int result = htmlInitParserCtxt(ctxt, &sax, userData);
-    
-    // Assertion to check for potential memcpy overflow
-    // The memcpy at line 4975 copies sizeof(htmlSAXHandler) bytes
-    // This could overflow if the source buffer is smaller than the destination
-    klee_assert(ctxt->sax != NULL && "Potential memcpy overflow detected");
-    
-    // Cleanup
-    if (ctxt->dict) xmlDictFree(ctxt->dict);
-    if (ctxt->sax) xmlFree(ctxt->sax);
-    if (ctxt->inputTab) xmlFree(ctxt->inputTab);
-    if (ctxt->nodeTab) xmlFree(ctxt->nodeTab);
-    if (ctxt->nameTab) xmlFree(ctxt->nameTab);
-    xmlFree(ctxt);
-    
-    return result;
+#include <klee/klee.h>
+#include "HTMLparser.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `htmlParseComment`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+    //   Line : 4975
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // htmlParseComment(/* TODO: args */);
+
+    return 0;
 }

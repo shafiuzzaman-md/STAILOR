@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING ONCE: calling external: xmlInitParser() at drivers/llm_entry/libxml2_llm_entry.c:20 10

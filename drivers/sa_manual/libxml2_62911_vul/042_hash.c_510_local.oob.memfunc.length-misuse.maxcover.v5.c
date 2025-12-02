@@ -1,39 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 042_hash.c_510_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/042_hash.c_510_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c:510
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "hash.c"
 
-int main() {
-    // Initialize hash table structure
-    xmlHashTablePtr hash = xmlHashCreate(0);
-    if (hash == NULL) return 0;
-    
-    // Initialize lengths array
-    size_t lengths[3];
-    klee_make_symbolic(lengths, sizeof(lengths), "lengths");
-    
-    // Ensure lengths are reasonable for symbolic execution
-    for (int i = 0; i < 3; i++) {
-        klee_assume(lengths[i] < 1000);
-    }
-    
-    // Create symbolic keys
-    xmlChar key1[1000], key2[1000], key3[1000];
-    klee_make_symbolic(key1, sizeof(key1), "key1");
-    klee_make_symbolic(key2, sizeof(key2), "key2"); 
-    klee_make_symbolic(key3, sizeof(key3), "key3");
-    
-    // Create symbolic payload
-    void* payload;
-    klee_make_symbolic(&payload, sizeof(payload), "payload");
-    
-    // Call xmlHashAddEntry3 which contains the suspicious line
-    int result = xmlHashAddEntry3(hash, key1, key2, key3, payload);
-    
-    // Assertion for potential out-of-bounds access at line 510
-    // Check that if key3 is non-NULL and copy3 is allocated, the memcpy doesn't overflow
-    if (key3 != NULL && lengths[2] > 0) {
-        klee_assert(lengths[2] < 1000);
-    }
-    
-    xmlHashFree(hash, NULL);
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlHashRemoveEntry3`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+    //   Line : 510
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

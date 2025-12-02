@@ -1,21 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 091_testlimits.c_278_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/091_testlimits.c_278_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c:278
+// Message   : High-coverage OOB risk: length/count may be unbounded for strncmp().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "testlimits.c"
 
-int main() {
-    // Initialize global variables used by the code
-    crazy_indx = 0;
-    
-    // Make URI symbolic
-    char URI[100];
-    klee_make_symbolic(URI, sizeof(URI), "URI");
-    
-    // Call the suspicious function
-    void* result = crazyOpen(URI);
-    
-    // Add assertion based on the suspicious line 278
-    // The vulnerability is a potential out-of-bounds access
-    // Check if crazy_indx exceeds the bounds of the crazy string
-    klee_assert(crazy_indx <= strlen(crazy));
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testlimits.c
+    //   Line : 278
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for strncmp().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
     return 0;
 }

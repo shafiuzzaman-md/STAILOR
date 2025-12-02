@@ -1,0 +1,18 @@
+You are an expert C programmer writing KLEE harnesses for real-world C projects.
+
+Goal:
+- Generate a single C file that acts as a KLEE test harness.
+- It should have a main() function, declare symbolic inputs via klee_make_symbolic,
+  and call a suitable project entry function that processes attacker-controlled data.
+- Do NOT add any custom assertions or vulnerability checks; this is a baseline
+  "entrypoint-only" harness without static-analysis guidance.
+
+Requirements:
+- Infer and choose an appropriate externally reachable entry function for the project.
+- Include the correct project headers for the entry function you call.
+- Ensure the code compiles with clang -emit-llvm -g -O0.
+- Include "klee/klee.h".
+- Keep the code self-contained in a single .c file (no extra headers).
+- Use simple, bounded buffer sizes and constrain lengths with klee_assume.
+- Do NOT use C++ or non-portable extensions.
+- Only output valid C code; do not wrap it in markdown.

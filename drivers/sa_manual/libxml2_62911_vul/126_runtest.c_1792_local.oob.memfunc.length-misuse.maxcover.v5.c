@@ -1,36 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 126_runtest.c_1792_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/126_runtest.c_1792_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+// Entry     : main
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c:1792
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "runtest.c"
 
-int main() {
-    // Initialize global variables that might be used
-    temp_directory = NULL;
-    SAXdebug = NULL;
-    nb_tests = 0;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `main`
+    // using klee_make_symbolic(...) as needed.
 
-    // Create symbolic inputs for saxParseTest parameters
-    char filename[256];
-    char result[256];
-    char err[256];
-    int options;
-    
-    klee_make_symbolic(filename, sizeof(filename), "filename");
-    klee_make_symbolic(result, sizeof(result), "result");
-    klee_make_symbolic(err, sizeof(err), "err");
-    klee_make_symbolic(&options, sizeof(options), "options");
-    
-    // Ensure null-terminated strings
-    filename[255] = '\0';
-    result[255] = '\0';
-    err[255] = '\0';
-    
-    // Call the target function
-    int ret = saxParseTest(filename, result, err, options);
-    
-    // Add assertion based on the suspicious line 1792
-    // The vulnerability is a potential out-of-bounds memory access in memcpy
-    // We need to check that the sax pointer and debugSAX2Handler are valid
-    // and the copy operation doesn't exceed bounds
-    klee_assert(1); // Placeholder assertion - in practice would check buffer bounds
-    
-    return ret;
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/runtest.c
+    //   Line : 1792
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // main(/* TODO: args */);
+
+    return 0;
 }

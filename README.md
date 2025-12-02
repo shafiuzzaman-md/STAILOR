@@ -271,14 +271,15 @@ chmod +x generate_sa_manual_drivers.sh
   --src-root ./dataset/62911/libxml2_62911_vul \
   --spec-dir specs/libxml2_62911_vul
 
-chmod +x run_sa_manual_all_specs.sh
+chmod +x run_sa_manual_batch.sh
 
-./run_sa_manual_all_specs.sh \
+./run_sa_manual_batch.sh \
   --project-name libxml2_62911_vul \
   --src-root ./dataset/62911/libxml2_62911_vul \
-  --spec-dir specs/libxml2_62911_vul \
-  --clang-flags "-I./dataset/62911/libxml2_62911_vul/include" \
-  --klee-flags  "--search=dfs --max-time=600"
+  --spec-dir ./specs/libxml2_62911_vul \
+  --clang-flags "-I./dataset/62911/libxml2_62911_vul" \
+  --klee-flags "--libc=uclibc --posix-runtime"
+
 
 ```
 
@@ -287,14 +288,16 @@ chmod +x run_sa_manual_all_specs.sh
 ```
 chmod +x generate_llm_entry_drivers.py
 
-export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+export LLM_API_KEY="YOUR_API_KEY_HERE"
 
-./generate_llm_entry_drivers.py \
+python3 generate_llm_entry_drivers.py \
   --project-name libxml2_62911_vul \
-  --src-root ./dataset/62911/libxml2_62911_vul \
-  --spec-dir specs/libxml2_62911_vul \
+  --spec-dir ./specs/libxml2_62911_vul \
+  --out-root ./drivers/llm_entry \
+  --prompts-dir ./prompts \
   --model deepseek-chat \
   --api-base https://api.deepseek.com
+
 
 
 chmod +x run_llm_entry_all_specs.sh

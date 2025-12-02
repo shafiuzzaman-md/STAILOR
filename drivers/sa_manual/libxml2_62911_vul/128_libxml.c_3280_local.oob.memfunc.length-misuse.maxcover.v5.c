@@ -1,49 +1,43 @@
-#include <klee/klee.h>
-#include "python/libxml.c"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 128_libxml.c_3280_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/128_libxml.c_3280_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c
+// Entry     : libxml_xmlCreatePushParser
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c:3280
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    PyObject* py_nodeset;
-    xmlNodeSetPtr result;
-    
-    // Initialize symbolic py_nodeset
-    // We'll approximate PyObject with a simple struct containing type info
-    int is_tuple_or_list;
-    klee_make_symbolic(&is_tuple_or_list, sizeof(is_tuple_or_list), "is_tuple_or_list");
-    
-    int size;
-    klee_make_symbolic(&size, sizeof(size), "size");
-    klee_assume(size >= 0);
-    klee_assume(size <= 100); // Reasonable bound
-    
-    // Create a mock PyObject structure that can be either tuple or list
-    struct MockPyObject {
-        int type; // 0 for tuple, 1 for list, 2 for None
-        int size;
-    } mock_pyobj;
-    
-    mock_pyobj.size = size;
-    
-    // Randomly choose between tuple and list
-    int obj_type;
-    klee_make_symbolic(&obj_type, sizeof(obj_type), "obj_type");
-    klee_assume(obj_type >= 0);
-    klee_assume(obj_type <= 1);
-    mock_pyobj.type = obj_type;
-    
-    py_nodeset = (PyObject*)&mock_pyobj;
-    
-    // Call the function under test
-    int ret = PyxmlNodeSet_Convert(py_nodeset, &result);
-    
-    // Add assertion based on the suspicious line 3280
-    // The memset uses nodeSet->nodeMax which comes from PyTuple/List_GET_SIZE
-    // We want to ensure the allocation size matches the memset size
-    if (ret == 0 && result != NULL && result->nodeTab != NULL) {
-        // Check that we don't memset beyond allocated bounds
-        // nodeSet->nodeMax should be reasonable compared to the allocated size
-        klee_assert(result->nodeMax >= 0);
-        klee_assert(result->nodeMax <= size); // Should not exceed input size
-    }
-    
+#include <klee/klee.h>
+#include "libxml.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `libxml_xmlCreatePushParser`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/python/libxml.c
+    //   Line : 3280
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // libxml_xmlCreatePushParser(/* TODO: args */);
+
     return 0;
 }

@@ -1,68 +1,43 @@
-#include <klee/klee.h>
-#include "schematron.h"
-#include "dict.h"
-#include "pattern.h"
-#include "xpath.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 074_schematron.c_457_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/074_schematron.c_457_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+// Entry     : xmlSchematronParse
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c:457
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize parser context
-    xmlSchematronParserCtxtPtr ctxt = (xmlSchematronParserCtxtPtr)xmlMalloc(sizeof(xmlSchematronParserCtxt));
-    klee_assume(ctxt != NULL);
-    memset(ctxt, 0, sizeof(xmlSchematronParserCtxt));
-    
-    // Initialize dictionary
-    ctxt->dict = xmlDictCreate();
-    klee_assume(ctxt->dict != NULL);
-    
-    // Initialize schema
-    xmlSchematronPtr schema = (xmlSchematronPtr)xmlMalloc(sizeof(xmlSchematron));
-    klee_assume(schema != NULL);
-    memset(schema, 0, sizeof(xmlSchematron));
-    
-    // Initialize pattern
-    xmlSchematronPatternPtr pat = (xmlSchematronPatternPtr)xmlMalloc(sizeof(xmlSchematronPattern));
-    klee_assume(pat != NULL);
-    memset(pat, 0, sizeof(xmlSchematronPattern));
-    
-    // Initialize node
-    xmlNodePtr node = (xmlNodePtr)xmlMalloc(sizeof(xmlNode));
-    klee_assume(node != NULL);
-    memset(node, 0, sizeof(xmlNode));
-    
-    // Create symbolic context and report strings
-    #define STR_SIZE 10
-    xmlChar context[STR_SIZE];
-    xmlChar report[STR_SIZE];
-    klee_make_symbolic(context, sizeof(context), "context");
-    klee_make_symbolic(report, sizeof(report), "report");
-    
-    // Ensure context is null-terminated
-    context[STR_SIZE-1] = '\0';
-    report[STR_SIZE-1] = '\0';
-    
-    // Call the target function
-    xmlSchematronRulePtr result = xmlSchematronAddRule(ctxt, schema, pat, node, context, report);
-    
-    // Assertion for potential vulnerability at line 457
-    // Check if the allocated rule structure was properly initialized
-    if (result != NULL) {
-        // The memset at line 457 should zero out the entire structure
-        // We can check that some fields are properly initialized
-        klee_assert(result->node == node);
-        klee_assert(result->context == context);
-        klee_assert(result->report == report);
-        klee_assert(result->next == NULL);
-        klee_assert(result->lets == NULL);
-        klee_assert(result->patnext == NULL);
-    }
-    
-    // Cleanup
-    if (result != NULL) xmlFree(result);
-    if (schema != NULL) xmlFree(schema);
-    if (pat != NULL) xmlFree(pat);
-    if (node != NULL) xmlFree(node);
-    if (ctxt->dict != NULL) xmlDictFree(ctxt->dict);
-    if (ctxt != NULL) xmlFree(ctxt);
-    
+#include <klee/klee.h>
+#include "schematron.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSchematronParse`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+    //   Line : 457
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSchematronParse(/* TODO: args */);
+
     return 0;
 }

@@ -1,34 +1,43 @@
-#include <klee/klee.h>
-#include "pattern.h"
-#include "dict.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 061_pattern.c_305_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/061_pattern.c_305_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c
+// Entry     : xmlFreePattern
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c:305
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Create symbolic input for pattern
-    char pattern_buf[100];
-    klee_make_symbolic(pattern_buf, sizeof(pattern_buf), "pattern_buf");
-    
-    // Create concrete NULL dict and namespaces for simplicity
-    xmlDictPtr dict = NULL;
-    const xmlChar** namespaces = NULL;
-    
-    // Call the function under test
-    xmlPatParserContextPtr context = xmlNewPatParserContext((const xmlChar*)pattern_buf, dict, namespaces);
-    
-    // Assertion based on the suspicious line 305 - check if context was properly allocated and initialized
-    if (context != NULL) {
-        // The memset at line 305 should zero the structure
-        // Check that the context fields are properly initialized
-        klee_assert(context->cur == (const xmlChar*)pattern_buf);
-        klee_assert(context->base == (const xmlChar*)pattern_buf);
-        klee_assert(context->dict == dict);
-        klee_assert(context->namespaces == namespaces);
-        klee_assert(context->nb_namespaces == 0);
-    }
-    
-    // Clean up if context was allocated
-    if (context != NULL) {
-        xmlFreePatParserContext(context);
-    }
-    
+#include <klee/klee.h>
+#include "pattern.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlFreePattern`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c
+    //   Line : 305
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlFreePattern(/* TODO: args */);
+
     return 0;
 }

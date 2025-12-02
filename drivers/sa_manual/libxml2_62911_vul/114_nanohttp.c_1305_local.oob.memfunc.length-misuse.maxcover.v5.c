@@ -1,28 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 114_nanohttp.c_1305_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/114_nanohttp.c_1305_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+// Entry     : xmlNanoHTTPMethodRedir
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c:1305
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "nanohttp.h"
+#include "nanohttp.c"
 
-int main() {
-    // Initialize symbolic inputs for xmlNanoHTTPBypassProxy
-    char hostname[256];
-    klee_make_symbolic(hostname, sizeof(hostname), "hostname");
-    hostname[255] = '\0'; // Ensure null termination
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlNanoHTTPMethodRedir`
+    // using klee_make_symbolic(...) as needed.
 
-    // Set up environment variable simulation
-    char no_proxy_env[256];
-    klee_make_symbolic(no_proxy_env, sizeof(no_proxy_env), "no_proxy_env");
-    no_proxy_env[255] = '\0'; // Ensure null termination
-    
-    // Set the environment variable for the function to read
-    klee_set_env("no_proxy", no_proxy_env);
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Call the target function
-    int result = xmlNanoHTTPBypassProxy(hostname);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c
+    //   Line : 1305
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
 
-    // Add assertion to check for potential buffer overflow
-    // The suspicious line is memcpy(cpy, env, envlen) at line 1305
-    // envlen = strlen(env) + 1, and cpy = xmlMalloc(envlen)
-    // This should be safe, but we'll add a generic bounds check
-    klee_assert(1); // Generic assertion - actual vulnerability check would need more context
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlNanoHTTPMethodRedir(/* TODO: args */);
 
     return 0;
 }

@@ -1,33 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 034_parserInternals.c_1854_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/034_parserInternals.c_1854_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c
+// Entry     : xmlNextChar
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c:1854
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "parserInternals.h"
+#include "parserInternals.c"
 
-int main() {
-    // Initialize parser context
-    xmlParserCtxtPtr ctxt = xmlCreateParserCtxt();
-    if (ctxt == NULL) {
-        return -1;
-    }
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlNextChar`
+    // using klee_make_symbolic(...) as needed.
 
-    // Create symbolic SAX handler
-    xmlSAXHandler sax;
-    klee_make_symbolic(&sax, sizeof(xmlSAXHandler), "sax");
-    
-    // Create symbolic user data
-    void* userData;
-    klee_make_symbolic(&userData, sizeof(void*), "userData");
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Call the target function
-    int result = xmlInitSAXParserCtxt(ctxt, &sax, userData);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parserInternals.c
+    //   Line : 1854
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
 
-    // Assertion to check for potential vulnerability
-    // The suspicious line 1854 does memcpy(ctxt->sax, sax, sizeof(xmlSAXHandler))
-    // We need to ensure ctxt->sax is properly allocated and sax is valid
-    if (sax.initialized == XML_SAX2_MAGIC && ctxt->sax != NULL) {
-        klee_assert(1); // Basic assertion - can be refined based on specific vulnerability
-    }
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    // Cleanup
-    xmlFreeParserCtxt(ctxt);
-    
-    return result;
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlNextChar(/* TODO: args */);
+
+    return 0;
 }

@@ -1,53 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 033_hash.c_1140_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/033_hash.c_1140_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c:1140
+// Message   : High-coverage OOB risk: length/count may be unbounded for memmove().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "hash.c"
 
-int main() {
-    // Initialize hash table structure
-    xmlHashTablePtr hash = (xmlHashTablePtr)malloc(sizeof(xmlHashTable));
-    klee_make_symbolic(hash, sizeof(xmlHashTable), "hash");
-    
-    // Symbolic size for hash table
-    klee_assume(hash->size > 0);
-    unsigned table_size = hash->size;
-    
-    // Allocate table with symbolic size
-    hash->table = (xmlHashEntry*)malloc(table_size * sizeof(xmlHashEntry));
-    klee_make_symbolic(hash->table, table_size * sizeof(xmlHashEntry), "hash_table");
-    
-    // Initialize random seed
-    hash->randomSeed = 0;
-    
-    // Initialize dict (NULL for this test)
-    hash->dict = NULL;
-    
-    // Initialize nbElems
-    hash->nbElems = klee_int("nbElems");
-    klee_assume(hash->nbElems >= 0);
-    
-    // Create symbolic keys
-    xmlChar key1[32], key2[32], key3[32];
-    klee_make_symbolic(key1, sizeof(key1), "key1");
-    klee_make_symbolic(key2, sizeof(key2), "key2"); 
-    klee_make_symbolic(key3, sizeof(key3), "key3");
-    
-    // Call the target function
-    int result = xmlHashRemoveEntry3(hash, key1, key2, key3, NULL);
-    
-    // Assertion for bounds check at line 1140
-    // Check that the memmove operation doesn't exceed table bounds
-    if (hash->table != NULL && hash->size > 0) {
-        xmlHashEntry* entry = hash->table;
-        xmlHashEntry* next = entry + 1;
-        xmlHashEntry* cur = entry;
-        
-        // Calculate the distance and ensure it's within table bounds
-        size_t move_size = (char*)cur - (char*)entry;
-        klee_assert(move_size <= (hash->size * sizeof(xmlHashEntry)));
-    }
-    
-    // Cleanup
-    free(hash->table);
-    free(hash);
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlHashRemoveEntry3`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+    //   Line : 1140
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memmove().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

@@ -1,51 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 023_c14n.c_328_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/023_c14n.c_328_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NProcessAttrsAxis
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c:328
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "c14n.h"
+#include "c14n.c"
 
-int main() {
-    xmlC14NVisibleNsStackPtr stack = xmlC14NVisibleNsStackCreate();
-    if (stack == NULL) {
-        return 0;
-    }
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlC14NProcessAttrsAxis`
+    // using klee_make_symbolic(...) as needed.
 
-    // Initialize stack with default allocation
-    stack->nsTab = (xmlNsPtr*) xmlMalloc(XML_NAMESPACES_DEFAULT * sizeof(xmlNsPtr));
-    stack->nodeTab = (xmlNodePtr*) xmlMalloc(XML_NAMESPACES_DEFAULT * sizeof(xmlNodePtr));
-    
-    if ((stack->nsTab == NULL) || (stack->nodeTab == NULL)) {
-        if (stack->nsTab) xmlFree(stack->nsTab);
-        if (stack->nodeTab) xmlFree(stack->nodeTab);
-        xmlFree(stack);
-        return 0;
-    }
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Make stack size symbolic to explore different allocation states
-    int symbolic_size;
-    klee_make_symbolic(&symbolic_size, sizeof(symbolic_size), "symbolic_size");
-    klee_assume(symbolic_size >= 0);
-    klee_assume(symbolic_size <= 2 * XML_NAMESPACES_DEFAULT);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+    //   Line : 328
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
 
-    stack->nsMax = symbolic_size;
-    stack->nsCurEnd = 0;
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    // Add elements until we reach the suspicious memset
-    for (int i = 0; i < stack->nsMax; i++) {
-        xmlNsPtr ns;
-        xmlNodePtr node;
-        
-        klee_make_symbolic(&ns, sizeof(ns), "ns");
-        klee_make_symbolic(&node, sizeof(node), "node");
-        
-        xmlC14NVisibleNsStackAdd(stack, ns, node);
-        
-        // Assertion near the suspicious line - check buffer bounds
-        if (stack->nsTab != NULL) {
-            klee_assert(stack->nsCurEnd <= stack->nsMax);
-        }
-        if (stack->nodeTab != NULL) {
-            klee_assert(stack->nsCurEnd <= stack->nsMax);
-        }
-    }
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlC14NProcessAttrsAxis(/* TODO: args */);
 
-    xmlC14NVisibleNsStackDestroy(stack);
     return 0;
 }

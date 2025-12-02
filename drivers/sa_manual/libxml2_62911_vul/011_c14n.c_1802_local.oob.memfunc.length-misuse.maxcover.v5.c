@@ -1,51 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 011_c14n.c_1802_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/011_c14n.c_1802_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NProcessAttrsAxis
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c:1802
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "c14n.c"
-#include "tree.h"
-#include "xmlIO.h"
 
-int main() {
-    // Initialize symbolic inputs for xmlC14NNewCtx parameters
-    xmlDocPtr doc;
-    xmlOutputBufferPtr buf;
-    xmlC14NIsVisibleCallback is_visible_callback = NULL;
-    void* user_data = NULL;
-    xmlC14NMode mode = XML_C14N_1_0;
-    xmlChar** inclusive_ns_prefixes = NULL;
-    int with_comments = 0;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlC14NProcessAttrsAxis`
+    // using klee_make_symbolic(...) as needed.
 
-    // Make doc and buf symbolic (approximate structs with byte arrays)
-    unsigned char doc_buf[sizeof(xmlDoc)];
-    unsigned char buf_buf[sizeof(xmlOutputBuffer)];
-    
-    klee_make_symbolic(doc_buf, sizeof(xmlDoc), "doc_buf");
-    klee_make_symbolic(buf_buf, sizeof(xmlOutputBuffer), "buf_buf");
-    
-    doc = (xmlDocPtr)doc_buf;
-    buf = (xmlOutputBufferPtr)buf_buf;
-    
-    // Initialize buf->encoder to NULL as required by the function
-    if (buf != NULL) {
-        buf->encoder = NULL;
-    }
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Call the function under test
-    xmlC14NCtxPtr ctx = xmlC14NNewCtx(doc, is_visible_callback, user_data, 
-                                      mode, inclusive_ns_prefixes, 
-                                      with_comments, buf);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+    //   Line : 1802
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
 
-    // Assertion based on the suspicious line 1802 - check if ctx was properly allocated and initialized
-    if (ctx != NULL) {
-        // Check that the memset at line 1802 didn't overflow
-        // We can't directly check the memset bounds, but we can check that ctx points to valid memory
-        // by verifying it's within a reasonable range and the structure was properly initialized
-        klee_assert(ctx->doc == doc);  // This field should be set after memset
-        klee_assert(ctx->buf == buf);  // This field should be set after memset
-    }
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    // Cleanup if context was created
-    if (ctx != NULL) {
-        xmlC14NFreeCtx(ctx);
-    }
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlC14NProcessAttrsAxis(/* TODO: args */);
 
     return 0;
 }

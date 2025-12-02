@@ -1,53 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+// Entry     : xmlSAX2AttributeInternal
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c:2479
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "SAX2.h"
-#include "parser.h"
-#include "tree.h"
+#include "SAX2.c"
 
-int main() {
-    // Initialize parser context
-    xmlParserCtxtPtr ctxt = xmlCreateMemoryParserCtxt("", 0);
-    if (ctxt == NULL) return 1;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSAX2AttributeInternal`
+    // using klee_make_symbolic(...) as needed.
 
-    // Initialize node structure
-    xmlNodePtr node = xmlNewNode(NULL, (const xmlChar*)"test");
-    if (node == NULL) return 1;
-    ctxt->node = node;
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Initialize last child with text node
-    xmlNodePtr lastChild = xmlNewText((const xmlChar*)"");
-    if (lastChild == NULL) return 1;
-    node->children = lastChild;
-    node->last = lastChild;
-    lastChild->parent = node;
-    lastChild->doc = ctxt->myDoc;
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/SAX2.c
+    //   Line : 2479
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
 
-    // Set up initial state for the vulnerable path
-    ctxt->nodelen = 0;
-    ctxt->nodemem = 10;  // Small initial buffer to trigger realloc
-    lastChild->type = XML_TEXT_NODE;
-    lastChild->name = xmlStringText;
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    // Make content buffer symbolic
-    char content_buf[100];
-    klee_make_symbolic(content_buf, sizeof(content_buf), "content_buf");
-    lastChild->content = (xmlChar*)content_buf;
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSAX2AttributeInternal(/* TODO: args */);
 
-    // Make input data symbolic
-    char ch_buf[100];
-    int len;
-    klee_make_symbolic(ch_buf, sizeof(ch_buf), "ch_buf");
-    klee_make_symbolic(&len, sizeof(len), "len");
-
-    // Call the target function
-    xmlSAX2Text(ctxt, (const xmlChar*)ch_buf, len, XML_TEXT_NODE);
-
-    // Assertion for the vulnerable memcpy at line 2479
-    if (lastChild != NULL && lastChild->content != NULL) {
-        klee_assert(ctxt->nodelen + len <= ctxt->nodemem);
-    }
-
-    // Cleanup
-    xmlFreeNode(node);
-    xmlFreeParserCtxt(ctxt);
     return 0;
 }

@@ -1,39 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/debugXML.c
+// Entry     : xmlCtxtDumpNode
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/debugXML.c:2636
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "debugXML.c"
-#include "tree.h"
-#include "valid.h"
-#include "xmlmemory.h"
 
-int main() {
-    // Initialize symbolic inputs for xmlShellValidate
-    xmlShellCtxtPtr ctxt;
-    char dtd[256];
-    
-    // Make ctxt symbolic - we'll approximate the structure
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    
-    // If ctxt is not NULL, make sure ctxt->doc is properly initialized
-    if (ctxt != NULL) {
-        ctxt->doc = (xmlDocPtr)klee_malloc(sizeof(struct _xmlDoc));
-        klee_make_symbolic(ctxt->doc, sizeof(struct _xmlDoc), "ctxt_doc");
-        
-        // Ensure ctxt->doc is not NULL for the vulnerable path
-        klee_assume(ctxt->doc != NULL);
-    }
-    
-    // Make dtd buffer symbolic
-    klee_make_symbolic(dtd, sizeof(dtd), "dtd");
-    
-    // Call the target function
-    int result = xmlShellValidate(ctxt, dtd, NULL, NULL);
-    
-    // Add assertion near the suspicious line - checking for potential memset issues
-    // The suspicious line is memset(&vctxt, 0, sizeof(vctxt)) at line 2636
-    // We add a generic bounds check assertion that would catch memory issues
-    if (ctxt != NULL && ctxt->doc != NULL) {
-        // This assertion will fail if there are memory safety issues in the validation
-        klee_assert(1); // Generic assertion - KLEE will explore paths and detect memory errors
-    }
-    
-    return result;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlCtxtDumpNode`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/debugXML.c
+    //   Line : 2636
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlCtxtDumpNode(/* TODO: args */);
+
+    return 0;
 }

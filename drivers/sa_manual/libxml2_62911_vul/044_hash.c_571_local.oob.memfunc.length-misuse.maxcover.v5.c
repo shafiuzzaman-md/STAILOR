@@ -1,31 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 044_hash.c_571_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/044_hash.c_571_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+// Entry     : xmlHashRemoveEntry3
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c:571
+// Message   : High-coverage OOB risk: length/count may be unbounded for memmove().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "hash.h"
+#include "hash.c"
 
-int main() {
-    // Initialize hash table
-    xmlHashTablePtr hash = xmlHashCreate(0);
-    if (hash == NULL) return 0;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlHashRemoveEntry3`
+    // using klee_make_symbolic(...) as needed.
 
-    // Create symbolic inputs
-    xmlChar key[10];
-    void* payload = NULL;
-    
-    klee_make_symbolic(key, sizeof(key), "key");
-    key[9] = '\0'; // Ensure null termination
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    // Call entry function - using xmlHashAddEntry as it's a common entry point
-    int result = xmlHashAddEntry(hash, key, payload);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/hash.c
+    //   Line : 571
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memmove().
 
-    // Add assertion near the suspicious line - checking memmove bounds
-    // The vulnerable line is memmove(&hash->table[1], hash->table, (char *) cur - (char *) hash->table);
-    // We need to ensure the source and destination ranges don't overlap incorrectly
-    if (hash->size > 0 && hash->table != NULL) {
-        // Check that we're not accessing out of bounds
-        klee_assert((char*)hash->table + (hash->size * sizeof(xmlHashEntry)) >= 
-                   (char*)hash->table + ((char *) hash->table - (char *) hash->table));
-    }
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    // Cleanup
-    xmlHashFree(hash, NULL);
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlHashRemoveEntry3(/* TODO: args */);
+
     return 0;
 }

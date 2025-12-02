@@ -1,30 +1,43 @@
-#include <klee/klee.h>
-#include "catalog.h"
-#include "xmlmemory.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 032_catalog.c_414_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/032_catalog.c_414_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/catalog.c
+// Entry     : xmlParseCatalogFile
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/catalog.c:414
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    xmlCatalogType type;
-    xmlCatalogPrefer prefer;
-    
-    // Make symbolic inputs for the function parameters
-    klee_make_symbolic(&type, sizeof(type), "type");
-    klee_make_symbolic(&prefer, sizeof(prefer), "prefer");
-    
-    // Call the target function
-    xmlCatalogPtr catalog = xmlCreateNewCatalog(type, prefer);
-    
-    // Assertion to check for potential vulnerability
-    // The suspicious line is memset(ret, 0, sizeof(xmlCatalog)) at line 414
-    // This could be vulnerable if the allocation at line 409 failed but we still memset
-    if (catalog != NULL) {
-        // Check that the catalog was properly initialized (non-zero values in some fields)
-        // This assertion will fail if the memset was called on a NULL pointer
-        klee_assert(catalog->type == type);
-        klee_assert(catalog->prefer == prefer);
-        
-        // Clean up
-        xmlFreeCatalog(catalog);
-    }
-    
+#include <klee/klee.h>
+#include "catalog.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlParseCatalogFile`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/catalog.c
+    //   Line : 414
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlParseCatalogFile(/* TODO: args */);
+
     return 0;
 }

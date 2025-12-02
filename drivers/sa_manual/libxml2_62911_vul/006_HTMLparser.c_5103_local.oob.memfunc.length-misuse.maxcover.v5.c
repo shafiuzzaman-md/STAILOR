@@ -1,33 +1,43 @@
-#include <klee/klee.h>
-#include "HTMLparser.h"
-#include "parserInternals.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 006_HTMLparser.c_5103_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/006_HTMLparser.c_5103_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+// Entry     : htmlParseComment
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c:5103
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Create symbolic inputs for htmlNewSAXParserCtxt parameters
-    const htmlSAXHandler* sax;
-    void* userData;
-    
-    // Make parameters symbolic to explore different code paths
-    klee_make_symbolic(&sax, sizeof(sax), "sax");
-    klee_make_symbolic(&userData, sizeof(userData), "userData");
-    
-    // Call the entry function - htmlNewSAXParserCtxt is the most likely candidate
-    // based on the suspicious line at 5103
-    htmlParserCtxtPtr ctxt = htmlNewSAXParserCtxt(sax, userData);
-    
-    // Add assertion to check for potential memory issues
-    // The suspicious line is memset(ctxt, 0, sizeof(xmlParserCtxt)) at line 5103
-    // We need to ensure the allocation succeeded before the memset
-    if (ctxt != NULL) {
-        // Check that the allocated memory is properly initialized
-        // This is a basic sanity check that would fail if the memset overflows
-        klee_assert(1); // Placeholder - in practice you'd check specific struct fields
-    }
-    
-    // Clean up if allocation succeeded
-    if (ctxt != NULL) {
-        htmlFreeParserCtxt(ctxt);
-    }
-    
+#include <klee/klee.h>
+#include "HTMLparser.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `htmlParseComment`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/HTMLparser.c
+    //   Line : 5103
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // htmlParseComment(/* TODO: args */);
+
     return 0;
 }

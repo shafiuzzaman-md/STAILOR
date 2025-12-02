@@ -1,40 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 127_uri.c_2347_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/127_uri.c_2347_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c
+// Entry     : xmlParseURI
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c:2347
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "uri.c"
 
-int main() {
-    // Initialize symbolic inputs for xmlBuildRelativeURI
-    xmlChar base_buf[256];
-    xmlChar uri_buf[256];
-    
-    klee_make_symbolic(base_buf, sizeof(base_buf), "base_buf");
-    klee_make_symbolic(uri_buf, sizeof(uri_buf), "uri_buf");
-    
-    // Ensure null termination
-    base_buf[255] = 0;
-    uri_buf[255] = 0;
-    
-    // Create URI structures
-    xmlURIPtr base_uri = xmlCreateURI();
-    xmlURIPtr uri_ref = xmlCreateURI();
-    
-    if (base_uri && uri_ref) {
-        // Set the paths in the URI structures
-        base_uri->path = base_buf;
-        uri_ref->path = uri_buf;
-        
-        // Call the target function
-        xmlChar* result = xmlBuildRelativeURI(uri_ref, base_uri);
-        
-        // Check for potential out-of-bounds access at line 2347
-        // The suspicious line uses memcpy with len-1 where len = xmlStrlen(uptr) + 1
-        // We need to ensure the copy doesn't exceed buffer bounds
-        if (result) {
-            xmlFree(result);
-        }
-        
-        xmlFreeURI(base_uri);
-        xmlFreeURI(uri_ref);
-    }
-    
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlParseURI`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/uri.c
+    //   Line : 2347
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlParseURI(/* TODO: args */);
+
     return 0;
 }

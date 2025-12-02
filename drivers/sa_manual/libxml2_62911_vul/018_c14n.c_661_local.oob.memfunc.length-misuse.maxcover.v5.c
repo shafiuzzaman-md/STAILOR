@@ -1,48 +1,43 @@
-#include <klee/klee.h>
-#include "c14n.h"
-#include "tree.h"
-#include "xmlmemory.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 018_c14n.c_661_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/018_c14n.c_661_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+// Entry     : xmlC14NProcessAttrsAxis
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c:661
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize symbolic inputs for xmlC14NProcessNamespacesAxis
-    xmlC14NCtx ctx;
-    xmlNode node;
-    int visible;
-    
-    // Make context symbolic
-    klee_make_symbolic(&ctx, sizeof(ctx), "ctx");
-    
-    // Make node symbolic - approximate structure with basic fields
-    klee_make_symbolic(&node, sizeof(node), "node");
-    node.type = XML_ELEMENT_NODE;
-    node.parent = NULL;
-    node.nsDef = NULL;
-    
-    // Make document pointer symbolic
-    xmlDoc doc;
-    klee_make_symbolic(&doc, sizeof(doc), "doc");
-    node.doc = &doc;
-    
-    // Make visible flag symbolic
-    klee_make_symbolic(&visible, sizeof(visible), "visible");
-    
-    // Initialize ns_rendered stack in context
-    xmlC14NVisibleNsStack ns_stack;
-    klee_make_symbolic(&ns_stack, sizeof(ns_stack), "ns_stack");
-    ctx.ns_rendered = &ns_stack;
-    
-    // Call the target function
-    int result = xmlC14NProcessNamespacesAxis(&ctx, &node, visible);
-    
-    // Add assertion to check for potential vulnerability at line 661
-    // The memset at line 661 operates on ns_default which is a static local
-    // We can't directly check the static variable, but we can check if the
-    // vulnerable code path was taken and conditions that might lead to issues
-    if (visible && result == 0) {
-        // Check if we're in the code path that uses the static ns_default
-        // This is a simplified check - in practice you'd want more precise conditions
-        klee_assert(1); // Placeholder assertion - would need more context for precise check
-    }
-    
+#include <klee/klee.h>
+#include "c14n.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlC14NProcessAttrsAxis`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c
+    //   Line : 661
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlC14NProcessAttrsAxis(/* TODO: args */);
+
     return 0;
 }

@@ -1,46 +1,43 @@
-#include <klee/klee.h>
-#include "encoding.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 019_encoding.c_1128_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/019_encoding.c_1128_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c
+// Entry     : isolat1ToUTF8
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c:1128
+// Message   : High-coverage OOB risk: length/count may be unbounded for memmove().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Initialize global state
-    xmlCharEncodingAliasesMax = 10;
-    xmlCharEncodingAliasesNb = 5;
-    xmlCharEncodingAliases = (xmlCharEncodingAliasPtr)xmlMalloc(xmlCharEncodingAliasesMax * sizeof(xmlCharEncodingAlias));
-    
-    // Initialize some aliases to ensure the array has content
-    for (int i = 0; i < xmlCharEncodingAliasesNb; i++) {
-        xmlCharEncodingAliases[i].name = xmlMemStrdup("test_name");
-        xmlCharEncodingAliases[i].alias = xmlMemStrdup("TEST_ALIAS");
-    }
-    
-    // Make alias parameter symbolic
-    char alias[100];
-    klee_make_symbolic(alias, sizeof(alias), "alias");
-    klee_assume(alias[0] != '\0'); // Ensure non-empty string
-    klee_assume(alias[99] == '\0'); // Ensure null-terminated
-    
-    // Call the target function
-    int result = xmlDelEncodingAlias(alias);
-    
-    // Assertion to check for potential out-of-bounds access in memmove
-    // The suspicious line is 1128: memmove(&xmlCharEncodingAliases[i], &xmlCharEncodingAliases[i + 1],
-    //                     sizeof(xmlCharEncodingAlias) * (xmlCharEncodingAliasesNb - i));
-    // Check that i + 1 doesn't exceed array bounds when xmlCharEncodingAliasesNb > 0
-    if (xmlCharEncodingAliasesNb > 0) {
-        for (int i = 0; i < xmlCharEncodingAliasesNb; i++) {
-            if (!strcmp(xmlCharEncodingAliases[i].alias, alias)) {
-                klee_assert(i + 1 < xmlCharEncodingAliasesMax);
-                break;
-            }
-        }
-    }
-    
-    // Cleanup
-    for (int i = 0; i < xmlCharEncodingAliasesNb; i++) {
-        xmlFree((char*)xmlCharEncodingAliases[i].name);
-        xmlFree((char*)xmlCharEncodingAliases[i].alias);
-    }
-    xmlFree(xmlCharEncodingAliases);
-    
+#include <klee/klee.h>
+#include "encoding.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `isolat1ToUTF8`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/encoding.c
+    //   Line : 1128
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memmove().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // isolat1ToUTF8(/* TODO: args */);
+
     return 0;
 }

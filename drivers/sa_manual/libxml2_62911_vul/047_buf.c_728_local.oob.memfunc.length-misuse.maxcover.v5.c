@@ -1,31 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 047_buf.c_728_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/047_buf.c_728_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/buf.c
+// Entry     : xmlBufAdd
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/buf.c:728
+// Message   : High-coverage OOB risk: length/count may be unbounded for memcpy().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
 #include "buf.c"
-#include "tree.h"
 
-int main() {
-    xmlBufPtr buf;
-    xmlChar *str;
-    int len;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlBufAdd`
+    // using klee_make_symbolic(...) as needed.
 
-    buf = xmlBufCreate();
-    klee_assume(buf != NULL);
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    klee_make_symbolic(&len, sizeof(len), "len");
-    klee_assume(len >= 0 && len < 1000);
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/buf.c
+    //   Line : 728
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memcpy().
 
-    str = (xmlChar *)malloc(len + 1);
-    klee_make_symbolic(str, len + 1, "str");
-    if (len > 0) {
-        str[len] = 0;
-    }
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
 
-    int result = xmlBufAdd(buf, str, len);
-    
-    if (buf->content != NULL && buf->use > 0) {
-        klee_assert(buf->use <= buf->size);
-    }
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlBufAdd(/* TODO: args */);
 
-    xmlBufFree(buf);
-    if (str != NULL) free(str);
     return 0;
 }

@@ -1,22 +1,43 @@
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 142_tree.c_9331_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/142_tree.c_9331_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c
+// Entry     : xmlStringGetNodeList
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c:9331
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
+
 #include <klee/klee.h>
-#include "tree.h"
-#include "parser.h"
-#include "dict.h"
+#include "tree.c"
 
-int main() {
-    xmlDocPtr sourceDoc;
-    xmlDocPtr destDoc;
-    xmlNodePtr node;
-    xmlNodePtr resNode;
-    xmlDOMWrapCtxtPtr ctxt;
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlStringGetNodeList`
+    // using klee_make_symbolic(...) as needed.
 
-    klee_make_symbolic(&sourceDoc, sizeof(sourceDoc), "sourceDoc");
-    klee_make_symbolic(&destDoc, sizeof(destDoc), "destDoc");
-    klee_make_symbolic(&node, sizeof(node), "node");
-    klee_make_symbolic(&resNode, sizeof(resNode), "resNode");
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
 
-    int result = xmlDOMWrapCloneNode(ctxt, sourceDoc, node, destDoc, &resNode, 1, 0);
-    
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/tree.c
+    //   Line : 9331
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlStringGetNodeList(/* TODO: args */);
+
     return 0;
 }

@@ -1,32 +1,43 @@
-#include <klee/klee.h>
-#include "relaxng.h"
-#include "tree.h"
-#include "valid.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 058_relaxng.c_10553_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/058_relaxng.c_10553_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+// Entry     : xmlRelaxNGFreeDefine
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c:10553
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    xmlRelaxNGValidCtxtPtr ctxt;
-    xmlDocPtr doc;
-    
-    // Make symbolic inputs for the validation context and document
-    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
-    klee_make_symbolic(&doc, sizeof(doc), "doc");
-    
-    // Assume non-null pointers for the validation to proceed
-    klee_assume(ctxt != NULL);
-    klee_assume(doc != NULL);
-    klee_assume(ctxt->schema != NULL);
-    
-    // Call the target function
-    int result = xmlRelaxNGValidateDocument(ctxt, doc);
-    
-    // Add assertion near the suspicious line - checking for potential memset overflow
-    // The suspicious line is memset(&vctxt, 0, sizeof(xmlValidCtxt));
-    // We add an assertion that would fail if the memset operation is problematic
-    // For a length-misuse vulnerability, we check that the size doesn't exceed the actual structure
-    if (ctxt->idref == 1) {
-        xmlValidCtxt vctxt;
-        klee_assert(sizeof(vctxt) >= sizeof(xmlValidCtxt));
-    }
-    
-    return result;
+#include <klee/klee.h>
+#include "relaxng.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlRelaxNGFreeDefine`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/relaxng.c
+    //   Line : 10553
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlRelaxNGFreeDefine(/* TODO: args */);
+
+    return 0;
 }

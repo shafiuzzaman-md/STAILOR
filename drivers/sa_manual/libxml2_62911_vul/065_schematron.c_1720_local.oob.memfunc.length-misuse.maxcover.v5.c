@@ -1,34 +1,43 @@
-#include <klee/klee.h>
-#include "schematron.h"
-#include "xmlmemory.h"
-#include "xpath.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 065_schematron.c_1720_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/065_schematron.c_1720_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+// Entry     : xmlSchematronParse
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c:1720
+// Message   : High-coverage OOB risk: length/count may be unbounded for memset().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    // Create symbolic inputs for xmlSchematronNewValidCtxt parameters
-    xmlSchematronPtr schema;
-    int options;
-    
-    // Make schema symbolically allocated
-    klee_make_symbolic(&schema, sizeof(schema), "schema");
-    
-    // Make options symbolic
-    klee_make_symbolic(&options, sizeof(options), "options");
-    
-    // Call the target function - xmlSchematronNewValidCtxt
-    xmlSchematronValidCtxtPtr result = xmlSchematronNewValidCtxt(schema, options);
-    
-    // Assertion based on the suspicious line 1720 - check that memset doesn't overflow
-    // The vulnerability is about potential length misuse in memset
-    if (result != NULL) {
-        // Check that the allocated memory is properly sized for the struct
-        // This is a conservative check - ensure we're not writing beyond bounds
-        klee_assert(sizeof(xmlSchematronValidCtxt) <= xmlMallocSize(result));
-    }
-    
-    // Clean up if allocation succeeded
-    if (result != NULL) {
-        xmlSchematronFreeValidCtxt(result);
-    }
-    
+#include <klee/klee.h>
+#include "schematron.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlSchematronParse`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/schematron.c
+    //   Line : 1720
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for memset().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlSchematronParse(/* TODO: args */);
+
     return 0;
 }

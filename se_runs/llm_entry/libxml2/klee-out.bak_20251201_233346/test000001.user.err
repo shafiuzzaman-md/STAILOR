@@ -1,0 +1,7 @@
+Error: invalid klee_assume call (provably false)
+File: drivers/llm_entry/libxml2_llm_entry.c
+Line: 26
+assembly.ll line: 42
+State: 2
+Stack: 
+	#000000042 in main() at drivers/llm_entry/libxml2_llm_entry.c:26

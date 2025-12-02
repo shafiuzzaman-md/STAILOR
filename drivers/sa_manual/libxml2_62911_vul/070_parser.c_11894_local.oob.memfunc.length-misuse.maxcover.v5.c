@@ -1,50 +1,43 @@
-#include <klee/klee.h>
-#include "parser.h"
-#include "xmlmemory.h"
+// Auto-generated SA_MANUAL driver
+// Project   : libxml2_62911_vul
+// Spec ID   : 070_parser.c_11894_local.oob.memfunc.length-misuse.maxcover.v5
+// Spec file : specs/libxml2_62911_vul/070_parser.c_11894_local.oob.memfunc.length-misuse.maxcover.v5.json
+// Source    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c
+// Entry     : xmlParseExternalEntityPrivate
+// Rule      : 
+// Target    : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c:11894
+// Message   : High-coverage OOB risk: length/count may be unbounded for strncmp().
+//
+// NOTE: This is a *skeleton* SA-driven manual driver.
+//       Use the static-analysis info above to design:
+//         - input setup
+//         - a precise klee_assert() that captures the bug
+//       Both the assertion and entrypoint call are commented out so the
+//       harness compiles even before you finish the manual editing.
 
-int main() {
-    xmlParserCtxtPtr ctxt;
-    xmlSAXHandlerPtr sax;
-    xmlParserInputPtr input;
-    
-    // Initialize parser context
-    ctxt = xmlCreateMemoryParserCtxt("", 0);
-    if (ctxt == NULL) return 1;
-    
-    // Make input buffer symbolic
-    klee_make_symbolic(ctxt->input->base, XML_MAX_TEXT_LENGTH, "input_base");
-    klee_make_symbolic(&ctxt->input->cur, sizeof(ctxt->input->cur), "input_cur");
-    klee_make_symbolic(&ctxt->input->end, sizeof(ctxt->input->end), "input_end");
-    
-    // Make SAX handler symbolic
-    sax = (xmlSAXHandlerPtr)malloc(sizeof(xmlSAXHandler));
-    klee_make_symbolic(sax, sizeof(xmlSAXHandler), "sax_handler");
-    ctxt->sax = sax;
-    
-    // Set parser state to trigger CDATA section parsing
-    ctxt->instate = XML_PARSER_CDATA_SECTION;
-    ctxt->disableSAX = 0;
-    
-    // Initialize other required fields
-    ctxt->userData = NULL;
-    ctxt->checkIndex = 0;
-    ctxt->nameNr = 1;
-    
-    // Call the main parsing function
-    xmlParseContent(ctxt);
-    
-    // Assertion for the suspicious line 11894 - check for potential out-of-bounds access
-    if (ctxt->input->cur != NULL && ctxt->input->base != NULL) {
-        klee_assert(ctxt->input->cur - ctxt->input->base >= 0);
-        klee_assert(ctxt->input->cur - ctxt->input->base < XML_MAX_TEXT_LENGTH);
-        if (ctxt->input->cur - ctxt->input->base >= 9) {
-            klee_assert(ctxt->input->cur - 9 >= ctxt->input->base);
-        }
-    }
-    
-    // Cleanup
-    xmlFreeParserCtxt(ctxt);
-    free(sax);
-    
+#include <klee/klee.h>
+#include "parser.c"
+
+int main(void) {
+    // TODO: initialize concrete / symbolic arguments for `xmlParseExternalEntityPrivate`
+    // using klee_make_symbolic(...) as needed.
+
+    // Example:
+    // int len;
+    // klee_make_symbolic(&len, sizeof(len), "len");
+
+    // SA target info:
+    //   File : /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c
+    //   Line : 11894
+    //   Rule : 
+    //   Msg  : High-coverage OOB risk: length/count may be unbounded for strncmp().
+
+    // TODO: Insert a SA-guided assertion that should fail when the bug is hit.
+    // Example:
+    // klee_assert(/* SA-guided condition that is violated at target */);
+
+    // TODO: Once arguments and assertion are ready, call the entrypoint:
+    // xmlParseExternalEntityPrivate(/* TODO: args */);
+
     return 0;
 }
