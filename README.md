@@ -38,6 +38,7 @@ All should print 14.0.6.
 ```
 pip install --upgrade openai --break-system-packages
 python3 -m pip install --user requests pyyaml --break-system-packages
+pip install requests --break-system-packages
 ```
 ### Build KLEE:
 ```
