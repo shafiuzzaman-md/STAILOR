@@ -1,10 +1,10 @@
 # Time log for MODE=sa_manual, PROJECT=libxml2_62911_vul
 # Columns: SPEC_ID  duration_seconds
 
-# Harness class counts (all attempted specs, including failures):
+# Harness class counts (all attempted specs):
 # TOTAL_SPECS=397
-# H0 (build failure / no klee-last)           = 397
-# H1 (symbolic setup failure / early abort)   = 0
-# H2 (target not reached / no violation)      = 0
-# H3 (target reached, bug not confirmed)      = 0
-# H4 (bug confirmed via assertion)            = 0
+# E  (build/link failure)                   = 397
+# H0 (SE early stop, no SAILR asserts)      = 0
+# H1 (SE timeout, no SAILR asserts)         = 0
+# H2 (reach assert only)                    = 0
+# H3 (vuln assert fired)                    = 0

@@ -241,7 +241,10 @@ export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
 # Baseline Symbolic-Execution Configurations (manual / non-iterative)
 To compare SAILR with simpler workflows, we run four SE baselines for each spec.
 
-1. Manual Harness (entrypoint): Hand-written KLEE harness that calls the entrypoint, no static-analysis info.
+1. Manual Harness: 1 hand-written driver per project.
+
+- Calls the natural project entrypoint (e.g., main, xmlMain, xmlParseFile, etc.).
+- 1 KLEE run per project.
 ```
 chmod +x generate_manual_entry_drivers.sh
 
@@ -262,7 +265,10 @@ chmod +x run_manual_entry_batch.sh
 
 ```
 
-2. SA driven Manual Harness (entrypoint + target + assertion): Hand-written harness, but designed using SA output (entrypoint, suspicious call site, assertion at target).
+2. SA driven Manual Harness: Hand-written harness, but designed using SA output (suspicious call site, assertion at target).
+- still one logical entrypoint (the same project entrypoint),
+- For each target, we generate an instrumented build with assertion at the suspicious site (klee_assert(…);).
+- one run per target, reusing the same driver pattern, but different instrumented .bc / assertion.
 
 ```
 chmod +x generate_sa_manual_drivers.sh
@@ -283,7 +289,7 @@ chmod +x run_sa_manual_batch.sh
 
 ```
 
-3. LLM Harness (entrypoint): Single-shot LLM-generated harness that calls the entrypoint, but without passing the CodeQL spec.
+3. LLM Harness: Single-shot LLM-generated harness that calls the entrypoint, but without passing the CodeQL spec.
 
 ```
 chmod +x generate_llm_entry_drivers.py
@@ -311,8 +317,7 @@ chmod +x run_llm_entry_all_specs.sh
 
 ```
 
-4. SA driven LLM Harness (entrypoint + target + assertion)
-– Single-shot LLM-generated harness using the SA spec (entrypoint, target, assertion), without SAILR’s counterexample-guided refinement loop.
+4. SA driven LLM Harness: Single-shot LLM-generated harness using the SA spec, without SAILR’s counterexample-guided refinement loop.
 
 
 
