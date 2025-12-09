@@ -1,0 +1,9 @@
+KLEE: WARNING: undefined reference to function: xmlDocGetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlXPathCacheObject
+KLEE: WARNING: undefined reference to function: xmlXPathEvalExpression
+KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
+KLEE: WARNING: undefined reference to function: xmlXPathFreeObject
+KLEE: WARNING: undefined reference to function: xmlXPathNewContext
+KLEE: WARNING ONCE: calling external: xmlReadMemory(128763132116992, 4294967295, 128761789939712, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/346_xpath.c_4970_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 9

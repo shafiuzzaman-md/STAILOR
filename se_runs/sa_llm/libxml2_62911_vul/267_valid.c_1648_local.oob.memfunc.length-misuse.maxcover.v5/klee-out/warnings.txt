@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: xmlCreateEnumeration
+KLEE: WARNING: undefined reference to function: xmlFreeEnumeration
+KLEE: WARNING ONCE: calling external: xmlCreateEnumeration(133609551822848) at se_runs/sa_llm/libxml2_62911_vul/267_valid.c_1648_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:12 23

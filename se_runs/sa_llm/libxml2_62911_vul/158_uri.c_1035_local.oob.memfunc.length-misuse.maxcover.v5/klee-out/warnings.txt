@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: xmlCreateURI
+KLEE: WARNING: undefined reference to function: xmlFreeURI
+KLEE: WARNING ONCE: calling external: xmlCreateURI() at se_runs/sa_llm/libxml2_62911_vul/158_uri.c_1035_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:6 15

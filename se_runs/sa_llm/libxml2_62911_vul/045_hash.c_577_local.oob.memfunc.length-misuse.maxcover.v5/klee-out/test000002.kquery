@@ -1,0 +1,8 @@
+array key1_len[4] : w32 -> w8 = symbolic
+array key2_len[4] : w32 -> w8 = symbolic
+(query [(Ult (SExt w64 (ReadLSB w32 0 key1_len))
+              11)
+         (Eq false
+             (Ult (SExt w64 (ReadLSB w32 0 key2_len))
+                  11))]
+        false)

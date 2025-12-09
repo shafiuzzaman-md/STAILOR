@@ -1,0 +1,9 @@
+KLEE: WARNING: undefined reference to function: fclose
+KLEE: WARNING: undefined reference to function: fopen
+KLEE: WARNING: undefined reference to function: fputs
+KLEE: WARNING: undefined reference to function: getline
+KLEE: WARNING: undefined reference to function: remove
+KLEE: WARNING ONCE: calling external: fopen(123930213875712, 123926992650240) at se_runs/sa_llm/libxml2_62911_vul/160_xmlcatalog.c_128_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:25 12
+KLEE: WARNING ONCE: calling external: fputs(122750708482048, 97542966450160) at se_runs/sa_llm/libxml2_62911_vul/160_xmlcatalog.c_128_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28 12
+KLEE: WARNING ONCE: calling external: fclose(97542966450160) at se_runs/sa_llm/libxml2_62911_vul/160_xmlcatalog.c_128_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:31 14
+KLEE: WARNING ONCE: calling external: getline(122709906292736, 122707758809088, 97542966450160) at se_runs/sa_llm/libxml2_62911_vul/160_xmlcatalog.c_128_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:35 18

@@ -1,0 +1,12 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/045_HTMLparser.c_2445_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 17
+assembly.ll line: 52
+State: 4
+Stack: 
+	#000000052 in main() at se_runs/sa_llm/libxml2_62911_vul/045_HTMLparser.c_2445_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17
+Info: 
+  size expr: (SExt w64 (Add w32 1
+                                 (ReadLSB w32 0 html_size)))
+  concretization : 1
+  unbound example: 1025

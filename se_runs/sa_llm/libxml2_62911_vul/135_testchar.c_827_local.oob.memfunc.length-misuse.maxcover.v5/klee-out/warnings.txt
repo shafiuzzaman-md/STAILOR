@@ -1,0 +1,15 @@
+KLEE: WARNING: undefined reference to function: strncmp
+KLEE: WARNING: undefined reference to function: xmlDocDumpMemory
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlNewParserCtxt
+KLEE: WARNING: undefined reference to function: xmlNodeSetContent
+KLEE: WARNING ONCE: calling external: xmlNewParserCtxt() at se_runs/sa_llm/libxml2_62911_vul/135_testchar.c_827_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 10
+KLEE: WARNING ONCE: calling external: xmlNewDoc(131586651586560) at se_runs/sa_llm/libxml2_62911_vul/135_testchar.c_827_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 9
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 131586383151104) at se_runs/sa_llm/libxml2_62911_vul/135_testchar.c_827_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:27 16
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(95431190068992, 95431190727088) at se_runs/sa_llm/libxml2_62911_vul/135_testchar.c_827_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:38 10
+KLEE: WARNING ONCE: calling external: xmlNodeSetContent(95431190727088, 130451169603584) at se_runs/sa_llm/libxml2_62911_vul/135_testchar.c_827_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:46 19

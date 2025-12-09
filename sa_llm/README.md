@@ -1,6 +1,7 @@
+
 ```
 chmod +x sa_llm/run_sa_llm_batch.sh
-
+export DEEPSEEK_API_KEY="sk-"
 PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
   --project-name libxml2_62911_vul \
   --src-root     dataset/libxml2_62911_vul \
@@ -8,8 +9,8 @@ PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
   --out-root     se_runs \
   --clang        clang-14 \
   --klee         klee \
-  --clang-flags  "-I/usr/include/libxml2 -Isa_manual -include sa_manual/sailr_assert.h -Ise_runs" \
-  --klee-flags   "--search=nurs:covnew --max-time=3600"
-
+  --clang-flags  "-I. -I/usr/include/libxml2 -Isa_manual -include sa_manual/sailr_assert.h -Ise_runs" \
+  --klee-flags   "--search=nurs:covnew --max-time=3600" \
+  --jobs         8
 
 ```

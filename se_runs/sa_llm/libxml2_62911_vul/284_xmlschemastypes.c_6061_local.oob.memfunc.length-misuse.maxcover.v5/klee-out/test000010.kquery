@@ -1,0 +1,11 @@
+array buf[256] : w32 -> w8 = symbolic
+array dec_total[4] : w32 -> w8 = symbolic
+array i_symbolic[4] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 128 buf))
+         (Ult 0
+              N0:(ReadLSB w32 0 dec_total))
+         (Ult (Add w64 128 (ZExt w64 N0))
+              256)
+         (Eq 0
+             (ReadLSB w32 0 i_symbolic))]
+        false)

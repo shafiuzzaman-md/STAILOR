@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to function: glob
+KLEE: WARNING: undefined reference to function: globfree
+KLEE: WARNING: undefined reference to function: snprintf
+KLEE: WARNING ONCE: calling external: snprintf(137511860961280, 499, 138689218871296, 137501123543040) at se_runs/sa_llm/libxml2_62911_vul/097_runtest.c_3539_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28 67
+KLEE: WARNING ONCE: calling external: glob(137511860961280, 8, 0, 137505418510336) at se_runs/sa_llm/libxml2_62911_vul/097_runtest.c_3539_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:41 17

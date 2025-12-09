@@ -1,0 +1,10 @@
+KLEE: WARNING: undefined reference to function: xmlCheckVersion
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
+KLEE: WARNING: undefined reference to variable: xmlMalloc
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewParserCtxt
+KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/214_parser.c_5096_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 12
+KLEE: WARNING ONCE: calling external: xmlNewParserCtxt() at se_runs/sa_llm/libxml2_62911_vul/214_parser.c_5096_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 10
+KLEE: WARNING ONCE: calling external: xmlNewDoc(132045739130880) at se_runs/sa_llm/libxml2_62911_vul/214_parser.c_5096_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:25 9

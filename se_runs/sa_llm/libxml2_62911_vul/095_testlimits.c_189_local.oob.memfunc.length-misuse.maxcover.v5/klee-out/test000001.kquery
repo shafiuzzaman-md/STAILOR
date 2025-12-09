@@ -1,0 +1,20 @@
+array curlen[8] : w32 -> w8 = symbolic
+array dotlen[8] : w32 -> w8 = symbolic
+array instate[4] : w32 -> w8 = symbolic
+array len[8] : w32 -> w8 = symbolic
+array maxlen[8] : w32 -> w8 = symbolic
+array rlen[8] : w32 -> w8 = symbolic
+(query [(Ule 0
+              N0:(ReadLSB w64 0 len))
+         (Ule 0
+              N1:(ReadLSB w64 0 rlen))
+         (Ule 0
+              (ReadLSB w64 0 curlen))
+         (Ule 0
+              (ReadLSB w64 0 dotlen))
+         (Ule 0
+              (ReadLSB w64 0 maxlen))
+         (Eq 1
+             (ReadLSB w32 0 instate))
+         (Ult N0 N1)]
+        false)

@@ -1,0 +1,14 @@
+KLEE: WARNING: undefined reference to function: close
+KLEE: WARNING: undefined reference to function: connect
+KLEE: WARNING: undefined reference to function: htons
+KLEE: WARNING: undefined reference to function: inet_pton
+KLEE: WARNING: undefined reference to function: socket
+KLEE: WARNING: undefined reference to function: xmlNanoHTTPClose
+KLEE: WARNING: undefined reference to function: xmlNanoHTTPInit
+KLEE: WARNING: undefined reference to function: xmlNanoHTTPMethodRedir
+KLEE: WARNING ONCE: calling external: xmlNanoHTTPInit() at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 9
+KLEE: WARNING ONCE: calling external: socket(2, 1, 0) at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 9
+KLEE: WARNING ONCE: calling external: htons(80) at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:31 10
+KLEE: WARNING ONCE: calling external: inet_pton(2, 132593643159552, 131382999252996) at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:34 17
+KLEE: WARNING ONCE: calling external: connect(10, 131382999252992, 16) at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:34 60
+KLEE: WARNING ONCE: calling external: close(10) at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36 9

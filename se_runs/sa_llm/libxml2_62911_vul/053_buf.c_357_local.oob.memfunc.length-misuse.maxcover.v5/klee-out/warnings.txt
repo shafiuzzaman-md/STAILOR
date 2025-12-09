@@ -1,0 +1,7 @@
+KLEE: WARNING: undefined reference to function: xmlBufferAdd
+KLEE: WARNING: undefined reference to function: xmlBufferCreate
+KLEE: WARNING: undefined reference to function: xmlBufferFree
+KLEE: WARNING: undefined reference to function: xmlBufferShrink
+KLEE: WARNING ONCE: calling external: xmlBufferCreate() at se_runs/sa_llm/libxml2_62911_vul/053_buf.c_357_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:8 18
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlBufferAdd(107449060611120, 124108780077056, (ReadLSB w32 0 initial_size)) at se_runs/sa_llm/libxml2_62911_vul/053_buf.c_357_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 10

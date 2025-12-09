@@ -1,0 +1,6 @@
+array i_symbolic[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Ult (Add w64 128
+                           (ZExt w64 (ReadLSB w32 0 i_symbolic)))
+                  256))]
+        false)

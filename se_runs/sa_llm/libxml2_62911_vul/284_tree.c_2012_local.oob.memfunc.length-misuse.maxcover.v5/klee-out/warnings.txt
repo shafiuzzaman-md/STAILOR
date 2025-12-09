@@ -1,0 +1,13 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeProp
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlNewProp
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/284_tree.c_2012_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 11
+KLEE: WARNING ONCE: calling external: xmlNewDoc(139494539919360) at se_runs/sa_llm/libxml2_62911_vul/284_tree.c_2012_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 9
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 139495814987776) at se_runs/sa_llm/libxml2_62911_vul/284_tree.c_2012_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 10
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(94786099439584, 94786100034576) at se_runs/sa_llm/libxml2_62911_vul/284_tree.c_2012_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 10
+KLEE: WARNING ONCE: calling external: xmlNewProp(94786100034576, 138311813300224, 0) at se_runs/sa_llm/libxml2_62911_vul/284_tree.c_2012_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:47 10

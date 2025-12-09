@@ -1,0 +1,6 @@
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeTextWriter
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewTextWriterDoc
+KLEE: WARNING ONCE: calling external: xmlNewDoc(135442680774656) at se_runs/sa_llm/libxml2_62911_vul/304_xmlwriter.c_437_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 9
+KLEE: WARNING ONCE: calling external: xmlNewTextWriterDoc(134225594417152, 0) at se_runs/sa_llm/libxml2_62911_vul/304_xmlwriter.c_437_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 12

@@ -1,0 +1,13 @@
+Error: memory error: out of bound pointer
+File: runtime/Freestanding/memcpy.c
+Line: 17
+assembly.ll line: 381
+State: 1
+Stack: 
+	#000000381 in memcpy(125167361589248, 126357604401152, symbolic) at runtime/Freestanding/memcpy.c:17
+	#100000248 in xmlPythonFileReadRaw(125480894201856, 125167361589248, symbolic) at se_runs/sa_llm/libxml2_62911_vul/210_libxml.c_287_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:80
+	#200000337 in main() at se_runs/sa_llm/libxml2_62911_vul/210_libxml.c_287_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:110
+Info: 
+	address: 126357604401408
+	next: object at 125112600756224 of size 4
+		MO48[4] allocated at main():  %7 = alloca i32, align 4

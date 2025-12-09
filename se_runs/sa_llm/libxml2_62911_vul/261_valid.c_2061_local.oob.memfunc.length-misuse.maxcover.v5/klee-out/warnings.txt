@@ -1,0 +1,17 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlCopyAttribute
+KLEE: WARNING: undefined reference to function: xmlCreateEnumeration
+KLEE: WARNING: undefined reference to function: xmlCreateIntSubset
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to function: xmlFreeAttribute
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeEnumeration
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to variable: xmlMalloc
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewDtdNode
+KLEE: WARNING: undefined reference to function: xmlStrdup
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/261_valid.c_2061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 11
+KLEE: WARNING ONCE: calling external: xmlNewDoc(130734106869760) at se_runs/sa_llm/libxml2_62911_vul/261_valid.c_2061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 9
+KLEE: WARNING ONCE: calling external: xmlCreateIntSubset(109898578770864, 130735549710336, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/261_valid.c_2061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 9
+KLEE: WARNING ONCE: calling external: xmlNewDtdNode(109898578770864, 130734878621696, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/261_valid.c_2061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 12

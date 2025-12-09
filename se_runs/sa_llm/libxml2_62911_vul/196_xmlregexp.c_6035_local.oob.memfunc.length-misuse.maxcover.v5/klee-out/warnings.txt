@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: xmlRegFreeRegexp
+KLEE: WARNING: undefined reference to function: xmlRegexpCompile
+KLEE: WARNING ONCE: calling external: xmlRegexpCompile(131291534065664) at se_runs/sa_llm/libxml2_62911_vul/196_xmlregexp.c_6035_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 10
+KLEE: WARNING ONCE: calling external: xmlRegFreeRegexp(110571176527248) at se_runs/sa_llm/libxml2_62911_vul/196_xmlregexp.c_6035_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 5

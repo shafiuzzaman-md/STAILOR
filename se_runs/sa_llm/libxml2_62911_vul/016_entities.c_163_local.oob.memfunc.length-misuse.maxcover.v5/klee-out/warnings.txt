@@ -1,0 +1,15 @@
+KLEE: WARNING: undefined reference to function: xmlAddDocEntity
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 11
+KLEE: WARNING ONCE: calling external: xmlNewDoc(134910593466368) at se_runs/sa_llm/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 9
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 134911600099328) at se_runs/sa_llm/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 10
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(97627746135584, 97627746612448) at se_runs/sa_llm/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 17
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlAddDocEntity(97627746135584, 134911163891712, 1, 0, 0, 134256147824640) at se_runs/sa_llm/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:30 12
+KLEE: WARNING ONCE: calling external: xmlFreeDoc(97627746135584) at se_runs/sa_llm/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:40 5
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:42 5

@@ -1,0 +1,6 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDelEncodingAlias
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/019_encoding.c_1128_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:11 10
+KLEE: WARNING ONCE: calling external: xmlDelEncodingAlias(135868637511680) at se_runs/sa_llm/libxml2_62911_vul/019_encoding.c_1128_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 9
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/019_encoding.c_1128_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 5

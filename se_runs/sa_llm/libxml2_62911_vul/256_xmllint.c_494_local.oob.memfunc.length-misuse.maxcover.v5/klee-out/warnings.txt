@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlHTMLEncodeSend
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/256_xmllint.c_494_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:11 5
+KLEE: WARNING ONCE: calling external: xmlHTMLEncodeSend() at se_runs/sa_llm/libxml2_62911_vul/256_xmllint.c_494_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 5

@@ -1,0 +1,16 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlRelaxNGFree
+KLEE: WARNING: undefined reference to function: xmlRelaxNGFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlRelaxNGFreeValidCtxt
+KLEE: WARNING: undefined reference to function: xmlRelaxNGNewMemParserCtxt
+KLEE: WARNING: undefined reference to function: xmlRelaxNGNewValidCtxt
+KLEE: WARNING: undefined reference to function: xmlRelaxNGParse
+KLEE: WARNING: undefined reference to function: xmlRelaxNGValidateDoc
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/236_relaxng.c_1235_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 10
+KLEE: WARNING ONCE: calling external: xmlRelaxNGNewMemParserCtxt(132295304413184, 4095) at se_runs/sa_llm/libxml2_62911_vul/236_relaxng.c_1235_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 16
+KLEE: WARNING ONCE: calling external: xmlRelaxNGParse(109654883864128) at se_runs/sa_llm/libxml2_62911_vul/236_relaxng.c_1235_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 12
+KLEE: WARNING ONCE: calling external: xmlRelaxNGFreeParserCtxt(109654883864128) at se_runs/sa_llm/libxml2_62911_vul/236_relaxng.c_1235_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 9
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/236_relaxng.c_1235_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:33 9

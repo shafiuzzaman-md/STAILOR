@@ -1,0 +1,2 @@
+KLEE: WARNING: undefined reference to function: xmlSchemaInitTypes
+KLEE: WARNING ONCE: calling external: xmlSchemaInitTypes() at se_runs/sa_llm/libxml2_62911_vul/283_xmlschemastypes.c_6060_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:10 10

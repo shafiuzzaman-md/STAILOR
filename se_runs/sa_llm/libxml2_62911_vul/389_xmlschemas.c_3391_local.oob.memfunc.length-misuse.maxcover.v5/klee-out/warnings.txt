@@ -1,0 +1,8 @@
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: xmlSchemaFree
+KLEE: WARNING: undefined reference to function: xmlSchemaFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaNewParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaParse
+KLEE: WARNING: undefined reference to function: xmlSchemaSetParserErrors
+KLEE: WARNING ONCE: calling external: strlen(131792143122432) at se_runs/sa_llm/libxml2_62911_vul/389_xmlschemas.c_3391_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 13
+KLEE: WARNING ONCE: calling external: xmlSchemaNewParserCtxt(0) at se_runs/sa_llm/libxml2_62911_vul/389_xmlschemas.c_3391_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 10

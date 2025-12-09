@@ -1,0 +1,42 @@
+array dst[4096] : w32 -> w8 = symbolic
+array size[8] : w32 -> w8 = symbolic
+(query [(Eq 0
+             (ReadLSB w64 0 size))
+         (Slt (ReadLSB w32 128 dst)
+              N0:(ReadLSB w32 0 dst))
+         (Eq false
+             (Slt N1:(ReadLSB w32 132 dst)
+                  N0))
+         (Eq false
+             (Slt N1
+                  (ReadLSB w32 4 dst)))
+         (Slt N1
+              N2:(ReadLSB w32 8 dst))
+         (Eq false
+             (Slt N3:(ReadLSB w32 136 dst)
+                  N2))
+         (Slt N3
+              N4:(ReadLSB w32 12 dst))
+         (Slt (ReadLSB w32 140 dst)
+              N4)
+         (Slt (ReadLSB w32 144 dst)
+              N4)
+         (Slt (ReadLSB w32 148 dst)
+              N4)
+         (Slt (ReadLSB w32 152 dst)
+              N4)
+         (Eq false
+             (Slt N5:(ReadLSB w32 156 dst)
+                  N4))
+         (Slt N5
+              N6:(ReadLSB w32 16 dst))
+         (Slt (ReadLSB w32 160 dst)
+              N6)
+         (Slt (ReadLSB w32 164 dst)
+              N6)
+         (Eq false
+             (Slt N7:(ReadLSB w32 168 dst)
+                  N6))
+         (Slt N7
+              (ReadLSB w32 20 dst))]
+        false)

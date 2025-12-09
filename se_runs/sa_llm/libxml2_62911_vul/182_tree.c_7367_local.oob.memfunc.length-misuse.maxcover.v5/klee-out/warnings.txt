@@ -1,0 +1,6 @@
+KLEE: WARNING: undefined reference to function: xmlBufferCreate
+KLEE: WARNING: undefined reference to function: xmlBufferFree
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to variable: xmlMallocAtomic
+KLEE: WARNING: undefined reference to function: xmlTreeErrMemory
+KLEE: WARNING ONCE: calling external: xmlBufferCreate() at se_runs/sa_llm/libxml2_62911_vul/182_tree.c_7367_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:7 18

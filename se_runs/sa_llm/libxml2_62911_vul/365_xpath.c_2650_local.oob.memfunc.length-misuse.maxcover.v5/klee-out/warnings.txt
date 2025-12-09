@@ -1,0 +1,16 @@
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: xmlCheckVersion
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlXPathEvalExpression
+KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
+KLEE: WARNING: undefined reference to function: xmlXPathFreeObject
+KLEE: WARNING: undefined reference to function: xmlXPathNewContext
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/365_xpath.c_2650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 5
+KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/365_xpath.c_2650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 17
+KLEE: WARNING ONCE: calling external: strlen(123437712408576) at se_runs/sa_llm/libxml2_62911_vul/365_xpath.c_2650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 38
+KLEE: WARNING ONCE: calling external: xmlReadMemory(123437712408576, 21, 123436638666752, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/365_xpath.c_2650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 9
+KLEE: WARNING ONCE: calling external: xmlXPathNewContext(100172035818800) at se_runs/sa_llm/libxml2_62911_vul/365_xpath.c_2650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 9
+KLEE: WARNING ONCE: calling external: xmlXPathEvalExpression(123434491183104, 100172035023840) at se_runs/sa_llm/libxml2_62911_vul/365_xpath.c_2650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36 10

@@ -1,0 +1,12 @@
+array frac[4] : w32 -> w8 = symbolic
+array total[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 1
+                 N0:(ReadLSB w32 0 total)))
+         (Sle 0 N1:(Add w32 4294967295 N0))
+         (Slt N1 256)
+         (Slt N0 256)
+         (Slt (Add w32 1 N0) 256)
+         (Eq 1
+             (ReadLSB w32 0 frac))]
+        false)

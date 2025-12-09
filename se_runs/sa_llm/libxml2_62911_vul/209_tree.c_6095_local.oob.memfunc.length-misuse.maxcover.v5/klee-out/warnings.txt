@@ -1,0 +1,11 @@
+KLEE: WARNING: undefined reference to function: xmlCheckVersion
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlSearchNs
+KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/209_tree.c_6095_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 11
+KLEE: WARNING ONCE: calling external: xmlNewDoc(132332883279872) at se_runs/sa_llm/libxml2_62911_vul/209_tree.c_6095_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 9
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 131124386856960) at se_runs/sa_llm/libxml2_62911_vul/209_tree.c_6095_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:24 10
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(110541318520736, 110541319263456) at se_runs/sa_llm/libxml2_62911_vul/209_tree.c_6095_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 11

@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: xmlCreatePushParserCtxt
+KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
+KLEE: WARNING ONCE: calling external: xmlCreatePushParserCtxt(0, 0, 0, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/094_testlimits.c_184_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 10
+KLEE: WARNING ONCE: calling external: xmlFreeParserCtxt(105316607376624) at se_runs/sa_llm/libxml2_62911_vul/094_testlimits.c_184_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:58 5

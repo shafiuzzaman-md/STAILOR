@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlXIncludeFreeContext
+KLEE: WARNING: undefined reference to function: xmlXIncludeNewContext

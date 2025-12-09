@@ -1,0 +1,11 @@
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlSchematronFree
+KLEE: WARNING: undefined reference to function: xmlSchematronFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchematronNewDocParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchematronParse
+KLEE: WARNING ONCE: calling external: strlen(123757175767040) at se_runs/sa_llm/libxml2_62911_vul/077_schematron.c_353_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 16
+KLEE: WARNING ONCE: calling external: xmlReadMemory(123757175767040, 7, 123757913964544, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/077_schematron.c_353_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 9
+KLEE: WARNING ONCE: calling external: xmlSchematronNewDocParserCtxt(94772594202608) at se_runs/sa_llm/libxml2_62911_vul/077_schematron.c_353_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 10
+KLEE: WARNING ONCE: calling external: xmlSchematronParse(94772594325408) at se_runs/sa_llm/libxml2_62911_vul/077_schematron.c_353_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:27 16

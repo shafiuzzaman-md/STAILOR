@@ -1,0 +1,9 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlHashAddEntry3
+KLEE: WARNING: undefined reference to function: xmlHashCreate
+KLEE: WARNING: undefined reference to function: xmlHashFree
+KLEE: WARNING: undefined reference to function: xmlHashRemoveEntry3
+KLEE: WARNING: undefined reference to function: xmlHashUpdateEntry3
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/044_hash.c_571_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 12
+KLEE: WARNING ONCE: calling external: xmlHashCreate(3) at se_runs/sa_llm/libxml2_62911_vul/044_hash.c_571_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 10

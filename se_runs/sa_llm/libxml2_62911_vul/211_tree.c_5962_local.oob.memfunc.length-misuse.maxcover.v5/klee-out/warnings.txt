@@ -1,0 +1,8 @@
+KLEE: WARNING: undefined reference to function: xmlCheckVersion
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocGetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlSearchNsByHref
+KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/211_tree.c_5962_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 10
+KLEE: WARNING ONCE: calling external: xmlReadMemory(131121396318208, 1023, 132297412050944, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/211_tree.c_5962_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 9

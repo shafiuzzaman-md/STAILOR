@@ -1,0 +1,22 @@
+KLEE: WARNING: undefined reference to function: xmlCheckVersion
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlXPathCtxtCompile
+KLEE: WARNING: undefined reference to function: xmlXPathFreeCompExpr
+KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
+KLEE: WARNING: undefined reference to function: xmlXPathNewContext
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 5
+KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 15
+KLEE: WARNING ONCE: calling external: xmlNewDoc(127885874561024) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 15
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 127886579204096) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:25 16
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(101966140635072, 101966141016880) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 31
+KLEE: WARNING ONCE: calling external: xmlXPathNewContext(101966140635072) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 12
+KLEE: WARNING ONCE: calling external: xmlXPathCtxtCompile(101966141676112, 127231428919296) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:40 10
+KLEE: WARNING ONCE: calling external: xmlXPathFreeContext(101966141676112) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57 16
+KLEE: WARNING ONCE: calling external: xmlFreeDoc(101966140635072) at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57 5
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/368_xpath.c_1031_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:62 5

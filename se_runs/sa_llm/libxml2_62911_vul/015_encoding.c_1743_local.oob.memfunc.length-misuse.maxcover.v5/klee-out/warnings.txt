@@ -1,0 +1,7 @@
+KLEE: WARNING: undefined reference to function: iconv_close
+KLEE: WARNING: undefined reference to function: iconv_open
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to function: xmlFreeEncHandler
+KLEE: WARNING: undefined reference to variable: xmlMalloc
+KLEE: WARNING: undefined reference to variable: xmlMemStrdup
+KLEE: WARNING ONCE: calling external: iconv_open(140297587654656, 140298728505344) at se_runs/sa_llm/libxml2_62911_vul/015_encoding.c_1743_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 13

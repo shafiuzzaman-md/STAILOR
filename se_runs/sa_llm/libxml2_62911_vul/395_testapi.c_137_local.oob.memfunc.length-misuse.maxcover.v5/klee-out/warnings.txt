@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to function: strncpy
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlInitializeCatalog
+KLEE: WARNING: undefined reference to function: xmlRelaxNGInitTypes
+KLEE: WARNING ONCE: calling external: strncpy(139009495924736, 140194370027520, 20) at se_runs/sa_llm/libxml2_62911_vul/395_testapi.c_137_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 5

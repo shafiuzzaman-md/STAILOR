@@ -1,0 +1,11 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeNodeList
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlStringGetNodeList
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/275_tree.c_2525_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 11
+KLEE: WARNING ONCE: calling external: xmlNewDoc(124025523142656) at se_runs/sa_llm/libxml2_62911_vul/275_tree.c_2525_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 9
+KLEE: WARNING ONCE: calling external: xmlStringGetNodeList(99536998484528, 122842796523520) at se_runs/sa_llm/libxml2_62911_vul/275_tree.c_2525_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 10
+KLEE: WARNING ONCE: calling external: xmlFreeDoc(99536998484528) at se_runs/sa_llm/libxml2_62911_vul/275_tree.c_2525_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:50 5
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/275_tree.c_2525_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:52 5

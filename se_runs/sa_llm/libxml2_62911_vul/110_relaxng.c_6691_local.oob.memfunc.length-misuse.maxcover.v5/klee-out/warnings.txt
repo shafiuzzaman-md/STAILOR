@@ -1,0 +1,8 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlRelaxNGCopyValidState
+KLEE: WARNING: undefined reference to function: xmlRelaxNGFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlRelaxNGFreeValidCtxt
+KLEE: WARNING: undefined reference to function: xmlRelaxNGNewValidCtxt
+KLEE: WARNING ONCE: calling external: xmlReadMemory(129335222599680, 255, 130519828267008, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/110_relaxng.c_6691_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 9

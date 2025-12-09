@@ -1,0 +1,10 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlSchemaFree
+KLEE: WARNING: undefined reference to function: xmlSchemaFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaNewParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaParse
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/335_xmlschemastypes.c_379_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:24 35
+KLEE: WARNING ONCE: calling external: xmlSchemaNewParserCtxt(123192576311296) at se_runs/sa_llm/libxml2_62911_vul/335_xmlschemastypes.c_379_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:24 10
+KLEE: WARNING ONCE: calling external: xmlSchemaParse(110558278802112) at se_runs/sa_llm/libxml2_62911_vul/335_xmlschemastypes.c_379_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:33 12

@@ -1,0 +1,80 @@
+version: 1
+creator: klee
+pid: 213756
+cmd: se_runs/sa_llm/libxml2_62911_vul/394_testapi.c_136_local.oob.memfunc.length-misuse.maxcover.v5/bc/harness.bc
+
+
+positions: instr line
+event: Icov : CoveredInstructions
+event: Forks : Forks
+event: Ireal : InstructionRealTimes
+event: Itime : InstructionTimes
+event: I : Instructions
+event: UCdist : MinDistToUncovered
+event: Rtime : ResolveTime
+event: States : States
+event: Iuncov : UncoveredInstructions
+event: Q : Queries
+event: Qiv : QueriesInvalid
+event: Qv : QueriesValid
+event: Qtime : QueryTime
+events: Icov Forks Ireal Itime I UCdist Rtime States Iuncov Q Qiv Qv Qtime 
+ob=assembly.ll
+fl=se_runs/sa_llm/libxml2_62911_vul/394_testapi.c_136_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+fn=main
+13 7 1 0 0 0 1 0 0 0 0 0 0 0 0 
+14 7 1 0 0 0 1 0 0 0 0 0 0 0 0 
+15 7 1 0 0 0 1 0 0 0 0 0 0 0 0 
+16 7 1 0 0 0 1 0 0 0 0 0 0 0 0 
+17 7 1 0 0 0 1 0 0 0 0 1 0 0 0 
+18 8 1 0 0 0 1 0 0 0 0 0 0 0 0 
+19 9 1 0 0 0 1 0 0 0 0 0 0 0 0 
+20 10 1 0 0 0 1 0 0 0 0 0 0 0 0 
+21 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+22 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+cfl=runtime/Freestanding/memset.c
+cfn=memset
+calls=1 53 12
+22 12 28 0 0 0 141 0 0 0 0 79 0 0 0 
+23 13 1 0 0 0 1 0 0 0 0 1 0 0 0 
+24 14 0 0 0 0 0 1 0 0 1 0 0 0 0 
+25 14 0 0 0 0 0 1 0 0 1 0 0 0 0 
+26 15 0 0 0 0 0 1 0 0 1 0 0 0 0 
+27 15 0 0 0 0 0 1 0 0 1 0 0 0 0 
+28 15 0 0 0 0 0 1 0 0 1 0 0 0 0 
+29 16 0 0 0 0 0 1 0 0 1 0 0 0 0 
+30 16 0 0 0 0 0 1 0 0 1 0 0 0 0 
+31 16 0 0 0 0 0 1 0 0 1 0 0 0 0 
+32 18 0 0 0 0 0 1 0 0 1 0 0 0 0 
+33 20 0 0 0 0 0 1 0 0 1 0 0 0 0 
+34 23 0 0 0 0 0 1 0 0 1 0 0 0 0 
+fl=runtime/Freestanding/memset.c
+fn=memset
+55 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+56 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+57 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+58 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+59 12 1 0 0 0 1 0 0 0 0 1 0 0 0 
+60 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+61 12 1 0 0 0 1 0 0 0 0 1 0 0 0 
+62 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+63 12 1 0 0 0 1 0 0 0 0 1 0 0 0 
+64 12 1 0 0 0 1 0 0 0 0 0 0 0 0 
+65 13 1 0 0 0 1 0 0 0 0 0 0 0 0 
+66 13 1 0 0 0 1 0 0 0 0 1 0 0 0 
+67 13 1 0 0 0 1 0 0 0 0 1 0 0 0 
+68 14 1 0 0 0 1 0 0 0 0 0 0 0 0 
+71 14 1 0 0 0 11 0 0 0 0 11 0 0 0 
+72 14 1 0 0 0 11 0 0 0 0 0 0 0 0 
+73 14 1 0 0 0 11 0 0 0 0 11 0 0 0 
+74 14 1 0 0 0 11 0 0 0 0 0 0 0 0 
+75 14 1 0 0 0 11 0 0 0 0 11 0 0 0 
+78 15 1 0 0 0 10 0 0 0 0 10 0 0 0 
+79 15 1 0 0 0 10 0 0 0 0 0 0 0 0 
+80 15 1 0 0 0 10 0 0 0 0 10 0 0 0 
+81 15 1 0 0 0 10 0 0 0 0 0 0 0 0 
+82 15 1 0 0 0 10 0 0 0 0 10 0 0 0 
+83 15 1 0 0 0 10 0 0 0 0 10 0 0 0 
+84 14 1 0 0 0 10 0 0 0 0 0 0 0 0 
+87 16 1 0 0 0 1 0 0 0 0 1 0 0 0 
+88 16 1 0 0 0 1 0 0 0 0 0 0 0 0 

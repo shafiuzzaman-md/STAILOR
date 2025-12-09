@@ -1,0 +1,8 @@
+KLEE: WARNING: undefined reference to function: xmlAllocParserInputBuffer
+KLEE: WARNING: undefined reference to function: xmlCreateIOParserCtxt
+KLEE: WARNING: undefined reference to function: xmlDoRead
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlFreeParserInputBuffer
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlAllocParserInputBuffer(0) at se_runs/sa_llm/libxml2_62911_vul/099_runtest.c_3328_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:26 29

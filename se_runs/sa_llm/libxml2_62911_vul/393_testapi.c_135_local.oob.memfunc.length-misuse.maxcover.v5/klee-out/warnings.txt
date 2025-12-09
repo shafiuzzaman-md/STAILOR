@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: strncpy
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlInitializeCatalog

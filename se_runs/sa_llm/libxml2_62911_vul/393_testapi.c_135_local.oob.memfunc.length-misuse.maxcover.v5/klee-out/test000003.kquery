@@ -1,0 +1,9 @@
+array on[4] : w32 -> w8 = symbolic
+array return[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Slt (ReadLSB w32 0 on)
+                  0))
+         (Eq false
+             (Slt (ReadLSB w32 0 return)
+                  0))]
+        false)

@@ -1,0 +1,11 @@
+Error: memory error: out of bound pointer
+File: se_runs/sa_llm/libxml2_62911_vul/044_buf.c_798_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 33
+assembly.ll line: 108
+State: 1
+Stack: 
+	#000000108 in main() at se_runs/sa_llm/libxml2_62911_vul/044_buf.c_798_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:33
+Info: 
+	address: 107702266763304
+	next: object at 126634682220544 of size 4
+		MO30[4] allocated at main():  %6 = alloca i32, align 4

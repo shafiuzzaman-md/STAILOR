@@ -1,0 +1,13 @@
+array name1[8] : w32 -> w8 = symbolic
+array name2[8] : w32 -> w8 = symbolic
+array name3[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 (ReadLSB w64 0 name1)))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w64 0 name2)))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w64 0 name3)))]
+        false)

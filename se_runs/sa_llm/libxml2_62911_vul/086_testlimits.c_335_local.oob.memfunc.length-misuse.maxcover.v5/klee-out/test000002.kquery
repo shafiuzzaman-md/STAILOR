@@ -1,0 +1,23 @@
+array curlen[4] : w32 -> w8 = symbolic
+array current[8] : w32 -> w8 = symbolic
+array input_len[8] : w32 -> w8 = symbolic
+array instate[4] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+array rlen[4] : w32 -> w8 = symbolic
+(query [(Ult 0
+              N0:(ReadLSB w64 0 input_len))
+         (Ult N0 1024)
+         (Eq 0
+             (ReadLSB w32 0 instate))
+         (Sle 0
+              N1:(ReadLSB w32 0 len))
+         (Sle 0
+              N2:(ReadLSB w32 0 rlen))
+         (Sle 0
+              (ReadLSB w32 0 curlen))
+         (Slt N1 N2)
+         (Ule (SExt w64 N2) 256)
+         (Eq false
+             (Ule 125504006914048
+                  (ReadLSB w64 0 current)))]
+        false)

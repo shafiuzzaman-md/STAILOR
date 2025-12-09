@@ -1,0 +1,20 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlNewChild
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlXPathEvalExpression
+KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
+KLEE: WARNING: undefined reference to function: xmlXPathFreeObject
+KLEE: WARNING: undefined reference to function: xmlXPathNewContext
+KLEE: WARNING: undefined reference to function: xmlXPathNewNodeSet
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:12 15
+KLEE: WARNING ONCE: calling external: xmlNewDoc(130569438494720) at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:12 15
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 130570008920064) at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 16
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(110879840566656, 110879840428272) at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 24
+KLEE: WARNING ONCE: calling external: xmlXPathNewContext(110879840566656) at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 24
+KLEE: WARNING ONCE: calling external: xmlNewChild(110879840428272, 0, 130571015553024, 0) at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:27 16
+KLEE: WARNING ONCE: calling external: xmlXPathNewNodeSet(110879840609632) at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 23
+KLEE: WARNING ONCE: calling external: xmlXPathEvalExpression(130571585978368, 110879840450176) at se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:52 23

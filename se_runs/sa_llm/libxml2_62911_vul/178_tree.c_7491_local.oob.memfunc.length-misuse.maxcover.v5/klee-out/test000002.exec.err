@@ -1,0 +1,7 @@
+Error: external call with symbolic argument: xmlBufferResize
+File: se_runs/sa_llm/libxml2_62911_vul/178_tree.c_7491_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 42
+assembly.ll line: 101
+State: 1
+Stack: 
+	#000000101 in main() at se_runs/sa_llm/libxml2_62911_vul/178_tree.c_7491_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:42

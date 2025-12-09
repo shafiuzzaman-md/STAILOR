@@ -1,0 +1,40 @@
+version: 1
+creator: klee
+pid: 120285
+cmd: se_runs/sa_llm/libxml2_62911_vul/210_xmlIO.c_3679_local.oob.memfunc.length-misuse.maxcover.v5/bc/harness.bc
+
+
+positions: instr line
+event: Icov : CoveredInstructions
+event: Forks : Forks
+event: Ireal : InstructionRealTimes
+event: Itime : InstructionTimes
+event: I : Instructions
+event: UCdist : MinDistToUncovered
+event: Rtime : ResolveTime
+event: States : States
+event: Iuncov : UncoveredInstructions
+event: Q : Queries
+event: Qiv : QueriesInvalid
+event: Qv : QueriesValid
+event: Qtime : QueryTime
+events: Icov Forks Ireal Itime I UCdist Rtime States Iuncov Q Qiv Qv Qtime 
+ob=assembly.ll
+fl=se_runs/sa_llm/libxml2_62911_vul/210_xmlIO.c_3679_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+fn=main
+13 5 1 0 0 0 1 0 0 0 0 0 0 0 0 
+14 5 1 0 0 0 1 0 0 0 0 0 0 0 0 
+15 5 1 0 0 0 1 0 0 0 0 0 0 0 0 
+16 5 1 0 0 0 1 0 0 0 0 1 0 0 0 
+17 6 1 0 0 0 1 0 0 0 0 0 0 0 0 
+18 7 1 0 0 0 1 0 0 0 0 0 0 0 0 
+19 7 1 0 0 0 1 0 0 0 0 2 0 0 0 
+20 8 1 0 0 0 1 0 0 0 0 0 0 0 0 
+21 8 1 0 0 0 1 0 0 0 0 1 0 0 0 
+22 10 1 0 0 0 1 0 0 0 0 0 0 0 0 
+23 10 1 0 0 0 1 0 0 0 0 0 0 0 0 
+24 10 1 0 0 0 1 0 0 0 0 0 0 0 0 
+25 10 1 0 0 0 1 0 0 0 0 1 0 0 0 
+26 11 1 0 0 0 1 0 0 0 0 1 0 0 0 
+27 13 1 0 0 0 1 0 0 0 0 1 0 0 0 
+28 14 0 0 0 0 0 1 0 0 1 0 0 0 0 

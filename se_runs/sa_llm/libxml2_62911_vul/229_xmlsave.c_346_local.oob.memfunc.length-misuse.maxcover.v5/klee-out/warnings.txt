@@ -1,0 +1,20 @@
+KLEE: WARNING: undefined reference to function: xmlBufferCreate
+KLEE: WARNING: undefined reference to function: xmlBufferFree
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlSaveClose
+KLEE: WARNING: undefined reference to function: xmlSaveToBuffer
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 11
+KLEE: WARNING ONCE: calling external: xmlNewDoc(127400436301824) at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 9
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 127402013360128) at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 10
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(109267537730464, 109267537951056) at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 10
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlBufferCreate() at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28 18
+KLEE: WARNING ONCE: calling external: xmlSaveToBuffer(109267537760208, 126539832229888, 0) at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 10
+KLEE: WARNING ONCE: calling external: xmlBufferFree(109267537760208) at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:6 0
+KLEE: WARNING ONCE: calling external: xmlFreeDoc(109267537730464) at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:45 5
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/229_xmlsave.c_346_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:46 10

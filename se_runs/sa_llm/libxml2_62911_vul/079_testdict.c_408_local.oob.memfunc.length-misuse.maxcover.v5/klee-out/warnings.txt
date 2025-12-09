@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to function: fill_string_pool
+KLEE: WARNING: undefined reference to function: xmlDictCreate
+KLEE: WARNING: undefined reference to function: xmlDictFree
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to variable: xmlMalloc

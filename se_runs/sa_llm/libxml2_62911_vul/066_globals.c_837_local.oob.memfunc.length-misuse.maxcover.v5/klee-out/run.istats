@@ -1,0 +1,45 @@
+version: 1
+creator: klee
+pid: 66491
+cmd: se_runs/sa_llm/libxml2_62911_vul/066_globals.c_837_local.oob.memfunc.length-misuse.maxcover.v5/bc/harness.bc
+
+
+positions: instr line
+event: Icov : CoveredInstructions
+event: Forks : Forks
+event: Ireal : InstructionRealTimes
+event: Itime : InstructionTimes
+event: I : Instructions
+event: UCdist : MinDistToUncovered
+event: Rtime : ResolveTime
+event: States : States
+event: Iuncov : UncoveredInstructions
+event: Q : Queries
+event: Qiv : QueriesInvalid
+event: Qv : QueriesValid
+event: Qtime : QueryTime
+events: Icov Forks Ireal Itime I UCdist Rtime States Iuncov Q Qiv Qv Qtime 
+ob=assembly.ll
+fl=se_runs/sa_llm/libxml2_62911_vul/066_globals.c_837_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+fn=main
+13 6 1 0 0 0 1 21 0 0 0 0 0 0 0 
+14 6 1 0 0 0 1 20 0 0 0 0 0 0 0 
+15 6 1 0 0 0 1 19 0 0 0 1 0 0 0 
+16 8 1 0 0 0 1 18 0 0 0 0 0 0 0 
+17 11 1 0 0 0 1 16 0 0 0 0 0 0 0 
+18 12 1 0 0 0 1 14 0 0 0 0 0 0 0 
+19 12 1 0 0 0 1 13 0 0 0 2 0 0 0 
+20 13 1 0 0 0 1 11 0 0 0 1 0 0 0 
+21 13 1 0 0 0 1 10 0 0 0 0 0 0 0 
+22 13 1 1 0 0 1 9 0 0 0 1 2 0 12531 
+25 13 1 0 0 0 1 11 0 0 0 1 0 0 0 
+26 13 1 0 0 0 1 10 0 0 0 0 0 0 0 
+27 13 1 0 0 0 1 9 0 0 0 0 0 0 0 
+30 6 1 0 0 0 2 8 0 0 0 0 0 0 0 
+31 13 1 0 0 0 2 7 0 0 0 0 0 0 0 
+32 13 1 0 0 0 2 6 0 0 0 0 0 0 0 
+33 13 1 0 0 0 2 5 0 0 0 2 1 0 4989 
+34 17 1 0 0 0 2 3 0 0 0 1 1 0 4981 
+35 21 0 0 0 0 0 1 0 0 1 0 0 0 0 
+36 24 0 0 0 0 0 1 0 0 1 0 0 0 0 
+37 25 0 0 0 0 0 1 0 0 1 0 0 0 0 

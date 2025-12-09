@@ -1,0 +1,7 @@
+Error: failed external call: XML_IS_THREADED
+File: se_runs/sa_llm/libxml2_62911_vul/138_threads.c_384_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 13
+assembly.ll line: 24
+State: 1
+Stack: 
+	#000000024 in main() at se_runs/sa_llm/libxml2_62911_vul/138_threads.c_384_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13

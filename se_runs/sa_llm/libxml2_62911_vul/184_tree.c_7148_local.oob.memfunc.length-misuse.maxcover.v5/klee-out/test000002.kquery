@@ -1,0 +1,11 @@
+array buf_size[4] : w32 -> w8 = symbolic
+array buf_use[4] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+(query [(Ule 1
+              N0:(ReadLSB w32 0 buf_size))
+         (Ult N0 4096)
+         (Ult (ReadLSB w32 0 buf_use)
+              N0)
+         (Ult (ReadLSB w32 0 len)
+              N0)]
+        false)

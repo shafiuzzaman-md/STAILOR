@@ -1,0 +1,5 @@
+array has_backslash[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 (ReadLSB w32 0 has_backslash)))]
+        false)

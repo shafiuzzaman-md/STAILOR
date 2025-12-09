@@ -1,0 +1,14 @@
+Error: memory error: out of bound pointer
+File: se_runs/sa_llm/libxml2_62911_vul/284_xmlschemastypes.c_6061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 21
+assembly.ll line: 52
+State: 2
+Stack: 
+	#000000052 in main() at se_runs/sa_llm/libxml2_62911_vul/284_xmlschemastypes.c_6061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21
+Info: 
+	address: (Add w64 136658234114176
+          (ZExt w64 (ReadLSB w32 0 i_symbolic)))
+	example: 136658234114304
+	range: [136658234114304, 136662529081471]
+	next: object at 136612063215616 of size 4
+		MO27[4] allocated at main():  %6 = alloca i32, align 4

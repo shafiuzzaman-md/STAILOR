@@ -1,0 +1,7 @@
+array stack_curr[8] : w32 -> w8 = symbolic
+(query [(Ule 2
+              N0:(ReadLSB w64 0 stack_curr))
+         (Eq false
+             (Eq 32 N1:(Mul w64 16 N0)))
+         (Eq false (Ult 2147483648 N1))]
+        false)

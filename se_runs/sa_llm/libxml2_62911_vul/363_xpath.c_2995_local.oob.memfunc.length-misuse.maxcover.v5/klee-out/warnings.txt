@@ -1,0 +1,13 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocGetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
+KLEE: WARNING: undefined reference to function: xmlXPathFreeNodeSet
+KLEE: WARNING: undefined reference to function: xmlXPathNewContext
+KLEE: WARNING: undefined reference to function: xmlXPathNewNodeSet
+KLEE: WARNING: undefined reference to function: xmlXPathNodeSetAdd
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/363_xpath.c_2995_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:10 10
+KLEE: WARNING ONCE: calling external: xmlReadMemory(139231664013312, 1023, 140407679746048, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/363_xpath.c_2995_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 15
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/363_xpath.c_2995_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 9

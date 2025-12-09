@@ -1,0 +1,11 @@
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to variable: xmlMalloc
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlXPathEvalExpression
+KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
+KLEE: WARNING: undefined reference to function: xmlXPathFreeObject
+KLEE: WARNING: undefined reference to function: xmlXPathNewContext
+KLEE: WARNING ONCE: calling external: xmlReadMemory(138670935900160, 27, 138669862158336, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/340_xpath.c_6225_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 9
+KLEE: WARNING ONCE: calling external: xmlXPathNewContext(103818258513680) at se_runs/sa_llm/libxml2_62911_vul/340_xpath.c_6225_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 9
+KLEE: WARNING ONCE: calling external: xmlXPathEvalExpression(138667714674688, 103818259134656) at se_runs/sa_llm/libxml2_62911_vul/340_xpath.c_6225_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 10

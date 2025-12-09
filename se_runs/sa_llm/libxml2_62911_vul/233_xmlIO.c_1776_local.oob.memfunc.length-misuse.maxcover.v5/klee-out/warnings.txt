@@ -1,0 +1,6 @@
+KLEE: WARNING: undefined reference to function: xmlFreeHTTPWriteCtxt
+KLEE: WARNING: undefined reference to function: xmlIOHTTPWriteOpen
+KLEE: WARNING: undefined reference to function: xmlOutputBufferClose
+KLEE: WARNING: undefined reference to function: xmlOutputBufferCreateIO
+KLEE: WARNING ONCE: calling external: xmlOutputBufferCreateIO(0, 0, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/233_xmlIO.c_1776_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 24
+KLEE: WARNING ONCE: calling external: xmlIOHTTPWriteOpen(129882396819456) at se_runs/sa_llm/libxml2_62911_vul/233_xmlIO.c_1776_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 18

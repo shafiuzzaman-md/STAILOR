@@ -1,0 +1,14 @@
+array file_cond[4] : w32 -> w8 = symbolic
+array str1_cond[4] : w32 -> w8 = symbolic
+array str2_cond[4] : w32 -> w8 = symbolic
+array str3_cond[4] : w32 -> w8 = symbolic
+(query [(Eq 0
+             (ReadLSB w32 0 file_cond))
+         (Eq 0
+             (ReadLSB w32 0 str1_cond))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w32 0 str2_cond)))
+         (Eq 0
+             (ReadLSB w32 0 str3_cond))]
+        false)

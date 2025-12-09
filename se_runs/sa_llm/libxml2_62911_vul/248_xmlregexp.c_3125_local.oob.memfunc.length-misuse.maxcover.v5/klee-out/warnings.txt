@@ -1,0 +1,13 @@
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: xmlRegExecPushString2
+KLEE: WARNING: undefined reference to function: xmlRegExecRollBack
+KLEE: WARNING: undefined reference to function: xmlRegFreeExecCtxt
+KLEE: WARNING: undefined reference to function: xmlRegFreeRegexp
+KLEE: WARNING: undefined reference to function: xmlRegNewExecCtxt
+KLEE: WARNING: undefined reference to function: xmlRegexpCompile
+KLEE: WARNING ONCE: calling external: xmlRegexpCompile(136536305696768) at se_runs/sa_llm/libxml2_62911_vul/248_xmlregexp.c_3125_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 10
+KLEE: WARNING ONCE: calling external: xmlRegNewExecCtxt(101608371846672, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/248_xmlregexp.c_3125_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:27 10
+KLEE: WARNING ONCE: calling external: strlen(136534158213120) at se_runs/sa_llm/libxml2_62911_vul/248_xmlregexp.c_3125_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:37 90
+KLEE: WARNING ONCE: calling external: xmlRegExecPushString2(101608371763648, 136534158213120, 136534158213120, 0) at se_runs/sa_llm/libxml2_62911_vul/248_xmlregexp.c_3125_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:37 9
+KLEE: WARNING ONCE: calling external: xmlRegFreeExecCtxt(101608371763648) at se_runs/sa_llm/libxml2_62911_vul/248_xmlregexp.c_3125_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:41 26
+KLEE: WARNING ONCE: calling external: xmlRegFreeRegexp(101608371846672) at se_runs/sa_llm/libxml2_62911_vul/248_xmlregexp.c_3125_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:42 9

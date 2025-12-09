@@ -1,0 +1,17 @@
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlSchemaCopyValue
+KLEE: WARNING: undefined reference to function: xmlSchemaFree
+KLEE: WARNING: undefined reference to function: xmlSchemaFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaFreeValue
+KLEE: WARNING: undefined reference to function: xmlSchemaNewMemParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaNewStringValue
+KLEE: WARNING: undefined reference to function: xmlSchemaParse
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/314_xmlschemastypes.c_3892_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 10
+KLEE: WARNING ONCE: calling external: strlen(139412568539136) at se_runs/sa_llm/libxml2_62911_vul/314_xmlschemastypes.c_3892_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 55
+KLEE: WARNING ONCE: calling external: xmlSchemaNewMemParserCtxt(139412568539136, 135) at se_runs/sa_llm/libxml2_62911_vul/314_xmlschemastypes.c_3892_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 16
+KLEE: WARNING ONCE: calling external: xmlSchemaParse(100994587309424) at se_runs/sa_llm/libxml2_62911_vul/314_xmlschemastypes.c_3892_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:27 12
+KLEE: WARNING ONCE: calling external: xmlSchemaFreeParserCtxt(100994587309424) at se_runs/sa_llm/libxml2_62911_vul/314_xmlschemastypes.c_3892_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 9
+KLEE: WARNING ONCE: calling external: xmlSchemaNewStringValue(1, 140595865583616) at se_runs/sa_llm/libxml2_62911_vul/314_xmlschemastypes.c_3892_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36 9
+KLEE: WARNING ONCE: calling external: xmlSchemaCopyValue(100994586775984) at se_runs/sa_llm/libxml2_62911_vul/314_xmlschemastypes.c_3892_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:46 9

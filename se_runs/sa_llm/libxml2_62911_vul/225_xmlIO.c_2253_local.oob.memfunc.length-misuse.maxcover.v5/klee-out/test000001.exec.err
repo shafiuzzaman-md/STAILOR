@@ -1,0 +1,7 @@
+Error: external call with symbolic argument: xmlAllocParserInputBuffer
+File: se_runs/sa_llm/libxml2_62911_vul/225_xmlIO.c_2253_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 9
+assembly.ll line: 28
+State: 1
+Stack: 
+	#000000028 in main() at se_runs/sa_llm/libxml2_62911_vul/225_xmlIO.c_2253_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:9

@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: xmlBufferCreate
+KLEE: WARNING: undefined reference to function: xmlBufferFree
+KLEE: WARNING ONCE: calling external: xmlBufferCreate() at se_runs/sa_llm/libxml2_62911_vul/183_tree.c_7141_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:6 18

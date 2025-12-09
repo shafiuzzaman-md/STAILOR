@@ -1,0 +1,7 @@
+Error: failed external call: xmlHTMLEncodeSend
+File: se_runs/sa_llm/libxml2_62911_vul/256_xmllint.c_494_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 11
+assembly.ll line: 15
+State: 1
+Stack: 
+	#000000015 in main() at se_runs/sa_llm/libxml2_62911_vul/256_xmllint.c_494_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:11

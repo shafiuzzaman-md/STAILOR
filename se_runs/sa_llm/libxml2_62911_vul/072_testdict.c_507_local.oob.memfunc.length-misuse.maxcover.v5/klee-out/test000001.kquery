@@ -1,0 +1,7 @@
+array num_entries[8] : w32 -> w8 = symbolic
+array num_keys[8] : w32 -> w8 = symbolic
+(query [(Ule (ReadLSB w64 0 num_entries)
+              1024)
+         (Ule (ReadLSB w64 0 num_keys)
+              1024)]
+        false)

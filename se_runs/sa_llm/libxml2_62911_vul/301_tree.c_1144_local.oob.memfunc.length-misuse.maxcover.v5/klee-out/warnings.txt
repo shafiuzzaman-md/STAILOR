@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING ONCE: calling external: xmlNewDoc(136414175952896) at se_runs/sa_llm/libxml2_62911_vul/301_tree.c_1144_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 15

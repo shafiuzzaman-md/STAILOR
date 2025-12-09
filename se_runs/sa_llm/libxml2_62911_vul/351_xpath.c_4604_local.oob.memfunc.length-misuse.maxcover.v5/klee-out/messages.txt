@@ -1,0 +1,8 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x76c2b1000000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x76c031000000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x75c031000000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x75a031000000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/351_xpath.c_4604_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:58: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+KLEE: NOTE: now ignoring this error at this location

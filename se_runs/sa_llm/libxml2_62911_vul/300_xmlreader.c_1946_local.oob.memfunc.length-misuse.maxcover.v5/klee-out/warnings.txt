@@ -1,0 +1,7 @@
+KLEE: WARNING: undefined reference to function: xmlCreateMemoryParserCtxt
+KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlFreeParserInputBuffer
+KLEE: WARNING: undefined reference to function: xmlFreeTextReader
+KLEE: WARNING: undefined reference to function: xmlNewIOInputStream
+KLEE: WARNING: undefined reference to function: xmlNewTextReader
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.

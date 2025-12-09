@@ -1,44 +1,32 @@
 #!/usr/bin/env bash
-#
-# run_sailr_cegir_batch.sh
-#
-# Batch runner for SAILR CEGIR, analogous to sa_llm/run_sa_llm_batch.sh.
-#
-# It:
-#   - iterates over specs in specs/<PROJECT>/
-#   - parses the file/line/rule from the spec filename
-#   - calls scripts/run_full_cegir.sh once per spec
-#
-# Env vars (similar spirit to SA-LLM):
-#   SA_OUT_DIR    : root of static-analysis outputs (default: sa_outputs)
-#   DATASET_ROOT  : root of source trees (default: dataset)
-#   PROJECT       : project ID, e.g. "62911/libxml2_62911_vul"
-#   LLM_MODEL     : model name for DeepSeek/OpenAI (default: deepseek-chat)
-#   LLM_API_BASE  : API base URL (default: https://api.deepseek.com)
-#   MAX_A         : max build-refinement iterations (Phase A) per spec (default: 8)
-#   MAX_B         : max KLEE-refinement iterations (Phase B) per spec (default: 12)
-#   TIMEOUT       : max seconds per CEGIR run (default: 120)
-#
-# CLI:
-#   ./sailr_cegir/run_sailr_cegir_batch.sh <PROJECT> [RULE_ID_FILTER]
-#
-# Example:
-#   SA_OUT_DIR=sa_outputs DATASET_ROOT=dataset \
-#   LLM_MODEL=deepseek-chat LLM_API_BASE=https://api.deepseek.com \
-#   MAX_A=8 MAX_B=12 TIMEOUT=120 \
-#   ./sailr_cegir/run_sailr_cegir_batch.sh 62911/libxml2_62911_vul local.oob.memfunc.length-misuse
-#
-
 set -euo pipefail
 
-if [ $# -lt 1 ]; then
-  echo "Usage: $0 <PROJECT> [RULE_ID_FILTER]" >&2
+# Usage:
+#   SA_OUT_DIR=sa_outputs \
+#   DATASET_ROOT=dataset \
+#   LLM_MODEL=deepseek-chat \
+#   LLM_API_BASE=https://api.deepseek.com \
+#   MAX_A=8 \
+#   MAX_B=12 \
+#   TIMEOUT=120 \
+#   ./sailr_cegir/run_sailr_cegir_batch.sh 62911/libxml2_62911_vul local.oob.memfunc.length-misuse [spec_root]
+#
+# Defaults:
+#   SPEC_ROOT = specs
+
+if [ "$#" -lt 2 ]; then
+  echo "Usage: $0 PROJECT_ID RULE_ID [SPEC_ROOT]" >&2
+  echo "  PROJECT_ID example: 62911/libxml2_62911_vul" >&2
+  echo "  RULE_ID    example: local.oob.memfunc.length-misuse" >&2
+  echo "  SPEC_ROOT  default: specs" >&2
   exit 1
 fi
 
-PROJECT="$1"                      # e.g., 62911/libxml2_62911_vul
-RULE_ID_FILTER="${2:-}"           # optional, e.g., local.oob.memfunc.length-misuse
+PROJECT_ID="$1"      # e.g. 62911/libxml2_62911_vul
+RULE_ID="$2"         # e.g. local.oob.memfunc.length-misuse
+SPEC_ROOT="${3:-specs}"
 
+# Env-driven knobs (with sane defaults if not set)
 SA_OUT_DIR="${SA_OUT_DIR:-sa_outputs}"
 DATASET_ROOT="${DATASET_ROOT:-dataset}"
 LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
@@ -47,78 +35,83 @@ MAX_A="${MAX_A:-8}"
 MAX_B="${MAX_B:-12}"
 TIMEOUT="${TIMEOUT:-120}"
 
-SPEC_DIR="specs/${PROJECT}"
-
-if [ ! -d "${SPEC_DIR}" ]; then
-  echo "[!] Spec directory not found: ${SPEC_DIR}" >&2
-  exit 1
-fi
-
-OUT_ROOT="se_runs/sailr/${PROJECT}"
-mkdir -p "${OUT_ROOT}"
-
-echo "[i] SAILR CEGIR batch:"
-echo "    PROJECT      = ${PROJECT}"
-echo "    SPEC_DIR     = ${SPEC_DIR}"
+echo "[i] CONFIG:"
+echo "    PROJECT_ID   = ${PROJECT_ID}"
+echo "    RULE_ID      = ${RULE_ID}"
+echo "    SPEC_ROOT    = ${SPEC_ROOT}"
 echo "    SA_OUT_DIR   = ${SA_OUT_DIR}"
 echo "    DATASET_ROOT = ${DATASET_ROOT}"
-echo "    OUT_ROOT     = ${OUT_ROOT}"
 echo "    LLM_MODEL    = ${LLM_MODEL}"
 echo "    LLM_API_BASE = ${LLM_API_BASE}"
 echo "    MAX_A        = ${MAX_A}"
 echo "    MAX_B        = ${MAX_B}"
 echo "    TIMEOUT      = ${TIMEOUT}"
-if [ -n "${RULE_ID_FILTER}" ]; then
-  echo "    RULE_FILTER  = ${RULE_ID_FILTER}"
+
+PROJECT_BASENAME="$(basename "${PROJECT_ID}")"
+
+# Figure out where the specs actually live:
+if [ -d "${SPEC_ROOT}/${PROJECT_ID}" ]; then
+  SPEC_DIR="${SPEC_ROOT}/${PROJECT_ID}"
+elif [ -d "${SPEC_ROOT}/${PROJECT_BASENAME}" ]; then
+  SPEC_DIR="${SPEC_ROOT}/${PROJECT_BASENAME}"
+else
+  echo "[!] Could not find spec directory for project." >&2
+  echo "    Tried: ${SPEC_ROOT}/${PROJECT_ID}" >&2
+  echo "           ${SPEC_ROOT}/${PROJECT_BASENAME}" >&2
+  exit 1
 fi
-echo
 
-shopt -s nullglob
-for spec in "${SPEC_DIR}"/*.json; do
-  stem="$(basename "${spec}" .json)"   # e.g., 000_dict.c_541_local.oob.memfunc.length-misuse
+echo "[i] Using SPEC_DIR = ${SPEC_DIR}"
 
-  # Parse "<idx>_<file>_<line>_<rule>"
-  idx="${stem%%_*}"                    # 000
-  rest="${stem#*_}"                    # dict.c_541_local.oob.memfunc.length-misuse
+# Collect all specs for this RULE_ID
+mapfile -t SPEC_FILES < <(
+  find "${SPEC_DIR}" -maxdepth 1 -type f \
+    -name "*_${RULE_ID}"'*.json' \
+    | sort
+)
 
-  VUL_FILE="${rest%%_*}"               # dict.c
-  rest2="${rest#*_}"                   # 541_local.oob.memfunc.length-misuse
+if [ "${#SPEC_FILES[@]}" -eq 0 ]; then
+  echo "[!] No spec files found in ${SPEC_DIR} matching rule '${RULE_ID}'" >&2
+  exit 1
+fi
 
-  VUL_LINE="${rest2%%_*}"              # 541
-  RULE_ID_FROM_NAME="${rest2#*_}"      # local.oob.memfunc.length-misuse
+echo "[i] Found ${#SPEC_FILES[@]} spec(s) to process."
 
-  # Optional RULE_ID filter: skip if it doesn't match
-  if [ -n "${RULE_ID_FILTER}" ] && [ "${RULE_ID_FROM_NAME}" != "${RULE_ID_FILTER}" ]; then
-    continue
-  fi
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-  TARGET_VUL="${PROJECT}:${VUL_FILE}:${VUL_LINE}"
-  RUN_OUT_DIR="${OUT_ROOT}/${stem}"
-  mkdir -p "${RUN_OUT_DIR}"
+for SPEC in "${SPEC_FILES[@]}"; do
+  BASENAME="$(basename "${SPEC}")"
+  STEM="${BASENAME%.json}"
 
-  echo "[i] === SAILR CEGIR: ${stem} ==="
-  echo "    SPEC       = ${spec}"
-  echo "    TARGET_VUL = ${TARGET_VUL}"
-  echo "    RULE_ID    = ${RULE_ID_FROM_NAME}"
-  echo "    RUN_OUT    = ${RUN_OUT_DIR}"
+  # Example STEM:
+  #   000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5
+  # Parse: <idx>_<file>_<line>_...
+  REST="${STEM#*_}"             # drop leading "000_"
+  FILE="${REST%%_*}"            # SAX2.c
+  REST2="${REST#*_}"            # 2479_local.oob.memfunc...
+  LINE="${REST2%%_*}"           # 2479
+
+  TARGET_VUL="${PROJECT_ID}:${FILE}:${LINE}"
+
   echo
+  echo "==============================================="
+  echo "[*] Running SAILR-CEGIR for spec:"
+  echo "    SPEC      = ${SPEC}"
+  echo "    TARGET_VUL= ${TARGET_VUL}"
+  echo "==============================================="
 
   SA_OUT_DIR="${SA_OUT_DIR}" \
   DATASET_ROOT="${DATASET_ROOT}" \
-  PROJECT="${PROJECT}" \
-  SPEC_PATH="${spec}" \
-  SPEC_STEM="${stem}" \
-  VUL_FILE="${VUL_FILE}" \
-  VUL_LINE="${VUL_LINE}" \
-  RULE_ID="${RULE_ID_FROM_NAME}" \
   TARGET_VUL="${TARGET_VUL}" \
+  RULE_ID="${RULE_ID}" \
+  SPEC="${SPEC}" \
   LLM_MODEL="${LLM_MODEL}" \
   LLM_API_BASE="${LLM_API_BASE}" \
   MAX_A="${MAX_A}" \
   MAX_B="${MAX_B}" \
   TIMEOUT="${TIMEOUT}" \
-  SAILR_OUT_DIR="${RUN_OUT_DIR}" \
-    bash scripts/run_full_cegir.sh
-
-  echo
+    bash "${SCRIPT_DIR}/run_full_cegir.sh"
 done
+
+echo
+echo "[i] SAILR-CEGIR batch completed."

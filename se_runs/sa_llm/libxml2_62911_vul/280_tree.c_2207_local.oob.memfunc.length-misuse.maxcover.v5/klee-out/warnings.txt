@@ -1,0 +1,11 @@
+KLEE: WARNING: undefined reference to function: xmlCheckVersion
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/280_tree.c_2207_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 11
+KLEE: WARNING ONCE: calling external: xmlNewDoc(134907682619392) at se_runs/sa_llm/libxml2_62911_vul/280_tree.c_2207_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 9
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 134047078547456) at se_runs/sa_llm/libxml2_62911_vul/280_tree.c_2207_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 10
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(110758620164160, 110758620842304) at se_runs/sa_llm/libxml2_62911_vul/280_tree.c_2207_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:43 5

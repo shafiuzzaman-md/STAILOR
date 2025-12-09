@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: xmlFreeTextWriter
+KLEE: WARNING: undefined reference to function: xmlNewTextWriter
+KLEE: WARNING ONCE: calling external: xmlNewTextWriter(0) at se_runs/sa_llm/libxml2_62911_vul/310_xmlwriter.c_193_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:10 12

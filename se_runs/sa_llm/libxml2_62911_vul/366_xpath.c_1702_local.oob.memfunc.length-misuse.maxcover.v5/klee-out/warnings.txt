@@ -1,0 +1,15 @@
+KLEE: WARNING: undefined reference to function: xmlCheckVersion
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING: undefined reference to function: xmlXPathContextCacheCreate
+KLEE: WARNING: undefined reference to function: xmlXPathEvalExpression
+KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
+KLEE: WARNING: undefined reference to function: xmlXPathFreeObject
+KLEE: WARNING: undefined reference to function: xmlXPathNewContext
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/366_xpath.c_1702_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 5
+KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/366_xpath.c_1702_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 14
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlReadMemory(133555220905984, 1023, 134143362990080, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/366_xpath.c_1702_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:34 9
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/366_xpath.c_1702_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:40 9

@@ -1,0 +1,13 @@
+KLEE: WARNING: undefined reference to function: xmlCopyEntity
+KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
+KLEE: WARNING: undefined reference to variable: xmlFree
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeEntity
+KLEE: WARNING: undefined reference to function: xmlNewDoc
+KLEE: WARNING: undefined reference to function: xmlNewEntity
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlStrdup
+KLEE: WARNING ONCE: calling external: xmlNewDoc(131267014164480) at se_runs/sa_llm/libxml2_62911_vul/011_entities.c_963_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 9
+KLEE: WARNING ONCE: calling external: xmlNewNode(0, 131268289232896) at se_runs/sa_llm/libxml2_62911_vul/011_entities.c_963_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 10
+KLEE: WARNING ONCE: calling external: xmlDocSetRootElement(101224501720976, 101224501848976) at se_runs/sa_llm/libxml2_62911_vul/011_entities.c_963_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 11
+KLEE: WARNING ONCE: calling external: xmlNewEntity(0, 131266745729024, 1, 0, 0, 131268020797440) at se_runs/sa_llm/libxml2_62911_vul/011_entities.c_963_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 9

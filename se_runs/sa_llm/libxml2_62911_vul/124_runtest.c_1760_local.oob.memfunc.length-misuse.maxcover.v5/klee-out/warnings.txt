@@ -1,0 +1,7 @@
+KLEE: WARNING: undefined reference to variable: emptySAXHandler
+KLEE: WARNING: undefined reference to function: xmlCreateFileParserCtxt
+KLEE: WARNING: undefined reference to function: xmlCtxtUseOptions
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlParseDocument
+KLEE: ERROR: Unable to load symbol(emptySAXHandler) while initializing globals

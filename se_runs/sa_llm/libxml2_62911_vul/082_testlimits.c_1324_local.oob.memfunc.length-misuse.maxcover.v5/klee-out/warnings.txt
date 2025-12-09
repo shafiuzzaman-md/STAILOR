@@ -1,0 +1,15 @@
+KLEE: WARNING: undefined reference to function: fprintf
+KLEE: WARNING: undefined reference to variable: stderr
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: strncmp
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlFreeTextReader
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlReaderForMemory
+KLEE: WARNING: undefined reference to function: xmlTextReaderRead
+KLEE: WARNING ONCE: calling external: strlen(128955849900032) at se_runs/sa_llm/libxml2_62911_vul/082_testlimits.c_1324_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:30 12
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/082_testlimits.c_1324_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36 33
+KLEE: WARNING ONCE: calling external: xmlReaderForMemory(128955849900032, 30, 0, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/082_testlimits.c_1324_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36 12
+KLEE: WARNING ONCE: calling external: xmlTextReaderRead(106435813210896) at se_runs/sa_llm/libxml2_62911_vul/082_testlimits.c_1324_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:43 9
+KLEE: WARNING ONCE: calling external: xmlFreeTextReader(106435813210896) at se_runs/sa_llm/libxml2_62911_vul/082_testlimits.c_1324_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:70 5
+KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/082_testlimits.c_1324_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:72 12

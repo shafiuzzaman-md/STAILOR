@@ -1,0 +1,2 @@
+KLEE: WARNING: undefined reference to function: xmlAllocParserInputBuffer
+KLEE: WARNING: undefined reference to function: xmlFreeParserInputBuffer

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # sa_llm/run_sa_llm_batch.sh
 #
-# SA-driven LLM Harness (single-shot, per spec):
+# SA-driven LLM Harness (single-shot, per spec), now with parallel execution:
 #   For each SA spec:
 #     - Call gen_sa_llm_harness.py to generate a full harness C file
 #     - Compile harness to LLVM bitcode
@@ -28,7 +28,8 @@
 #     --clang        clang-14 \
 #     --klee         klee \
 #     --clang-flags  "-I/usr/include/libxml2 -Isa_manual -include sa_manual/sailr_assert.h -Ise_runs" \
-#     --klee-flags   "--search=nurs:covnew --max-time=3600"
+#     --klee-flags   "--search=nurs:covnew --max-time=3600" \
+#     --jobs         4
 
 set -euo pipefail
 
@@ -40,6 +41,7 @@ CLANG="clang"
 KLEE="klee"
 CLANG_FLAGS=""
 KLEE_FLAGS=""
+JOBS="1"   # number of parallel specs
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -51,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --klee)         KLEE="$2";         shift 2 ;;
     --clang-flags)  CLANG_FLAGS="$2";  shift 2 ;;
     --klee-flags)   KLEE_FLAGS="$2";   shift 2 ;;
+    --jobs)         JOBS="$2";         shift 2 ;;
     -*)
       echo "Unknown option: $1" >&2; exit 1 ;;
     *)
@@ -68,11 +71,28 @@ Usage: $0 \\
   [--clang       <clang bin, default=clang>] \\
   [--klee        <klee bin, default=klee>] \\
   [--clang-flags "<extra clang flags>"] \\
-  [--klee-flags  "<extra klee flags>"]
+  [--klee-flags  "<extra klee flags>"] \\
+  [--jobs        <# of parallel specs, default=1 | 'auto'>]
 
 Note: To restrict each KLEE run to 1 hour, include --max-time=3600 in --klee-flags.
 EOF
   exit 1
+fi
+
+# Normalize JOBS
+if [[ "${JOBS}" == "auto" ]]; then
+  if command -v nproc >/dev/null 2>&1; then
+    JOBS="$(nproc)"
+  else
+    JOBS="4"
+  fi
+fi
+if ! [[ "${JOBS}" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: --jobs must be an integer or 'auto', got: ${JOBS}" >&2
+  exit 1
+fi
+if (( JOBS < 1 )); then
+  JOBS=1
 fi
 
 if [[ ! -d "${SPEC_DIR}" ]]; then
@@ -89,6 +109,7 @@ echo "[i] SPEC_DIR     = ${SPEC_DIR}"
 echo "[i] OUT_ROOT     = ${OUT_ROOT}"
 echo "[i] CLANG        = ${CLANG}"
 echo "[i] KLEE         = ${KLEE}"
+echo "[i] JOBS         = ${JOBS}"
 
 MODE_ROOT="${OUT_ROOT}/${MODE}/${PROJECT_NAME}"
 ERROR_LOG="${MODE_ROOT}/errors.log"
@@ -115,10 +136,7 @@ echo "# Error log for MODE=${MODE}, PROJECT=${PROJECT_NAME}" > "${ERROR_LOG}"
 #  timeout_flag (0/1)
 echo -e "SPEC_ID\tduration_seconds\tharness_status\thas_klee_last\tnum_err_files\tnum_vuln_assert\tnum_reach_assert\ttimeout_flag" > "${SUMMARY_TSV}"
 
-TOTAL_TIME=0
-COUNT_TIMED=0
-TOTAL_SPECS=0
-
+# Counts (will be filled AFTER all specs finish)
 COUNT_E=0
 COUNT_H0=0
 COUNT_H1=0
@@ -134,29 +152,30 @@ write_counts_tsv() {
   } > "${COUNTS_TSV}"
 }
 
-# Initialize counts.tsv so something exists even if interrupted very early
-write_counts_tsv
+# ---------------------------------------------------------------------------
+# Per-spec worker (runs in background for parallelism)
+# ---------------------------------------------------------------------------
+run_one_spec() {
+  local spec="$1"
 
-shopt -s nullglob
-for spec in "${SPEC_DIR}"/*.json; do
+  local SPEC_BASENAME
   SPEC_BASENAME=$(basename "${spec}")
-  SPEC_ID="${SPEC_BASENAME%.json}"
+  local SPEC_ID="${SPEC_BASENAME%.json}"
 
   echo
   echo "[i] Spec: ${SPEC_BASENAME} (SPEC_ID=${SPEC_ID})"
 
-  TOTAL_SPECS=$(( TOTAL_SPECS + 1 ))
-
-  SPEC_OUT_DIR="${MODE_ROOT}/${SPEC_ID}"
-  HARNESS_DIR="${SPEC_OUT_DIR}"
-  BC_DIR="${SPEC_OUT_DIR}/bc"
-  KLEE_OUT="${SPEC_OUT_DIR}/klee-out"
+  local SPEC_OUT_DIR="${MODE_ROOT}/${SPEC_ID}"
+  local HARNESS_DIR="${SPEC_OUT_DIR}"
+  local BC_DIR="${SPEC_OUT_DIR}/bc"
+  local KLEE_OUT="${SPEC_OUT_DIR}/klee-out"
 
   mkdir -p "${HARNESS_DIR}" "${BC_DIR}"
 
-  HARNESS_C="${HARNESS_DIR}/harness.c"
-  HARNESS_BC="${BC_DIR}/harness.bc"
+  local HARNESS_C="${HARNESS_DIR}/harness.c"
+  local HARNESS_BC="${BC_DIR}/harness.bc"
 
+  local START_TS
   START_TS=$(date +%s)
 
   ###########################################################################
@@ -167,28 +186,30 @@ for spec in "${SPEC_DIR}"/*.json; do
     --src-root "${SRC_ROOT}" \
     --spec     "${spec}" \
     --out-c    "${HARNESS_C}"
-  GEN_EXIT=$?
+  local GEN_EXIT=$?
   set -e
 
+  local END_TS DURATION
   if [[ "${GEN_EXIT}" -ne 0 || ! -f "${HARNESS_C}" ]]; then
     END_TS=$(date +%s)
     DURATION=$(( END_TS - START_TS ))
     echo "[ERR] Harness generation failed for ${SPEC_ID} (exit=${GEN_EXIT})"
     echo "[ERR] ${SPEC_ID}: harness generation failed (exit=${GEN_EXIT})" >> "${ERROR_LOG}"
 
-    HARNESS_STATUS="E"
-    HAS_KLEE_LAST=0
-    NUM_ERR_FILES=0
-    NUM_VULN_ASSERT=0
-    NUM_REACH_ASSERT=0
-    TIMEOUT_FLAG=0
+    local HARNESS_STATUS="E"
+    local HAS_KLEE_LAST=0
+    local NUM_ERR_FILES=0
+    local NUM_VULN_ASSERT=0
+    local NUM_REACH_ASSERT=0
+    local TIMEOUT_FLAG=0
 
-    COUNT_E=$(( COUNT_E + 1 ))
-
-    echo -e "${SPEC_ID}\t${DURATION}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${NUM_REACH_ASSERT}\t${TIMEOUT_FLAG}" >> "${SUMMARY_TSV}"
-    write_counts_tsv
-    # No SE time counted for E
-    continue
+    # E lines still go into SUMMARY_TSV but NOT into TIME_LOG
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+      "${SPEC_ID}" "${DURATION}" "${HARNESS_STATUS}" \
+      "${HAS_KLEE_LAST}" "${NUM_ERR_FILES}" \
+      "${NUM_VULN_ASSERT}" "${NUM_REACH_ASSERT}" "${TIMEOUT_FLAG}" \
+      >> "${SUMMARY_TSV}"
+    return 0
   fi
 
   ###########################################################################
@@ -199,7 +220,7 @@ for spec in "${SPEC_DIR}"/*.json; do
     ${CLANG_FLAGS} \
     -emit-llvm -g -O0 -c "${HARNESS_C}" \
     -o "${HARNESS_BC}"
-  CLANG_EXIT=$?
+  local CLANG_EXIT=$?
   set -e
 
   if [[ "${CLANG_EXIT}" -ne 0 || ! -f "${HARNESS_BC}" ]]; then
@@ -208,36 +229,39 @@ for spec in "${SPEC_DIR}"/*.json; do
     echo "[ERR] clang failed on harness for ${SPEC_ID} (exit=${CLANG_EXIT})"
     echo "[ERR] ${SPEC_ID}: harness compile failed (exit=${CLANG_EXIT})" >> "${ERROR_LOG}"
 
-    HARNESS_STATUS="E"
-    HAS_KLEE_LAST=0
-    NUM_ERR_FILES=0
-    NUM_VULN_ASSERT=0
-    NUM_REACH_ASSERT=0
-    TIMEOUT_FLAG=0
+    local HARNESS_STATUS="E"
+    local HAS_KLEE_LAST=0
+    local NUM_ERR_FILES=0
+    local NUM_VULN_ASSERT=0
+    local NUM_REACH_ASSERT=0
+    local TIMEOUT_FLAG=0
 
-    COUNT_E=$(( COUNT_E + 1 ))
-
-    echo -e "${SPEC_ID}\t${DURATION}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${NUM_REACH_ASSERT}\t${TIMEOUT_FLAG}" >> "${SUMMARY_TSV}"
-    write_counts_tsv
-    continue
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+      "${SPEC_ID}" "${DURATION}" "${HARNESS_STATUS}" \
+      "${HAS_KLEE_LAST}" "${NUM_ERR_FILES}" \
+      "${NUM_VULN_ASSERT}" "${NUM_REACH_ASSERT}" "${TIMEOUT_FLAG}" \
+      >> "${SUMMARY_TSV}"
+    return 0
   fi
 
   ###########################################################################
   # 3) KLEE run
   ###########################################################################
   if [[ -d "${KLEE_OUT}" ]]; then
+    local TS
     TS=$(date +%Y%m%d_%H%M%S)
     echo "[i] Existing ${KLEE_OUT} for ${SPEC_ID}, renaming to ${KLEE_OUT}.bak_${TS}"
     mv "${KLEE_OUT}" "${KLEE_OUT}.bak_${TS}"
   fi
 
+  local RUN_START RUN_END
   RUN_START=$(date +%s)
   set +e
   ${KLEE} \
     --output-dir="${KLEE_OUT}" \
     ${KLEE_FLAGS} \
     "${HARNESS_BC}"
-  KLEE_EXIT=$?
+  local KLEE_EXIT=$?
   set -e
   RUN_END=$(date +%s)
 
@@ -247,12 +271,12 @@ for spec in "${SPEC_DIR}"/*.json; do
   ###########################################################################
   # 4) Classification
   ###########################################################################
-  HARNESS_STATUS="H0"
-  HAS_KLEE_LAST=0
-  NUM_ERR_FILES=0
-  NUM_VULN_ASSERT=0
-  NUM_REACH_ASSERT=0
-  TIMEOUT_FLAG=0
+  local HARNESS_STATUS="H0"
+  local HAS_KLEE_LAST=0
+  local NUM_ERR_FILES=0
+  local NUM_VULN_ASSERT=0
+  local NUM_REACH_ASSERT=0
+  local TIMEOUT_FLAG=0
 
   if [[ -d "${KLEE_OUT}" ]]; then
     HAS_KLEE_LAST=1
@@ -264,37 +288,105 @@ for spec in "${SPEC_DIR}"/*.json; do
     fi
   fi
 
-  # Classification according to the updated scheme:
-  # E  = already handled (build/link failure)
-  # H0 = SE ran, terminated before timeout, did NOT reach target line
-  # H1 = SE timed out, did NOT reach target line
-  # H2 = Target line reached / vuln assert fired
   if [[ "${NUM_VULN_ASSERT}" -gt 0 || "${NUM_REACH_ASSERT}" -gt 0 ]]; then
     HARNESS_STATUS="H2"
-    COUNT_H2=$(( COUNT_H2 + 1 ))
   elif [[ "${TIMEOUT_FLAG}" -eq 1 ]]; then
     HARNESS_STATUS="H1"
-    COUNT_H1=$(( COUNT_H1 + 1 ))
   else
     HARNESS_STATUS="H0"
-    COUNT_H0=$(( COUNT_H0 + 1 ))
   fi
 
   echo "[ok] ${SPEC_ID}: status=${HARNESS_STATUS}, duration=${DURATION}s, "\
 "vuln_asserts=${NUM_VULN_ASSERT}, reach_asserts=${NUM_REACH_ASSERT}"
 
+  # Non-E specs get logged into TIME_LOG for later aggregation
   echo "${SPEC_ID}  ${DURATION}" >> "${TIME_LOG}"
-  TOTAL_TIME=$(( TOTAL_TIME + DURATION ))
-  COUNT_TIMED=$(( COUNT_TIMED + 1 ))
 
-  echo -e "${SPEC_ID}\t${DURATION}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${NUM_REACH_ASSERT}\t${TIMEOUT_FLAG}" >> "${SUMMARY_TSV}"
-  write_counts_tsv
-done
+  printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+    "${SPEC_ID}" "${DURATION}" "${HARNESS_STATUS}" \
+    "${HAS_KLEE_LAST}" "${NUM_ERR_FILES}" \
+    "${NUM_VULN_ASSERT}" "${NUM_REACH_ASSERT}" "${TIMEOUT_FLAG}" \
+    >> "${SUMMARY_TSV}"
+}
+
+# ---------------------------------------------------------------------------
+# Launch specs in parallel (max JOBS at a time)
+# ---------------------------------------------------------------------------
+shopt -s nullglob
+specs=( "${SPEC_DIR}"/*.json )
 shopt -u nullglob
 
-echo
-if [[ "${COUNT_TIMED}" -gt 0 ]]; then
+if (( ${#specs[@]} == 0 )); then
+  echo "ERROR: No *.json specs found in ${SPEC_DIR}" >&2
+  exit 1
+fi
+
+pids=()
+for spec in "${specs[@]}"; do
+  run_one_spec "${spec}" &
+  pids+=( "$!" )
+  # If we already have JOBS running, wait for the oldest to finish
+  if (( ${#pids[@]} >= JOBS )); then
+    wait "${pids[0]}"
+    pids=( "${pids[@]:1}" )
+  fi
+done
+
+# Wait for remaining jobs
+for pid in "${pids[@]}"; do
+  wait "${pid}"
+done
+
+# ---------------------------------------------------------------------------
+# Aggregation: counts + total/avg time
+# ---------------------------------------------------------------------------
+TOTAL_SPECS=0
+if [[ -s "${SUMMARY_TSV}" ]]; then
+  # total lines minus header
+  TOTAL_SPECS=$(( $(wc -l < "${SUMMARY_TSV}") - 1 ))
+fi
+
+if [[ -s "${SUMMARY_TSV}" && "${TOTAL_SPECS}" -gt 0 ]]; then
+  # Reset counts before recomputing
+  COUNT_E=0
+  COUNT_H0=0
+  COUNT_H1=0
+  COUNT_H2=0
+
+  # Skip header line
+  while IFS=$'\t' read -r sid duration status has_last num_err num_vul num_reach timeout_flag; do
+    case "${status}" in
+      E)  (( COUNT_E++ ));;
+      H0) (( COUNT_H0++ ));;
+      H1) (( COUNT_H1++ ));;
+      H2) (( COUNT_H2++ ));;
+    esac
+  done < <(tail -n +2 "${SUMMARY_TSV}")
+
+  write_counts_tsv
+else
+  # No specs or only header; write zeros
+  COUNT_E=0
+  COUNT_H0=0
+  COUNT_H1=0
+  COUNT_H2=0
+  write_counts_tsv
+fi
+
+TOTAL_TIME=0
+COUNT_TIMED=0
+if [[ -s "${TIME_LOG}" ]]; then
+  TOTAL_TIME=$(awk '($1 !~ /^#/ && NF>=2){sum+=$2} END{print sum+0}' "${TIME_LOG}")
+  COUNT_TIMED=$(awk '($1 !~ /^#/ && NF>=2){cnt++} END{print cnt+0}' "${TIME_LOG}")
+fi
+
+AVG_TIME=0
+if (( COUNT_TIMED > 0 )); then
   AVG_TIME=$(( TOTAL_TIME / COUNT_TIMED ))
+fi
+
+echo
+if (( COUNT_TIMED > 0 )); then
   echo "[summary] ${MODE} for PROJECT=${PROJECT_NAME}"
   echo "[summary] specs_timed=${COUNT_TIMED}, total_time=${TOTAL_TIME}s, avg_time=${AVG_TIME}s"
 

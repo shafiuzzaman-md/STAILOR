@@ -1,0 +1,6 @@
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: xmlDocGetRootElement
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING ONCE: calling external: strlen(139416641208320) at se_runs/sa_llm/libxml2_62911_vul/096_testlimits.c_197_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:12 42
+KLEE: WARNING ONCE: calling external: xmlReadMemory(139416641208320, 0, 140592925376512, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/096_testlimits.c_197_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:12 15

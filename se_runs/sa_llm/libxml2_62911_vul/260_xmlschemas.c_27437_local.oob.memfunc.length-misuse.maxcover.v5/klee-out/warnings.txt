@@ -1,0 +1,9 @@
+KLEE: WARNING: undefined reference to function: xmlSchemaFree
+KLEE: WARNING: undefined reference to function: xmlSchemaFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaFreeValidCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaNewMemParserCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaNewValidCtxt
+KLEE: WARNING: undefined reference to function: xmlSchemaParse
+KLEE: WARNING ONCE: calling external: xmlSchemaNewMemParserCtxt(133682408980480, 1023) at se_runs/sa_llm/libxml2_62911_vul/260_xmlschemas.c_27437_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 16
+KLEE: WARNING ONCE: calling external: xmlSchemaParse(109728137067136) at se_runs/sa_llm/libxml2_62911_vul/260_xmlschemas.c_27437_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 12
+KLEE: WARNING ONCE: calling external: xmlSchemaFreeParserCtxt(109728137067136) at se_runs/sa_llm/libxml2_62911_vul/260_xmlschemas.c_27437_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:25 9

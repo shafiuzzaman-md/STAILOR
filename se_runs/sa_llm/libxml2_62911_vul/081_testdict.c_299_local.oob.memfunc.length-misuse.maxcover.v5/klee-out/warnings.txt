@@ -1,0 +1,8 @@
+KLEE: WARNING: undefined reference to variable: NB_STRINGS_MIN
+KLEE: WARNING: undefined reference to function: test_dict
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlDictCreate
+KLEE: WARNING: undefined reference to function: xmlDictFree
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: Unable to find size for global variable: test1 (use will result in out of bounds access)
+KLEE: ERROR: Unable to load symbol(NB_STRINGS_MIN) while initializing globals

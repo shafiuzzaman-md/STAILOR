@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: xmlAllocOutputBufferInternal
+KLEE: WARNING: undefined reference to function: xmlOutputBufferClose
+KLEE: WARNING ONCE: calling external: xmlAllocOutputBufferInternal(0) at se_runs/sa_llm/libxml2_62911_vul/221_xmlIO.c_2338_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:10 11

@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: fgets
+KLEE: WARNING: undefined reference to variable: stdin
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING ONCE: calling external: fgets(129786187874304, 500, 130980245420256) at se_runs/sa_llm/libxml2_62911_vul/162_xmlcatalog.c_80_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 10

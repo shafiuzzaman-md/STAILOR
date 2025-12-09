@@ -1,0 +1,7 @@
+array html_size[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Slt N0:(ReadLSB w32 0 html_size)
+                  0))
+         (Eq false (Slt 1024 N0))
+         (Eq false (Eq 0 N0))]
+        false)

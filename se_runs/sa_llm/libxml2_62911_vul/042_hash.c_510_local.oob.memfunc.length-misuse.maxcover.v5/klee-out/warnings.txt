@@ -1,0 +1,7 @@
+KLEE: WARNING: undefined reference to function: xmlHashAddEntry3
+KLEE: WARNING: undefined reference to function: xmlHashCreate
+KLEE: WARNING: undefined reference to function: xmlHashFree
+KLEE: WARNING: undefined reference to function: xmlHashRemoveEntry3
+KLEE: WARNING ONCE: calling external: xmlHashCreate(10) at se_runs/sa_llm/libxml2_62911_vul/042_hash.c_510_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 11
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: xmlHashAddEntry3(106710669092192, 128873071116288, 128855891247104, 128890250985472, 0) at se_runs/sa_llm/libxml2_62911_vul/042_hash.c_510_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:46 5
