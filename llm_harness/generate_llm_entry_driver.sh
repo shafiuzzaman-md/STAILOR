@@ -111,7 +111,7 @@ set +e
     ' > "${OUT_DRIVER}"
 LLM_EXIT=${PIPESTATUS[0]}
 set -e
-
+sed -i 's|#include <klee/klee.h>|#include "klee/klee.h"|' "${OUT_DRIVER}"
 GEN_END=$(date +%s)
 GEN_TIME=$(( GEN_END - GEN_START ))
 

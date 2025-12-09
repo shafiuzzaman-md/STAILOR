@@ -1,44 +1,43 @@
-/* KLEE harness for libxml2
- * Entrypoint: xmlReadMemory()
- * Reason: xmlReadMemory() is a high-level API that parses XML directly from an
- * in-memory buffer. It's commonly used by applications to parse untrusted XML
- * data, handles encoding detection, and supports parser options. This makes it
- * an ideal entrypoint for symbolic analysis of libxml2's parsing logic.
- */
-
 #include "klee/klee.h"
 #include <libxml/parser.h>
-#include <libxml/tree.h>
+#include <stdlib.h>
 
-#define BUFFER_SIZE 1024
+#define MAX_XML_SIZE 2048
 
-int main() {
+int main(void) {
+    int len;
+    char *xml_buf;
+    xmlDocPtr doc = NULL;
+
     /* Initialize libxml2 */
     xmlInitParser();
-    
-    /* Symbolic input buffer and length */
-    char buf[BUFFER_SIZE];
-    int len;
-    
-    klee_make_symbolic(buf, sizeof(buf), "buf");
+
+    /* Allocate buffer with space for NUL terminator */
+    xml_buf = malloc(MAX_XML_SIZE + 1);
+    if (xml_buf == NULL) {
+        return 1;
+    }
+
+    /* Make length symbolic and constrain it */
     klee_make_symbolic(&len, sizeof(len), "len");
-    
-    /* Constrain length to valid range */
-    klee_assume(len >= 0 && len < BUFFER_SIZE);
-    
-    /* Ensure null termination at specified length */
-    buf[len] = '\0';
-    
-    /* Parse XML from symbolic buffer */
-    xmlDocPtr doc = xmlReadMemory(buf, len, "noname.xml", NULL, 0);
-    
-    /* Clean up if document was created */
+    klee_assume(len >= 0);
+    klee_assume(len <= MAX_XML_SIZE);
+
+    /* Make buffer symbolic */
+    klee_make_symbolic(xml_buf, MAX_XML_SIZE + 1, "xml_buf");
+
+    /* Ensure the buffer is NUL-terminated at the constrained length */
+    xml_buf[len] = '\0';
+
+    /* Call libxml2 entrypoint that parses from memory */
+    doc = xmlReadMemory(xml_buf, len, "noname.xml", NULL, 0);
+
+    /* Clean up */
     if (doc != NULL) {
         xmlFreeDoc(doc);
     }
-    
-    /* Cleanup libxml2 */
+    free(xml_buf);
     xmlCleanupParser();
-    
+
     return 0;
 }

@@ -45,8 +45,8 @@ import pathlib
 import textwrap
 from typing import Any, Dict, Optional, Tuple
 
-# Adjust this import to where you actually define llm_chat
-from llm_utils import llm_chat  # noqa: F401  # type: ignore
+# Helper with logging + spec_id tagging
+from llm_utils import llm_chat  # type: ignore
 
 
 # --------------------------------------------------------------------
@@ -206,8 +206,12 @@ def parse_spec(spec_path: pathlib.Path) -> Dict[str, Any]:
     }
 
 
-def extract_code_context(src_root: pathlib.Path, rel_file: str, line_no: int,
-                         radius: int = 8) -> str:
+def extract_code_context(
+    src_root: pathlib.Path,
+    rel_file: str,
+    line_no: int,
+    radius: int = 8,
+) -> str:
     src_path = (src_root / rel_file).resolve()
     if not src_path.is_file():
         return f"// WARNING: could not find source file at {src_path}\n"
@@ -257,44 +261,48 @@ IMPORTANT RULES:
 """
 
 
-def build_user_prompt(src_file: str,
-                      line_no: int,
-                      rule_id: str,
-                      assert_expr: Optional[str],
-                      snippet: str,
-                      raw_spec: Dict[str, Any]) -> str:
+def build_user_prompt(
+    src_file: str,
+    line_no: int,
+    rule_id: str,
+    assert_expr: Optional[str],
+    snippet: str,
+    raw_spec: Dict[str, Any],
+) -> str:
     spec_pretty = json.dumps(raw_spec, indent=2, sort_keys=True)
     assert_part = assert_expr or "<NONE>"
 
-    return textwrap.dedent(f"""\
-    SA-DRIVEN LLM HARNESS REQUEST
+    return textwrap.dedent(
+        f"""\
+        SA-DRIVEN LLM HARNESS REQUEST
 
-    Target:
-      - source file: {src_file}
-      - line: {line_no}
-      - rule id: {rule_id}
+        Target:
+          - source file: {src_file}
+          - line: {line_no}
+          - rule id: {rule_id}
 
-    Suggested assertion expression (if any, in C):
-      {assert_part}
+        Suggested assertion expression (if any, in C):
+          {assert_part}
 
-    Relevant code snippet:
-    ----------------------
-    {snippet}
-    ----------------------
+        Relevant code snippet:
+        ----------------------
+        {snippet}
+        ----------------------
 
-    Full SA spec (JSON):
-    --------------------
-    {spec_pretty}
-    --------------------
+        Full SA spec (JSON):
+        --------------------
+        {spec_pretty}
+        --------------------
 
-    Please generate a single C harness file for KLEE, following the system
-    instructions. Remember:
-      * include "klee/klee.h"
-      * DO NOT define SAILR_ASSERT; assume it comes from a header
-      * use SAILR_ASSERT(<expr>) if the suggested assertion is not <NONE>
-      * insert klee_assert(0 && "SAILR_REACH_ASSERT"); near the vulnerable path
-      * produce ONLY C code as the final answer (no ``` fences).
-    """)
+        Please generate a single C harness file for KLEE, following the system
+        instructions. Remember:
+          * include "klee/klee.h"
+          * DO NOT define SAILR_ASSERT; assume it comes from a header
+          * use SAILR_ASSERT(<expr>) if the suggested assertion is not <NONE>
+          * insert klee_assert(0 && "SAILR_REACH_ASSERT"); near the vulnerable path
+          * produce ONLY C code as the final answer (no ``` fences).
+        """
+    )
 
 
 def extract_c_code(text: str) -> str:
@@ -304,10 +312,8 @@ def extract_c_code(text: str) -> str:
     """
     stripped = text.strip()
     if stripped.startswith("```"):
-        # Very simple fence stripping
         lines = stripped.splitlines()
         if len(lines) >= 2:
-            # Drop first and last lines if they look like fences
             if lines[0].startswith("```"):
                 lines = lines[1:]
             if lines and lines[-1].startswith("```"):
@@ -346,6 +352,9 @@ def main() -> None:
     out_c = pathlib.Path(args.out_c).resolve()
     out_c.parent.mkdir(parents=True, exist_ok=True)
 
+    # This id is used for LLM logging (llm_usage.tsv)
+    spec_id = spec_path.stem
+
     parsed = parse_spec(spec_path)
     src_file = parsed["src_file"]
     line_no = parsed["line_no"]
@@ -370,13 +379,13 @@ def main() -> None:
     ]
 
     print(f"[i] Calling LLM for spec: {spec_path.name}", flush=True)
-    resp = llm_chat(messages)  # your helper handles model, api_base, key, retries
+    # Pass spec_id so llm_utils can log usage per finding
+    resp = llm_chat(messages, spec_id=spec_id)
 
+    # llm_chat currently returns a string, but keep this defensive check
     if isinstance(resp, dict):
-        # if llm_chat returns raw OpenAI-ish dict
         text = resp["choices"][0]["message"]["content"]
     else:
-        # if llm_chat already returns the content string
         text = str(resp)
 
     c_code = extract_c_code(text)

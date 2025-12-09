@@ -9,7 +9,7 @@ PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
   --clang        clang-14 \
   --klee         klee \
   --clang-flags  "-I/usr/include/libxml2 -Isa_manual -include sa_manual/sailr_assert.h -Ise_runs" \
-  --klee-flags   "--search=nurs:covnew --max-time=360"
+  --klee-flags   "--search=nurs:covnew --max-time=3600"
 
 
 ```

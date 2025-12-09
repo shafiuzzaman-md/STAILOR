@@ -7,11 +7,10 @@
 #     - Compile harness to LLVM bitcode
 #     - Run KLEE on the harness
 #     - Classify as:
-#         E  = build/link failure (no bitcode or no KLEE output)
-#         H0 = SE early stop, no SAILR asserts
-#         H1 = SE timeout, no SAILR asserts
-#         H2 = reachability assert only (SAILR_REACH_ASSERT)
-#         H3 = vulnerability assert fired (SAILR_VULN_ASSERT)
+#         E  = build/link failure => no bitcode, SE never started
+#         H0 = SE ran, terminated before timeout, did NOT reach target line
+#         H1 = SE ran until timeout, did NOT reach target line
+#         H2 = Target line reached / vuln assert fired
 #
 # Outputs:
 #   se_runs/sa_llm/<project>/
@@ -21,15 +20,15 @@
 #     - summary.tsv, counts.tsv, time.log, errors.log
 #
 # Example:
-#   sa_llm/run_sa_llm_batch.sh \
+#   PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
 #     --project-name libxml2_62911_vul \
 #     --src-root     dataset/libxml2_62911_vul \
 #     --spec-dir     specs/libxml2_62911_vul \
 #     --out-root     se_runs \
 #     --clang        clang-14 \
 #     --klee         klee \
-#     --clang-flags  "-I/usr/include/libxml2 -Isa_manual -include sa_manual/sailr_assert.h" \
-#     --klee-flags   "--search=nurs:covnew --max-time=360"
+#     --clang-flags  "-I/usr/include/libxml2 -Isa_manual -include sa_manual/sailr_assert.h -Ise_runs" \
+#     --klee-flags   "--search=nurs:covnew --max-time=3600"
 
 set -euo pipefail
 
@@ -71,6 +70,7 @@ Usage: $0 \\
   [--clang-flags "<extra clang flags>"] \\
   [--klee-flags  "<extra klee flags>"]
 
+Note: To restrict each KLEE run to 1 hour, include --max-time=3600 in --klee-flags.
 EOF
   exit 1
 fi
@@ -104,6 +104,15 @@ echo "# Error log for MODE=${MODE}, PROJECT=${PROJECT_NAME}" > "${ERROR_LOG}"
   echo "# Columns: SPEC_ID  duration_seconds"
 } > "${TIME_LOG}"
 
+# Columns:
+#  SPEC_ID
+#  duration_seconds
+#  harness_status (E/H0/H1/H2)
+#  has_klee_last (0/1)
+#  num_err_files
+#  num_vuln_assert
+#  num_reach_assert
+#  timeout_flag (0/1)
 echo -e "SPEC_ID\tduration_seconds\tharness_status\thas_klee_last\tnum_err_files\tnum_vuln_assert\tnum_reach_assert\ttimeout_flag" > "${SUMMARY_TSV}"
 
 TOTAL_TIME=0
@@ -114,7 +123,19 @@ COUNT_E=0
 COUNT_H0=0
 COUNT_H1=0
 COUNT_H2=0
-COUNT_H3=0
+
+write_counts_tsv() {
+  {
+    echo "class	count"
+    echo "E	${COUNT_E}"
+    echo "H0	${COUNT_H0}"
+    echo "H1	${COUNT_H1}"
+    echo "H2	${COUNT_H2}"
+  } > "${COUNTS_TSV}"
+}
+
+# Initialize counts.tsv so something exists even if interrupted very early
+write_counts_tsv
 
 shopt -s nullglob
 for spec in "${SPEC_DIR}"/*.json; do
@@ -163,7 +184,10 @@ for spec in "${SPEC_DIR}"/*.json; do
     TIMEOUT_FLAG=0
 
     COUNT_E=$(( COUNT_E + 1 ))
+
     echo -e "${SPEC_ID}\t${DURATION}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${NUM_REACH_ASSERT}\t${TIMEOUT_FLAG}" >> "${SUMMARY_TSV}"
+    write_counts_tsv
+    # No SE time counted for E
     continue
   fi
 
@@ -192,7 +216,9 @@ for spec in "${SPEC_DIR}"/*.json; do
     TIMEOUT_FLAG=0
 
     COUNT_E=$(( COUNT_E + 1 ))
+
     echo -e "${SPEC_ID}\t${DURATION}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${NUM_REACH_ASSERT}\t${TIMEOUT_FLAG}" >> "${SUMMARY_TSV}"
+    write_counts_tsv
     continue
   fi
 
@@ -238,10 +264,12 @@ for spec in "${SPEC_DIR}"/*.json; do
     fi
   fi
 
-  if [[ "${NUM_VULN_ASSERT}" -gt 0 ]]; then
-    HARNESS_STATUS="H3"
-    COUNT_H3=$(( COUNT_H3 + 1 ))
-  elif [[ "${NUM_REACH_ASSERT}" -gt 0 ]]; then
+  # Classification according to the updated scheme:
+  # E  = already handled (build/link failure)
+  # H0 = SE ran, terminated before timeout, did NOT reach target line
+  # H1 = SE timed out, did NOT reach target line
+  # H2 = Target line reached / vuln assert fired
+  if [[ "${NUM_VULN_ASSERT}" -gt 0 || "${NUM_REACH_ASSERT}" -gt 0 ]]; then
     HARNESS_STATUS="H2"
     COUNT_H2=$(( COUNT_H2 + 1 ))
   elif [[ "${TIMEOUT_FLAG}" -eq 1 ]]; then
@@ -252,13 +280,15 @@ for spec in "${SPEC_DIR}"/*.json; do
     COUNT_H0=$(( COUNT_H0 + 1 ))
   fi
 
-  echo "[ok] ${SPEC_ID}: status=${HARNESS_STATUS}, duration=${DURATION}s"
+  echo "[ok] ${SPEC_ID}: status=${HARNESS_STATUS}, duration=${DURATION}s, "\
+"vuln_asserts=${NUM_VULN_ASSERT}, reach_asserts=${NUM_REACH_ASSERT}"
 
   echo "${SPEC_ID}  ${DURATION}" >> "${TIME_LOG}"
   TOTAL_TIME=$(( TOTAL_TIME + DURATION ))
   COUNT_TIMED=$(( COUNT_TIMED + 1 ))
 
   echo -e "${SPEC_ID}\t${DURATION}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${NUM_REACH_ASSERT}\t${TIMEOUT_FLAG}" >> "${SUMMARY_TSV}"
+  write_counts_tsv
 done
 shopt -u nullglob
 
@@ -280,23 +310,13 @@ else
 fi
 
 {
-  echo "class	count"
-  echo "E	${COUNT_E}"
-  echo "H0	${COUNT_H0}"
-  echo "H1	${COUNT_H1}"
-  echo "H2	${COUNT_H2}"
-  echo "H3	${COUNT_H3}"
-} > "${COUNTS_TSV}"
-
-{
   echo
   echo "# Harness class counts (all attempted specs):"
   echo "# TOTAL_SPECS=${TOTAL_SPECS}"
-  echo "# E  (build/link failure)                   = ${COUNT_E}"
-  echo "# H0 (SE early stop, no SAILR asserts)      = ${COUNT_H0}"
-  echo "# H1 (SE timeout, no SAILR asserts)         = ${COUNT_H1}"
-  echo "# H2 (reach assert only)                    = ${COUNT_H2}"
-  echo "# H3 (vuln assert fired)                    = ${COUNT_H3}"
+  echo "# E  (build/link failure => no bitcode, SE never started) = ${COUNT_E}"
+  echo "# H0 (SE early stop, no target line reached)              = ${COUNT_H0}"
+  echo "# H1 (SE timeout, no target line reached)                 = ${COUNT_H1}"
+  echo "# H2 (target line reached / vuln assert fired)            = ${COUNT_H2}"
 } >> "${TIME_LOG}"
 
 echo "[done] ${MODE} runs complete for ${PROJECT_NAME} (spec dir: ${SPEC_DIR})"
