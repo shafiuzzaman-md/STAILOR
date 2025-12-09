@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING ONCE: calling external: xmlInitParser() at drivers/manual_entry/libxml2_manual_entry.c:29 15

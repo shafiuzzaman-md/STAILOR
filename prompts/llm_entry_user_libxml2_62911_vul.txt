@@ -1,0 +1,110 @@
+Write a C harness file for the project "libxml2_62911_vul".
+
+The harness must be a single C file and must define:
+
+    int main(void);
+
+(Do NOT use command-line arguments.)
+
+Inside main, you should:
+
+  1) Initialize the environment minimally (e.g., heap buffers, structs).
+  2) Make at least one input buffer symbolic using KLEE APIs:
+
+       #include "klee/klee.h"
+
+       and calls like:
+
+       klee_make_symbolic(buf, N, "buf");
+
+  3) Choose and call an appropriate libxml2 entrypoint function that parses XML
+     from memory, such as xmlReadMemory. You should infer a reasonable entrypoint
+     from the libxml2 API:
+       - Typically xmlReadMemory, or
+       - Another simple libxml2 parse function that takes an in-memory buffer.
+
+     Assume these functions are linked from the libxml2_62911_vul project and
+     do NOT re-implement them.
+
+Keep the harness small and robust:
+  - avoid recursion
+  - avoid arbitrary loops with unbounded iterations
+  - no printf or file I/O unless strictly necessary.
+
+KLEE-SPECIFIC REQUIREMENTS (VERY IMPORTANT):
+
+  * Always use a signed int for length variables (e.g., `int len;`), not unsigned.
+
+  * For `klee_assume`, NEVER use obviously contradictory or provably-false conditions.
+
+    Good pattern:
+
+        int len;
+        klee_make_symbolic(&len, sizeof(len), "len");
+        klee_assume(len >= 0);
+        klee_assume(len <= MAX_SIZE);
+
+    Bad patterns to avoid (DO NOT generate):
+
+        klee_assume(len < 0);                  // if len is constrained >= 0
+        klee_assume(len >= 0 && len < 0);      // logically impossible
+        klee_assume(len > MAX_SIZE && len <= 0);
+
+  * For `klee_make_symbolic(ptr, size, name)`:
+    - The `size` argument MUST match the true size of the object.
+    - If `buf` is a fixed array: use `sizeof(buf)`.
+    - If `buf` is a heap allocation: use the exact allocation size.
+    - For scalars: use `sizeof(variable)`.
+
+    Correct examples:
+
+        #define MAX_XML_SIZE 2048
+
+        char buf[MAX_XML_SIZE + 1];
+        klee_make_symbolic(buf, sizeof(buf), "xml_buf");
+
+        int len;
+        klee_make_symbolic(&len, sizeof(len), "xml_len");
+
+        char *heap_buf = malloc(MAX_XML_SIZE + 1);
+        klee_make_symbolic(heap_buf, MAX_XML_SIZE + 1, "heap_buf");
+
+    Incorrect example (DO NOT generate):
+
+        char *buf = malloc(MAX_XML_SIZE + 1);
+        klee_make_symbolic(buf, sizeof(buf), "buf");   // sizeof(buf) is sizeof(char*), WRONG
+
+
+PROJECT-SPECIFIC CONTEXT FOR libxml2_62911_vul
+==============================================
+
+Project name: libxml2_62911_vul
+
+You are generating a project-level KLEE entry harness for the libxml2_62911_vul snapshot.
+
+Context:
+- The source tree root is the libxml2_62911_vul project.
+- This harness will be compiled together with the existing libxml2 sources, and then run under KLEE.
+- Later, we may insert klee_assert near specific vulnerability locations in the libxml2 sources; this harness should exercise parsing paths robustly.
+
+Requirements for this particular harness:
+- Include <libxml/parser.h> and any other libxml2 headers you need.
+- Allocate a reasonably sized symbolic XML buffer (e.g., 1–4 KB) and a symbolic length.
+- Constrain the length to be within the buffer bounds and NUL-terminate the buffer.
+- Initialize the libxml2 library (e.g., xmlInitParser()).
+- Call xmlReadMemory (or a similar libxml2 entrypoint) on the symbolic buffer.
+- Optionally, traverse or free the resulting XML document, but keep the harness simple and robust.
+- Clean up using xmlFreeDoc and xmlCleanupParser() as appropriate.
+- Use only a single entry function: int main(void).
+
+Additional constraints (VERY IMPORTANT):
+- Do NOT define or re-implement any libxml2 functions such as xmlReadMemory, xmlParseFile, etc.
+  Assume their implementations come from the existing libxml2 sources.
+- Do NOT call unrelated external library functions.
+  Use only standard C runtime functions (malloc, free, memcpy, etc.) and libxml2 APIs.
+- Do NOT introduce your own external function declarations beyond libxml2 and the standard C library.
+- Do NOT call exit(), abort(), or similar; just return from main.
+
+Output:
+- Output ONLY the C source code for the harness (no markdown fences, no extra commentary).
+- Do not include explanations or prose; only valid C code in a single file.

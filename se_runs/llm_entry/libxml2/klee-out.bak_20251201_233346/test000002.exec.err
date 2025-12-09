@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: xmlReadMemory
-File: drivers/llm_entry/libxml2_llm_entry.c
-Line: 42
-assembly.ll line: 51
-State: 1
-Stack: 
-	#000000051 in main() at drivers/llm_entry/libxml2_llm_entry.c:42
