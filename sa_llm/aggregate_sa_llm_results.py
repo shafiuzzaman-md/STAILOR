@@ -6,9 +6,9 @@
 #   - llm_usage.tsv    (or a custom path via --llm-usage-log)
 #
 # Outputs in MODE_ROOT:
-#   - counts.tsv        : single row, spreadsheet-friendly (E/HO/H1/H2/Vul/FP/...)
+#   - counts.tsv        : single row, spreadsheet-friendly (E/HO/H1/H2/Vul/VulnAsserts/FP/...)
 #   - counts.csv        : same as above, CSV
-#   - summary_agg.tsv   : one project-level aggregate row
+#   - summary_agg.tsv   : one project-level aggregate row, with richer breakdown
 #   - summary_agg.csv   : same as above, CSV
 #   - summary_agg.html  : HTML table with the aggregate row
 #
@@ -17,6 +17,7 @@
 import argparse
 from pathlib import Path
 import csv
+import html
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,58 +50,94 @@ def main() -> None:
     counts_csv = mode_root / "counts.csv"
     summary_agg_tsv = mode_root / "summary_agg.tsv"
     summary_agg_csv = mode_root / "summary_agg.csv"
-    summary_html = mode_root / "summary_agg.html"
+    summary_agg_html = mode_root / "summary_agg.html"
 
     if not summary_tsv.is_file():
-        print(f"[aggregate] No summary.tsv at {summary_tsv} yet; nothing to aggregate.")
-        return
+        raise SystemExit(f"[ERR] summary.tsv not found at {summary_tsv}")
 
-    # Infer mode + project from directory: .../<mode>/<project>
-    project = mode_root.name
-    mode = mode_root.parent.name if mode_root.parent.name else "sa_llm"
-
-    # Aggregates
+    # ---- Aggregate over summary.tsv ----
     count_E = count_H0 = count_H1 = count_H2 = 0
-    count_Vul = count_FP = 0
+    count_Vul_specs = 0          # # specs where num_vuln_assert > 0
+    sum_VulnAsserts = 0          # total number of vuln assertion triggers across specs
+    count_FP = 0                 # placeholder
     total_time = 0
-    specs_timed = 0
-    timeout_specs = 0
     attempt = 0
+    num_timeout = 0
+    count_timed = 0
+
+    # NEW reach-related and breakdown counters
+    count_Reach_specs = 0        # # specs where num_reach_assert > 0
+    sum_ReachAsserts = 0         # total reach assertion triggers
+    count_Vul_only = 0           # specs with vuln>0, reach==0
+    count_Reach_only = 0         # specs with vuln==0, reach>0
+    count_Vul_and_Reach = 0      # specs with vuln>0, reach>0
+
+    col_idx = {}
 
     with summary_tsv.open(newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f, delimiter="\t")
-        for row in reader:
-            attempt += 1
-            status = row.get("harness_status", "")
-            duration = safe_int(row.get("duration_seconds", "0"))
-            num_vul = safe_int(row.get("num_vuln_assert", "0"))
-            timeout_flag = safe_int(row.get("timeout_flag", "0"))
+        reader = csv.reader(f, delimiter="\t")
+        header = next(reader, None)
+        if not header:
+            raise SystemExit(f"[ERR] Empty summary.tsv at {summary_tsv}")
 
+        # Expected columns (order can vary, we look up by name):
+        # SPEC_ID, duration_seconds, harness_status, has_klee_last,
+        # num_err_files, num_vuln_assert, num_reach_assert, timeout_flag
+        for i, name in enumerate(header):
+            col_idx[name] = i
+
+        for row in reader:
+            if not row or len(row) < len(header):
+                continue
+            attempt += 1
+
+            duration = safe_int(row[col_idx.get("duration_seconds", 1)])
+            status = row[col_idx.get("harness_status", 2)]
+            num_vuln = safe_int(row[col_idx.get("num_vuln_assert", 5)])
+            num_reach = safe_int(row[col_idx.get("num_reach_assert", 6)])
+            timeout_flag = safe_int(row[col_idx.get("timeout_flag", 7)])
+
+            # Class counts
             if status == "E":
                 count_E += 1
             elif status == "H0":
                 count_H0 += 1
                 total_time += duration
-                specs_timed += 1
             elif status == "H1":
                 count_H1 += 1
                 total_time += duration
-                specs_timed += 1
             elif status == "H2":
                 count_H2 += 1
                 total_time += duration
-                specs_timed += 1
+            else:
+                # Unknown status; treat like E
+                count_E += 1
 
-            if num_vul > 0:
-                count_Vul += 1
+            # Vuln statistics
+            if num_vuln > 0:
+                count_Vul_specs += 1
+            sum_VulnAsserts += num_vuln
 
+            # Reach statistics
+            if num_reach > 0:
+                count_Reach_specs += 1
+            sum_ReachAsserts += num_reach
+
+            # Joint breakdown
+            if num_vuln > 0 and num_reach == 0:
+                count_Vul_only += 1
+            elif num_vuln == 0 and num_reach > 0:
+                count_Reach_only += 1
+            elif num_vuln > 0 and num_reach > 0:
+                count_Vul_and_Reach += 1
+
+            # Timeout statistics
             if timeout_flag:
-                timeout_specs += 1
+                num_timeout += 1
+            if status in ("H1", "H2"):
+                count_timed += 1
 
-        # FP placeholder – refine later if you have labeling
-        count_FP = 0
-
-    # LLM token usage (sums over all calls)
+    # ---- Aggregate llm_usage.tsv ----
     llm_log = Path(args.llm_usage_log)
     prompt_tok = comp_tok = total_tok = 0
     if llm_log.is_file():
@@ -116,13 +153,16 @@ def main() -> None:
                     comp_tok += safe_int(row[6])
                     total_tok += safe_int(row[7])
 
-    # Common aggregate row objects
+    # ---- Build aggregate row objects ----
+
+    # counts.tsv / counts.csv: keep relatively compact, just add VulnAsserts
     counts_headers = [
         "E",
         "HO",
         "H1",
         "H2",
-        "Vul",
+        "Vul",           # # specs with num_vuln_assert > 0
+        "VulnAsserts",   # total # of vuln assertion triggers across specs
         "FP",
         "time(s)",
         "attempt",
@@ -135,7 +175,8 @@ def main() -> None:
         count_H0,
         count_H1,
         count_H2,
-        count_Vul,
+        count_Vul_specs,
+        sum_VulnAsserts,
         count_FP,
         total_time,
         attempt,
@@ -144,39 +185,63 @@ def main() -> None:
         total_tok,
     ]
 
+    # For summary_agg we add richer breakdown, including reach stats
+    project_name = mode_root.name
+    mode_name = mode_root.parent.name if mode_root.parent.name else ""
+
+    # Averages (guard against division by zero)
+    avg_vuln_per_pos = (sum_VulnAsserts / count_Vul_specs) if count_Vul_specs > 0 else 0.0
+    avg_reach_per_pos = (sum_ReachAsserts / count_Reach_specs) if count_Reach_specs > 0 else 0.0
+
     summary_headers = [
-        "mode",
-        "project",
+        "MODE",
+        "PROJECT",
+        "attempt",
         "E",
-        "HO",
+        "H0",
         "H1",
         "H2",
         "Vul",
+        "VulnAsserts",
+        "ReachSpecs",
+        "ReachAsserts",
+        "VulOnlySpecs",
+        "ReachOnlySpecs",
+        "VulAndReachSpecs",
         "FP",
         "time(s)",
-        "timeout_specs",
-        "specs_timed",
-        "attempt",
         "prompt_tokens",
         "completion_tokens",
         "total_tokens",
+        "timeouts",
+        "timed_specs",
+        "AvgVulnPerPos",
+        "AvgReachPerPos",
     ]
     summary_row = [
-        mode,
-        project,
+        mode_name,
+        project_name,
+        attempt,
         count_E,
         count_H0,
         count_H1,
         count_H2,
-        count_Vul,
+        count_Vul_specs,
+        sum_VulnAsserts,
+        count_Reach_specs,
+        sum_ReachAsserts,
+        count_Vul_only,
+        count_Reach_only,
+        count_Vul_and_Reach,
         count_FP,
         total_time,
-        timeout_specs,
-        specs_timed,
-        attempt,
         prompt_tok,
         comp_tok,
         total_tok,
+        num_timeout,
+        count_timed,
+        round(avg_vuln_per_pos, 4),
+        round(avg_reach_per_pos, 4),
     ]
 
     # ---- Write counts.tsv ----
@@ -203,81 +268,35 @@ def main() -> None:
         writer.writerow(summary_headers)
         writer.writerow(summary_row)
 
-    # ---- Write summary_agg.html ----
-    html = [
-        "<!DOCTYPE html>",
-        "<html>",
-        "<head>",
-        f"<title>SA+LLM Harness Summary - {project}</title>",
-        "<meta charset='utf-8' />",
-        "<style>",
-        "body { font-family: sans-serif; margin: 20px; }",
-        "table { border-collapse: collapse; }",
-        "th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: right; }",
-        "th { background: #f0f0f0; }",
-        "caption { text-align: left; font-weight: bold; margin-bottom: 8px; }",
-        "</style>",
-        "</head>",
-        "<body>",
-        f"<h1>SA + LLM Harness + SE Summary</h1>",
-        f"<p><strong>Mode:</strong> {mode}<br>",
-        f"<strong>Project:</strong> {project}</p>",
-        "<table>",
-        "<caption>Aggregate metrics</caption>",
-        "<thead>",
-        "<tr>",
-    ]
-    for h in summary_headers:
-        html.append(f"<th>{h}</th>")
-    html.extend(["</tr>", "</thead>", "<tbody>", "<tr>"])
-    for v in summary_row:
-        html.append(f"<td>{v}</td>")
-    html.extend(["</tr>", "</tbody>", "</table>", "</body>", "</html>"])
+    # ---- Write HTML summary ----
+    with summary_agg_html.open("w", encoding="utf-8") as f:
+        f.write("<html><head><meta charset='utf-8'><title>SA+LLM Aggregate</title></head><body>\n")
+        f.write("<h2>SA+LLM Harness Aggregate</h2>\n")
+        f.write("<table border='1' cellspacing='0' cellpadding='4'>\n")
+        f.write("<tr>")
+        for h in summary_headers:
+            f.write(f"<th>{html.escape(str(h))}</th>")
+        f.write("</tr>\n<tr>")
+        for val in summary_row:
+            f.write(f"<td>{html.escape(str(val))}</td>")
+        f.write("</tr>\n</table>\n</body></html>\n")
 
-    summary_html.write_text("\n".join(html), encoding="utf-8")
+    # ---- Pretty-print to stdout (compact counts view) ----
+    col_widths = [max(len(str(h)), len(str(v))) for h, v in zip(counts_headers, counts_row)]
 
-    # ---- Pretty print to stdout ----
-    def pct(part, whole):
-        if whole <= 0:
-            return "0.0%"
-        return f"{(part * 100.0 / whole):.1f}%"
+    def fmt_row(values):
+        return "  " + "  ".join(str(v).rjust(w) for v, w in zip(values, col_widths))
 
-    avg_time = (total_time / specs_timed) if specs_timed > 0 else 0.0
-    tok_per_spec = (total_tok / attempt) if attempt > 0 else 0.0
-
-    print("\n=== SA + LLM Harness + SE: Aggregate Summary ===")
-    print(
-        f"  Mode:    {mode}\n"
-        f"  Project: {project}\n"
-        f"  Specs attempted: {attempt}  "
-        f"(timed: {specs_timed}, build/link failures E: {count_E})\n"
-        f"  Total time (non-E specs): {total_time}s  "
-        f"(avg {avg_time:.1f}s per timed spec)\n"
-        f"  Timeout specs: {timeout_specs} ({pct(timeout_specs, attempt)} of attempts)\n"
-        f"  LLM tokens: prompt={prompt_tok}, completion={comp_tok}, total={total_tok} "
-        f"(~{tok_per_spec:.1f} tokens/spec)\n"
-    )
-
-    headers = counts_headers
-    row_str = [str(v) for v in counts_row]
-    widths = [max(len(h), len(v)) for h, v in zip(headers, row_str)]
-
-    def fmt_row(cells):
-        return "  " + " | ".join(c.ljust(w) for c, w in zip(cells, widths))
-
-    sep = "  " + "-+-".join("-" * w for w in widths)
-
-    print("Aggregate table:")
-    print(fmt_row(headers))
-    print(sep)
-    print(fmt_row(row_str))
+    print("[aggregate] SA+LLM Harness summary (counts view)")
+    print(fmt_row(counts_headers))
+    print(fmt_row(counts_row))
     print(
         f"\n[aggregate] Wrote:\n"
         f"  {counts_tsv}\n"
         f"  {counts_csv}\n"
         f"  {summary_agg_tsv}\n"
         f"  {summary_agg_csv}\n"
-        f"  {summary_html}\n"
+        f"  {summary_agg_html}\n"
     )
 
 
