@@ -65,7 +65,7 @@ def main() -> None:
     num_timeout = 0
     count_timed = 0
 
-    # NEW reach-related and breakdown counters
+    # Reach-related and breakdown counters
     count_Reach_specs = 0        # # specs where num_reach_assert > 0
     sum_ReachAsserts = 0         # total reach assertion triggers
     count_Vul_only = 0           # specs with vuln>0, reach==0
@@ -80,22 +80,28 @@ def main() -> None:
         if not header:
             raise SystemExit(f"[ERR] Empty summary.tsv at {summary_tsv}")
 
-        # Expected columns (order can vary, we look up by name):
-        # SPEC_ID, duration_seconds, harness_status, has_klee_last,
-        # num_err_files, num_vuln_assert, num_reach_assert, timeout_flag
+        # Map header names to indices
         for i, name in enumerate(header):
             col_idx[name] = i
 
+        def get_field(row, name, default=""):
+            """Safely fetch a field by column name; returns default if missing."""
+            idx = col_idx.get(name)
+            if idx is None or idx >= len(row):
+                return default
+            return row[idx]
+
         for row in reader:
-            if not row or len(row) < len(header):
+            # Skip completely empty lines, but DO NOT skip on short rows.
+            if not row:
                 continue
             attempt += 1
 
-            duration = safe_int(row[col_idx.get("duration_seconds", 1)])
-            status = row[col_idx.get("harness_status", 2)]
-            num_vuln = safe_int(row[col_idx.get("num_vuln_assert", 5)])
-            num_reach = safe_int(row[col_idx.get("num_reach_assert", 6)])
-            timeout_flag = safe_int(row[col_idx.get("timeout_flag", 7)])
+            duration = safe_int(get_field(row, "duration_seconds", "0"))
+            status = get_field(row, "harness_status", "E")
+            num_vuln = safe_int(get_field(row, "num_vuln_assert", "0"))
+            num_reach = safe_int(get_field(row, "num_reach_assert", "0"))
+            timeout_flag = safe_int(get_field(row, "timeout_flag", "0"))
 
             # Class counts
             if status == "E":
@@ -155,7 +161,7 @@ def main() -> None:
 
     # ---- Build aggregate row objects ----
 
-    # counts.tsv / counts.csv: keep relatively compact, just add VulnAsserts
+    # counts.tsv / counts.csv: compact view, with VulnAsserts added
     counts_headers = [
         "E",
         "HO",
