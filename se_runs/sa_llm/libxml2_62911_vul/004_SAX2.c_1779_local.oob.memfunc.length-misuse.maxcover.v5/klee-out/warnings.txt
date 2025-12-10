@@ -1,0 +1,10 @@
+KLEE: WARNING: undefined reference to function: xmlCleanupParser
+KLEE: WARNING: undefined reference to function: xmlCreateParserCtxt
+KLEE: WARNING: undefined reference to function: xmlFreeDoc
+KLEE: WARNING: undefined reference to function: xmlFreeNode
+KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
+KLEE: WARNING: undefined reference to function: xmlInitParser
+KLEE: WARNING: undefined reference to function: xmlNewNode
+KLEE: WARNING: undefined reference to function: xmlReadMemory
+KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/004_SAX2.c_1779_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 12
+KLEE: WARNING ONCE: calling external: xmlCreateParserCtxt() at se_runs/sa_llm/libxml2_62911_vul/004_SAX2.c_1779_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 12

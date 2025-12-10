@@ -1,35 +1,24 @@
 #!/usr/bin/env bash
 # sa_llm/run_sa_llm_batch.sh
 #
-# SA-driven LLM Harness (single-shot, per spec), now with parallel execution:
-#   For each SA spec:
-#     - Call gen_sa_llm_harness.py to generate a full harness C file
-#     - Compile harness to LLVM bitcode
-#     - Run KLEE on the harness
-#     - Classify as:
-#         E  = build/link failure => no bitcode, SE never started
-#         H0 = SE ran, terminated before timeout, did NOT reach target line
-#         H1 = SE ran until timeout, did NOT reach target line
-#         H2 = Target line reached / vuln assert fired
+# SA-driven LLM Harness (single-shot, per spec), now with parallel execution
+# AND aggregated TSV summaries:
+#   - summary.tsv      : per-spec status (unchanged format)
+#   - counts.tsv       : single-row aggregate matching spreadsheet columns
+#   - summary_agg.tsv  : project-level aggregate row
 #
-# Outputs:
-#   se_runs/sa_llm/<project>/
-#     - <SPEC_ID>/harness.c
-#     - <SPEC_ID>/bc/harness.bc
-#     - <SPEC_ID>/klee-out/...
-#     - summary.tsv, counts.tsv, time.log, errors.log
+# Class labels:
+#   E  = build/link failure => no bitcode, SE never started
+#   H0 = SE ran, terminated before timeout, did NOT reach target line
+#   H1 = SE ran until timeout, did NOT reach target line
+#   H2 = Target line reached / vuln assert fired
 #
-# Example:
-#   PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
-#     --project-name libxml2_62911_vul \
-#     --src-root     dataset/libxml2_62911_vul \
-#     --spec-dir     specs/libxml2_62911_vul \
-#     --out-root     se_runs \
-#     --clang        clang-14 \
-#     --klee         klee \
-#     --clang-flags  "-I/usr/include/libxml2 -Isa_manual -include sa_manual/sailr_assert.h -Ise_runs" \
-#     --klee-flags   "--search=nurs:covnew --max-time=3600" \
-#     --jobs         4
+# New aggregate columns:
+#   Vul     = # specs with num_vuln_assert > 0
+#   FP      = placeholder (0 for now, can be refined later)
+#   time(s) = total time over all non-E specs
+#   attempt = total specs attempted (rows in summary.tsv minus header)
+#   *_tokens = sums from llm_usage.tsv (or $LLM_USAGE_LOG)
 
 set -euo pipefail
 
@@ -116,8 +105,12 @@ ERROR_LOG="${MODE_ROOT}/errors.log"
 TIME_LOG="${MODE_ROOT}/time.log"
 SUMMARY_TSV="${MODE_ROOT}/summary.tsv"
 COUNTS_TSV="${MODE_ROOT}/counts.tsv"
+SUMMARY_AGG="${MODE_ROOT}/summary_agg.tsv"
 
 mkdir -p "${MODE_ROOT}"
+
+# LLM usage log path (must match llm_utils.py default/env) 
+LLM_USAGE_LOG="${LLM_USAGE_LOG:-llm_usage.tsv}"
 
 echo "# Error log for MODE=${MODE}, PROJECT=${PROJECT_NAME}" > "${ERROR_LOG}"
 {
@@ -125,15 +118,7 @@ echo "# Error log for MODE=${MODE}, PROJECT=${PROJECT_NAME}" > "${ERROR_LOG}"
   echo "# Columns: SPEC_ID  duration_seconds"
 } > "${TIME_LOG}"
 
-# Columns:
-#  SPEC_ID
-#  duration_seconds
-#  harness_status (E/H0/H1/H2)
-#  has_klee_last (0/1)
-#  num_err_files
-#  num_vuln_assert
-#  num_reach_assert
-#  timeout_flag (0/1)
+# Per-spec summary.tsv (unchanged schema)
 echo -e "SPEC_ID\tduration_seconds\tharness_status\thas_klee_last\tnum_err_files\tnum_vuln_assert\tnum_reach_assert\ttimeout_flag" > "${SUMMARY_TSV}"
 
 # Counts (will be filled AFTER all specs finish)
@@ -141,14 +126,21 @@ COUNT_E=0
 COUNT_H0=0
 COUNT_H1=0
 COUNT_H2=0
+COUNT_VUL=0
+COUNT_FP=0
+TOTAL_TIME=0
+ATTEMPT=0
+PROMPT_TOK=0
+COMP_TOK=0
+TOTAL_TOK=0
+NUM_TIMEOUT=0
+COUNT_TIMED=0
 
 write_counts_tsv() {
   {
-    echo "class	count"
-    echo "E	${COUNT_E}"
-    echo "H0	${COUNT_H0}"
-    echo "H1	${COUNT_H1}"
-    echo "H2	${COUNT_H2}"
+    # Single row, spreadsheet-friendly (matches your screenshot)
+    echo -e "E\tHO\tH1\tH2\tVul\tFP\ttime(s)\tattempt\tprompt_tokens\tcompletion_tokens\ttotal_tokens"
+    echo -e "${COUNT_E}\t${COUNT_H0}\t${COUNT_H1}\t${COUNT_H2}\t${COUNT_VUL}\t${COUNT_FP}\t${TOTAL_TIME}\t${ATTEMPT}\t${PROMPT_TOK}\t${COMP_TOK}\t${TOTAL_TOK}"
   } > "${COUNTS_TSV}"
 }
 
@@ -203,7 +195,6 @@ run_one_spec() {
     local NUM_REACH_ASSERT=0
     local TIMEOUT_FLAG=0
 
-    # E lines still go into SUMMARY_TSV but NOT into TIME_LOG
     printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
       "${SPEC_ID}" "${DURATION}" "${HARNESS_STATUS}" \
       "${HAS_KLEE_LAST}" "${NUM_ERR_FILES}" \
@@ -325,81 +316,35 @@ pids=()
 for spec in "${specs[@]}"; do
   run_one_spec "${spec}" &
   pids+=( "$!" )
-  # If we already have JOBS running, wait for the oldest to finish
   if (( ${#pids[@]} >= JOBS )); then
     wait "${pids[0]}"
     pids=( "${pids[@]:1}" )
   fi
 done
 
-# Wait for remaining jobs
 for pid in "${pids[@]}"; do
   wait "${pid}"
 done
 
-# ---------------------------------------------------------------------------
-# Aggregation: counts + total/avg time
-# ---------------------------------------------------------------------------
-TOTAL_SPECS=0
-if [[ -s "${SUMMARY_TSV}" ]]; then
-  # total lines minus header
-  TOTAL_SPECS=$(( $(wc -l < "${SUMMARY_TSV}") - 1 ))
-fi
+# Path must match what llm_utils.py uses for logging (default: llm_usage.tsv)
+LLM_USAGE_LOG_PATH="${LLM_USAGE_LOG:-llm_usage.tsv}"
 
-if [[ -s "${SUMMARY_TSV}" && "${TOTAL_SPECS}" -gt 0 ]]; then
-  # Reset counts before recomputing
-  COUNT_E=0
-  COUNT_H0=0
-  COUNT_H1=0
-  COUNT_H2=0
+python3 sa_llm/aggregate_sa_llm_results.py \
+  --mode-root "${MODE_ROOT}" \
+  --llm-usage-log "${LLM_USAGE_LOG_PATH}" || {
+    echo "[warn] aggregate_sa_llm_results.py failed; per-spec results are still in ${SUMMARY_TSV}" >&2
+}
 
-  # Skip header line
-  while IFS=$'\t' read -r sid duration status has_last num_err num_vul num_reach timeout_flag; do
-    case "${status}" in
-      E)  (( COUNT_E++ ));;
-      H0) (( COUNT_H0++ ));;
-      H1) (( COUNT_H1++ ));;
-      H2) (( COUNT_H2++ ));;
-    esac
-  done < <(tail -n +2 "${SUMMARY_TSV}")
+echo "[done] ${MODE} runs complete for ${PROJECT_NAME} (spec dir: ${SPEC_DIR})"
+echo "[info] Per-spec summary   : ${SUMMARY_TSV}"
+echo "[info] Counts table       : ${COUNTS_TSV}"
+echo "[info] Aggregate summary  : ${SUMMARY_AGG}"
 
-  write_counts_tsv
-else
-  # No specs or only header; write zeros
-  COUNT_E=0
-  COUNT_H0=0
-  COUNT_H1=0
-  COUNT_H2=0
-  write_counts_tsv
-fi
-
-TOTAL_TIME=0
-COUNT_TIMED=0
-if [[ -s "${TIME_LOG}" ]]; then
-  TOTAL_TIME=$(awk '($1 !~ /^#/ && NF>=2){sum+=$2} END{print sum+0}' "${TIME_LOG}")
-  COUNT_TIMED=$(awk '($1 !~ /^#/ && NF>=2){cnt++} END{print cnt+0}' "${TIME_LOG}")
-fi
-
-AVG_TIME=0
-if (( COUNT_TIMED > 0 )); then
-  AVG_TIME=$(( TOTAL_TIME / COUNT_TIMED ))
-fi
-
-echo
-if (( COUNT_TIMED > 0 )); then
-  echo "[summary] ${MODE} for PROJECT=${PROJECT_NAME}"
-  echo "[summary] specs_timed=${COUNT_TIMED}, total_time=${TOTAL_TIME}s, avg_time=${AVG_TIME}s"
-
-  {
-    echo
-    echo "# Summary (all non-E specs):"
-    echo "# specs_timed=${COUNT_TIMED}"
-    echo "# total_time_seconds=${TOTAL_TIME}"
-    echo "# avg_time_seconds=${AVG_TIME}"
-  } >> "${TIME_LOG}"
-else
-  echo "[summary] No non-E specs for PROJECT=${PROJECT_NAME}"
-fi
+# Project-level aggregate TSV (nice one-row table)
+{
+  echo -e "mode\tproject\tE\tHO\tH1\tH2\tVul\tFP\ttime(s)\ttimeout_specs\tspecs_timed\tattempt\tprompt_tokens\tcompletion_tokens\ttotal_tokens"
+  echo -e "${MODE}\t${PROJECT_NAME}\t${COUNT_E}\t${COUNT_H0}\t${COUNT_H1}\t${COUNT_H2}\t${COUNT_VUL}\t${COUNT_FP}\t${TOTAL_TIME}\t${NUM_TIMEOUT}\t${COUNT_TIMED}\t${ATTEMPT}\t${PROMPT_TOK}\t${COMP_TOK}\t${TOTAL_TOK}"
+} > "${SUMMARY_AGG}"
 
 {
   echo
@@ -409,10 +354,13 @@ fi
   echo "# H0 (SE early stop, no target line reached)              = ${COUNT_H0}"
   echo "# H1 (SE timeout, no target line reached)                 = ${COUNT_H1}"
   echo "# H2 (target line reached / vuln assert fired)            = ${COUNT_H2}"
+  echo "# Vul (num_vuln_assert>0)                                 = ${COUNT_VUL}"
+  echo "# timeout_specs                                           = ${NUM_TIMEOUT}"
 } >> "${TIME_LOG}"
 
 echo "[done] ${MODE} runs complete for ${PROJECT_NAME} (spec dir: ${SPEC_DIR})"
-echo "[info] Error summary (if any) in: ${ERROR_LOG}"
-echo "[info] Time stats             in: ${TIME_LOG}"
-echo "[info] Per-spec summary       in: ${SUMMARY_TSV}"
-echo "[info] Harness class counts   in: ${COUNTS_TSV}"
+echo "[info] Error summary    in: ${ERROR_LOG}"
+echo "[info] Time stats       in: ${TIME_LOG}"
+echo "[info] Per-spec summary in: ${SUMMARY_TSV}"
+echo "[info] Counts table     in: ${COUNTS_TSV}"
+echo "[info] Aggregate row    in: ${SUMMARY_AGG}"

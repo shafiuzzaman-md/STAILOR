@@ -13,4 +13,8 @@ PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
   --klee-flags   "--search=nurs:covnew --max-time=3600" \
   --jobs         8
 
+python3 sa_llm/aggregate_sa_llm_results.py \
+  --mode-root se_runs/sa_llm/libxml2_62911_vul \
+  --llm-usage-log llm_usage.tsv
+
 ```

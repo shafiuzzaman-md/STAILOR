@@ -1,83 +1,73 @@
 #!/usr/bin/env bash
-#
-# run_full_cegir.sh
-#
-# Run the full SAILR-CEGIR pipeline for a single spec / vulnerability:
-#   1. Entry-point inference / plan enrich
-#   2. Instrument TU + helper stubs
-#   3. Derive & inject assertion
-#   4. Grooming / symbolic declarations
-#   5. Prepare Loop-B prompt
-#   6. Loop-B: automatic build/KLEE error fixing + CEGIR path search
-#
-# Required ENV:
-#   DATASET_ROOT  - path to dataset root (e.g., dataset)
-#   TARGET_VUL    - "<PROJECT>:<file>:<line>"
-#   RULE_ID       - SA rule id (e.g., local.oob.memfunc.length-misuse)
-#
-# Optional ENV:
-#   SA_OUT_DIR    - raw SA outputs (if available, else unused)
-#   SPEC_OVERRIDE - path to a specific spec JSON (from ./specs/...)
-#   LLM_MODEL, LLM_API_BASE, MAX_A, MAX_B, TIMEOUT
-
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# This is the single-spec wrapper for SAILR-CEGIR.
+# It expects the main config to be provided via env + SPEC info via env.
 
-# ---- Env / defaults ---------------------------------------------------------
+# Required env
+: "${SA_OUT_DIR:?SA_OUT_DIR is required}"
+: "${DATASET_ROOT:?DATASET_ROOT is required}"
+: "${TARGET_VUL:?TARGET_VUL is required (PROJECT:FILE:LINE)}"
+: "${RULE_ID:?RULE_ID is required}"
+: "${LLM_MODEL:?LLM_MODEL is required}"
+: "${LLM_API_BASE:?LLM_API_BASE is required}"
 
-SA_OUT_DIR="${SA_OUT_DIR:-sa_outputs}"
-DATASET_ROOT="${DATASET_ROOT:-dataset}"
-TARGET_VUL="${TARGET_VUL:?TARGET_VUL must be set (e.g., 62911/libxml2_62911_vul:dict.c:541)}"
-RULE_ID="${RULE_ID:?RULE_ID must be set (e.g., local.oob.memfunc.length-misuse)}"
-SPEC_OVERRIDE="${SPEC_OVERRIDE:-}"
-
-LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
-LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
+# Optional env (with defaults)
 MAX_A="${MAX_A:-8}"
 MAX_B="${MAX_B:-12}"
 TIMEOUT="${TIMEOUT:-120}"
 
-# PROJECT is the part before the first colon of TARGET_VUL
-PROJECT="${TARGET_VUL%%:*}"
+# Spec info must be provided by the caller (batch script)
+: "${SPEC:?SPEC (path to SA spec json) is required}"
+SPEC_STEM="${SPEC_STEM:-$(basename "${SPEC%.json}")}"
 
-SRC_ROOT="${REPO_ROOT}/${DATASET_ROOT}/${PROJECT}"
+# Parse TARGET_VUL:  PROJECT:VUL_FILE:VUL_LINE
+PROJECT="${TARGET_VUL%%:*}"          # 62911/libxml2_62911_vul
+REST="${TARGET_VUL#*:}"              # SAX2.c:2479
+VUL_FILE="${REST%%:*}"               # SAX2.c
+VUL_LINE="${REST##*:}"               # 2479
 
-# Where to put all intermediate SAILR-CEGIR artifacts for this project
-OUT_PROJECT="${REPO_ROOT}/se_runs/sailr_cegir/${PROJECT}"
-mkdir -p "${OUT_PROJECT}"
-cd "${OUT_PROJECT}"
+SRC_ROOT="${DATASET_ROOT}/${PROJECT}"
 
-echo "[i] CONFIG:"
-echo "    SA_OUT_DIR    = ${SA_OUT_DIR}"
-echo "    DATASET_ROOT  = ${DATASET_ROOT}"
-echo "    PROJECT       = ${PROJECT}"
-echo "    SRC_ROOT      = ${SRC_ROOT}"
-echo "    TARGET_VUL    = ${TARGET_VUL}"
-echo "    RULE_ID       = ${RULE_ID}"
-echo "    SPEC_OVERRIDE = ${SPEC_OVERRIDE:-<auto from SA_OUT_DIR or TARGET_VUL>}"
-echo "    LLM_MODEL     = ${LLM_MODEL}"
-echo "    LLM_API_BASE  = ${LLM_API_BASE}"
-echo "    MAX_A         = ${MAX_A}"
-echo "    MAX_B         = ${MAX_B}"
-echo "    TIMEOUT       = ${TIMEOUT}"
-echo
+# Where to put SE results
+OUT_DIR="se_runs/sailr_cegir/${PROJECT}/${SPEC_STEM}"
+WORK_DIR="sailr_cegir"
 
-# ---- Run the Python orchestrator -------------------------------------------
+mkdir -p "${OUT_DIR}"
+mkdir -p "${WORK_DIR}"
 
-export PYTHONPATH="${SCRIPT_DIR}:${PYTHONPATH:-}"
-export LLM_MODEL
-export LLM_API_BASE
-export MAX_A
-export MAX_B
-export TIMEOUT
+echo "[i] CONFIG (run_full_cegir.sh):"
+echo "    SA_OUT_DIR   = ${SA_OUT_DIR}"
+echo "    DATASET_ROOT = ${DATASET_ROOT}"
+echo "    PROJECT      = ${PROJECT}"
+echo "    SRC_ROOT     = ${SRC_ROOT}"
+echo "    TARGET_VUL   = ${TARGET_VUL}"
+echo "    RULE_ID      = ${RULE_ID}"
+echo "    SPEC         = ${SPEC}"
+echo "    SPEC_STEM    = ${SPEC_STEM}"
+echo "    LLM_MODEL    = ${LLM_MODEL}"
+echo "    LLM_API_BASE = ${LLM_API_BASE}"
+echo "    MAX_A        = ${MAX_A}"
+echo "    MAX_B        = ${MAX_B}"
+echo "    TIMEOUT      = ${TIMEOUT}"
+echo "    OUT_DIR      = ${OUT_DIR}"
+echo "    WORK_DIR     = ${WORK_DIR}"
 
-python3 "${SCRIPT_DIR}/scripts/run_cegir.py" \
-  --sa-out "${SA_OUT_DIR}" \
+python3 "${WORK_DIR}/scripts/run_cegir.py" \
+  --sa-out-dir   "${SA_OUT_DIR}" \
   --dataset-root "${DATASET_ROOT}" \
-  --project "${PROJECT}" \
-  --src-root "${SRC_ROOT}" \
-  --target-vul "${TARGET_VUL}" \
-  --rule-id "${RULE_ID}" \
-  ${SPEC_OVERRIDE:+--spec "${SPEC_OVERRIDE}"}
+  --project      "${PROJECT}" \
+  --src-root     "${SRC_ROOT}" \
+  --spec         "${SPEC}" \
+  --spec-stem    "${SPEC_STEM}" \
+  --vul-file     "${VUL_FILE}" \
+  --vul-line     "${VUL_LINE}" \
+  --rule-id      "${RULE_ID}" \
+  --target-vul   "${TARGET_VUL}" \
+  --llm-model    "${LLM_MODEL}" \
+  --llm-api-base "${LLM_API_BASE}" \
+  --max-a        "${MAX_A}" \
+  --max-b        "${MAX_B}" \
+  --timeout      "${TIMEOUT}" \
+  --out-dir      "${OUT_DIR}" \
+  --work-dir     "${WORK_DIR}"

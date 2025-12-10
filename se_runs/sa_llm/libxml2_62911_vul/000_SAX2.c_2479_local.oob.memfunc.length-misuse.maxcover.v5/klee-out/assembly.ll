@@ -34,7 +34,6 @@ target triple = "x86_64-pc-linux-gnu"
 @.str = private unnamed_addr constant [4 x i8] c"1.0\00", align 1
 @.str.1 = private unnamed_addr constant [5 x i8] c"root\00", align 1
 @.str.2 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@xmlMalloc = external global i8* (i64)*, align 8
 @.str.3 = private unnamed_addr constant [4 x i8] c"len\00", align 1
 @.str.4 = private unnamed_addr constant [8 x i8] c"nodelen\00", align 1
 @.str.5 = private unnamed_addr constant [8 x i8] c"nodemem\00", align 1
@@ -42,7 +41,6 @@ target triple = "x86_64-pc-linux-gnu"
 @.str.7 = private unnamed_addr constant [13 x i8] c"coalesceText\00", align 1
 @.str.8 = private unnamed_addr constant [3 x i8] c"ch\00", align 1
 @xmlRealloc = external global i8* (i8*, i64)*, align 8
-@xmlFree = external global void (i8*)*, align 8
 @.str.9 = private unnamed_addr constant [26 x i8] c"0 && \22SAILR_REACH_ASSERT\22\00", align 1
 @.str.10 = private unnamed_addr constant [103 x i8] c"se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c\00", align 1
 @__PRETTY_FUNCTION__.main = private unnamed_addr constant [15 x i8] c"int main(void)\00", align 1
@@ -72,288 +70,312 @@ define dso_local i32 @main() #0 !dbg !114 {
   call void @llvm.dbg.declare(metadata i32* %9, metadata !699, metadata !DIExpression()), !dbg !700
   call void @llvm.dbg.declare(metadata i32* %10, metadata !701, metadata !DIExpression()), !dbg !702
   call void @llvm.dbg.declare(metadata i32* %11, metadata !703, metadata !DIExpression()), !dbg !704
-  %13 = call %struct._xmlParserCtxt* @xmlCreatePushParserCtxt(%struct._xmlSAXHandler* noundef null, i8* noundef null, i8* noundef null, i32 noundef 0, i8* noundef null), !dbg !705
-  store %struct._xmlParserCtxt* %13, %struct._xmlParserCtxt** %2, align 8, !dbg !706
-  %14 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !707
-  %15 = icmp eq %struct._xmlParserCtxt* %14, null, !dbg !709
-  br i1 %15, label %16, label %17, !dbg !710
+  %13 = call i32 (...) @xmlCreateParserCtxt(), !dbg !705
+  %14 = sext i32 %13 to i64, !dbg !705
+  %15 = inttoptr i64 %14 to %struct._xmlParserCtxt*, !dbg !705
+  store %struct._xmlParserCtxt* %15, %struct._xmlParserCtxt** %2, align 8, !dbg !706
+  %16 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !707
+  %17 = icmp eq %struct._xmlParserCtxt* %16, null, !dbg !709
+  br i1 %17, label %18, label %19, !dbg !710
 
-16:                                               ; preds = %0
+18:                                               ; preds = %0
   store i32 1, i32* %1, align 4, !dbg !711
-  br label %194, !dbg !711
+  br label %209, !dbg !711
 
-17:                                               ; preds = %0
-  %18 = call %struct._xmlDoc* @xmlNewDoc(i8* noundef getelementptr inbounds ([4 x i8], [4 x i8]* @.str, i64 0, i64 0)), !dbg !712
-  store %struct._xmlDoc* %18, %struct._xmlDoc** %3, align 8, !dbg !713
-  %19 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !714
-  %20 = icmp eq %struct._xmlDoc* %19, null, !dbg !716
-  br i1 %20, label %21, label %23, !dbg !717
+19:                                               ; preds = %0
+  %20 = call %struct._xmlDoc* @xmlNewDoc(i8* noundef getelementptr inbounds ([4 x i8], [4 x i8]* @.str, i64 0, i64 0)), !dbg !712
+  store %struct._xmlDoc* %20, %struct._xmlDoc** %3, align 8, !dbg !713
+  %21 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !714
+  %22 = icmp eq %struct._xmlDoc* %21, null, !dbg !716
+  br i1 %22, label %23, label %25, !dbg !717
 
-21:                                               ; preds = %17
-  %22 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !718
-  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %22), !dbg !720
+23:                                               ; preds = %19
+  %24 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !718
+  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %24), !dbg !720
   store i32 1, i32* %1, align 4, !dbg !721
-  br label %194, !dbg !721
+  br label %209, !dbg !721
 
-23:                                               ; preds = %17
-  %24 = call %struct._xmlNode* @xmlNewNode(%struct._xmlNs* noundef null, i8* noundef getelementptr inbounds ([5 x i8], [5 x i8]* @.str.1, i64 0, i64 0)), !dbg !722
-  store %struct._xmlNode* %24, %struct._xmlNode** %4, align 8, !dbg !723
-  %25 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !724
-  %26 = icmp eq %struct._xmlNode* %25, null, !dbg !726
-  br i1 %26, label %27, label %30, !dbg !727
+25:                                               ; preds = %19
+  %26 = call %struct._xmlNode* @xmlNewNode(%struct._xmlNs* noundef null, i8* noundef getelementptr inbounds ([5 x i8], [5 x i8]* @.str.1, i64 0, i64 0)), !dbg !722
+  store %struct._xmlNode* %26, %struct._xmlNode** %4, align 8, !dbg !723
+  %27 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !724
+  %28 = icmp eq %struct._xmlNode* %27, null, !dbg !726
+  br i1 %28, label %29, label %32, !dbg !727
 
-27:                                               ; preds = %23
-  %28 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !728
-  call void @xmlFreeDoc(%struct._xmlDoc* noundef %28), !dbg !730
-  %29 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !731
-  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %29), !dbg !732
+29:                                               ; preds = %25
+  %30 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !728
+  call void @xmlFreeDoc(%struct._xmlDoc* noundef %30), !dbg !730
+  %31 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !731
+  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %31), !dbg !732
   store i32 1, i32* %1, align 4, !dbg !733
-  br label %194, !dbg !733
+  br label %209, !dbg !733
 
-30:                                               ; preds = %23
-  %31 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !734
-  %32 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !735
-  %33 = call %struct._xmlNode* @xmlDocSetRootElement(%struct._xmlDoc* noundef %31, %struct._xmlNode* noundef %32), !dbg !736
-  %34 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !737
-  %35 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !738
-  %36 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %35, i32 0, i32 2, !dbg !739
-  store %struct._xmlDoc* %34, %struct._xmlDoc** %36, align 8, !dbg !740
-  %37 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !741
-  %38 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !742
-  %39 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %38, i32 0, i32 13, !dbg !743
-  store %struct._xmlNode* %37, %struct._xmlNode** %39, align 8, !dbg !744
-  %40 = call %struct._xmlNode* @xmlNewText(i8* noundef getelementptr inbounds ([1 x i8], [1 x i8]* @.str.2, i64 0, i64 0)), !dbg !745
-  store %struct._xmlNode* %40, %struct._xmlNode** %5, align 8, !dbg !746
-  %41 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !747
-  %42 = icmp eq %struct._xmlNode* %41, null, !dbg !749
-  br i1 %42, label %43, label %46, !dbg !750
+32:                                               ; preds = %25
+  %33 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !734
+  %34 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !735
+  %35 = call %struct._xmlNode* @xmlDocSetRootElement(%struct._xmlDoc* noundef %33, %struct._xmlNode* noundef %34), !dbg !736
+  %36 = call %struct._xmlNode* @xmlNewText(i8* noundef getelementptr inbounds ([1 x i8], [1 x i8]* @.str.2, i64 0, i64 0)), !dbg !737
+  store %struct._xmlNode* %36, %struct._xmlNode** %5, align 8, !dbg !738
+  %37 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !739
+  %38 = icmp eq %struct._xmlNode* %37, null, !dbg !741
+  br i1 %38, label %39, label %42, !dbg !742
 
-43:                                               ; preds = %30
-  %44 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !751
-  call void @xmlFreeDoc(%struct._xmlDoc* noundef %44), !dbg !753
-  %45 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !754
-  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %45), !dbg !755
-  store i32 1, i32* %1, align 4, !dbg !756
-  br label %194, !dbg !756
+39:                                               ; preds = %32
+  %40 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !743
+  call void @xmlFreeDoc(%struct._xmlDoc* noundef %40), !dbg !745
+  %41 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !746
+  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %41), !dbg !747
+  store i32 1, i32* %1, align 4, !dbg !748
+  br label %209, !dbg !748
 
-46:                                               ; preds = %30
-  %47 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !757
-  %48 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !758
-  %49 = call %struct._xmlNode* @xmlAddChild(%struct._xmlNode* noundef %47, %struct._xmlNode* noundef %48), !dbg !759
-  %50 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !760
-  %51 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %50, i32 0, i32 48, !dbg !761
-  store i32 0, i32* %51, align 4, !dbg !762
-  %52 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !763
-  %53 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %52, i32 0, i32 49, !dbg !764
-  store i32 0, i32* %53, align 8, !dbg !765
-  %54 = load i8* (i64)*, i8* (i64)** @xmlMalloc, align 8, !dbg !766
-  %55 = call i8* %54(i64 noundef 1), !dbg !766
-  %56 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !767
-  %57 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %56, i32 0, i32 10, !dbg !768
-  store i8* %55, i8** %57, align 8, !dbg !769
-  %58 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !770
-  %59 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %58, i32 0, i32 10, !dbg !772
-  %60 = load i8*, i8** %59, align 8, !dbg !772
-  %61 = icmp eq i8* %60, null, !dbg !773
-  br i1 %61, label %62, label %65, !dbg !774
+42:                                               ; preds = %32
+  %43 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !749
+  %44 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !750
+  %45 = call %struct._xmlNode* @xmlAddChild(%struct._xmlNode* noundef %43, %struct._xmlNode* noundef %44), !dbg !751
+  %46 = bitcast i32* %7 to i8*, !dbg !752
+  call void @klee_make_symbolic(i8* noundef %46, i64 noundef 4, i8* noundef getelementptr inbounds ([4 x i8], [4 x i8]* @.str.3, i64 0, i64 0)), !dbg !753
+  %47 = load i32, i32* %7, align 4, !dbg !754
+  %48 = icmp sge i32 %47, 0, !dbg !755
+  %49 = zext i1 %48 to i32, !dbg !755
+  %50 = sext i32 %49 to i64, !dbg !754
+  call void @klee_assume(i64 noundef %50), !dbg !756
+  %51 = bitcast i32* %8 to i8*, !dbg !757
+  call void @klee_make_symbolic(i8* noundef %51, i64 noundef 4, i8* noundef getelementptr inbounds ([8 x i8], [8 x i8]* @.str.4, i64 0, i64 0)), !dbg !758
+  %52 = load i32, i32* %8, align 4, !dbg !759
+  %53 = icmp sge i32 %52, 0, !dbg !760
+  %54 = zext i1 %53 to i32, !dbg !760
+  %55 = sext i32 %54 to i64, !dbg !759
+  call void @klee_assume(i64 noundef %55), !dbg !761
+  %56 = bitcast i32* %9 to i8*, !dbg !762
+  call void @klee_make_symbolic(i8* noundef %56, i64 noundef 4, i8* noundef getelementptr inbounds ([8 x i8], [8 x i8]* @.str.5, i64 0, i64 0)), !dbg !763
+  %57 = load i32, i32* %9, align 4, !dbg !764
+  %58 = icmp sge i32 %57, 0, !dbg !765
+  %59 = zext i1 %58 to i32, !dbg !765
+  %60 = sext i32 %59 to i64, !dbg !764
+  call void @klee_assume(i64 noundef %60), !dbg !766
+  %61 = bitcast i32* %10 to i8*, !dbg !767
+  call void @klee_make_symbolic(i8* noundef %61, i64 noundef 4, i8* noundef getelementptr inbounds ([5 x i8], [5 x i8]* @.str.6, i64 0, i64 0)), !dbg !768
+  %62 = load i32, i32* %10, align 4, !dbg !769
+  %63 = icmp sge i32 %62, 0, !dbg !770
+  %64 = zext i1 %63 to i32, !dbg !770
+  %65 = sext i32 %64 to i64, !dbg !769
+  call void @klee_assume(i64 noundef %65), !dbg !771
+  %66 = bitcast i32* %11 to i8*, !dbg !772
+  call void @klee_make_symbolic(i8* noundef %66, i64 noundef 4, i8* noundef getelementptr inbounds ([13 x i8], [13 x i8]* @.str.7, i64 0, i64 0)), !dbg !773
+  %67 = load %struct._xmlNode*, %struct._xmlNode** %4, align 8, !dbg !774
+  %68 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !775
+  %69 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %68, i32 0, i32 13, !dbg !776
+  store %struct._xmlNode* %67, %struct._xmlNode** %69, align 8, !dbg !777
+  %70 = load i32, i32* %8, align 4, !dbg !778
+  %71 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !779
+  %72 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %71, i32 0, i32 48, !dbg !780
+  store i32 %70, i32* %72, align 4, !dbg !781
+  %73 = load i32, i32* %9, align 4, !dbg !782
+  %74 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !783
+  %75 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %74, i32 0, i32 49, !dbg !784
+  store i32 %73, i32* %75, align 8, !dbg !785
+  %76 = load i32, i32* %7, align 4, !dbg !786
+  %77 = add nsw i32 %76, 1, !dbg !787
+  %78 = sext i32 %77 to i64, !dbg !788
+  %79 = mul i64 %78, 1, !dbg !789
+  %80 = call noalias i8* @malloc(i64 noundef %79) #7, !dbg !790
+  store i8* %80, i8** %6, align 8, !dbg !791
+  %81 = load i8*, i8** %6, align 8, !dbg !792
+  %82 = icmp eq i8* %81, null, !dbg !794
+  br i1 %82, label %83, label %86, !dbg !795
 
-62:                                               ; preds = %46
-  %63 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !775
-  call void @xmlFreeDoc(%struct._xmlDoc* noundef %63), !dbg !777
-  %64 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !778
-  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %64), !dbg !779
-  store i32 1, i32* %1, align 4, !dbg !780
-  br label %194, !dbg !780
+83:                                               ; preds = %42
+  %84 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !796
+  call void @xmlFreeDoc(%struct._xmlDoc* noundef %84), !dbg !798
+  %85 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !799
+  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %85), !dbg !800
+  store i32 1, i32* %1, align 4, !dbg !801
+  br label %209, !dbg !801
 
-65:                                               ; preds = %46
-  %66 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !781
-  %67 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %66, i32 0, i32 10, !dbg !782
-  %68 = load i8*, i8** %67, align 8, !dbg !782
-  %69 = getelementptr inbounds i8, i8* %68, i64 0, !dbg !781
-  store i8 0, i8* %69, align 1, !dbg !783
-  %70 = bitcast i32* %7 to i8*, !dbg !784
-  call void @klee_make_symbolic(i8* noundef %70, i64 noundef 4, i8* noundef getelementptr inbounds ([4 x i8], [4 x i8]* @.str.3, i64 0, i64 0)), !dbg !785
-  %71 = load i32, i32* %7, align 4, !dbg !786
-  %72 = icmp sge i32 %71, 0, !dbg !787
-  %73 = zext i1 %72 to i32, !dbg !787
-  %74 = sext i32 %73 to i64, !dbg !786
-  call void @klee_assume(i64 noundef %74), !dbg !788
-  %75 = bitcast i32* %8 to i8*, !dbg !789
-  call void @klee_make_symbolic(i8* noundef %75, i64 noundef 4, i8* noundef getelementptr inbounds ([8 x i8], [8 x i8]* @.str.4, i64 0, i64 0)), !dbg !790
-  %76 = load i32, i32* %8, align 4, !dbg !791
-  %77 = icmp sge i32 %76, 0, !dbg !792
-  %78 = zext i1 %77 to i32, !dbg !792
-  %79 = sext i32 %78 to i64, !dbg !791
-  call void @klee_assume(i64 noundef %79), !dbg !793
-  %80 = bitcast i32* %9 to i8*, !dbg !794
-  call void @klee_make_symbolic(i8* noundef %80, i64 noundef 4, i8* noundef getelementptr inbounds ([8 x i8], [8 x i8]* @.str.5, i64 0, i64 0)), !dbg !795
-  %81 = load i32, i32* %9, align 4, !dbg !796
-  %82 = icmp sge i32 %81, 0, !dbg !797
-  %83 = zext i1 %82 to i32, !dbg !797
-  %84 = sext i32 %83 to i64, !dbg !796
-  call void @klee_assume(i64 noundef %84), !dbg !798
-  %85 = bitcast i32* %10 to i8*, !dbg !799
-  call void @klee_make_symbolic(i8* noundef %85, i64 noundef 4, i8* noundef getelementptr inbounds ([5 x i8], [5 x i8]* @.str.6, i64 0, i64 0)), !dbg !800
-  %86 = load i32, i32* %10, align 4, !dbg !801
-  %87 = icmp sge i32 %86, 0, !dbg !802
-  %88 = zext i1 %87 to i32, !dbg !802
-  %89 = sext i32 %88 to i64, !dbg !801
-  call void @klee_assume(i64 noundef %89), !dbg !803
-  %90 = bitcast i32* %11 to i8*, !dbg !804
-  call void @klee_make_symbolic(i8* noundef %90, i64 noundef 4, i8* noundef getelementptr inbounds ([13 x i8], [13 x i8]* @.str.7, i64 0, i64 0)), !dbg !805
-  %91 = load i32, i32* %8, align 4, !dbg !806
-  %92 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !807
-  %93 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %92, i32 0, i32 48, !dbg !808
-  store i32 %91, i32* %93, align 4, !dbg !809
-  %94 = load i32, i32* %9, align 4, !dbg !810
-  %95 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !811
-  %96 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %95, i32 0, i32 49, !dbg !812
-  store i32 %94, i32* %96, align 8, !dbg !813
-  %97 = load i8* (i64)*, i8* (i64)** @xmlMalloc, align 8, !dbg !814
-  %98 = load i32, i32* %7, align 4, !dbg !815
-  %99 = add nsw i32 %98, 1, !dbg !816
-  %100 = sext i32 %99 to i64, !dbg !815
-  %101 = call i8* %97(i64 noundef %100), !dbg !814
-  store i8* %101, i8** %6, align 8, !dbg !817
-  %102 = load i8*, i8** %6, align 8, !dbg !818
-  %103 = icmp eq i8* %102, null, !dbg !820
-  br i1 %103, label %104, label %107, !dbg !821
+86:                                               ; preds = %42
+  %87 = load i8*, i8** %6, align 8, !dbg !802
+  %88 = load i32, i32* %7, align 4, !dbg !803
+  %89 = add nsw i32 %88, 1, !dbg !804
+  %90 = sext i32 %89 to i64, !dbg !805
+  %91 = mul i64 %90, 1, !dbg !806
+  call void @klee_make_symbolic(i8* noundef %87, i64 noundef %91, i8* noundef getelementptr inbounds ([3 x i8], [3 x i8]* @.str.8, i64 0, i64 0)), !dbg !807
+  %92 = load i8*, i8** %6, align 8, !dbg !808
+  %93 = load i32, i32* %7, align 4, !dbg !809
+  %94 = sext i32 %93 to i64, !dbg !808
+  %95 = getelementptr inbounds i8, i8* %92, i64 %94, !dbg !808
+  store i8 0, i8* %95, align 1, !dbg !810
+  %96 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !811
+  %97 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %96, i32 0, i32 1, !dbg !813
+  %98 = load i32, i32* %97, align 8, !dbg !813
+  %99 = icmp eq i32 %98, 3, !dbg !814
+  br i1 %99, label %100, label %132, !dbg !815
 
-104:                                              ; preds = %65
-  %105 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !822
-  call void @xmlFreeDoc(%struct._xmlDoc* noundef %105), !dbg !824
-  %106 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !825
-  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %106), !dbg !826
-  store i32 1, i32* %1, align 4, !dbg !827
-  br label %194, !dbg !827
+100:                                              ; preds = %86
+  %101 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !816
+  %102 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %101, i32 0, i32 10, !dbg !817
+  %103 = load i8*, i8** %102, align 8, !dbg !817
+  %104 = icmp ne i8* %103, null, !dbg !818
+  br i1 %104, label %105, label %132, !dbg !819
 
-107:                                              ; preds = %65
-  %108 = load i8*, i8** %6, align 8, !dbg !828
-  %109 = load i32, i32* %7, align 4, !dbg !829
-  %110 = add nsw i32 %109, 1, !dbg !830
-  %111 = sext i32 %110 to i64, !dbg !829
-  call void @klee_make_symbolic(i8* noundef %108, i64 noundef %111, i8* noundef getelementptr inbounds ([3 x i8], [3 x i8]* @.str.8, i64 0, i64 0)), !dbg !831
-  %112 = load i8*, i8** %6, align 8, !dbg !832
-  %113 = load i32, i32* %7, align 4, !dbg !833
-  %114 = sext i32 %113 to i64, !dbg !832
-  %115 = getelementptr inbounds i8, i8* %112, i64 %114, !dbg !832
-  store i8 0, i8* %115, align 1, !dbg !834
-  %116 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !835
-  %117 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %116, i32 0, i32 49, !dbg !837
-  %118 = load i32, i32* %117, align 8, !dbg !837
-  %119 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !838
-  %120 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %119, i32 0, i32 48, !dbg !839
-  %121 = load i32, i32* %120, align 4, !dbg !839
-  %122 = sub nsw i32 %118, %121, !dbg !840
-  %123 = load i32, i32* %7, align 4, !dbg !841
-  %124 = icmp slt i32 %122, %123, !dbg !842
-  br i1 %124, label %125, label %163, !dbg !843
+105:                                              ; preds = %100
+  %106 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !820
+  %107 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %106, i32 0, i32 49, !dbg !821
+  %108 = load i32, i32* %107, align 8, !dbg !821
+  %109 = icmp eq i32 %108, 0, !dbg !822
+  br i1 %109, label %110, label %132, !dbg !823
 
-125:                                              ; preds = %107
-  %126 = load i32, i32* %10, align 4, !dbg !844
-  %127 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !847
-  %128 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %127, i32 0, i32 48, !dbg !848
-  %129 = load i32, i32* %128, align 4, !dbg !848
-  %130 = load i32, i32* %7, align 4, !dbg !849
-  %131 = add nsw i32 %129, %130, !dbg !850
-  %132 = add nsw i32 %131, 1, !dbg !851
-  %133 = icmp slt i32 %126, %132, !dbg !852
-  br i1 %133, label %134, label %141, !dbg !853
+110:                                              ; preds = %105
+  %111 = load i32, i32* %10, align 4, !dbg !824
+  %112 = icmp sgt i32 %111, 0, !dbg !825
+  br i1 %112, label %113, label %132, !dbg !826
 
-134:                                              ; preds = %125
-  %135 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !854
-  %136 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %135, i32 0, i32 48, !dbg !856
-  %137 = load i32, i32* %136, align 4, !dbg !856
-  %138 = load i32, i32* %7, align 4, !dbg !857
-  %139 = add nsw i32 %137, %138, !dbg !858
-  %140 = add nsw i32 %139, 1, !dbg !859
-  store i32 %140, i32* %10, align 4, !dbg !860
-  br label %141, !dbg !861
+113:                                              ; preds = %110
+  %114 = load i32, i32* %10, align 4, !dbg !827
+  %115 = sext i32 %114 to i64, !dbg !827
+  %116 = mul i64 %115, 1, !dbg !829
+  %117 = call noalias i8* @malloc(i64 noundef %116) #7, !dbg !830
+  %118 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !831
+  %119 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %118, i32 0, i32 10, !dbg !832
+  store i8* %117, i8** %119, align 8, !dbg !833
+  %120 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !834
+  %121 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %120, i32 0, i32 10, !dbg !836
+  %122 = load i8*, i8** %121, align 8, !dbg !836
+  %123 = icmp eq i8* %122, null, !dbg !837
+  br i1 %123, label %124, label %128, !dbg !838
 
-141:                                              ; preds = %134, %125
-  call void @llvm.dbg.declare(metadata i8** %12, metadata !862, metadata !DIExpression()), !dbg !863
-  %142 = load i8* (i8*, i64)*, i8* (i8*, i64)** @xmlRealloc, align 8, !dbg !864
-  %143 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !865
-  %144 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %143, i32 0, i32 10, !dbg !866
-  %145 = load i8*, i8** %144, align 8, !dbg !866
-  %146 = load i32, i32* %10, align 4, !dbg !867
-  %147 = sext i32 %146 to i64, !dbg !867
-  %148 = call i8* %142(i8* noundef %145, i64 noundef %147), !dbg !864
-  store i8* %148, i8** %12, align 8, !dbg !863
-  %149 = load i8*, i8** %12, align 8, !dbg !868
-  %150 = icmp eq i8* %149, null, !dbg !870
-  br i1 %150, label %151, label %156, !dbg !871
+124:                                              ; preds = %113
+  %125 = load i8*, i8** %6, align 8, !dbg !839
+  call void @free(i8* noundef %125) #7, !dbg !841
+  %126 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !842
+  call void @xmlFreeDoc(%struct._xmlDoc* noundef %126), !dbg !843
+  %127 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !844
+  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %127), !dbg !845
+  store i32 1, i32* %1, align 4, !dbg !846
+  br label %209, !dbg !846
 
-151:                                              ; preds = %141
-  %152 = load void (i8*)*, void (i8*)** @xmlFree, align 8, !dbg !872
-  %153 = load i8*, i8** %6, align 8, !dbg !874
-  call void %152(i8* noundef %153), !dbg !872
-  %154 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !875
-  call void @xmlFreeDoc(%struct._xmlDoc* noundef %154), !dbg !876
-  %155 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !877
-  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %155), !dbg !878
-  store i32 1, i32* %1, align 4, !dbg !879
-  br label %194, !dbg !879
+128:                                              ; preds = %113
+  %129 = load i32, i32* %10, align 4, !dbg !847
+  %130 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !848
+  %131 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %130, i32 0, i32 49, !dbg !849
+  store i32 %129, i32* %131, align 8, !dbg !850
+  br label %132, !dbg !851
 
-156:                                              ; preds = %141
-  %157 = load i32, i32* %10, align 4, !dbg !880
-  %158 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !881
-  %159 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %158, i32 0, i32 49, !dbg !882
-  store i32 %157, i32* %159, align 8, !dbg !883
-  %160 = load i8*, i8** %12, align 8, !dbg !884
-  %161 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !885
-  %162 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %161, i32 0, i32 10, !dbg !886
-  store i8* %160, i8** %162, align 8, !dbg !887
-  br label %163, !dbg !888
+132:                                              ; preds = %128, %110, %105, %100, %86
+  %133 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !852
+  %134 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %133, i32 0, i32 1, !dbg !854
+  %135 = load i32, i32* %134, align 8, !dbg !854
+  %136 = icmp eq i32 %135, 3, !dbg !855
+  br i1 %136, label %137, label %179, !dbg !856
 
-163:                                              ; preds = %156, %107
-  %164 = call i32 (i8*, i8*, i32, i8*, ...) bitcast (i32 (...)* @__assert_fail to i32 (i8*, i8*, i32, i8*, ...)*)(i8* noundef getelementptr inbounds ([26 x i8], [26 x i8]* @.str.9, i64 0, i64 0), i8* noundef getelementptr inbounds ([103 x i8], [103 x i8]* @.str.10, i64 0, i64 0), i32 noundef 85, i8* noundef getelementptr inbounds ([15 x i8], [15 x i8]* @__PRETTY_FUNCTION__.main, i64 0, i64 0)), !dbg !889
-  %165 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !890
-  %166 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %165, i32 0, i32 10, !dbg !891
-  %167 = load i8*, i8** %166, align 8, !dbg !891
-  %168 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !892
-  %169 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %168, i32 0, i32 48, !dbg !893
-  %170 = load i32, i32* %169, align 4, !dbg !893
-  %171 = sext i32 %170 to i64, !dbg !890
-  %172 = getelementptr inbounds i8, i8* %167, i64 %171, !dbg !890
-  %173 = load i8*, i8** %6, align 8, !dbg !894
-  %174 = load i32, i32* %7, align 4, !dbg !895
-  %175 = sext i32 %174 to i64, !dbg !895
-  %176 = call i8* @memcpy(i8* %172, i8* %173, i64 %175), !dbg !896
-  %177 = load i32, i32* %7, align 4, !dbg !897
-  %178 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !898
-  %179 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %178, i32 0, i32 48, !dbg !899
-  %180 = load i32, i32* %179, align 4, !dbg !900
-  %181 = add nsw i32 %180, %177, !dbg !900
-  store i32 %181, i32* %179, align 4, !dbg !900
-  %182 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !901
-  %183 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %182, i32 0, i32 10, !dbg !902
-  %184 = load i8*, i8** %183, align 8, !dbg !902
-  %185 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !903
-  %186 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %185, i32 0, i32 48, !dbg !904
-  %187 = load i32, i32* %186, align 4, !dbg !904
-  %188 = sext i32 %187 to i64, !dbg !901
-  %189 = getelementptr inbounds i8, i8* %184, i64 %188, !dbg !901
-  store i8 0, i8* %189, align 1, !dbg !905
-  %190 = load void (i8*)*, void (i8*)** @xmlFree, align 8, !dbg !906
-  %191 = load i8*, i8** %6, align 8, !dbg !907
-  call void %190(i8* noundef %191), !dbg !906
-  %192 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !908
-  call void @xmlFreeDoc(%struct._xmlDoc* noundef %192), !dbg !909
-  %193 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !910
-  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %193), !dbg !911
-  store i32 0, i32* %1, align 4, !dbg !912
-  br label %194, !dbg !912
+137:                                              ; preds = %132
+  %138 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !857
+  %139 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %138, i32 0, i32 10, !dbg !858
+  %140 = load i8*, i8** %139, align 8, !dbg !858
+  %141 = icmp ne i8* %140, null, !dbg !859
+  br i1 %141, label %142, label %179, !dbg !860
 
-194:                                              ; preds = %163, %151, %104, %62, %43, %27, %21, %16
-  %195 = load i32, i32* %1, align 4, !dbg !913
-  ret i32 %195, !dbg !913
+142:                                              ; preds = %137
+  %143 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !861
+  %144 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %143, i32 0, i32 49, !dbg !862
+  %145 = load i32, i32* %144, align 8, !dbg !862
+  %146 = icmp sgt i32 %145, 0, !dbg !863
+  br i1 %146, label %147, label %179, !dbg !864
+
+147:                                              ; preds = %142
+  %148 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !865
+  %149 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %148, i32 0, i32 48, !dbg !866
+  %150 = load i32, i32* %149, align 4, !dbg !866
+  %151 = load i32, i32* %7, align 4, !dbg !867
+  %152 = add nsw i32 %150, %151, !dbg !868
+  %153 = add nsw i32 %152, 1, !dbg !869
+  %154 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !870
+  %155 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %154, i32 0, i32 49, !dbg !871
+  %156 = load i32, i32* %155, align 8, !dbg !871
+  %157 = icmp sgt i32 %153, %156, !dbg !872
+  br i1 %157, label %158, label %179, !dbg !873
+
+158:                                              ; preds = %147
+  call void @llvm.dbg.declare(metadata i8** %12, metadata !874, metadata !DIExpression()), !dbg !876
+  %159 = load i8* (i8*, i64)*, i8* (i8*, i64)** @xmlRealloc, align 8, !dbg !877
+  %160 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !878
+  %161 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %160, i32 0, i32 10, !dbg !879
+  %162 = load i8*, i8** %161, align 8, !dbg !879
+  %163 = load i32, i32* %10, align 4, !dbg !880
+  %164 = sext i32 %163 to i64, !dbg !880
+  %165 = call i8* %159(i8* noundef %162, i64 noundef %164), !dbg !877
+  store i8* %165, i8** %12, align 8, !dbg !876
+  %166 = load i8*, i8** %12, align 8, !dbg !881
+  %167 = icmp eq i8* %166, null, !dbg !883
+  br i1 %167, label %168, label %172, !dbg !884
+
+168:                                              ; preds = %158
+  %169 = load i8*, i8** %6, align 8, !dbg !885
+  call void @free(i8* noundef %169) #7, !dbg !887
+  %170 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !888
+  call void @xmlFreeDoc(%struct._xmlDoc* noundef %170), !dbg !889
+  %171 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !890
+  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %171), !dbg !891
+  store i32 1, i32* %1, align 4, !dbg !892
+  br label %209, !dbg !892
+
+172:                                              ; preds = %158
+  %173 = load i32, i32* %10, align 4, !dbg !893
+  %174 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !894
+  %175 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %174, i32 0, i32 49, !dbg !895
+  store i32 %173, i32* %175, align 8, !dbg !896
+  %176 = load i8*, i8** %12, align 8, !dbg !897
+  %177 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !898
+  %178 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %177, i32 0, i32 10, !dbg !899
+  store i8* %176, i8** %178, align 8, !dbg !900
+  br label %179, !dbg !901
+
+179:                                              ; preds = %172, %147, %142, %137, %132
+  %180 = call i32 (i8*, i8*, i32, i8*, ...) bitcast (i32 (...)* @__assert_fail to i32 (i8*, i8*, i32, i8*, ...)*)(i8* noundef getelementptr inbounds ([26 x i8], [26 x i8]* @.str.9, i64 0, i64 0), i8* noundef getelementptr inbounds ([103 x i8], [103 x i8]* @.str.10, i64 0, i64 0), i32 noundef 86, i8* noundef getelementptr inbounds ([15 x i8], [15 x i8]* @__PRETTY_FUNCTION__.main, i64 0, i64 0)), !dbg !902
+  %181 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !903
+  %182 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %181, i32 0, i32 10, !dbg !904
+  %183 = load i8*, i8** %182, align 8, !dbg !904
+  %184 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !905
+  %185 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %184, i32 0, i32 48, !dbg !906
+  %186 = load i32, i32* %185, align 4, !dbg !906
+  %187 = sext i32 %186 to i64, !dbg !903
+  %188 = getelementptr inbounds i8, i8* %183, i64 %187, !dbg !903
+  %189 = load i8*, i8** %6, align 8, !dbg !907
+  %190 = load i32, i32* %7, align 4, !dbg !908
+  %191 = sext i32 %190 to i64, !dbg !908
+  %192 = call i8* @memcpy(i8* %188, i8* %189, i64 %191), !dbg !909
+  %193 = load i32, i32* %7, align 4, !dbg !910
+  %194 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !911
+  %195 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %194, i32 0, i32 48, !dbg !912
+  %196 = load i32, i32* %195, align 4, !dbg !913
+  %197 = add nsw i32 %196, %193, !dbg !913
+  store i32 %197, i32* %195, align 4, !dbg !913
+  %198 = load %struct._xmlNode*, %struct._xmlNode** %5, align 8, !dbg !914
+  %199 = getelementptr inbounds %struct._xmlNode, %struct._xmlNode* %198, i32 0, i32 10, !dbg !915
+  %200 = load i8*, i8** %199, align 8, !dbg !915
+  %201 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !916
+  %202 = getelementptr inbounds %struct._xmlParserCtxt, %struct._xmlParserCtxt* %201, i32 0, i32 48, !dbg !917
+  %203 = load i32, i32* %202, align 4, !dbg !917
+  %204 = sext i32 %203 to i64, !dbg !914
+  %205 = getelementptr inbounds i8, i8* %200, i64 %204, !dbg !914
+  store i8 0, i8* %205, align 1, !dbg !918
+  %206 = load i8*, i8** %6, align 8, !dbg !919
+  call void @free(i8* noundef %206) #7, !dbg !920
+  %207 = load %struct._xmlDoc*, %struct._xmlDoc** %3, align 8, !dbg !921
+  call void @xmlFreeDoc(%struct._xmlDoc* noundef %207), !dbg !922
+  %208 = load %struct._xmlParserCtxt*, %struct._xmlParserCtxt** %2, align 8, !dbg !923
+  call void @xmlFreeParserCtxt(%struct._xmlParserCtxt* noundef %208), !dbg !924
+  store i32 0, i32* %1, align 4, !dbg !925
+  br label %209, !dbg !925
+
+209:                                              ; preds = %179, %168, %124, %83, %39, %29, %23, %18
+  %210 = load i32, i32* %1, align 4, !dbg !926
+  ret i32 %210, !dbg !926
 }
 
 ; Function Attrs: nofree nosync nounwind readnone speculatable willreturn
 declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-declare %struct._xmlParserCtxt* @xmlCreatePushParserCtxt(%struct._xmlSAXHandler* noundef, i8* noundef, i8* noundef, i32 noundef, i8* noundef) #2
+declare i32 @xmlCreateParserCtxt(...) #2
 
 declare %struct._xmlDoc* @xmlNewDoc(i8* noundef) #2
 
@@ -373,69 +395,77 @@ declare void @klee_make_symbolic(i8* noundef, i64 noundef, i8* noundef) #2
 
 declare void @klee_assume(i64 noundef) #2
 
+; Function Attrs: nounwind
+declare noalias i8* @malloc(i64 noundef) #3
+
+; Function Attrs: nounwind
+declare void @free(i8* noundef) #3
+
 ; Function Attrs: noreturn
-declare i32 @__assert_fail(...) #3
+declare i32 @__assert_fail(...) #4
 
 ; Function Attrs: argmemonly nofree nounwind willreturn
-declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly, i8* noalias nocapture readonly, i64, i1 immarg) #4
+declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly, i8* noalias nocapture readonly, i64, i1 immarg) #5
 
 ; Function Attrs: noinline nounwind uwtable
-define dso_local i8* @memcpy(i8* noundef %0, i8* noundef %1, i64 noundef %2) #5 !dbg !914 {
+define dso_local i8* @memcpy(i8* noundef %0, i8* noundef %1, i64 noundef %2) #6 !dbg !927 {
   %4 = alloca i8*, align 8
   %5 = alloca i8*, align 8
   %6 = alloca i64, align 8
   %7 = alloca i8*, align 8
   %8 = alloca i8*, align 8
   store i8* %0, i8** %4, align 8
-  call void @llvm.dbg.declare(metadata i8** %4, metadata !922, metadata !DIExpression()), !dbg !923
+  call void @llvm.dbg.declare(metadata i8** %4, metadata !935, metadata !DIExpression()), !dbg !936
   store i8* %1, i8** %5, align 8
-  call void @llvm.dbg.declare(metadata i8** %5, metadata !924, metadata !DIExpression()), !dbg !925
+  call void @llvm.dbg.declare(metadata i8** %5, metadata !937, metadata !DIExpression()), !dbg !938
   store i64 %2, i64* %6, align 8
-  call void @llvm.dbg.declare(metadata i64* %6, metadata !926, metadata !DIExpression()), !dbg !927
-  call void @llvm.dbg.declare(metadata i8** %7, metadata !928, metadata !DIExpression()), !dbg !929
-  %9 = load i8*, i8** %4, align 8, !dbg !930
-  store i8* %9, i8** %7, align 8, !dbg !929
-  call void @llvm.dbg.declare(metadata i8** %8, metadata !931, metadata !DIExpression()), !dbg !932
-  %10 = load i8*, i8** %5, align 8, !dbg !933
-  store i8* %10, i8** %8, align 8, !dbg !932
-  br label %11, !dbg !934
+  call void @llvm.dbg.declare(metadata i64* %6, metadata !939, metadata !DIExpression()), !dbg !940
+  call void @llvm.dbg.declare(metadata i8** %7, metadata !941, metadata !DIExpression()), !dbg !942
+  %9 = load i8*, i8** %4, align 8, !dbg !943
+  store i8* %9, i8** %7, align 8, !dbg !942
+  call void @llvm.dbg.declare(metadata i8** %8, metadata !944, metadata !DIExpression()), !dbg !945
+  %10 = load i8*, i8** %5, align 8, !dbg !946
+  store i8* %10, i8** %8, align 8, !dbg !945
+  br label %11, !dbg !947
 
 11:                                               ; preds = %15, %3
-  %12 = load i64, i64* %6, align 8, !dbg !935
-  %13 = add i64 %12, -1, !dbg !935
-  store i64 %13, i64* %6, align 8, !dbg !935
-  %14 = icmp ugt i64 %12, 0, !dbg !936
-  br i1 %14, label %15, label %21, !dbg !934
+  %12 = load i64, i64* %6, align 8, !dbg !948
+  %13 = add i64 %12, -1, !dbg !948
+  store i64 %13, i64* %6, align 8, !dbg !948
+  %14 = icmp ugt i64 %12, 0, !dbg !949
+  br i1 %14, label %15, label %21, !dbg !947
 
 15:                                               ; preds = %11
-  %16 = load i8*, i8** %8, align 8, !dbg !937
-  %17 = getelementptr inbounds i8, i8* %16, i32 1, !dbg !937
-  store i8* %17, i8** %8, align 8, !dbg !937
-  %18 = load i8, i8* %16, align 1, !dbg !938
-  %19 = load i8*, i8** %7, align 8, !dbg !939
-  %20 = getelementptr inbounds i8, i8* %19, i32 1, !dbg !939
-  store i8* %20, i8** %7, align 8, !dbg !939
-  store i8 %18, i8* %19, align 1, !dbg !940
-  br label %11, !dbg !934, !llvm.loop !941
+  %16 = load i8*, i8** %8, align 8, !dbg !950
+  %17 = getelementptr inbounds i8, i8* %16, i32 1, !dbg !950
+  store i8* %17, i8** %8, align 8, !dbg !950
+  %18 = load i8, i8* %16, align 1, !dbg !951
+  %19 = load i8*, i8** %7, align 8, !dbg !952
+  %20 = getelementptr inbounds i8, i8* %19, i32 1, !dbg !952
+  store i8* %20, i8** %7, align 8, !dbg !952
+  store i8 %18, i8* %19, align 1, !dbg !953
+  br label %11, !dbg !947, !llvm.loop !954
 
 21:                                               ; preds = %11
-  %22 = load i8*, i8** %4, align 8, !dbg !943
-  ret i8* %22, !dbg !944
+  %22 = load i8*, i8** %4, align 8, !dbg !956
+  ret i8* %22, !dbg !957
 }
 
 attributes #0 = { noinline nounwind optnone uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #1 = { nofree nosync nounwind readnone speculatable willreturn }
 attributes #2 = { "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #3 = { noreturn "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #4 = { argmemonly nofree nounwind willreturn }
-attributes #5 = { noinline nounwind uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #3 = { nounwind "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #4 = { noreturn "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #5 = { argmemonly nofree nounwind willreturn }
+attributes #6 = { noinline nounwind uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #7 = { nounwind }
 
 !llvm.dbg.cu = !{!0, !104}
 !llvm.module.flags = !{!106, !107, !108, !109, !110, !111, !112}
 !llvm.ident = !{!113, !113}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C99, file: !1, producer: "Ubuntu clang version 14.0.6", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug, enums: !2, retainedTypes: !98, splitDebugInlining: false, nameTableKind: None)
-!1 = !DIFile(filename: "se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c", directory: "/home/shafi/WorkDrive/SAILR", checksumkind: CSK_MD5, checksum: "4c4ff5766bda8b68411e01311d757baf")
+!1 = !DIFile(filename: "se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c", directory: "/home/shafi/WorkDrive/SAILR", checksumkind: CSK_MD5, checksum: "5fb234525cdc237933d50529183b9b2d")
 !2 = !{!3, !28, !40, !49, !55, !61, !68, !90}
 !3 = !DICompositeType(tag: DW_TAG_enumeration_type, file: !4, line: 159, baseType: !5, size: 32, elements: !6)
 !4 = !DIFile(filename: "/usr/include/libxml2/libxml/tree.h", directory: "", checksumkind: CSK_MD5, checksum: "750bac4395c48684302094dba58dc4a1")
@@ -1156,226 +1186,239 @@ attributes #5 = { noinline nounwind uwtable "frame-pointer"="all" "min-legal-vec
 !719 = distinct !DILexicalBlock(scope: !715, file: !1, line: 17, column: 22)
 !720 = !DILocation(line: 18, column: 9, scope: !719)
 !721 = !DILocation(line: 19, column: 9, scope: !719)
-!722 = !DILocation(line: 21, column: 12, scope: !114)
-!723 = !DILocation(line: 21, column: 10, scope: !114)
-!724 = !DILocation(line: 22, column: 9, scope: !725)
-!725 = distinct !DILexicalBlock(scope: !114, file: !1, line: 22, column: 9)
-!726 = !DILocation(line: 22, column: 14, scope: !725)
-!727 = !DILocation(line: 22, column: 9, scope: !114)
-!728 = !DILocation(line: 23, column: 20, scope: !729)
-!729 = distinct !DILexicalBlock(scope: !725, file: !1, line: 22, column: 23)
-!730 = !DILocation(line: 23, column: 9, scope: !729)
-!731 = !DILocation(line: 24, column: 27, scope: !729)
-!732 = !DILocation(line: 24, column: 9, scope: !729)
-!733 = !DILocation(line: 25, column: 9, scope: !729)
-!734 = !DILocation(line: 27, column: 26, scope: !114)
-!735 = !DILocation(line: 27, column: 31, scope: !114)
-!736 = !DILocation(line: 27, column: 5, scope: !114)
-!737 = !DILocation(line: 28, column: 19, scope: !114)
-!738 = !DILocation(line: 28, column: 5, scope: !114)
-!739 = !DILocation(line: 28, column: 11, scope: !114)
-!740 = !DILocation(line: 28, column: 17, scope: !114)
-!741 = !DILocation(line: 29, column: 18, scope: !114)
-!742 = !DILocation(line: 29, column: 5, scope: !114)
-!743 = !DILocation(line: 29, column: 11, scope: !114)
-!744 = !DILocation(line: 29, column: 16, scope: !114)
-!745 = !DILocation(line: 31, column: 17, scope: !114)
-!746 = !DILocation(line: 31, column: 15, scope: !114)
-!747 = !DILocation(line: 32, column: 9, scope: !748)
-!748 = distinct !DILexicalBlock(scope: !114, file: !1, line: 32, column: 9)
-!749 = !DILocation(line: 32, column: 19, scope: !748)
-!750 = !DILocation(line: 32, column: 9, scope: !114)
-!751 = !DILocation(line: 33, column: 20, scope: !752)
-!752 = distinct !DILexicalBlock(scope: !748, file: !1, line: 32, column: 28)
-!753 = !DILocation(line: 33, column: 9, scope: !752)
-!754 = !DILocation(line: 34, column: 27, scope: !752)
-!755 = !DILocation(line: 34, column: 9, scope: !752)
-!756 = !DILocation(line: 35, column: 9, scope: !752)
-!757 = !DILocation(line: 37, column: 17, scope: !114)
-!758 = !DILocation(line: 37, column: 23, scope: !114)
-!759 = !DILocation(line: 37, column: 5, scope: !114)
-!760 = !DILocation(line: 38, column: 5, scope: !114)
-!761 = !DILocation(line: 38, column: 11, scope: !114)
-!762 = !DILocation(line: 38, column: 19, scope: !114)
-!763 = !DILocation(line: 39, column: 5, scope: !114)
-!764 = !DILocation(line: 39, column: 11, scope: !114)
-!765 = !DILocation(line: 39, column: 19, scope: !114)
-!766 = !DILocation(line: 40, column: 37, scope: !114)
-!767 = !DILocation(line: 40, column: 5, scope: !114)
-!768 = !DILocation(line: 40, column: 16, scope: !114)
-!769 = !DILocation(line: 40, column: 24, scope: !114)
-!770 = !DILocation(line: 41, column: 9, scope: !771)
-!771 = distinct !DILexicalBlock(scope: !114, file: !1, line: 41, column: 9)
-!772 = !DILocation(line: 41, column: 20, scope: !771)
-!773 = !DILocation(line: 41, column: 28, scope: !771)
-!774 = !DILocation(line: 41, column: 9, scope: !114)
-!775 = !DILocation(line: 42, column: 20, scope: !776)
-!776 = distinct !DILexicalBlock(scope: !771, file: !1, line: 41, column: 37)
-!777 = !DILocation(line: 42, column: 9, scope: !776)
-!778 = !DILocation(line: 43, column: 27, scope: !776)
-!779 = !DILocation(line: 43, column: 9, scope: !776)
-!780 = !DILocation(line: 44, column: 9, scope: !776)
-!781 = !DILocation(line: 46, column: 5, scope: !114)
-!782 = !DILocation(line: 46, column: 16, scope: !114)
-!783 = !DILocation(line: 46, column: 27, scope: !114)
-!784 = !DILocation(line: 48, column: 24, scope: !114)
-!785 = !DILocation(line: 48, column: 5, scope: !114)
-!786 = !DILocation(line: 49, column: 17, scope: !114)
-!787 = !DILocation(line: 49, column: 21, scope: !114)
-!788 = !DILocation(line: 49, column: 5, scope: !114)
-!789 = !DILocation(line: 50, column: 24, scope: !114)
-!790 = !DILocation(line: 50, column: 5, scope: !114)
-!791 = !DILocation(line: 51, column: 17, scope: !114)
-!792 = !DILocation(line: 51, column: 25, scope: !114)
-!793 = !DILocation(line: 51, column: 5, scope: !114)
-!794 = !DILocation(line: 52, column: 24, scope: !114)
-!795 = !DILocation(line: 52, column: 5, scope: !114)
-!796 = !DILocation(line: 53, column: 17, scope: !114)
-!797 = !DILocation(line: 53, column: 25, scope: !114)
-!798 = !DILocation(line: 53, column: 5, scope: !114)
-!799 = !DILocation(line: 54, column: 24, scope: !114)
-!800 = !DILocation(line: 54, column: 5, scope: !114)
-!801 = !DILocation(line: 55, column: 17, scope: !114)
-!802 = !DILocation(line: 55, column: 22, scope: !114)
-!803 = !DILocation(line: 55, column: 5, scope: !114)
-!804 = !DILocation(line: 56, column: 24, scope: !114)
-!805 = !DILocation(line: 56, column: 5, scope: !114)
-!806 = !DILocation(line: 58, column: 21, scope: !114)
+!722 = !DILocation(line: 22, column: 12, scope: !114)
+!723 = !DILocation(line: 22, column: 10, scope: !114)
+!724 = !DILocation(line: 23, column: 9, scope: !725)
+!725 = distinct !DILexicalBlock(scope: !114, file: !1, line: 23, column: 9)
+!726 = !DILocation(line: 23, column: 14, scope: !725)
+!727 = !DILocation(line: 23, column: 9, scope: !114)
+!728 = !DILocation(line: 24, column: 20, scope: !729)
+!729 = distinct !DILexicalBlock(scope: !725, file: !1, line: 23, column: 23)
+!730 = !DILocation(line: 24, column: 9, scope: !729)
+!731 = !DILocation(line: 25, column: 27, scope: !729)
+!732 = !DILocation(line: 25, column: 9, scope: !729)
+!733 = !DILocation(line: 26, column: 9, scope: !729)
+!734 = !DILocation(line: 28, column: 26, scope: !114)
+!735 = !DILocation(line: 28, column: 31, scope: !114)
+!736 = !DILocation(line: 28, column: 5, scope: !114)
+!737 = !DILocation(line: 30, column: 17, scope: !114)
+!738 = !DILocation(line: 30, column: 15, scope: !114)
+!739 = !DILocation(line: 31, column: 9, scope: !740)
+!740 = distinct !DILexicalBlock(scope: !114, file: !1, line: 31, column: 9)
+!741 = !DILocation(line: 31, column: 19, scope: !740)
+!742 = !DILocation(line: 31, column: 9, scope: !114)
+!743 = !DILocation(line: 32, column: 20, scope: !744)
+!744 = distinct !DILexicalBlock(scope: !740, file: !1, line: 31, column: 28)
+!745 = !DILocation(line: 32, column: 9, scope: !744)
+!746 = !DILocation(line: 33, column: 27, scope: !744)
+!747 = !DILocation(line: 33, column: 9, scope: !744)
+!748 = !DILocation(line: 34, column: 9, scope: !744)
+!749 = !DILocation(line: 36, column: 17, scope: !114)
+!750 = !DILocation(line: 36, column: 23, scope: !114)
+!751 = !DILocation(line: 36, column: 5, scope: !114)
+!752 = !DILocation(line: 38, column: 24, scope: !114)
+!753 = !DILocation(line: 38, column: 5, scope: !114)
+!754 = !DILocation(line: 39, column: 17, scope: !114)
+!755 = !DILocation(line: 39, column: 21, scope: !114)
+!756 = !DILocation(line: 39, column: 5, scope: !114)
+!757 = !DILocation(line: 40, column: 24, scope: !114)
+!758 = !DILocation(line: 40, column: 5, scope: !114)
+!759 = !DILocation(line: 41, column: 17, scope: !114)
+!760 = !DILocation(line: 41, column: 25, scope: !114)
+!761 = !DILocation(line: 41, column: 5, scope: !114)
+!762 = !DILocation(line: 42, column: 24, scope: !114)
+!763 = !DILocation(line: 42, column: 5, scope: !114)
+!764 = !DILocation(line: 43, column: 17, scope: !114)
+!765 = !DILocation(line: 43, column: 25, scope: !114)
+!766 = !DILocation(line: 43, column: 5, scope: !114)
+!767 = !DILocation(line: 44, column: 24, scope: !114)
+!768 = !DILocation(line: 44, column: 5, scope: !114)
+!769 = !DILocation(line: 45, column: 17, scope: !114)
+!770 = !DILocation(line: 45, column: 22, scope: !114)
+!771 = !DILocation(line: 45, column: 5, scope: !114)
+!772 = !DILocation(line: 46, column: 24, scope: !114)
+!773 = !DILocation(line: 46, column: 5, scope: !114)
+!774 = !DILocation(line: 48, column: 18, scope: !114)
+!775 = !DILocation(line: 48, column: 5, scope: !114)
+!776 = !DILocation(line: 48, column: 11, scope: !114)
+!777 = !DILocation(line: 48, column: 16, scope: !114)
+!778 = !DILocation(line: 49, column: 21, scope: !114)
+!779 = !DILocation(line: 49, column: 5, scope: !114)
+!780 = !DILocation(line: 49, column: 11, scope: !114)
+!781 = !DILocation(line: 49, column: 19, scope: !114)
+!782 = !DILocation(line: 50, column: 21, scope: !114)
+!783 = !DILocation(line: 50, column: 5, scope: !114)
+!784 = !DILocation(line: 50, column: 11, scope: !114)
+!785 = !DILocation(line: 50, column: 19, scope: !114)
+!786 = !DILocation(line: 52, column: 29, scope: !114)
+!787 = !DILocation(line: 52, column: 33, scope: !114)
+!788 = !DILocation(line: 52, column: 28, scope: !114)
+!789 = !DILocation(line: 52, column: 38, scope: !114)
+!790 = !DILocation(line: 52, column: 21, scope: !114)
+!791 = !DILocation(line: 52, column: 8, scope: !114)
+!792 = !DILocation(line: 53, column: 9, scope: !793)
+!793 = distinct !DILexicalBlock(scope: !114, file: !1, line: 53, column: 9)
+!794 = !DILocation(line: 53, column: 12, scope: !793)
+!795 = !DILocation(line: 53, column: 9, scope: !114)
+!796 = !DILocation(line: 54, column: 20, scope: !797)
+!797 = distinct !DILexicalBlock(scope: !793, file: !1, line: 53, column: 21)
+!798 = !DILocation(line: 54, column: 9, scope: !797)
+!799 = !DILocation(line: 55, column: 27, scope: !797)
+!800 = !DILocation(line: 55, column: 9, scope: !797)
+!801 = !DILocation(line: 56, column: 9, scope: !797)
+!802 = !DILocation(line: 58, column: 24, scope: !114)
+!803 = !DILocation(line: 58, column: 29, scope: !114)
+!804 = !DILocation(line: 58, column: 33, scope: !114)
+!805 = !DILocation(line: 58, column: 28, scope: !114)
+!806 = !DILocation(line: 58, column: 38, scope: !114)
 !807 = !DILocation(line: 58, column: 5, scope: !114)
-!808 = !DILocation(line: 58, column: 11, scope: !114)
-!809 = !DILocation(line: 58, column: 19, scope: !114)
-!810 = !DILocation(line: 59, column: 21, scope: !114)
-!811 = !DILocation(line: 59, column: 5, scope: !114)
-!812 = !DILocation(line: 59, column: 11, scope: !114)
-!813 = !DILocation(line: 59, column: 19, scope: !114)
-!814 = !DILocation(line: 61, column: 21, scope: !114)
-!815 = !DILocation(line: 61, column: 31, scope: !114)
-!816 = !DILocation(line: 61, column: 35, scope: !114)
-!817 = !DILocation(line: 61, column: 8, scope: !114)
-!818 = !DILocation(line: 62, column: 9, scope: !819)
-!819 = distinct !DILexicalBlock(scope: !114, file: !1, line: 62, column: 9)
-!820 = !DILocation(line: 62, column: 12, scope: !819)
-!821 = !DILocation(line: 62, column: 9, scope: !114)
-!822 = !DILocation(line: 63, column: 20, scope: !823)
-!823 = distinct !DILexicalBlock(scope: !819, file: !1, line: 62, column: 21)
-!824 = !DILocation(line: 63, column: 9, scope: !823)
-!825 = !DILocation(line: 64, column: 27, scope: !823)
-!826 = !DILocation(line: 64, column: 9, scope: !823)
-!827 = !DILocation(line: 65, column: 9, scope: !823)
-!828 = !DILocation(line: 67, column: 24, scope: !114)
-!829 = !DILocation(line: 67, column: 28, scope: !114)
-!830 = !DILocation(line: 67, column: 32, scope: !114)
-!831 = !DILocation(line: 67, column: 5, scope: !114)
-!832 = !DILocation(line: 68, column: 5, scope: !114)
-!833 = !DILocation(line: 68, column: 8, scope: !114)
-!834 = !DILocation(line: 68, column: 13, scope: !114)
-!835 = !DILocation(line: 70, column: 9, scope: !836)
-!836 = distinct !DILexicalBlock(scope: !114, file: !1, line: 70, column: 9)
-!837 = !DILocation(line: 70, column: 15, scope: !836)
-!838 = !DILocation(line: 70, column: 25, scope: !836)
-!839 = !DILocation(line: 70, column: 31, scope: !836)
-!840 = !DILocation(line: 70, column: 23, scope: !836)
-!841 = !DILocation(line: 70, column: 41, scope: !836)
-!842 = !DILocation(line: 70, column: 39, scope: !836)
-!843 = !DILocation(line: 70, column: 9, scope: !114)
-!844 = !DILocation(line: 71, column: 13, scope: !845)
-!845 = distinct !DILexicalBlock(scope: !846, file: !1, line: 71, column: 13)
-!846 = distinct !DILexicalBlock(scope: !836, file: !1, line: 70, column: 46)
-!847 = !DILocation(line: 71, column: 20, scope: !845)
-!848 = !DILocation(line: 71, column: 26, scope: !845)
-!849 = !DILocation(line: 71, column: 36, scope: !845)
-!850 = !DILocation(line: 71, column: 34, scope: !845)
-!851 = !DILocation(line: 71, column: 40, scope: !845)
-!852 = !DILocation(line: 71, column: 18, scope: !845)
-!853 = !DILocation(line: 71, column: 13, scope: !846)
-!854 = !DILocation(line: 72, column: 20, scope: !855)
-!855 = distinct !DILexicalBlock(scope: !845, file: !1, line: 71, column: 45)
-!856 = !DILocation(line: 72, column: 26, scope: !855)
-!857 = !DILocation(line: 72, column: 36, scope: !855)
-!858 = !DILocation(line: 72, column: 34, scope: !855)
-!859 = !DILocation(line: 72, column: 40, scope: !855)
-!860 = !DILocation(line: 72, column: 18, scope: !855)
-!861 = !DILocation(line: 73, column: 9, scope: !855)
-!862 = !DILocalVariable(name: "newbuf", scope: !846, file: !1, line: 74, type: !100)
-!863 = !DILocation(line: 74, column: 18, scope: !846)
-!864 = !DILocation(line: 74, column: 38, scope: !846)
-!865 = !DILocation(line: 74, column: 49, scope: !846)
-!866 = !DILocation(line: 74, column: 60, scope: !846)
-!867 = !DILocation(line: 74, column: 69, scope: !846)
-!868 = !DILocation(line: 75, column: 13, scope: !869)
-!869 = distinct !DILexicalBlock(scope: !846, file: !1, line: 75, column: 13)
-!870 = !DILocation(line: 75, column: 20, scope: !869)
-!871 = !DILocation(line: 75, column: 13, scope: !846)
-!872 = !DILocation(line: 76, column: 13, scope: !873)
-!873 = distinct !DILexicalBlock(scope: !869, file: !1, line: 75, column: 29)
-!874 = !DILocation(line: 76, column: 21, scope: !873)
-!875 = !DILocation(line: 77, column: 24, scope: !873)
-!876 = !DILocation(line: 77, column: 13, scope: !873)
-!877 = !DILocation(line: 78, column: 31, scope: !873)
-!878 = !DILocation(line: 78, column: 13, scope: !873)
-!879 = !DILocation(line: 79, column: 13, scope: !873)
-!880 = !DILocation(line: 81, column: 25, scope: !846)
-!881 = !DILocation(line: 81, column: 9, scope: !846)
-!882 = !DILocation(line: 81, column: 15, scope: !846)
-!883 = !DILocation(line: 81, column: 23, scope: !846)
-!884 = !DILocation(line: 82, column: 30, scope: !846)
-!885 = !DILocation(line: 82, column: 9, scope: !846)
-!886 = !DILocation(line: 82, column: 20, scope: !846)
-!887 = !DILocation(line: 82, column: 28, scope: !846)
-!888 = !DILocation(line: 83, column: 5, scope: !846)
-!889 = !DILocation(line: 85, column: 5, scope: !114)
-!890 = !DILocation(line: 86, column: 13, scope: !114)
-!891 = !DILocation(line: 86, column: 24, scope: !114)
-!892 = !DILocation(line: 86, column: 32, scope: !114)
-!893 = !DILocation(line: 86, column: 38, scope: !114)
-!894 = !DILocation(line: 86, column: 48, scope: !114)
-!895 = !DILocation(line: 86, column: 52, scope: !114)
-!896 = !DILocation(line: 86, column: 5, scope: !114)
-!897 = !DILocation(line: 87, column: 22, scope: !114)
-!898 = !DILocation(line: 87, column: 5, scope: !114)
-!899 = !DILocation(line: 87, column: 11, scope: !114)
-!900 = !DILocation(line: 87, column: 19, scope: !114)
-!901 = !DILocation(line: 88, column: 5, scope: !114)
-!902 = !DILocation(line: 88, column: 16, scope: !114)
-!903 = !DILocation(line: 88, column: 24, scope: !114)
-!904 = !DILocation(line: 88, column: 30, scope: !114)
-!905 = !DILocation(line: 88, column: 39, scope: !114)
-!906 = !DILocation(line: 90, column: 5, scope: !114)
-!907 = !DILocation(line: 90, column: 13, scope: !114)
-!908 = !DILocation(line: 91, column: 16, scope: !114)
-!909 = !DILocation(line: 91, column: 5, scope: !114)
-!910 = !DILocation(line: 92, column: 23, scope: !114)
-!911 = !DILocation(line: 92, column: 5, scope: !114)
-!912 = !DILocation(line: 93, column: 5, scope: !114)
-!913 = !DILocation(line: 94, column: 1, scope: !114)
-!914 = distinct !DISubprogram(name: "memcpy", scope: !915, file: !915, line: 12, type: !916, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !104, retainedNodes: !117)
-!915 = !DIFile(filename: "runtime/Freestanding/memcpy.c", directory: "/home/shafi/tools/klee", checksumkind: CSK_MD5, checksum: "c636d77d986b2156da8c1ff12af1c5cd")
-!916 = !DISubroutineType(types: !917)
-!917 = !{!99, !99, !918, !920}
-!918 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !919, size: 64)
-!919 = !DIDerivedType(tag: DW_TAG_const_type, baseType: null)
-!920 = !DIDerivedType(tag: DW_TAG_typedef, name: "size_t", file: !921, line: 46, baseType: !229)
-!921 = !DIFile(filename: "/usr/lib/llvm-14/lib/clang/14.0.6/include/stddef.h", directory: "", checksumkind: CSK_MD5, checksum: "2499dd2361b915724b073282bea3a7bc")
-!922 = !DILocalVariable(name: "destaddr", arg: 1, scope: !914, file: !915, line: 12, type: !99)
-!923 = !DILocation(line: 12, column: 20, scope: !914)
-!924 = !DILocalVariable(name: "srcaddr", arg: 2, scope: !914, file: !915, line: 12, type: !918)
-!925 = !DILocation(line: 12, column: 42, scope: !914)
-!926 = !DILocalVariable(name: "len", arg: 3, scope: !914, file: !915, line: 12, type: !920)
-!927 = !DILocation(line: 12, column: 58, scope: !914)
-!928 = !DILocalVariable(name: "dest", scope: !914, file: !915, line: 13, type: !167)
-!929 = !DILocation(line: 13, column: 9, scope: !914)
-!930 = !DILocation(line: 13, column: 16, scope: !914)
-!931 = !DILocalVariable(name: "src", scope: !914, file: !915, line: 14, type: !231)
-!932 = !DILocation(line: 14, column: 15, scope: !914)
-!933 = !DILocation(line: 14, column: 21, scope: !914)
-!934 = !DILocation(line: 16, column: 3, scope: !914)
-!935 = !DILocation(line: 16, column: 13, scope: !914)
-!936 = !DILocation(line: 16, column: 16, scope: !914)
-!937 = !DILocation(line: 17, column: 19, scope: !914)
-!938 = !DILocation(line: 17, column: 15, scope: !914)
-!939 = !DILocation(line: 17, column: 10, scope: !914)
-!940 = !DILocation(line: 17, column: 13, scope: !914)
-!941 = distinct !{!941, !934, !937, !942}
-!942 = !{!"llvm.loop.mustprogress"}
-!943 = !DILocation(line: 18, column: 10, scope: !914)
-!944 = !DILocation(line: 18, column: 3, scope: !914)
+!808 = !DILocation(line: 59, column: 5, scope: !114)
+!809 = !DILocation(line: 59, column: 8, scope: !114)
+!810 = !DILocation(line: 59, column: 13, scope: !114)
+!811 = !DILocation(line: 61, column: 9, scope: !812)
+!812 = distinct !DILexicalBlock(scope: !114, file: !1, line: 61, column: 9)
+!813 = !DILocation(line: 61, column: 20, scope: !812)
+!814 = !DILocation(line: 61, column: 25, scope: !812)
+!815 = !DILocation(line: 61, column: 42, scope: !812)
+!816 = !DILocation(line: 61, column: 45, scope: !812)
+!817 = !DILocation(line: 61, column: 56, scope: !812)
+!818 = !DILocation(line: 61, column: 64, scope: !812)
+!819 = !DILocation(line: 61, column: 72, scope: !812)
+!820 = !DILocation(line: 62, column: 9, scope: !812)
+!821 = !DILocation(line: 62, column: 15, scope: !812)
+!822 = !DILocation(line: 62, column: 23, scope: !812)
+!823 = !DILocation(line: 62, column: 28, scope: !812)
+!824 = !DILocation(line: 62, column: 31, scope: !812)
+!825 = !DILocation(line: 62, column: 36, scope: !812)
+!826 = !DILocation(line: 61, column: 9, scope: !114)
+!827 = !DILocation(line: 63, column: 48, scope: !828)
+!828 = distinct !DILexicalBlock(scope: !812, file: !1, line: 62, column: 41)
+!829 = !DILocation(line: 63, column: 53, scope: !828)
+!830 = !DILocation(line: 63, column: 41, scope: !828)
+!831 = !DILocation(line: 63, column: 9, scope: !828)
+!832 = !DILocation(line: 63, column: 20, scope: !828)
+!833 = !DILocation(line: 63, column: 28, scope: !828)
+!834 = !DILocation(line: 64, column: 13, scope: !835)
+!835 = distinct !DILexicalBlock(scope: !828, file: !1, line: 64, column: 13)
+!836 = !DILocation(line: 64, column: 24, scope: !835)
+!837 = !DILocation(line: 64, column: 32, scope: !835)
+!838 = !DILocation(line: 64, column: 13, scope: !828)
+!839 = !DILocation(line: 65, column: 18, scope: !840)
+!840 = distinct !DILexicalBlock(scope: !835, file: !1, line: 64, column: 41)
+!841 = !DILocation(line: 65, column: 13, scope: !840)
+!842 = !DILocation(line: 66, column: 24, scope: !840)
+!843 = !DILocation(line: 66, column: 13, scope: !840)
+!844 = !DILocation(line: 67, column: 31, scope: !840)
+!845 = !DILocation(line: 67, column: 13, scope: !840)
+!846 = !DILocation(line: 68, column: 13, scope: !840)
+!847 = !DILocation(line: 70, column: 25, scope: !828)
+!848 = !DILocation(line: 70, column: 9, scope: !828)
+!849 = !DILocation(line: 70, column: 15, scope: !828)
+!850 = !DILocation(line: 70, column: 23, scope: !828)
+!851 = !DILocation(line: 71, column: 5, scope: !828)
+!852 = !DILocation(line: 73, column: 9, scope: !853)
+!853 = distinct !DILexicalBlock(scope: !114, file: !1, line: 73, column: 9)
+!854 = !DILocation(line: 73, column: 20, scope: !853)
+!855 = !DILocation(line: 73, column: 25, scope: !853)
+!856 = !DILocation(line: 73, column: 42, scope: !853)
+!857 = !DILocation(line: 73, column: 45, scope: !853)
+!858 = !DILocation(line: 73, column: 56, scope: !853)
+!859 = !DILocation(line: 73, column: 64, scope: !853)
+!860 = !DILocation(line: 73, column: 72, scope: !853)
+!861 = !DILocation(line: 74, column: 9, scope: !853)
+!862 = !DILocation(line: 74, column: 15, scope: !853)
+!863 = !DILocation(line: 74, column: 23, scope: !853)
+!864 = !DILocation(line: 74, column: 27, scope: !853)
+!865 = !DILocation(line: 74, column: 31, scope: !853)
+!866 = !DILocation(line: 74, column: 37, scope: !853)
+!867 = !DILocation(line: 74, column: 47, scope: !853)
+!868 = !DILocation(line: 74, column: 45, scope: !853)
+!869 = !DILocation(line: 74, column: 51, scope: !853)
+!870 = !DILocation(line: 74, column: 58, scope: !853)
+!871 = !DILocation(line: 74, column: 64, scope: !853)
+!872 = !DILocation(line: 74, column: 56, scope: !853)
+!873 = !DILocation(line: 73, column: 9, scope: !114)
+!874 = !DILocalVariable(name: "newbuf", scope: !875, file: !1, line: 75, type: !100)
+!875 = distinct !DILexicalBlock(scope: !853, file: !1, line: 74, column: 73)
+!876 = !DILocation(line: 75, column: 18, scope: !875)
+!877 = !DILocation(line: 75, column: 38, scope: !875)
+!878 = !DILocation(line: 75, column: 49, scope: !875)
+!879 = !DILocation(line: 75, column: 60, scope: !875)
+!880 = !DILocation(line: 75, column: 69, scope: !875)
+!881 = !DILocation(line: 76, column: 13, scope: !882)
+!882 = distinct !DILexicalBlock(scope: !875, file: !1, line: 76, column: 13)
+!883 = !DILocation(line: 76, column: 20, scope: !882)
+!884 = !DILocation(line: 76, column: 13, scope: !875)
+!885 = !DILocation(line: 77, column: 18, scope: !886)
+!886 = distinct !DILexicalBlock(scope: !882, file: !1, line: 76, column: 29)
+!887 = !DILocation(line: 77, column: 13, scope: !886)
+!888 = !DILocation(line: 78, column: 24, scope: !886)
+!889 = !DILocation(line: 78, column: 13, scope: !886)
+!890 = !DILocation(line: 79, column: 31, scope: !886)
+!891 = !DILocation(line: 79, column: 13, scope: !886)
+!892 = !DILocation(line: 80, column: 13, scope: !886)
+!893 = !DILocation(line: 82, column: 25, scope: !875)
+!894 = !DILocation(line: 82, column: 9, scope: !875)
+!895 = !DILocation(line: 82, column: 15, scope: !875)
+!896 = !DILocation(line: 82, column: 23, scope: !875)
+!897 = !DILocation(line: 83, column: 30, scope: !875)
+!898 = !DILocation(line: 83, column: 9, scope: !875)
+!899 = !DILocation(line: 83, column: 20, scope: !875)
+!900 = !DILocation(line: 83, column: 28, scope: !875)
+!901 = !DILocation(line: 84, column: 5, scope: !875)
+!902 = !DILocation(line: 86, column: 5, scope: !114)
+!903 = !DILocation(line: 87, column: 13, scope: !114)
+!904 = !DILocation(line: 87, column: 24, scope: !114)
+!905 = !DILocation(line: 87, column: 32, scope: !114)
+!906 = !DILocation(line: 87, column: 38, scope: !114)
+!907 = !DILocation(line: 87, column: 48, scope: !114)
+!908 = !DILocation(line: 87, column: 52, scope: !114)
+!909 = !DILocation(line: 87, column: 5, scope: !114)
+!910 = !DILocation(line: 88, column: 22, scope: !114)
+!911 = !DILocation(line: 88, column: 5, scope: !114)
+!912 = !DILocation(line: 88, column: 11, scope: !114)
+!913 = !DILocation(line: 88, column: 19, scope: !114)
+!914 = !DILocation(line: 89, column: 5, scope: !114)
+!915 = !DILocation(line: 89, column: 16, scope: !114)
+!916 = !DILocation(line: 89, column: 24, scope: !114)
+!917 = !DILocation(line: 89, column: 30, scope: !114)
+!918 = !DILocation(line: 89, column: 39, scope: !114)
+!919 = !DILocation(line: 91, column: 10, scope: !114)
+!920 = !DILocation(line: 91, column: 5, scope: !114)
+!921 = !DILocation(line: 92, column: 16, scope: !114)
+!922 = !DILocation(line: 92, column: 5, scope: !114)
+!923 = !DILocation(line: 93, column: 23, scope: !114)
+!924 = !DILocation(line: 93, column: 5, scope: !114)
+!925 = !DILocation(line: 94, column: 5, scope: !114)
+!926 = !DILocation(line: 95, column: 1, scope: !114)
+!927 = distinct !DISubprogram(name: "memcpy", scope: !928, file: !928, line: 12, type: !929, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !104, retainedNodes: !117)
+!928 = !DIFile(filename: "runtime/Freestanding/memcpy.c", directory: "/home/shafi/tools/klee", checksumkind: CSK_MD5, checksum: "c636d77d986b2156da8c1ff12af1c5cd")
+!929 = !DISubroutineType(types: !930)
+!930 = !{!99, !99, !931, !933}
+!931 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !932, size: 64)
+!932 = !DIDerivedType(tag: DW_TAG_const_type, baseType: null)
+!933 = !DIDerivedType(tag: DW_TAG_typedef, name: "size_t", file: !934, line: 46, baseType: !229)
+!934 = !DIFile(filename: "/usr/lib/llvm-14/lib/clang/14.0.6/include/stddef.h", directory: "", checksumkind: CSK_MD5, checksum: "2499dd2361b915724b073282bea3a7bc")
+!935 = !DILocalVariable(name: "destaddr", arg: 1, scope: !927, file: !928, line: 12, type: !99)
+!936 = !DILocation(line: 12, column: 20, scope: !927)
+!937 = !DILocalVariable(name: "srcaddr", arg: 2, scope: !927, file: !928, line: 12, type: !931)
+!938 = !DILocation(line: 12, column: 42, scope: !927)
+!939 = !DILocalVariable(name: "len", arg: 3, scope: !927, file: !928, line: 12, type: !933)
+!940 = !DILocation(line: 12, column: 58, scope: !927)
+!941 = !DILocalVariable(name: "dest", scope: !927, file: !928, line: 13, type: !167)
+!942 = !DILocation(line: 13, column: 9, scope: !927)
+!943 = !DILocation(line: 13, column: 16, scope: !927)
+!944 = !DILocalVariable(name: "src", scope: !927, file: !928, line: 14, type: !231)
+!945 = !DILocation(line: 14, column: 15, scope: !927)
+!946 = !DILocation(line: 14, column: 21, scope: !927)
+!947 = !DILocation(line: 16, column: 3, scope: !927)
+!948 = !DILocation(line: 16, column: 13, scope: !927)
+!949 = !DILocation(line: 16, column: 16, scope: !927)
+!950 = !DILocation(line: 17, column: 19, scope: !927)
+!951 = !DILocation(line: 17, column: 15, scope: !927)
+!952 = !DILocation(line: 17, column: 10, scope: !927)
+!953 = !DILocation(line: 17, column: 13, scope: !927)
+!954 = distinct !{!954, !947, !950, !955}
+!955 = !{!"llvm.loop.mustprogress"}
+!956 = !DILocation(line: 18, column: 10, scope: !927)
+!957 = !DILocation(line: 18, column: 3, scope: !927)

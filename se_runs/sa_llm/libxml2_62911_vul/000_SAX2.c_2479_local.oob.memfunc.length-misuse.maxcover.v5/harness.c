@@ -10,7 +10,7 @@ int main(void) {
     int len, nodelen, nodemem, size;
     int coalesceText;
 
-    ctxt = xmlCreatePushParserCtxt(NULL, NULL, NULL, 0, NULL);
+    ctxt = xmlCreateParserCtxt();
     if (ctxt == NULL) return 1;
 
     doc = xmlNewDoc(BAD_CAST "1.0");
@@ -18,6 +18,7 @@ int main(void) {
         xmlFreeParserCtxt(ctxt);
         return 1;
     }
+
     node = xmlNewNode(NULL, BAD_CAST "root");
     if (node == NULL) {
         xmlFreeDoc(doc);
@@ -25,8 +26,6 @@ int main(void) {
         return 1;
     }
     xmlDocSetRootElement(doc, node);
-    ctxt->myDoc = doc;
-    ctxt->node = node;
 
     lastChild = xmlNewText(BAD_CAST "");
     if (lastChild == NULL) {
@@ -35,15 +34,6 @@ int main(void) {
         return 1;
     }
     xmlAddChild(node, lastChild);
-    ctxt->nodelen = 0;
-    ctxt->nodemem = 0;
-    lastChild->content = (xmlChar *)xmlMalloc(1);
-    if (lastChild->content == NULL) {
-        xmlFreeDoc(doc);
-        xmlFreeParserCtxt(ctxt);
-        return 1;
-    }
-    lastChild->content[0] = 0;
 
     klee_make_symbolic(&len, sizeof(len), "len");
     klee_assume(len >= 0);
@@ -55,25 +45,36 @@ int main(void) {
     klee_assume(size >= 0);
     klee_make_symbolic(&coalesceText, sizeof(coalesceText), "coalesceText");
 
+    ctxt->node = node;
     ctxt->nodelen = nodelen;
     ctxt->nodemem = nodemem;
 
-    ch = (xmlChar *)xmlMalloc(len + 1);
+    ch = (xmlChar *)malloc((len + 1) * sizeof(xmlChar));
     if (ch == NULL) {
         xmlFreeDoc(doc);
         xmlFreeParserCtxt(ctxt);
         return 1;
     }
-    klee_make_symbolic(ch, len + 1, "ch");
+    klee_make_symbolic(ch, (len + 1) * sizeof(xmlChar), "ch");
     ch[len] = 0;
 
-    if (ctxt->nodemem - ctxt->nodelen < len) {
-        if (size < ctxt->nodelen + len + 1) {
-            size = ctxt->nodelen + len + 1;
+    if (lastChild->type == XML_TEXT_NODE && lastChild->content != NULL &&
+        ctxt->nodemem == 0 && size > 0) {
+        lastChild->content = (xmlChar *)malloc(size * sizeof(xmlChar));
+        if (lastChild->content == NULL) {
+            free(ch);
+            xmlFreeDoc(doc);
+            xmlFreeParserCtxt(ctxt);
+            return 1;
         }
+        ctxt->nodemem = size;
+    }
+
+    if (lastChild->type == XML_TEXT_NODE && lastChild->content != NULL &&
+        ctxt->nodemem > 0 && (ctxt->nodelen + len + 1) > ctxt->nodemem) {
         xmlChar *newbuf = (xmlChar *)xmlRealloc(lastChild->content, size);
         if (newbuf == NULL) {
-            xmlFree(ch);
+            free(ch);
             xmlFreeDoc(doc);
             xmlFreeParserCtxt(ctxt);
             return 1;
@@ -87,7 +88,7 @@ int main(void) {
     ctxt->nodelen += len;
     lastChild->content[ctxt->nodelen] = 0;
 
-    xmlFree(ch);
+    free(ch);
     xmlFreeDoc(doc);
     xmlFreeParserCtxt(ctxt);
     return 0;

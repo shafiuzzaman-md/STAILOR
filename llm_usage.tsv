@@ -636,3 +636,11 @@ timestamp	model	spec_id	call_id	attempt	prompt_tokens	completion_tokens	total_to
 1765314005	deepseek-chat	388_xmlschemas.c_3633_local.oob.memfunc.length-misuse.maxcover.v5	6eef7819-4ccb-40ee-a59f-113a047a47de	1	1388	624	2012
 1765314005	deepseek-chat	393_testapi.c_135_local.oob.memfunc.length-misuse.maxcover.v5	490d9dd3-6338-410b-bf93-e9be4ab1e7be	1	1365	296	1661
 1765314013	deepseek-chat	396_testapi.c_138_local.oob.memfunc.length-misuse.maxcover.v5	085fea74-d712-41aa-bc52-14a9173a756e	1	1279	222	1501
+1765316400	deepseek-chat	002_SAX2.c_1887_local.oob.memfunc.length-misuse.maxcover.v5	da2e644e-1893-477c-bdd8-0ff4c050df40	1	1314	267	1581
+1765316402	deepseek-chat	002_HTMLtree.c_416_local.oob.memfunc.length-misuse.maxcover.v5	8e048c71-1bef-42e6-8bcc-b0071e1c1a8a	1	1345	302	1647
+1765316403	deepseek-chat	003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5	ef4db4b2-c63d-4e4f-a844-9dce7165ca58	1	1403	416	1819
+1765316404	deepseek-chat	006_HTMLparser.c_5103_local.oob.memfunc.length-misuse.maxcover.v5	48cbc9fa-b065-403c-8ca2-c5a5a9e3adca	1	1386	402	1788
+1765316404	deepseek-chat	006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5	69e615d8-0a47-4766-acee-2c96ba5306a9	1	1397	443	1840
+1765316411	deepseek-chat	004_SAX2.c_1779_local.oob.memfunc.length-misuse.maxcover.v5	a7821584-2089-4e0b-9c66-0426a977aa04	1	1572	656	2228
+1765316416	deepseek-chat	000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5	09f684e1-6bd5-4983-9b77-f376592263a5	1	1539	844	2383
+1765316416	deepseek-chat	001_SAX2.c_2142_local.oob.memfunc.length-misuse.maxcover.v5	c6d72cb4-0395-4329-883b-5e26a49a800d	1	1318	858	2176

@@ -7,62 +7,88 @@ int main(void) {
     xmlParserCtxtPtr ctxt;
     xmlNodePtr ret;
     const xmlChar *localname;
-    int lname;
-    xmlDictPtr dict;
+    const xmlChar *prefix;
+    const xmlChar *URI;
+    int nb_namespaces;
+    xmlNsPtr *namespaces;
+    int nb_attributes;
+    int nb_defaulted;
+    xmlSAX2AttributesPtr attributes;
+    int i;
 
     ctxt = xmlCreateParserCtxt();
     if (ctxt == NULL) {
-        return 1;
+        return 0;
     }
 
-    ctxt->myDoc = xmlNewDoc(BAD_CAST "1.0");
+    ctxt->myDoc = xmlNewDoc((const xmlChar*)"1.0");
     if (ctxt->myDoc == NULL) {
         xmlFreeParserCtxt(ctxt);
-        return 1;
+        return 0;
     }
 
-    dict = xmlDictCreate();
-    if (dict == NULL) {
-        xmlFreeDoc(ctxt->myDoc);
-        xmlFreeParserCtxt(ctxt);
-        return 1;
+    klee_make_symbolic(&ctxt->freeElemsNr, sizeof(ctxt->freeElemsNr), "freeElemsNr");
+    if (ctxt->freeElemsNr > 0) {
+        ctxt->freeElems = (xmlNodePtr)malloc(sizeof(xmlNode));
+        if (ctxt->freeElems != NULL) {
+            ctxt->freeElems->next = NULL;
+        }
+    } else {
+        ctxt->freeElems = NULL;
     }
-    ctxt->dict = dict;
 
     klee_make_symbolic(&ctxt->dictNames, sizeof(ctxt->dictNames), "dictNames");
+
     klee_make_symbolic(&localname, sizeof(localname), "localname");
-    klee_make_symbolic(&lname, sizeof(lname), "lname");
+    klee_make_symbolic(&prefix, sizeof(prefix), "prefix");
+    klee_make_symbolic(&URI, sizeof(URI), "URI");
 
-    ctxt->freeElemsNr = 1;
-    ctxt->freeElems = (xmlNodePtr) malloc(sizeof(xmlNode));
-    if (ctxt->freeElems == NULL) {
-        xmlDictFree(dict);
-        xmlFreeDoc(ctxt->myDoc);
-        xmlFreeParserCtxt(ctxt);
-        return 1;
-    }
-    ctxt->freeElems->next = NULL;
-
-    ret = ctxt->freeElems;
-    ctxt->freeElems = ret->next;
-    ctxt->freeElemsNr--;
-
-    klee_assert(0 && "SAILR_REACH_ASSERT");
-    memset(ret, 0, sizeof(xmlNode));
-
-    ret->doc = ctxt->myDoc;
-    ret->type = XML_ELEMENT_NODE;
-
-    if (ctxt->dictNames)
-        ret->name = localname;
-    else {
-        if (lname == 0)
-            ret->name = xmlStrdup(localname);
+    klee_make_symbolic(&nb_namespaces, sizeof(nb_namespaces), "nb_namespaces");
+    if (nb_namespaces < 0) nb_namespaces = 0;
+    if (nb_namespaces > 0) {
+        namespaces = (xmlNsPtr*)malloc(nb_namespaces * sizeof(xmlNsPtr));
+        for (i = 0; i < nb_namespaces; i++) {
+            namespaces[i] = xmlNewNs(NULL, (const xmlChar*)"http://example.com", (const xmlChar*)"pref");
+        }
+    } else {
+        namespaces = NULL;
     }
 
-    free(ret);
-    xmlDictFree(dict);
+    klee_make_symbolic(&nb_attributes, sizeof(nb_attributes), "nb_attributes");
+    if (nb_attributes < 0) nb_attributes = 0;
+    if (nb_attributes > 0) {
+        attributes = (xmlSAX2AttributesPtr)malloc(sizeof(xmlSAX2Attributes) * nb_attributes);
+        for (i = 0; i < nb_attributes; i++) {
+            attributes[i].localname = (xmlChar*)"attr";
+            attributes[i].prefix = NULL;
+            attributes[i].value = (xmlChar*)"value";
+            attributes[i].valueLen = 5;
+            attributes[i].uri = NULL;
+            attributes[i].atype = XML_ATTRIBUTE_CDATA;
+        }
+    } else {
+        attributes = NULL;
+    }
+
+    klee_make_symbolic(&nb_defaulted, sizeof(nb_defaulted), "nb_defaulted");
+
+    xmlSAX2StartElement(ctxt, localname, prefix, URI, nb_namespaces, namespaces, nb_attributes, nb_defaulted, attributes);
+
+    if (ctxt->freeElems != NULL) {
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+
+    if (namespaces != NULL) {
+        for (i = 0; i < nb_namespaces; i++) {
+            xmlFreeNs(namespaces[i]);
+        }
+        free(namespaces);
+    }
+    if (attributes != NULL) {
+        free(attributes);
+    }
     xmlFreeDoc(ctxt->myDoc);
     xmlFreeParserCtxt(ctxt);
+
     return 0;
 }

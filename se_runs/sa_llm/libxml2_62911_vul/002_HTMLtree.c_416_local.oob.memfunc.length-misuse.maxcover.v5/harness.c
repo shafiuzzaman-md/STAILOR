@@ -1,31 +1,47 @@
 #include <libxml/HTMLtree.h>
 #include <libxml/xmlmemory.h>
-#include <libxml/xmlIO.h>
+#include <libxml/parser.h>
 #include <libxml/encoding.h>
 #include <klee/klee.h>
 
 int main(void) {
-    const char* html_content;
-    int html_size;
-    htmlDocPtr doc;
-    xmlChar* encoding;
+    const char *encoding = NULL;
+    xmlDocPtr doc = NULL;
+    xmlNodePtr node = NULL;
+    xmlBufferPtr buf = NULL;
+    xmlOutputBufferPtr outbuf = NULL;
+    int ret;
 
-    klee_make_symbolic(&html_content, sizeof(html_content), "html_content");
-    klee_make_symbolic(&html_size, sizeof(html_size), "html_size");
-    klee_assume(html_size >= 0);
-    klee_assume(html_size < 1024);
+    klee_make_symbolic(&encoding, sizeof(encoding), "encoding");
 
-    doc = htmlReadMemory(html_content, html_size, NULL, NULL, HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
-    if (doc == NULL) {
+    doc = xmlNewDoc(BAD_CAST "1.0");
+    if (!doc) return 0;
+
+    node = xmlNewNode(NULL, BAD_CAST "html");
+    if (!node) {
+        xmlFreeDoc(doc);
+        return 0;
+    }
+    xmlDocSetRootElement(doc, node);
+
+    buf = xmlBufferCreate();
+    if (!buf) {
+        xmlFreeDoc(doc);
         return 0;
     }
 
-    encoding = htmlGetMetaEncoding(doc);
-    xmlFreeDoc(doc);
-    if (encoding != NULL) {
-        xmlFree(encoding);
+    outbuf = xmlOutputBufferCreateBuffer(buf, NULL);
+    if (!outbuf) {
+        xmlBufferFree(buf);
+        xmlFreeDoc(doc);
+        return 0;
     }
 
+    ret = htmlGetMetaEncoding(doc);
     klee_assert(0 && "SAILR_REACH_ASSERT");
+
+    xmlOutputBufferClose(outbuf);
+    xmlBufferFree(buf);
+    xmlFreeDoc(doc);
     return 0;
 }
