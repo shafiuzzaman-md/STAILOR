@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: htmlCreateMemoryParserCtxt
-KLEE: WARNING: undefined reference to function: htmlFreeParserCtxt
-KLEE: WARNING: undefined reference to function: htmlParseDocument
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: htmlCreateMemoryParserCtxt(128840108081152, (ReadLSB w32 0 html_size)) at se_runs/sa_llm/libxml2_62911_vul/050_HTMLparser.c_2318_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 10
-KLEE: WARNING ONCE: calling external: htmlParseDocument(109741427540976) at se_runs/sa_llm/libxml2_62911_vul/050_HTMLparser.c_2318_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:38 5

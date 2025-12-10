@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCheckVersion
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING: undefined reference to function: xmlShellValidate
-KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 5
-KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 29
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.

@@ -1,7 +1,0 @@
-Error: failed external call: xmlCheckThreadLocalStorage
-File: se_runs/sa_llm/libxml2_62911_vul/066_globals.c_837_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 17
-assembly.ll line: 34
-State: 2
-Stack: 
-	#000000034 in main() at se_runs/sa_llm/libxml2_62911_vul/066_globals.c_837_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17

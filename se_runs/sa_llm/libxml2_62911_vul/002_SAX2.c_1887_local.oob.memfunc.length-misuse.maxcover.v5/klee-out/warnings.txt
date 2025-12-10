@@ -1,4 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCreateMemoryParserCtxt
-KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
-KLEE: WARNING: undefined reference to function: xmlSAX2AttributeInternal
-KLEE: WARNING ONCE: calling external: xmlCreateMemoryParserCtxt(132161980071936, 0) at se_runs/sa_llm/libxml2_62911_vul/002_SAX2.c_1887_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 12

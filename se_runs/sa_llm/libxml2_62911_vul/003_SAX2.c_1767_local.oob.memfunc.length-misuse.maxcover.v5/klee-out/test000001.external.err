@@ -1,7 +1,0 @@
-Error: failed external call: xmlCreateParserCtxt
-File: se_runs/sa_llm/libxml2_62911_vul/003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 14
-assembly.ll line: 62
-State: 1
-Stack: 
-	#000000062 in main() at se_runs/sa_llm/libxml2_62911_vul/003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14

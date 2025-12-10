@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlFreePattern
-KLEE: WARNING: undefined reference to function: xmlFreeStreamCtxt
-KLEE: WARNING: undefined reference to function: xmlPatternGetStreamCtxt

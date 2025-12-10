@@ -1,7 +1,0 @@
-Error: failed external call: xmlStreamCompile
-File: se_runs/sa_llm/libxml2_62911_vul/064_pattern.c_209_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 19
-assembly.ll line: 29
-State: 1
-Stack: 
-	#000000029 in main() at se_runs/sa_llm/libxml2_62911_vul/064_pattern.c_209_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19

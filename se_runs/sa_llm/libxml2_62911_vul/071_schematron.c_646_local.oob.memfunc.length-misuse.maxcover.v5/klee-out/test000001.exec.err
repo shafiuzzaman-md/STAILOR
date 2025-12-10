@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: klee_make_symbolic_str
-File: se_runs/sa_llm/libxml2_62911_vul/071_schematron.c_646_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 12
-assembly.ll line: 32
-State: 1
-Stack: 
-	#000000032 in main() at se_runs/sa_llm/libxml2_62911_vul/071_schematron.c_646_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:12

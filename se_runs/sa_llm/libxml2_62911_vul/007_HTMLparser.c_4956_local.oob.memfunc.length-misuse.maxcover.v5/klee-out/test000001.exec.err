@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: htmlInitParserCtxt
-File: se_runs/sa_llm/libxml2_62911_vul/007_HTMLparser.c_4956_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 19
-assembly.ll line: 71
-State: 1
-Stack: 
-	#000000071 in main() at se_runs/sa_llm/libxml2_62911_vul/007_HTMLparser.c_4956_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19

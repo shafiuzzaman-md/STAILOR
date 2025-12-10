@@ -1,8 +1,0 @@
-KLEE: Using Z3 solver backend
-KLEE: Deterministic allocator: Using quarantine queue size 8
-KLEE: Deterministic allocator: globals (start-address=0x75744e000000 size=10 GiB)
-KLEE: Deterministic allocator: constants (start-address=0x7571ce000000 size=10 GiB)
-KLEE: Deterministic allocator: heap (start-address=0x7471ce000000 size=1024 GiB)
-KLEE: Deterministic allocator: stack (start-address=0x7451ce000000 size=128 GiB)
-KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/077_testdict.c_406_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:35: invalid function pointer
-KLEE: NOTE: now ignoring this error at this location

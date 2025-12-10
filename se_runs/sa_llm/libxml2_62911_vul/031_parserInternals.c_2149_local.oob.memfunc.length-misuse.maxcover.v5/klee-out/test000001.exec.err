@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: xmlCreatePushParserCtxt
-File: se_runs/sa_llm/libxml2_62911_vul/031_parserInternals.c_2149_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 12
-assembly.ll line: 55
-State: 1
-Stack: 
-	#000000055 in main() at se_runs/sa_llm/libxml2_62911_vul/031_parserInternals.c_2149_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:12

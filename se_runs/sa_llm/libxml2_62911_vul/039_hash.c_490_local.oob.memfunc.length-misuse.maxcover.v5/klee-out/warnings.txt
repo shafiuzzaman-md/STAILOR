@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlHashAddEntry3
-KLEE: WARNING: undefined reference to function: xmlHashCreate
-KLEE: WARNING: undefined reference to function: xmlHashFree
-KLEE: WARNING: undefined reference to function: xmlHashRemoveEntry3
-KLEE: WARNING ONCE: calling external: xmlHashCreate(8) at se_runs/sa_llm/libxml2_62911_vul/039_hash.c_490_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 10
-KLEE: WARNING ONCE: calling external: xmlHashAddEntry3(108483403689344, 135332840341504, 135333511430144, 135332974559232, 0) at se_runs/sa_llm/libxml2_62911_vul/039_hash.c_490_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:30 9

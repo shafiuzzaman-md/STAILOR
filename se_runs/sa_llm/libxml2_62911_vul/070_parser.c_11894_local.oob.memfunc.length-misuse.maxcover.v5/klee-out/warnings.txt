@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to function: strncmp
-KLEE: WARNING: undefined reference to function: xmlFreeInputStream
-KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
-KLEE: WARNING: undefined reference to function: xmlNewInputStream
-KLEE: WARNING: undefined reference to function: xmlNewParserCtxt
-KLEE: WARNING ONCE: calling external: xmlNewParserCtxt() at se_runs/sa_llm/libxml2_62911_vul/070_parser.c_11894_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:11 10
-KLEE: WARNING ONCE: calling external: xmlNewInputStream(97691556535040) at se_runs/sa_llm/libxml2_62911_vul/070_parser.c_11894_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 11

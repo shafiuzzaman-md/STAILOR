@@ -1,8 +1,0 @@
-array lengths[12] : w32 -> w8 = symbolic
-(query [(Eq 0
-             (ReadLSB w32 0 lengths))
-         (Eq 0
-             (ReadLSB w32 4 lengths))
-         (Eq 0
-             (ReadLSB w32 8 lengths))]
-        false)

@@ -1,5 +1,0 @@
-KLEE: WARNING: undefined reference to function: htmlFreeParserCtxt
-KLEE: WARNING: undefined reference to function: htmlNewParserCtxt
-KLEE: WARNING: undefined reference to variable: xmlMalloc
-KLEE: WARNING: undefined reference to function: xmlSAX2InitHtmlDefaultSAXHandler
-KLEE: WARNING ONCE: calling external: htmlNewParserCtxt() at se_runs/sa_llm/libxml2_62911_vul/008_HTMLparser.c_4971_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 10

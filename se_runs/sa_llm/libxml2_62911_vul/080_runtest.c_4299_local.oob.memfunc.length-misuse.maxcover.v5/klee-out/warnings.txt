@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: baseFilename
-KLEE: WARNING: undefined reference to function: checkTestFile
-KLEE: WARNING: undefined reference to function: snprintf
-KLEE: WARNING: undefined reference to function: strdup
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING ONCE: calling external: baseFilename(135729820729344) at se_runs/sa_llm/libxml2_62911_vul/080_runtest.c_4299_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 11

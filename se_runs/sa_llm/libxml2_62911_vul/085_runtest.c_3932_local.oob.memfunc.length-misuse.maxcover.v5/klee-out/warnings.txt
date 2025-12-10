@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to function: snprintf
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING: undefined reference to function: strrchr
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING ONCE: calling external: strlen(123938986262528) at se_runs/sa_llm/libxml2_62911_vul/085_runtest.c_3932_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 11

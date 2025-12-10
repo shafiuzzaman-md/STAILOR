@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlFreeStreamCtxt
-KLEE: WARNING: undefined reference to function: xmlStreamCompile
-KLEE: WARNING ONCE: calling external: xmlStreamCompile(0, 137444045357056) at se_runs/sa_llm/libxml2_62911_vul/064_pattern.c_209_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 29

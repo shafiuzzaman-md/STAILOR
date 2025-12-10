@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: klee_make_symbolic_str
-KLEE: WARNING: undefined reference to function: xmlSchematronFreeParserCtxt
-KLEE: WARNING: undefined reference to function: xmlSchematronNewParserCtxt

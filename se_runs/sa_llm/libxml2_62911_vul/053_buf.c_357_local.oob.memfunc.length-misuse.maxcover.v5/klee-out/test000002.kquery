@@ -1,6 +1,0 @@
-array initial_size[4] : w32 -> w8 = symbolic
-(query [(Ult 0
-              N0:(ReadLSB w32 0 initial_size))
-         (Ult N0 1024)
-         (Eq false (Eq 127 N0))]
-        false)

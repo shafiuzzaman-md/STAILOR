@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlFreeTextReader
-KLEE: WARNING: undefined reference to function: xmlReaderForMemory
-KLEE: WARNING ONCE: calling external: strlen(137288963063808) at se_runs/sa_llm/libxml2_62911_vul/088_testlimits.c_343_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 16
-KLEE: WARNING ONCE: calling external: xmlReaderForMemory(137288963063808, 17, 0, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/088_testlimits.c_343_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 12

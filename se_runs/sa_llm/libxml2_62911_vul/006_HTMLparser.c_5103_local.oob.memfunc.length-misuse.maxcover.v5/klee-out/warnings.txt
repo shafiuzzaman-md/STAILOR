@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: htmlCreateMemoryParserCtxt
-KLEE: WARNING: undefined reference to function: htmlFreeParserCtxt
-KLEE: WARNING ONCE: calling external: htmlCreateMemoryParserCtxt(129190917570560, 0) at se_runs/sa_llm/libxml2_62911_vul/006_HTMLparser.c_5103_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 22
