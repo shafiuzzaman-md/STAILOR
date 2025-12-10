@@ -7,7 +7,6 @@
 int main(void) {
     int len;
     char *xml_buf;
-    xmlDocPtr doc = NULL;
 
     /* Initialize libxml2 */
     xmlInitParser();
@@ -26,18 +25,20 @@ int main(void) {
     /* Make buffer symbolic */
     klee_make_symbolic(xml_buf, MAX_XML_SIZE + 1, "xml_buf");
 
-    /* Ensure the buffer is NUL-terminated at the constrained length */
-    xml_buf[len] = '\0';
+    /* Ensure buffer is NUL-terminated for safety */
+    xml_buf[MAX_XML_SIZE] = '\0';
 
-    /* Call libxml2 entrypoint that parses from memory */
-    doc = xmlReadMemory(xml_buf, len, "noname.xml", NULL, 0);
-
-    /* Clean up */
+    /* Parse the symbolic buffer */
+    xmlDocPtr doc = xmlReadMemory(xml_buf, len, "noname.xml", NULL, 0);
+    
+    /* Clean up if document was created */
     if (doc != NULL) {
         xmlFreeDoc(doc);
     }
-    free(xml_buf);
+
+    /* Final cleanup */
     xmlCleanupParser();
+    free(xml_buf);
 
     return 0;
 }

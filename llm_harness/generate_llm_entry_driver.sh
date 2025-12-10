@@ -94,7 +94,7 @@ echo "[i] LLM_CLI     = ${LLM_CLI}"
 
 GEN_START=$(date +%s)
 
-# Split LLM_CLI into argv array (so "python3 tools/call_llm.py" works)
+# Split LLM_CLI into argv array (so 'python3 tools/call_llm.py' works)
 read -r -a LLM_CMD_ARR <<< "${LLM_CLI}"
 
 set +e
@@ -111,7 +111,10 @@ set +e
     ' > "${OUT_DRIVER}"
 LLM_EXIT=${PIPESTATUS[0]}
 set -e
+
+# Prefer local "klee/klee.h"
 sed -i 's|#include <klee/klee.h>|#include "klee/klee.h"|' "${OUT_DRIVER}"
+
 GEN_END=$(date +%s)
 GEN_TIME=$(( GEN_END - GEN_START ))
 

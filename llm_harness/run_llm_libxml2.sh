@@ -10,20 +10,6 @@
 #   H1  = SE ran until timeout (--max-time hit), no vulnerability assertion
 #   H2  = Vulnerability/assertion fired (*.assert.err produced)
 #
-# Example:
-#   LLM_MODEL=deepseek-chat \
-#   LLM_API_BASE=https://api.deepseek.com \
-#   LLM_CLI="python3 tools/call_llm.py" \
-#   ./run_llm_libxml2.sh \
-#       --src-root   dataset/libxml2_62911_vul \
-#       --driver     drivers/llm_entry/libxml2_llm_entry.c \
-#       --out-dir    se_runs/llm_entry/libxml2_62911_vul \
-#       --clang      clang-14 \
-#       --klee       klee \
-#       --clang-flags "-I/usr/include/libxml2" \
-#       --klee-flags "--search=nurs:covnew --max-time=3600" \
-#       --gen-script llm_harness/generate_llm_entry_driver.sh
-#
 
 set -euo pipefail
 
@@ -83,10 +69,9 @@ Usage: $0 \\
   [--clang-flags "<extra clang flags>"] \\
   [--klee-flags  "<extra klee flags>"] \\
   [--gen-script  <LLM driver generator script>] \\
-  [--model       <LLM model name, default from \$LLM_MODEL or deepseek-chat>] \\
-  [--api-base    <LLM API base URL, default from \$LLM_API_BASE or https://api.deepseek.com>] \\
-  [--llm-cli     <LLM CLI command, default from \$LLM_CLI or 'python3 tools/call_llm.py'>]
-
+  [--model       <LLM model name>] \\
+  [--api-base    <LLM API base URL>] \\
+  [--llm-cli     <LLM CLI command>]
 EOF
   exit 1
 fi
@@ -161,28 +146,14 @@ if [[ "${GEN_EXIT}" -ne 0 || ! -f "${DRIVER}" ]]; then
 
   echo "[ERR] LLM driver generation failed (exit=${GEN_EXIT}), driver=${DRIVER}"
 
-  echo "[summary] LLM libxml2 harness"
-  echo "[summary] gen_time_seconds=${GEN_TIME}"
-  echo "[summary] build_time_seconds=${BUILD_TIME}"
-  echo "[summary] run_time_seconds=${RUN_TIME}"
-  echo "[summary] total_time_seconds=${TOTAL_TIME}"
-  echo "[summary] harness_status=${HARNESS_STATUS}"
-  echo "[summary] has_klee_last=${HAS_KLEE_LAST}"
-  echo "[summary] num_err_files=${NUM_ERR_FILES}"
-  echo "[summary] num_vuln_assert=${NUM_VULN_ASSERT}"
-  echo "[summary] timeout_flag=${TIMEOUT_FLAG}"
-  echo "[summary] llm_calls=${LLM_CALLS}"
-  echo "[summary] klee_total_paths=${KLEE_TOTAL_PATHS}"
-  echo "[summary] klee_completed_paths=${KLEE_COMPLETED_PATHS}"
-
-  # STATUS_LOG (legacy coarse log)
   if [[ ! -f "${STATUS_LOG}" ]]; then
     echo -e "mode\tproject\tharness_status\tduration_seconds\thas_klee_last\tnum_err_files" > "${STATUS_LOG}"
   fi
   echo -e "llm_entry\t${PROJECT_NAME}\t${HARNESS_STATUS}\t${TOTAL_TIME}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}" >> "${STATUS_LOG}"
 
-  # Detailed summary TSV
   echo -e "${PROJECT_NAME}\t${GEN_TIME}\t${BUILD_TIME}\t${RUN_TIME}\t${TOTAL_TIME}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${TIMEOUT_FLAG}\t${LLM_CALLS}\t${KLEE_TOTAL_PATHS}\t${KLEE_COMPLETED_PATHS}" >> "${SUMMARY_TSV}"
+
+  run_llm_entry_aggregate
   exit 0
 fi
 
@@ -217,26 +188,14 @@ if [[ "${CLANG_EXIT}" -ne 0 || ! -f "${HARNESS_BC}" ]]; then
 
   echo "[ERR] clang failed to compile LLM harness (exit=${CLANG_EXIT})"
 
-  echo "[summary] LLM libxml2 harness"
-  echo "[summary] gen_time_seconds=${GEN_TIME}"
-  echo "[summary] build_time_seconds=${BUILD_TIME}"
-  echo "[summary] run_time_seconds=${RUN_TIME}"
-  echo "[summary] total_time_seconds=${TOTAL_TIME}"
-  echo "[summary] harness_status=${HARNESS_STATUS}"
-  echo "[summary] has_klee_last=${HAS_KLEE_LAST}"
-  echo "[summary] num_err_files=${NUM_ERR_FILES}"
-  echo "[summary] num_vuln_assert=${NUM_VULN_ASSERT}"
-  echo "[summary] timeout_flag=${TIMEOUT_FLAG}"
-  echo "[summary] llm_calls=${LLM_CALLS}"
-  echo "[summary] klee_total_paths=${KLEE_TOTAL_PATHS}"
-  echo "[summary] klee_completed_paths=${KLEE_COMPLETED_PATHS}"
-
   if [[ ! -f "${STATUS_LOG}" ]]; then
     echo -e "mode\tproject\tharness_status\tduration_seconds\thas_klee_last\tnum_err_files" > "${STATUS_LOG}"
   fi
   echo -e "llm_entry\t${PROJECT_NAME}\t${HARNESS_STATUS}\t${TOTAL_TIME}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}" >> "${STATUS_LOG}"
 
   echo -e "${PROJECT_NAME}\t${GEN_TIME}\t${BUILD_TIME}\t${RUN_TIME}\t${TOTAL_TIME}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${TIMEOUT_FLAG}\t${LLM_CALLS}\t${KLEE_TOTAL_PATHS}\t${KLEE_COMPLETED_PATHS}" >> "${SUMMARY_TSV}"
+
+  run_llm_entry_aggregate
   exit 0
 fi
 
@@ -270,26 +229,14 @@ if [[ -n "${LIB_BC}" ]]; then
 
     echo "[ERR] llvm-link failed (exit=${LINK_EXIT})"
 
-    echo "[summary] LLM libxml2 harness"
-    echo "[summary] gen_time_seconds=${GEN_TIME}"
-    echo "[summary] build_time_seconds=${BUILD_TIME}"
-    echo "[summary] run_time_seconds=${RUN_TIME}"
-    echo "[summary] total_time_seconds=${TOTAL_TIME}"
-    echo "[summary] harness_status=${HARNESS_STATUS}"
-    echo "[summary] has_klee_last=${HAS_KLEE_LAST}"
-    echo "[summary] num_err_files=${NUM_ERR_FILES}"
-    echo "[summary] num_vuln_assert=${NUM_VULN_ASSERT}"
-    echo "[summary] timeout_flag=${TIMEOUT_FLAG}"
-    echo "[summary] llm_calls=${LLM_CALLS}"
-    echo "[summary] klee_total_paths=${KLEE_TOTAL_PATHS}"
-    echo "[summary] klee_completed_paths=${KLEE_COMPLETED_PATHS}"
-
     if [[ ! -f "${STATUS_LOG}" ]]; then
       echo -e "mode\tproject\tharness_status\tduration_seconds\thas_klee_last\tnum_err_files" > "${STATUS_LOG}"
     fi
     echo -e "llm_entry\t${PROJECT_NAME}\t${HARNESS_STATUS}\t${TOTAL_TIME}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}" >> "${STATUS_LOG}"
 
     echo -e "${PROJECT_NAME}\t${GEN_TIME}\t${BUILD_TIME}\t${RUN_TIME}\t${TOTAL_TIME}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${TIMEOUT_FLAG}\t${LLM_CALLS}\t${KLEE_TOTAL_PATHS}\t${KLEE_COMPLETED_PATHS}" >> "${SUMMARY_TSV}"
+
+    run_llm_entry_aggregate
     exit 0
   fi
   TARGET_BC="${LINKED_BC}"
@@ -327,7 +274,7 @@ TOTAL_END=$(date +%s)
 TOTAL_TIME=$(( TOTAL_END - TOTAL_START ))
 
 ###############################################################################
-# Classify harness status: E / H0 / H1 / H2
+# 4) Classify harness status: E / H0 / H1 / H2, collect stats
 ###############################################################################
 
 HARNESS_STATUS="H0"
@@ -338,36 +285,38 @@ TIMEOUT_FLAG=0
 KLEE_TOTAL_PATHS=0
 KLEE_COMPLETED_PATHS=0
 
+set +e
 if [[ -d "${KLEE_OUT}" ]]; then
   HAS_KLEE_LAST=1
-  NUM_ERR_FILES=$(find "${KLEE_OUT}" -maxdepth 1 -type f -name '*.err' 2>/dev/null | wc -l || echo 0)
-  NUM_VULN_ASSERT=$(find "${KLEE_OUT}" -maxdepth 1 -type f -name '*.assert.err' 2>/dev/null | wc -l || echo 0)
+  NUM_ERR_FILES=$(find "${KLEE_OUT}" -maxdepth 1 -type f -name '*.err' 2>/dev/null | wc -l)
+  NUM_VULN_ASSERT=$(find "${KLEE_OUT}" -maxdepth 1 -type f -name '*.assert.err' 2>/dev/null | wc -l)
   if grep -Rqs "HaltTimer" "${KLEE_OUT}" 2>/dev/null; then
     TIMEOUT_FLAG=1
   fi
 
-  # KLEE path stats from messages.txt (if present)
   MSG_FILE=""
   if [[ -f "${KLEE_OUT}/messages.txt" ]]; then
     MSG_FILE="${KLEE_OUT}/messages.txt"
   else
-    # fall back: first messages.txt under klee-out
-    MSG_FILE=$(find "${KLEE_OUT}" -maxdepth 1 -type f -name 'messages.txt' 2>/dev/null | head -n1 || true)
+    MSG_FILE=$(find "${KLEE_OUT}" -maxdepth 1 -type f -name 'messages.txt' 2>/dev/null | head -n1)
   fi
 
   if [[ -n "${MSG_FILE}" && -f "${MSG_FILE}" ]]; then
-    KLEE_COMPLETED_PATHS=$(grep -ho "completed paths = [0-9]\+" "${MSG_FILE}" 2>/dev/null | tail -n1 | awk '{print $4}')
-    KLEE_TOTAL_PATHS=$(grep -ho "total paths = [0-9]\+" "${MSG_FILE}" 2>/dev/null | tail -n1 | awk '{print $4}')
-    KLEE_COMPLETED_PATHS=${KLEE_COMPLETED_PATHS:-0}
-    KLEE_TOTAL_PATHS=${KLEE_TOTAL_PATHS:-0}
+    line_completed=$(grep -ho "completed paths = [0-9]\+" "${MSG_FILE}" 2>/dev/null | tail -n1)
+    if [[ -n "${line_completed}" ]]; then
+      KLEE_COMPLETED_PATHS=$(echo "${line_completed}" | awk '{print $4}')
+    fi
+    line_total=$(grep -ho "total paths = [0-9]\+" "${MSG_FILE}" 2>/dev/null | tail -n1)
+    if [[ -n "${line_total}" ]]; then
+      KLEE_TOTAL_PATHS=$(echo "${line_total}" | awk '{print $4}')
+    fi
   fi
 fi
+set -e
 
-# New classes:
-# E  = handled earlier (no KLEE)
-# H0 = SE ran, no timeout, no vuln assert
-# H1 = SE ran until timeout, no vuln assert
-# H2 = vuln/assert fired
+KLEE_COMPLETED_PATHS=${KLEE_COMPLETED_PATHS:-0}
+KLEE_TOTAL_PATHS=${KLEE_TOTAL_PATHS:-0}
+
 if [[ "${NUM_VULN_ASSERT}" -gt 0 ]]; then
   HARNESS_STATUS="H2"
 elif [[ "${TIMEOUT_FLAG}" -eq 1 ]]; then
@@ -377,7 +326,7 @@ else
 fi
 
 ###############################################################################
-# Report
+# 5) Report + logging + aggregation
 ###############################################################################
 
 echo
@@ -401,3 +350,5 @@ fi
 echo -e "llm_entry\t${PROJECT_NAME}\t${HARNESS_STATUS}\t${TOTAL_TIME}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}" >> "${STATUS_LOG}"
 
 echo -e "${PROJECT_NAME}\t${GEN_TIME}\t${BUILD_TIME}\t${RUN_TIME}\t${TOTAL_TIME}\t${HARNESS_STATUS}\t${HAS_KLEE_LAST}\t${NUM_ERR_FILES}\t${NUM_VULN_ASSERT}\t${TIMEOUT_FLAG}\t${LLM_CALLS}\t${KLEE_TOTAL_PATHS}\t${KLEE_COMPLETED_PATHS}" >> "${SUMMARY_TSV}"
+
+exit 0
