@@ -1,0 +1,51 @@
+SA-DRIVEN LLM HARNESS REQUEST (SINGLE-SHOT)
+
+Context:
+  - Project source root: __SRC_ROOT__
+  - Target source file:  __SRC_FILE__
+  - Target line number:  __LINE_NO__
+  - Static-analysis rule id: __RULE_ID__
+
+Suggested assertion expression from static analysis (if any, in C):
+  __ASSERT_EXPR__
+
+Relevant code snippet around the target line:
+--------------------------------------------
+__SNIPPET__
+--------------------------------------------
+
+Full SA spec JSON:
+--------------------------------------------
+__SPEC_JSON__
+--------------------------------------------
+
+YOUR TASK
+
+Generate a SINGLE C TRANSLATION UNIT that will be compiled as "harness.c"
+and run under KLEE. Follow the system instructions strictly.
+
+In particular, you MUST:
+
+  - Include "klee/klee.h".
+  - Define exactly one entrypoint: int main(void).
+  - Use klee_make_symbolic and klee_assume to construct inputs and states
+    that make it plausible to reach the suspicious location in
+    __SRC_FILE__:__LINE_NO__.
+  - Infer a vulnerability assertion condition based on __RULE_ID__,
+    __ASSERT_EXPR__, and the snippet. This condition MUST be encoded as:
+        SAILR_ASSERT(<cond>);
+    where <cond> is a C boolean expression.
+  - Place SAILR_ASSERT(<cond>) on the path that reaches the suspicious
+    location in __SRC_FILE__, ideally just BEFORE the reachability marker.
+  - Also insert a reachability assertion:
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    after SAILR_ASSERT(<cond>) on the same path.
+
+IMPORTANT
+
+  - Do NOT define SAILR_ASSERT yourself (assume it is defined by an
+    included header).
+  - Do NOT include additional translation units; everything must be in
+    this single C file.
+  - Do NOT output comments or explanations outside the C code.
+  - The final answer must be ONLY the C code for the TU.
