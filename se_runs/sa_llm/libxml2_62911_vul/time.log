@@ -1,8 +1,0 @@
-# Time log for MODE=sa_llm, PROJECT=libxml2_62911_vul
-# Columns: SPEC_ID  duration_seconds
-002_SAX2.c_1887_local.oob.memfunc.length-misuse.maxcover.v5  9
-002_HTMLtree.c_416_local.oob.memfunc.length-misuse.maxcover.v5  11
-003_SAX2.c_1767_local.oob.memfunc.length-misuse.maxcover.v5  12
-006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5  14
-004_SAX2.c_1779_local.oob.memfunc.length-misuse.maxcover.v5  21
-000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5  25

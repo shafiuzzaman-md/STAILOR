@@ -1,3 +1,0 @@
-# Error log for MODE=sa_llm, PROJECT=libxml2_62911_vul
-[ERR] 006_HTMLparser.c_5103_local.oob.memfunc.length-misuse.maxcover.v5: harness compile failed (exit=1)
-[ERR] 001_SAX2.c_2142_local.oob.memfunc.length-misuse.maxcover.v5: harness compile failed (exit=1)

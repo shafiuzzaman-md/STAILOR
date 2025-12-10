@@ -1,4 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlFreeTextWriter
-KLEE: WARNING: undefined reference to function: xmlNewTextWriterDoc

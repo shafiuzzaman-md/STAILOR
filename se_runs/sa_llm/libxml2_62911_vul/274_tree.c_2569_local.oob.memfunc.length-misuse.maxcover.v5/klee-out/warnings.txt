@@ -1,9 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlFreeNodeList
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING: undefined reference to function: xmlNewDoc
-KLEE: WARNING: undefined reference to function: xmlStringGetNodeList
-KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/274_tree.c_2569_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 11
-KLEE: WARNING ONCE: calling external: xmlNewDoc(126598596526080) at se_runs/sa_llm/libxml2_62911_vul/274_tree.c_2569_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 9
-KLEE: WARNING ONCE: calling external: xmlStringGetNodeList(101870292564688, 125415869906944) at se_runs/sa_llm/libxml2_62911_vul/274_tree.c_2569_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:46 10

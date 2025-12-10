@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: strncpy
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING ONCE: calling external: strncpy(125485788954624, 126670663057408, 20) at se_runs/sa_llm/libxml2_62911_vul/396_testapi.c_138_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 5

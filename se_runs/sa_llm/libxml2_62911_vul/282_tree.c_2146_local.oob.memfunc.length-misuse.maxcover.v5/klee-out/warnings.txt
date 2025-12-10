@@ -1,8 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING: undefined reference to function: xmlNewDoc
-KLEE: WARNING: undefined reference to function: xmlNewDocPI
-KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/282_tree.c_2146_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:25 11
-KLEE: WARNING ONCE: calling external: xmlNewDoc(0) at se_runs/sa_llm/libxml2_62911_vul/282_tree.c_2146_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:25 9
-KLEE: WARNING ONCE: calling external: xmlNewDocPI(97241351873952, 125404392194048, 125402244710400) at se_runs/sa_llm/libxml2_62911_vul/282_tree.c_2146_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:44 10

@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: xmlNewTextLen
-File: se_runs/sa_llm/libxml2_62911_vul/272_tree.c_2640_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 25
-assembly.ll line: 56
-State: 1
-Stack: 
-	#000000056 in main() at se_runs/sa_llm/libxml2_62911_vul/272_tree.c_2640_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:25

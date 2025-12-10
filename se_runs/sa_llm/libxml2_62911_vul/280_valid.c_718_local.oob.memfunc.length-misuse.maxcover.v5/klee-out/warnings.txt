@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to function: klee_malloc
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlFreeValidCtxt
-KLEE: WARNING: undefined reference to function: xmlNewValidCtxt
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING: undefined reference to function: xmlValidateDocument
-KLEE: WARNING ONCE: calling external: klee_malloc(1024) at se_runs/sa_llm/libxml2_62911_vul/280_valid.c_718_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18 16

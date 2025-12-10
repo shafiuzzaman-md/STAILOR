@@ -1,8 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCheckVersion
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING: undefined reference to function: xmlSchemaFreeParserCtxt
-KLEE: WARNING: undefined reference to function: xmlSchemaNewParserCtxt
-KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/334_xmlschemastypes.c_502_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:8 5
-KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/334_xmlschemastypes.c_502_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 28
-KLEE: WARNING ONCE: calling external: xmlSchemaNewParserCtxt(133430488596480) at se_runs/sa_llm/libxml2_62911_vul/334_xmlschemastypes.c_502_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:14 28

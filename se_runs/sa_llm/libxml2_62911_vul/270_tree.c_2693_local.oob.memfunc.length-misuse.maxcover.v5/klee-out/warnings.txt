@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlFreeNode
-KLEE: WARNING: undefined reference to function: xmlNewComment
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING ONCE: calling external: xmlReadMemory(137406346952704, 7, 137407085150208, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/270_tree.c_2693_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 15
-KLEE: WARNING ONCE: calling external: xmlNewComment(136222211047424) at se_runs/sa_llm/libxml2_62911_vul/270_tree.c_2693_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 16

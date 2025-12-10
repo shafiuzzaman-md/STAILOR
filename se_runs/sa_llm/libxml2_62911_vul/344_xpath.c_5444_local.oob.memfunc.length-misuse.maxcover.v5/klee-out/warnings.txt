@@ -1,5 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING: undefined reference to function: xmlXPathFreeContext
-KLEE: WARNING: undefined reference to function: xmlXPathNewContext
-KLEE: WARNING ONCE: calling external: xmlReadMemory(130966787981312, 1023, 132142803714048, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/344_xpath.c_5444_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 15

@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlSchemaFreeParserCtxt
-KLEE: WARNING: undefined reference to function: xmlSchemaNewParserCtxt
-KLEE: WARNING ONCE: calling external: xmlSchemaNewParserCtxt(0) at se_runs/sa_llm/libxml2_62911_vul/367_xmlschemas.c_9927_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:9 10

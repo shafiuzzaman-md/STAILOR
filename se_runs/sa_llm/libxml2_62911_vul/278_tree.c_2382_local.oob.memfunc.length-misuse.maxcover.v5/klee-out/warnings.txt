@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlFreeNode
-KLEE: WARNING: undefined reference to function: xmlNewDoc
-KLEE: WARNING: undefined reference to function: xmlNewDocFragment
-KLEE: WARNING ONCE: calling external: xmlNewDoc(139775786876928) at se_runs/sa_llm/libxml2_62911_vul/278_tree.c_2382_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:10 9
-KLEE: WARNING ONCE: calling external: xmlNewDocFragment(108307247378640) at se_runs/sa_llm/libxml2_62911_vul/278_tree.c_2382_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 10

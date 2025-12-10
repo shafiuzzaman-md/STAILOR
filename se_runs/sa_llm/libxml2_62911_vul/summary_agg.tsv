@@ -1,2 +1,0 @@
-mode	project	E	HO	H1	H2	Vul	FP	time(s)	timeout_specs	specs_timed	attempt	prompt_tokens	completion_tokens	total_tokens
-sa_llm	libxml2_62911_vul	2	0	0	6	0	0	92	0	6	14	891360	281259	1172619
