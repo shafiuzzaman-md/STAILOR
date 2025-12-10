@@ -1,5 +1,0 @@
-array pattern_len[8] : w32 -> w8 = symbolic
-(query [(Eq false
-             (Ult 1024
-                  (ReadLSB w64 0 pattern_len)))]
-        false)

@@ -1,7 +1,0 @@
-Error: invalid function pointer
-File: se_runs/sa_llm/libxml2_62911_vul/133_testchar.c_812_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 34
-assembly.ll line: 85
-State: 1
-Stack: 
-	#000000085 in main() at se_runs/sa_llm/libxml2_62911_vul/133_testchar.c_812_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:34

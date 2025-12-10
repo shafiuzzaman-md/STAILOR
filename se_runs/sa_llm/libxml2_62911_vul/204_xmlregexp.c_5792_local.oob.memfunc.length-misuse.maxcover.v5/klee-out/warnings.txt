@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING: undefined reference to function: xmlRegFreeRegexp
-KLEE: WARNING: undefined reference to function: xmlRegexpCompile
-KLEE: WARNING: undefined reference to function: xmlSetGenericErrorFunc
-KLEE: WARNING ONCE: calling external: xmlSetGenericErrorFunc(0, 0) at se_runs/sa_llm/libxml2_62911_vul/204_xmlregexp.c_5792_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 31
-KLEE: WARNING ONCE: calling external: xmlRegexpCompile(139078752272384) at se_runs/sa_llm/libxml2_62911_vul/204_xmlregexp.c_5792_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 12
-KLEE: WARNING ONCE: calling external: xmlRegFreeRegexp(111327222980512) at se_runs/sa_llm/libxml2_62911_vul/204_xmlregexp.c_5792_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:60 5

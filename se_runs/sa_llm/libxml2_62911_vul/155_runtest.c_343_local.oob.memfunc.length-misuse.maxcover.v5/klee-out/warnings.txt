@@ -1,4 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlDocGetRootElement
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlGetUTF8Char
-KLEE: WARNING: undefined reference to function: xmlReadMemory

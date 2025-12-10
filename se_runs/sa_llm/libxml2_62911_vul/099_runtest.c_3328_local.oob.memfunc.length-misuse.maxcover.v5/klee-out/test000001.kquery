@@ -1,5 +1,0 @@
-array url_len[4] : w32 -> w8 = symbolic
-(query [(Eq false
-             (Sle 0
-                  (ReadLSB w32 0 url_len)))]
-        false)

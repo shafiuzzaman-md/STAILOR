@@ -1,9 +1,0 @@
-KLEE: WARNING: undefined reference to function: close
-KLEE: WARNING: undefined reference to function: fclose
-KLEE: WARNING: undefined reference to function: fopen
-KLEE: WARNING: undefined reference to function: fprintf
-KLEE: WARNING: undefined reference to function: fwrite
-KLEE: WARNING: undefined reference to function: open
-KLEE: WARNING: undefined reference to function: read
-KLEE: WARNING: undefined reference to variable: stderr
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.

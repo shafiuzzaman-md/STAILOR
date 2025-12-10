@@ -1,4 +1,0 @@
-array resultClone_flag[4] : w32 -> w8 = symbolic
-(query [(Eq 0
-             (ReadLSB w32 0 resultClone_flag))]
-        false)

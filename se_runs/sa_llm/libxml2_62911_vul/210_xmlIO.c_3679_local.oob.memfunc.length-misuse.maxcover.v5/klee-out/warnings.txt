@@ -1,2 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlFileOpen
-KLEE: WARNING ONCE: calling external: xmlFileOpen(136301852491776) at se_runs/sa_llm/libxml2_62911_vul/210_xmlIO.c_3679_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:10 11

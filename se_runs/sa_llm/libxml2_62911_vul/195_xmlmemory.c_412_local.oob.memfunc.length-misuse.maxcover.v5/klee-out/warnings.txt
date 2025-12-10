@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to variable: xmlFree
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to variable: xmlMalloc
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: xmlReadMemory(136066344419328, (ReadLSB w32 0 size), 0, 136996943036416, 0) at se_runs/sa_llm/libxml2_62911_vul/195_xmlmemory.c_412_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 15

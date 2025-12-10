@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlDocSetRootElement
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlFreeNode
-KLEE: WARNING: undefined reference to function: xmlNewNode
-KLEE: WARNING: undefined reference to function: xmlNewNs
-KLEE: WARNING: undefined reference to function: xmlReadMemory

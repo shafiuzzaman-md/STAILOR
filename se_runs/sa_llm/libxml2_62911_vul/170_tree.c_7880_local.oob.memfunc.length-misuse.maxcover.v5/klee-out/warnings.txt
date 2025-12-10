@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlDOMWrapFreeCtxt
-KLEE: WARNING: undefined reference to function: xmlDOMWrapNewCtxt
-KLEE: WARNING ONCE: calling external: xmlDOMWrapNewCtxt() at se_runs/sa_llm/libxml2_62911_vul/170_tree.c_7880_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:9 10

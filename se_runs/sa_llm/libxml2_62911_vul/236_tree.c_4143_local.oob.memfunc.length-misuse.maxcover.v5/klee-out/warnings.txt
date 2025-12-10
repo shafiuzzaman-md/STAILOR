@@ -1,9 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCheckVersion
-KLEE: WARNING: undefined reference to function: xmlCopyNode
-KLEE: WARNING: undefined reference to function: xmlDocGetRootElement
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlFreeNode
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING ONCE: calling external: xmlCheckVersion(20914) at se_runs/sa_llm/libxml2_62911_vul/236_tree.c_4143_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15 24
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: xmlReadMemory(123525983633408, (ReadLSB w32 0 size), 0, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/236_tree.c_4143_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 9

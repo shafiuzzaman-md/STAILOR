@@ -1,5 +1,0 @@
-array len[8] : w32 -> w8 = symbolic
-(query [(Eq false
-             (Ult 1023
-                  (ReadLSB w64 0 len)))]
-        false)

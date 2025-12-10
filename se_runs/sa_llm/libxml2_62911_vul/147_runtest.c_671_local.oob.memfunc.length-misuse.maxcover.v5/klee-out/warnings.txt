@@ -1,4 +1,0 @@
-KLEE: WARNING: undefined reference to function: close
-KLEE: WARNING: undefined reference to function: open
-KLEE: WARNING: undefined reference to function: read
-KLEE: WARNING ONCE: calling external: open(138340015800320, 0) at se_runs/sa_llm/libxml2_62911_vul/147_runtest.c_671_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 9

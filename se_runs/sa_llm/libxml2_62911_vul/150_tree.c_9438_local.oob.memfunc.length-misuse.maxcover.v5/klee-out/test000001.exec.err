@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: xmlDOMWrapCloneNode
-File: se_runs/sa_llm/libxml2_62911_vul/150_tree.c_9438_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 58
-assembly.ll line: 125
-State: 2
-Stack: 
-	#000000125 in main() at se_runs/sa_llm/libxml2_62911_vul/150_tree.c_9438_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:58

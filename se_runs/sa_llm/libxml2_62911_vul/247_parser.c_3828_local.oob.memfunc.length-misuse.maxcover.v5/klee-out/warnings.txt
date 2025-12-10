@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCreateMemoryParserCtxt
-KLEE: WARNING: undefined reference to variable: xmlFree
-KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
-KLEE: WARNING: undefined reference to variable: xmlMallocAtomic
-KLEE: WARNING: undefined reference to function: xmlParserNsLookup
-KLEE: WARNING ONCE: calling external: xmlCreateMemoryParserCtxt(136557044432896, 0) at se_runs/sa_llm/libxml2_62911_vul/247_parser.c_3828_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 12

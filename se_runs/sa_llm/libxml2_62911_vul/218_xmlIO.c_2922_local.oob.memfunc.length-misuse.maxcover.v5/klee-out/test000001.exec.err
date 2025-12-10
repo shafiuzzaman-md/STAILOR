@@ -1,8 +1,0 @@
-Error: external call with symbolic argument: memchr
-File: se_runs/sa_llm/libxml2_62911_vul/218_xmlIO.c_2922_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 15
-assembly.ll line: 84
-State: 3
-Stack: 
-	#000000084 in xmlStringRead(132743245594624, 132786195267584, symbolic) at se_runs/sa_llm/libxml2_62911_vul/218_xmlIO.c_2922_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:15
-	#100000050 in main() at se_runs/sa_llm/libxml2_62911_vul/218_xmlIO.c_2922_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:41

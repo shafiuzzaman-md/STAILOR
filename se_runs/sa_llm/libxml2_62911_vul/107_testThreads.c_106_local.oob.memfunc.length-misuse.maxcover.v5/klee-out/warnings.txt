@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING: undefined reference to function: xmlLoadCatalog
-KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/107_testThreads.c_106_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:46 20
-KLEE: WARNING ONCE: calling external: xmlLoadCatalog(135419347861504) at se_runs/sa_llm/libxml2_62911_vul/107_testThreads.c_106_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:65 5
-KLEE: WARNING ONCE: calling external: xmlCleanupParser() at se_runs/sa_llm/libxml2_62911_vul/107_testThreads.c_106_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:66 5

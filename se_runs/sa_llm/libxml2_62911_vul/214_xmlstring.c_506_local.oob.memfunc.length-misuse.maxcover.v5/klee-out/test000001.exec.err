@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: xmlStrncatNew
-File: se_runs/sa_llm/libxml2_62911_vul/214_xmlstring.c_506_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 19
-assembly.ll line: 44
-State: 1
-Stack: 
-	#000000044 in main() at se_runs/sa_llm/libxml2_62911_vul/214_xmlstring.c_506_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19

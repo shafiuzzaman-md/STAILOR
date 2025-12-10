@@ -1,4 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlFreeURI
-KLEE: WARNING: undefined reference to function: xmlParseURI
-KLEE: WARNING ONCE: calling external: xmlParseURI(132429218054144) at se_runs/sa_llm/libxml2_62911_vul/123_uri.c_2569_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 15
-KLEE: WARNING ONCE: calling external: xmlFreeURI(94454376680576) at se_runs/sa_llm/libxml2_62911_vul/123_uri.c_2569_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:53 9

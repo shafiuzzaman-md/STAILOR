@@ -1,7 +1,0 @@
-Error: failed external call: xmlNewDtdNode
-File: se_runs/sa_llm/libxml2_62911_vul/261_valid.c_2061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 21
-assembly.ll line: 60
-State: 1
-Stack: 
-	#000000060 in main() at se_runs/sa_llm/libxml2_62911_vul/261_valid.c_2061_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21

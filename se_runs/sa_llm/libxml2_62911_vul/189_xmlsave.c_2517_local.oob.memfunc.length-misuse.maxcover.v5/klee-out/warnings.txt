@@ -1,9 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlAllocOutputBuffer
-KLEE: WARNING: undefined reference to function: xmlDocGetRootElement
-KLEE: WARNING: undefined reference to function: xmlFreeDoc
-KLEE: WARNING: undefined reference to function: xmlNodeDumpOutputInternal
-KLEE: WARNING: undefined reference to function: xmlOutputBufferClose
-KLEE: WARNING: undefined reference to function: xmlReadMemory
-KLEE: WARNING ONCE: calling external: xmlReadMemory(129767980400640, 17, 129767175094272, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/189_xmlsave.c_2517_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20 9
-KLEE: WARNING ONCE: calling external: xmlDocGetRootElement(100001973416080) at se_runs/sa_llm/libxml2_62911_vul/189_xmlsave.c_2517_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 10
-KLEE: WARNING ONCE: calling external: xmlAllocOutputBuffer(0) at se_runs/sa_llm/libxml2_62911_vul/189_xmlsave.c_2517_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 9

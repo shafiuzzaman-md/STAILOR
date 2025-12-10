@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlFreeParserInputBuffer
-KLEE: WARNING: undefined reference to function: xmlParserInputBufferCreateFilename
-KLEE: WARNING ONCE: calling external: xmlParserInputBufferCreateFilename(135237277319168, 0) at se_runs/sa_llm/libxml2_62911_vul/234_xmlIO.c_1483_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:17 29

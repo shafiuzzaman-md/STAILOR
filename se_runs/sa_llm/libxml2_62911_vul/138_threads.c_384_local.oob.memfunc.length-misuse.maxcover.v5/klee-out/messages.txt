@@ -1,8 +1,0 @@
-KLEE: Using Z3 solver backend
-KLEE: Deterministic allocator: Using quarantine queue size 8
-KLEE: Deterministic allocator: globals (start-address=0x7ee472a00000 size=10 GiB)
-KLEE: Deterministic allocator: constants (start-address=0x7ee1f2a00000 size=10 GiB)
-KLEE: Deterministic allocator: heap (start-address=0x7de1f2a00000 size=1024 GiB)
-KLEE: Deterministic allocator: stack (start-address=0x7dc1f2a00000 size=128 GiB)
-KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/138_threads.c_384_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13: failed external call: XML_IS_THREADED
-KLEE: NOTE: now ignoring this error at this location

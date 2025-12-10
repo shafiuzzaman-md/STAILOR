@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/210_libxml.c_287_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 81
-assembly.ll line: 249
-State: 4
-Stack: 
-	#000000249 in xmlPythonFileReadRaw(125480894201856, 125167361589248, symbolic) at se_runs/sa_llm/libxml2_62911_vul/210_libxml.c_287_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:81
-	#100000337 in main() at se_runs/sa_llm/libxml2_62911_vul/210_libxml.c_287_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:110

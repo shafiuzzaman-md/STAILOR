@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlCleanupParser
-KLEE: WARNING: undefined reference to function: xmlCreatePushParser
-KLEE: WARNING: undefined reference to function: xmlFreeParserCtxt
-KLEE: WARNING: undefined reference to function: xmlInitParser
-KLEE: WARNING ONCE: calling external: xmlInitParser() at se_runs/sa_llm/libxml2_62911_vul/207_libxml.c_349_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:62 22
-KLEE: WARNING ONCE: calling external: xmlCreatePushParser(0, 0, 0, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/207_libxml.c_349_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:62 29

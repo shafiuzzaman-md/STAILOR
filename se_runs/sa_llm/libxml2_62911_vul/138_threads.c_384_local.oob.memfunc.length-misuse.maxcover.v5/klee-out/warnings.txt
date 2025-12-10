@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: XML_IS_THREADED
-KLEE: WARNING: undefined reference to function: pthread_self
-KLEE: WARNING ONCE: calling external: XML_IS_THREADED() at se_runs/sa_llm/libxml2_62911_vul/138_threads.c_384_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 27

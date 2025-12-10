@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to variable: xmlFree
-KLEE: WARNING: undefined reference to variable: xmlMalloc
-KLEE: WARNING: undefined reference to function: xmlSchemaFreeParserCtxt
-KLEE: WARNING: undefined reference to function: xmlSchemaNewParserCtxt
-KLEE: WARNING: undefined reference to function: xmlSchemaSAXPlugCreate
-KLEE: WARNING: undefined reference to function: xmlSchemaSAXPlugFree
-KLEE: WARNING ONCE: calling external: xmlSchemaNewParserCtxt(136207038152704) at se_runs/sa_llm/libxml2_62911_vul/237_xmlschemas.c_28533_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:13 10

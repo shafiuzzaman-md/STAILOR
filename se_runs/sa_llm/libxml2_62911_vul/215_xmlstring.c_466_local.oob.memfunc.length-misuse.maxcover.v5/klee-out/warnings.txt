@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: xmlStrcat
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: xmlStrcat(138378072817664, 138360892948480) at se_runs/sa_llm/libxml2_62911_vul/215_xmlstring.c_466_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:33 12
