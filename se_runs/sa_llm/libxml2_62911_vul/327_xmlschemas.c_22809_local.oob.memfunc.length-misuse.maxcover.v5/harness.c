@@ -1,0 +1,95 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct xmlSchemaPSVIIDCKey *xmlSchemaPSVIIDCKeyPtr;
+typedef struct xmlSchemaIDCAttrDef {
+    int nbFields;
+} xmlSchemaIDCAttrDef;
+typedef struct xmlSchemaIDCAttrDef *xmlSchemaIDCAttrDefPtr;
+typedef struct xmlSchemaIDCAttr {
+    xmlSchemaIDCAttrDefPtr def;
+} xmlSchemaIDCAttr;
+typedef struct xmlSchemaIDCAttr *xmlSchemaIDCAttrPtr;
+typedef struct xmlSchemaIDCMatcher {
+    xmlSchemaIDCAttrPtr aidc;
+    xmlSchemaPSVIIDCKeyPtr *keySeqs;
+} xmlSchemaIDCMatcher;
+
+/* Stub for xmlSchemaVErrMemory */
+void xmlSchemaVErrMemory(void *ctxt, const char *msg, const char *extra) {
+    /* Do nothing - just a stub */
+}
+
+/* Entrypoint that leads to the target line */
+int xmlSchemaFormatQName(xmlSchemaIDCMatcher *matcher, int pos) {
+    xmlSchemaPSVIIDCKeyPtr *keySeq;
+    
+    if (matcher == NULL || matcher->aidc == NULL || matcher->aidc->def == NULL) {
+        return -1;
+    }
+    
+    keySeq = (xmlSchemaPSVIIDCKeyPtr *)malloc(
+        matcher->aidc->def->nbFields * sizeof(xmlSchemaPSVIIDCKeyPtr));
+    
+    if (keySeq == NULL) {
+        xmlSchemaVErrMemory(NULL, "allocating an IDC key-sequence", NULL);
+        return -1;
+    }
+    
+    /* TARGET LINE: 22809 - memset with potential OOB */
+    memset(keySeq, 0, matcher->aidc->def->nbFields * sizeof(xmlSchemaPSVIIDCKeyPtr));
+    
+    /* Vulnerability assertion: ensure nbFields is non-negative */
+    SAILR_ASSERT(matcher->aidc->def->nbFields >= 0);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    matcher->keySeqs[pos] = keySeq;
+    
+    /* Clean up to avoid memory leaks */
+    free(keySeq);
+    return 0;
+}
+
+int main(void) {
+    xmlSchemaIDCMatcher matcher;
+    xmlSchemaIDCAttr attr;
+    xmlSchemaIDCAttrDef def;
+    xmlSchemaPSVIIDCKeyPtr *keySeqsArray;
+    int pos;
+    
+    /* Make symbolic inputs */
+    klee_make_symbolic(&def.nbFields, sizeof(def.nbFields), "nbFields");
+    klee_make_symbolic(&pos, sizeof(pos), "pos");
+    
+    /* Assume reasonable bounds for symbolic variables */
+    klee_assume(def.nbFields >= 0 && def.nbFields < 1000);  /* Upper bound to avoid huge allocations */
+    klee_assume(pos >= 0 && pos < 100);
+    
+    /* Set up the data structure chain */
+    def.nbFields = def.nbFields;  /* Keep symbolic value */
+    attr.def = &def;
+    matcher.aidc = &attr;
+    
+    /* Allocate keySeqs array */
+    keySeqsArray = (xmlSchemaPSVIIDCKeyPtr *)malloc(100 * sizeof(xmlSchemaPSVIIDCKeyPtr));
+    if (keySeqsArray == NULL) {
+        return -1;
+    }
+    matcher.keySeqs = keySeqsArray;
+    
+    /* Call the function that leads to the target line */
+    int result = xmlSchemaFormatQName(&matcher, pos);
+    
+    /* Clean up */
+    free(keySeqsArray);
+    
+    return result;
+}

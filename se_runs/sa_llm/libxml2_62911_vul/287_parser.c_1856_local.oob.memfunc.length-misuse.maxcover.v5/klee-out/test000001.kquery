@@ -1,0 +1,8 @@
+array ctxt[24] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 8 ctxt))
+         (Eq false
+             (Eq 8
+                 N1:(Mul w64 8 (SExt w64 N0))))
+         (Eq false (Ult 2147483648 N1))]
+        false)

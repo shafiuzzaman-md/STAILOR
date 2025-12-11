@@ -1,0 +1,9 @@
+array sym_buf[8] : w32 -> w8 = symbolic
+array sym_cur[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 (ReadLSB w64 0 sym_buf)))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w64 0 sym_cur)))]
+        false)

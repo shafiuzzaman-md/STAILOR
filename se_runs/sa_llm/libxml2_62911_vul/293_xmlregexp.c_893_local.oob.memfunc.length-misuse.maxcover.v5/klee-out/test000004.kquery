@@ -1,0 +1,16 @@
+array const_arr2[8] : w32 -> w8 = [7 0 0 0 0 0 0 0]
+array malloc_ptr[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 0 malloc_ptr)))
+         (Eq false
+             (Ult (Add w64 18446612075145854976 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446612072998371328 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446612070850887680 N0) 4))
+         (Ult N1:(Add w64 18446612068166533120 N0) 8)
+         (Eq false
+             (Ult 0
+                  (ReadLSB w64 0 U0:[(Extract w32 0 N1)=0] @ const_arr2)))]
+        false)

@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: (sizeof(ctxt) <= return_size) && "SAILR_VULN_ASSERT"
+File: se_runs/sa_llm/libxml2_62911_vul/192_xmlsave.c_2354_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 45
+assembly.ll line: 66
+State: 1
+Stack: 
+	#000000066 in xmlNodeDumpOutputInternal(symbolic, symbolic) at se_runs/sa_llm/libxml2_62911_vul/192_xmlsave.c_2354_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:45
+	#100000155 in main() at se_runs/sa_llm/libxml2_62911_vul/192_xmlsave.c_2354_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:82

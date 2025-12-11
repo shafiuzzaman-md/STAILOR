@@ -1,0 +1,12 @@
+Error: memory error: invalid pointer: make_symbolic
+File: se_runs/sa_llm/libxml2_62911_vul/160_dict.c_760_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 57
+assembly.ll line: 179
+State: 1
+Stack: 
+	#000000179 in create_dict_with_symbolic_state() at se_runs/sa_llm/libxml2_62911_vul/160_dict.c_760_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57
+	#100000318 in main() at se_runs/sa_llm/libxml2_62911_vul/160_dict.c_760_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:83
+Info: 
+	address: 139477108391952
+	next: object at 138972449734656 of size 4
+		MO29[4] allocated at main():  %4 = alloca i32, align 4

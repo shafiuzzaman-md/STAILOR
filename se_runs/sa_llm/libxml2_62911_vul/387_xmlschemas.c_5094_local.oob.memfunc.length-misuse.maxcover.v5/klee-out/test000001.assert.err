@@ -1,0 +1,7 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_62911_vul/387_xmlschemas.c_5094_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 91
+assembly.ll line: 164
+State: 1
+Stack: 
+	#000000164 in main() at se_runs/sa_llm/libxml2_62911_vul/387_xmlschemas.c_5094_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:91

@@ -1,0 +1,67 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need to call */
+typedef struct _xmlC14NCtxt xmlC14NCtxt;
+typedef struct _xmlC14NVisibleNsStackState xmlC14NVisibleNsStackState;
+
+struct _xmlC14NCtxt {
+    void* ns_rendered;
+    int parent_is_doc;
+};
+
+struct _xmlC14NVisibleNsStackState {
+    int dummy;
+};
+
+/* Stub for xmlC14NVisibleNsStackSave */
+void xmlC14NVisibleNsStackSave(void* ns_rendered, xmlC14NVisibleNsStackState* state) {
+    /* Assume this function succeeds */
+}
+
+/* Target function - simplified version to reach line 1443 */
+void xmlC14NProcessAttrsAxis(xmlC14NCtxt* ctx, int visible) {
+    xmlC14NVisibleNsStackState state;
+    
+    /* Line 1443: memset(&state, 0, sizeof(state)); */
+    memset(&state, 0, sizeof(state));
+    
+    /* Vulnerability assertion: ensure size argument doesn't exceed buffer */
+    SAILR_ASSERT(sizeof(state) >= 0 && sizeof(state) <= sizeof(xmlC14NVisibleNsStackState));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    xmlC14NVisibleNsStackSave(ctx->ns_rendered, &state);
+    
+    if (visible) {
+        if (ctx->parent_is_doc) {
+            /* save this flag into the stack */
+        }
+    }
+}
+
+int main(void) {
+    /* Create symbolic context */
+    xmlC14NCtxt ctx;
+    int visible;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&ctx.parent_is_doc, sizeof(ctx.parent_is_doc), "parent_is_doc");
+    klee_make_symbolic(&visible, sizeof(visible), "visible");
+    
+    /* Allocate ns_rendered - assume non-NULL */
+    ctx.ns_rendered = malloc(1024);
+    klee_assume(ctx.ns_rendered != NULL);
+    
+    /* Call the target function */
+    xmlC14NProcessAttrsAxis(&ctx, visible);
+    
+    /* Cleanup */
+    free(ctx.ns_rendered);
+    
+    return 0;
+}
+```

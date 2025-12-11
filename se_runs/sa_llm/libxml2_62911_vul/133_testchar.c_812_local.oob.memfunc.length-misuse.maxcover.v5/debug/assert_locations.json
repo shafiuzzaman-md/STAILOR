@@ -1,0 +1,33 @@
+{
+  "spec_id": "133_testchar.c_812_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/testchar.c",
+  "target_line": 812,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 55,
+        "text": "SAILR_ASSERT(i + 2 <= 2001);"
+      },
+      {
+        "line": 65,
+        "text": "SAILR_ASSERT(2001 <= 2001);  /* Buffer is exactly 2001 bytes */"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 68,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

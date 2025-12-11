@@ -1,0 +1,81 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from xmlIO.c */
+char* xmlFileOpen(const char* filename);
+
+/* Stub for IS_XMLPGD_SEP macro used in the target code */
+#ifdef _WIN32
+#define IS_XMLPGD_SEP(ch) ((ch == '/') || (ch == '\\'))
+#else
+#define IS_XMLPGD_SEP(ch) (ch == '/')
+#endif
+
+/* Vulnerability assertion condition:
+ * The target line is: "while (cur > dir) {"
+ * The vulnerability is that 'cur' is initialized as &dir[strlen(dir)]
+ * and then decremented in a loop. If strlen(filename) >= 1024, then
+ * strncpy(dir, filename, 1023) will not null-terminate dir properly,
+ * and strlen(dir) could read beyond the buffer bounds.
+ * Additionally, the loop accesses *cur which could be out of bounds
+ * if cur goes below dir (though the loop condition prevents that).
+ * The main OOB risk is in the strlen(dir) call after strncpy when
+ * filename length >= 1024.
+ */
+#define FILENAME_BUF_SIZE 1024
+#define DIR_BUF_SIZE 1024
+
+int main(void) {
+    /* Create symbolic filename input */
+    char filename[FILENAME_BUF_SIZE];
+    klee_make_symbolic(filename, sizeof(filename), "filename");
+    
+    /* Ensure filename is null-terminated for safety */
+    filename[FILENAME_BUF_SIZE - 1] = '\0';
+    
+    /* Constrain filename length to be reasonable but allow the problematic case */
+    size_t filename_len = strlen(filename);
+    klee_assume(filename_len < FILENAME_BUF_SIZE);  /* Stay within our buffer */
+    
+    /* Call the target function */
+    char* result = xmlFileOpen(filename);
+    
+    /* Vulnerability assertion: 
+     * The strncpy in xmlFileOpen copies at most 1023 bytes to dir[1024].
+     * If filename length >= 1024, dir won't be null-terminated, causing
+     * strlen(dir) to read out of bounds.
+     */
+    SAILR_ASSERT(filename_len < 1024);
+    
+    /* Reachability marker - placed after vulnerability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return 0;
+}
+
+/* Minimal implementation of xmlFileOpen to reach the target line */
+char* xmlFileOpen(const char* filename) {
+    char dir[DIR_BUF_SIZE];
+    char* cur;
+    
+    /* This is the strncpy call from the snippet */
+    strncpy(dir, filename, 1023);
+    dir[1023] = 0;
+    
+    /* This is the strlen call that could be problematic */
+    cur = &dir[strlen(dir)];
+    
+    /* Target line 3679: while (cur > dir) { */
+    while (cur > dir) {
+        if (IS_XMLPGD_SEP(*cur)) break;
+        cur--;
+    }
+    
+    /* Return something to avoid compiler warnings */
+    return dir;
+}

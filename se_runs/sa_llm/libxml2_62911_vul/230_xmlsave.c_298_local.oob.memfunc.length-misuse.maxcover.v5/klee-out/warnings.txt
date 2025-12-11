@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to variable: xmlEscapeEntities
+KLEE: WARNING: undefined reference to function: xmlStrlen
+KLEE: WARNING: undefined reference to variable: xmlTreeIndentString
+KLEE: ERROR: Unable to load symbol(xmlEscapeEntities) while initializing globals

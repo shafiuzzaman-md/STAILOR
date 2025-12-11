@@ -1,0 +1,12 @@
+array namelen[4] : w32 -> w8 = symbolic
+array plen[4] : w32 -> w8 = symbolic
+array pool_size[8] : w32 -> w8 = symbolic
+(query [(Eq 100
+             (ReadLSB w64 0 pool_size))
+         (Sle 0
+              N0:(ReadLSB w32 0 plen))
+         (Slt N0 100)
+         (Eq false
+             (Sle 0
+                  (ReadLSB w32 0 namelen)))]
+        false)

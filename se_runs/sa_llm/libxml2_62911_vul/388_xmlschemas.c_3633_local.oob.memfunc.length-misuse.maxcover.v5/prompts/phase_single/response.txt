@@ -1,0 +1,100 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stubs for libxml2 types and functions needed to reach target */
+typedef struct _xmlSchemaBucket xmlSchemaBucket;
+typedef xmlSchemaBucket *xmlSchemaBucketPtr;
+
+typedef enum {
+    XML_SCHEMA_TYPE_REDEFINE = 1
+} xmlSchemaBucketType;
+
+struct _xmlSchemaBucket {
+    const char *targetNamespace;
+    xmlSchemaBucketType type;
+    void *globals;
+};
+
+/* Stub implementations */
+void xmlSchemaPErrMemory(void *ctxt, const char *msg, const char *extra) {
+    /* Do nothing */
+}
+
+void* xmlSchemaItemListCreate(void) {
+    void *list = malloc(16);
+    klee_assume(list != NULL);
+    return list;
+}
+
+void xmlSchemaBucketFree(xmlSchemaBucketPtr bucket) {
+    if (bucket) {
+        free(bucket->globals);
+        free(bucket);
+    }
+}
+
+/* Target function prototype */
+xmlSchemaBucketPtr xmlSchemaParseRedefine(const char *targetNamespace, xmlSchemaBucketType type);
+
+/* Implementation of target function based on snippet */
+xmlSchemaBucketPtr xmlSchemaParseRedefine(const char *targetNamespace, xmlSchemaBucketType type) {
+    xmlSchemaBucketPtr ret;
+    size_t size;
+    
+    /* Symbolic size - this is the critical parameter for memset */
+    klee_make_symbolic(&size, sizeof(size), "size");
+    
+    /* Assume size is non-negative (as per bounds_hints) */
+    klee_assume(size >= 0);
+    
+    ret = (xmlSchemaBucketPtr) malloc(size);
+    if (ret == NULL) {
+        xmlSchemaPErrMemory(NULL, "allocating schema bucket", NULL);
+        return NULL;
+    }
+    
+    /* VULNERABLE LINE: memset with symbolic size */
+    memset(ret, 0, size);
+    
+    ret->targetNamespace = targetNamespace;
+    ret->type = type;
+    ret->globals = xmlSchemaItemListCreate();
+    if (ret->globals == NULL) {
+        xmlSchemaBucketFree(ret);
+        return NULL;
+    }
+    
+    return ret;
+}
+
+int main(void) {
+    const char *targetNamespace;
+    xmlSchemaBucketType type = XML_SCHEMA_TYPE_REDEFINE;
+    xmlSchemaBucketPtr result;
+    
+    /* Make targetNamespace symbolic */
+    char ns_buf[256];
+    klee_make_symbolic(ns_buf, sizeof(ns_buf), "ns_buf");
+    ns_buf[255] = '\0'; /* Ensure null termination */
+    targetNamespace = ns_buf;
+    
+    /* Call the target function */
+    result = xmlSchemaParseRedefine(targetNamespace, type);
+    
+    /* Vulnerability assertion: size must be at least sizeof(xmlSchemaBucket) 
+       to avoid OOB write in memset */
+    SAILR_ASSERT(0 && "Vulnerability condition would be checked here if we had access to size variable");
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Cleanup */
+    if (result) {
+        xmlSchemaBucketFree(result);
+    }
+    
+    return 0;
+}
+```

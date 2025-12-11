@@ -1,0 +1,19 @@
+array buffer_size[4] : w32 -> w8 = symbolic
+array curlen[4] : w32 -> w8 = symbolic
+array instate[4] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+array rlen[4] : w32 -> w8 = symbolic
+(query [(Ule 0
+              N0:(ReadLSB w32 0 len))
+         (Ule 0
+              N1:(ReadLSB w32 0 rlen))
+         (Ule 0
+              (ReadLSB w32 0 curlen))
+         (Eq 1
+             (ReadLSB w32 0 buffer_size))
+         (Eq 2
+             (ReadLSB w32 0 instate))
+         (Eq false (Ule N1 N0))
+         (Eq false
+             (Ult 0 (ZExt w64 N0)))]
+        false)

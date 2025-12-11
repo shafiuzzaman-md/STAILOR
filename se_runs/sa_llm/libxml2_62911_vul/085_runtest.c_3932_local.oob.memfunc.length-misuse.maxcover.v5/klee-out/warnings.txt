@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: snprintf
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: strrchr
+KLEE: WARNING ONCE: calling external: strlen(135217077551104) at se_runs/sa_llm/libxml2_62911_vul/085_runtest.c_3932_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:31 11

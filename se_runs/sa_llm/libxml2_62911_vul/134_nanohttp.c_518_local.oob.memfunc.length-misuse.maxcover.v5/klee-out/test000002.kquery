@@ -1,0 +1,6 @@
+array inlen[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 0 inlen))
+         (Sle N0 8192)
+         (Eq false (Eq 0 N0))]
+        false)

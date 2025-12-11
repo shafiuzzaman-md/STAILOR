@@ -1,0 +1,8 @@
+Error: failed external call: xmlMalloc
+File: se_runs/sa_llm/libxml2_62911_vul/301_tree.c_1144_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 32
+assembly.ll line: 24
+State: 1
+Stack: 
+	#000000024 in xmlNewDoc(137964239716352) at se_runs/sa_llm/libxml2_62911_vul/301_tree.c_1144_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32
+	#100000138 in main() at se_runs/sa_llm/libxml2_62911_vul/301_tree.c_1144_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:71

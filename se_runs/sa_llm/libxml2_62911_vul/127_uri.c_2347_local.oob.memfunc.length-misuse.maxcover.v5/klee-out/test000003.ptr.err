@@ -1,0 +1,15 @@
+Error: memory error: out of bound pointer
+File: se_runs/sa_llm/libxml2_62911_vul/127_uri.c_2347_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 69
+assembly.ll line: 69
+State: 61
+Stack: 
+	#000000069 in xmlParseURI(110634917436832, 135884445843456) at se_runs/sa_llm/libxml2_62911_vul/127_uri.c_2347_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:69
+	#100000137 in main() at se_runs/sa_llm/libxml2_62911_vul/127_uri.c_2347_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:110
+Info: 
+	address: (Add w64 18446744073709551615
+          (ReadLSB w64 0 vptr))
+	example: 0
+	range: [0, 18446744073709551614]
+	next: object at 135839348686848 of size 4
+		MO28[4] allocated at main():  %4 = alloca i32, align 4

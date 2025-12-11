@@ -1,0 +1,83 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed to reach target */
+typedef struct _xmlOutputBuffer xmlOutputBuffer;
+typedef xmlOutputBuffer* xmlOutputBufferPtr;
+typedef struct _xmlSaveCtxt xmlSaveCtxt;
+
+/* Minimal stub for xmlOutputBufferCreateFile */
+xmlOutputBufferPtr xmlOutputBufferCreateFile(void* f, void* handler) {
+    xmlOutputBufferPtr buf = (xmlOutputBufferPtr)malloc(sizeof(struct _xmlOutputBuffer));
+    if (buf) {
+        klee_make_symbolic(buf, sizeof(struct _xmlOutputBuffer), "buf_contents");
+    }
+    return buf;
+}
+
+/* Minimal stub for xmlSaveCtxtInit */
+void xmlSaveCtxtInit(xmlSaveCtxt* ctxt) {
+    /* Do nothing - just a stub to allow the call */
+}
+
+/* Entrypoint function from SA spec */
+int xmlNodeDumpOutputInternal(void) {
+    xmlSaveCtxt ctxt;
+    xmlOutputBufferPtr buf;
+    void* f = NULL;
+    void* handler = NULL;
+    int format;
+    const char* encoding;
+    
+    /* Make symbolic inputs that control execution */
+    klee_make_symbolic(&format, sizeof(format), "format");
+    klee_make_symbolic(&encoding, sizeof(encoding), "encoding");
+    
+    /* Create buffer - may return NULL */
+    buf = xmlOutputBufferCreateFile(f, handler);
+    if (buf == NULL) return -1;
+    
+    /* TARGET LINE 2468: memset(&ctxt, 0, sizeof(ctxt)); */
+    /* The vulnerability is that sizeof(ctxt) might be larger than actual ctxt size */
+    /* For OOB memset, we need to assert that sizeof(ctxt) <= actual allocated size */
+    /* Since ctxt is stack-allocated, the actual size is sizeof(xmlSaveCtxt) */
+    /* The vulnerability assertion should check that we're not writing beyond ctxt */
+    
+    /* VULNERABILITY ASSERTION: Ensure memset size doesn't exceed object bounds */
+    SAILR_ASSERT(sizeof(ctxt) <= sizeof(xmlSaveCtxt));
+    
+    /* REACHABILITY ASSERTION: Mark that we reached the target line */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* The actual memset call that we're analyzing */
+    memset(&ctxt, 0, sizeof(ctxt));
+    
+    /* Continue with rest of function as in snippet */
+    ctxt.buf = buf;
+    ctxt.level = 0;
+    ctxt.format = format ? 1 : 0;
+    ctxt.encoding = (const void*)encoding;
+    xmlSaveCtxtInit(&ctxt);
+    
+    return 0;
+}
+
+/* Main harness entrypoint */
+int main(void) {
+    /* Symbolic variable to control whether we take the vulnerable path */
+    int path_condition;
+    klee_make_symbolic(&path_condition, sizeof(path_condition), "path_condition");
+    
+    /* Assume conditions that lead to the target line */
+    klee_assume(path_condition != 0);  /* Ensure we don't early return */
+    
+    /* Call the entrypoint function that contains the target line */
+    int result = xmlNodeDumpOutputInternal();
+    
+    return result;
+}

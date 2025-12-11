@@ -1,0 +1,20 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x7d1ee7c00000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x7d1c67c00000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x7c1c67c00000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x7bfc67c00000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:106: invalid klee_assume call (provably false)
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:107: invalid klee_assume call (provably false)
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:108: invalid klee_assume call (provably false)
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:121: concretized symbolic size
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:125: concretized symbolic size
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:68: concretized symbolic size
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:133: ASSERTION FAIL: (ctxt.nodelen + len < ctxt.nodemem) && "SAILR_VULN_ASSERT"
+KLEE: NOTE: now ignoring this error at this location

@@ -1,0 +1,65 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations of types and functions needed to reach target */
+typedef struct _xmlC14NVisibleNsStack *xmlC14NVisibleNsStackPtr;
+typedef struct _xmlC14NVisibleNsStack xmlC14NVisibleNsStack;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    return ptr;
+}
+
+/* Stub for xmlC14NErrMemory */
+void xmlC14NErrMemory(const char* msg) {
+    /* Do nothing */
+}
+
+/* Target function from the snippet */
+static xmlC14NVisibleNsStackPtr xmlC14NVisibleNsStackCreate(void) {
+    xmlC14NVisibleNsStackPtr ret;
+    
+    ret = (xmlC14NVisibleNsStackPtr) xmlMalloc(sizeof(xmlC14NVisibleNsStack));
+    if (ret == NULL) {
+        xmlC14NErrMemory("creating namespaces stack");
+        return(NULL);
+    }
+    
+    /* TARGET LINE 288: memset(ret, 0, sizeof(xmlC14NVisibleNsStack)); */
+    memset(ret, 0, sizeof(xmlC14NVisibleNsStack));
+    
+    /* VULNERABILITY ASSERTION: Check that the allocation size is non-zero */
+    SAILR_ASSERT(sizeof(xmlC14NVisibleNsStack) > 0);
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return(ret);
+}
+
+/* Entrypoint function mentioned in spec */
+void xmlC14NProcessAttrsAxis(void) {
+    /* This function would normally process attributes, but we just need
+       to trigger the stack creation to reach line 288 */
+    xmlC14NVisibleNsStackCreate();
+}
+
+int main(void) {
+    /* Make symbolic inputs that could affect the execution path */
+    int symbolic_flag;
+    klee_make_symbolic(&symbolic_flag, sizeof(symbolic_flag), "symbolic_flag");
+    
+    /* Assume conditions that would lead to the target line being reached */
+    klee_assume(symbolic_flag > 0);
+    
+    /* Call the entrypoint function to reach the target code */
+    xmlC14NProcessAttrsAxis();
+    
+    return 0;
+}

@@ -1,0 +1,12 @@
+Error: memory error: invalid pointer: make_symbolic
+File: se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 54
+assembly.ll line: 174
+State: 1
+Stack: 
+	#000000174 in xmlNanoHTTPMethodRedir(126835515981824, 126809746178048, 126833368498176, 127088919052288, 126844105916416, 126790418825216, 126837663465472) at se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:54
+	#100000362 in main() at se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:115
+Info: 
+	address: 127295077482528
+	next: object at 126788808212480 of size 4
+		MO85[4] allocated at xmlNanoHTTPMethodRedir():  %21 = alloca i32, align 4

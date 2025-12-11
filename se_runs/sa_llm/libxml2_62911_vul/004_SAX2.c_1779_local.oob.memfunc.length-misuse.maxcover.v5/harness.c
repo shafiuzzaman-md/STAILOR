@@ -1,0 +1,101 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlDict xmlDict;
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef unsigned char xmlChar;
+
+/* Stub for xmlDictLookup */
+xmlChar* xmlDictLookup(xmlDict* dict, const xmlChar* str, int len) {
+    /* Return a symbolic pointer */
+    xmlChar* result;
+    klee_make_symbolic(&result, sizeof(result), "dict_lookup_result");
+    klee_assume(result != NULL);
+    return result;
+}
+
+/* Minimal struct definitions to avoid crashes */
+struct _xmlDict {
+    int dummy;
+};
+
+struct _xmlNode {
+    void* properties;
+};
+
+struct _xmlParserCtxt {
+    int options;
+    xmlDict* dict;
+};
+
+/* Target function - extracted from the vulnerable code snippet */
+void target_function(xmlParserCtxt* ctxt, const xmlChar* str, int len, xmlChar cur, struct _xmlNode* ret) {
+    xmlChar* intern = NULL;
+    xmlChar* tmp;
+    
+    if ((len < (int)(2 * sizeof(void*))) &&
+        (ctxt->options & 1)) { /* XML_PARSE_COMPACT assumed to be 1 */
+        /* store the string in the node overriding properties and nsDef */
+        tmp = (xmlChar*)&(ret->properties);
+        memcpy(tmp, str, len);
+        tmp[len] = 0;
+        intern = tmp;
+    } else if ((len <= 3) && ((cur == '"') || (cur == '\'') ||
+               ((cur == '<') && (str[len + 1] != '!')))) {
+        intern = xmlDictLookup(ctxt->dict, str, len);
+    }
+    
+    /* Vulnerability assertion: check if memcpy would write out of bounds */
+    /* The vulnerable line is tmp[len] = 0; which writes at offset len */
+    /* We need to ensure len < sizeof(void*) since tmp points to properties field */
+    SAILR_ASSERT(len < (int)sizeof(void*));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+}
+
+int main(void) {
+    /* Symbolic inputs */
+    xmlParserCtxt ctxt;
+    xmlChar str[100];
+    int len;
+    xmlChar cur;
+    struct _xmlNode node;
+    
+    /* Initialize context */
+    klee_make_symbolic(&ctxt.options, sizeof(ctxt.options), "options");
+    ctxt.dict = (xmlDict*)malloc(sizeof(xmlDict));
+    
+    /* Make string buffer symbolic */
+    klee_make_symbolic(str, sizeof(str), "str");
+    
+    /* Make length symbolic with constraints */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_assume(len >= 0);
+    klee_assume(len < 100); /* Reasonable upper bound */
+    
+    /* Make current character symbolic */
+    klee_make_symbolic(&cur, sizeof(cur), "cur");
+    
+    /* Initialize node */
+    memset(&node, 0, sizeof(node));
+    
+    /* Assume conditions to take the vulnerable path */
+    /* First branch condition: len < 2*sizeof(void*) */
+    klee_assume(len < (int)(2 * sizeof(void*)));
+    
+    /* Second condition: XML_PARSE_COMPACT option is set */
+    klee_assume(ctxt.options & 1);
+    
+    /* Call the target function */
+    target_function(&ctxt, str, len, cur, &node);
+    
+    free(ctxt.dict);
+    return 0;
+}

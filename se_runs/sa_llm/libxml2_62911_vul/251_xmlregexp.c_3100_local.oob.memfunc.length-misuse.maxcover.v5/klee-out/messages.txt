@@ -1,0 +1,12 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x7f8239600000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x7f7fb9600000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x7e7fb9600000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x7e5fb9600000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/251_xmlregexp.c_3100_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:87: concretized symbolic size
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/251_xmlregexp.c_3100_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:103: concretized symbolic size
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/251_xmlregexp.c_3100_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:136: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+KLEE: NOTE: now ignoring this error at this location

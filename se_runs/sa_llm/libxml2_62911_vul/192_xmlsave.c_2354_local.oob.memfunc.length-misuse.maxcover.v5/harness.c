@@ -1,0 +1,85 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stub declarations for libxml2 functions needed to reach target */
+typedef struct _xmlCharEncodingHandler xmlCharEncodingHandler;
+typedef xmlCharEncodingHandler *xmlCharEncodingHandlerPtr;
+typedef unsigned char xmlChar;
+
+void xmlSaveErrMemory(const char *msg);
+xmlCharEncodingHandlerPtr xmlCharEncCloseFunc(xmlCharEncodingHandlerPtr handler);
+void xmlSaveCtxtInit(void *ctxt);
+
+/* Context structure based on snippet */
+typedef struct {
+    void *buf;
+    int level;
+    int format;
+    const xmlChar *encoding;
+} xmlSaveCtxt;
+
+/* Entrypoint function from SA spec */
+void xmlNodeDumpOutputInternal(int format, const xmlChar *txt_encoding) {
+    xmlSaveCtxt ctxt;
+    void *out_buff;
+    int return_size;
+
+    /* Symbolic allocation size - this is the 'return' variable from SA spec */
+    klee_make_symbolic(&return_size, sizeof(return_size), "return_size");
+    klee_assume(return_size >= 0);  /* From bounds_hints in SA spec */
+
+    out_buff = malloc(return_size);
+    if (out_buff == NULL) {
+        xmlSaveErrMemory("creating buffer");
+        xmlCharEncCloseFunc(NULL);
+        return;
+    }
+
+    /* TARGET LINE 2354: memset(&ctxt, 0, sizeof(ctxt)); */
+    /* Vulnerability assertion: ensure memset size doesn't exceed buffer */
+    SAILR_ASSERT(sizeof(ctxt) <= return_size);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(&ctxt, 0, sizeof(ctxt));
+    ctxt.buf = out_buff;
+    ctxt.level = 0;
+    ctxt.format = format ? 1 : 0;
+    ctxt.encoding = (const xmlChar *) txt_encoding;
+    xmlSaveCtxtInit(&ctxt);
+    
+    free(out_buff);
+}
+
+/* Stub implementations to avoid linking issues */
+void xmlSaveErrMemory(const char *msg) {
+    /* Do nothing - just a stub */
+}
+
+xmlCharEncodingHandlerPtr xmlCharEncCloseFunc(xmlCharEncodingHandlerPtr handler) {
+    return handler;
+}
+
+void xmlSaveCtxtInit(void *ctxt) {
+    /* Do nothing - just a stub */
+}
+
+int main(void) {
+    int format;
+    const xmlChar *txt_encoding;
+    
+    /* Make inputs symbolic to explore different paths */
+    klee_make_symbolic(&format, sizeof(format), "format");
+    klee_make_symbolic(&txt_encoding, sizeof(txt_encoding), "txt_encoding");
+    
+    /* Call the entrypoint function */
+    xmlNodeDumpOutputInternal(format, txt_encoding);
+    
+    return 0;
+}

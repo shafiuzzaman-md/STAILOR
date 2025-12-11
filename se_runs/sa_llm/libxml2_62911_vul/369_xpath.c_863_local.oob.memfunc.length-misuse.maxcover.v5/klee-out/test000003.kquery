@@ -1,0 +1,9 @@
+array initialSize[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 0 initialSize))
+         (Slt 0 N0)
+         (Eq false
+             (Eq 128
+                 N1:(Mul w64 8 (SExt w64 N0))))
+         (Ult 2147483648 N1)]
+        false)

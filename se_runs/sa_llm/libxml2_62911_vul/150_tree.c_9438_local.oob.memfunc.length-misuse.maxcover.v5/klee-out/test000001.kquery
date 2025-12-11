@@ -1,0 +1,5 @@
+array ns_href[256] : w32 -> w8 = symbolic
+array ns_prefix[256] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 255 ns_href))
+         (Eq 0 (Read w8 255 ns_prefix))]
+        false)

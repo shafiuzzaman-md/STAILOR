@@ -1,0 +1,8 @@
+array filename[256] : w32 -> w8 = symbolic
+array options[4] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 255 filename))
+         (Eq false
+             (Eq 0
+                 (And w32 (ReadLSB w32 0 options)
+                          1)))]
+        false)

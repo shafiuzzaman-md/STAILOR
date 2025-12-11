@@ -1,0 +1,9 @@
+array state[40] : w32 -> w8 = symbolic
+array strm[16] : w32 -> w8 = symbolic
+(query [(Ule N0:(ReadLSB w32 8 strm)
+              4096)
+         (Ule N1:(ReadLSB w32 16 state)
+              4096)
+         (Eq false (Eq 0 N0))
+         (Ule (Add w32 N1 N0) 4096)]
+        false)

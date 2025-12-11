@@ -1,0 +1,78 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations of libxml2 types needed */
+typedef struct _xmlDoc xmlDoc;
+typedef struct _xmlC14NCtx xmlC14NCtx;
+typedef xmlC14NCtx *xmlC14NCtxPtr;
+
+/* Stub functions to avoid linking with libxml2 */
+void xmlC14NErrMemory(const char *msg) {
+    /* Do nothing */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Minimal xmlDoc structure to avoid null dereferences */
+struct _xmlDoc {
+    int dummy;
+};
+
+/* Minimal xmlC14NCtx structure based on snippet */
+struct _xmlC14NCtx {
+    xmlDoc *doc;
+    /* Other fields zeroed by memset */
+};
+
+/* Entrypoint function from SA spec */
+xmlC14NCtxPtr xmlC14NProcessAttrsAxis(xmlDoc *doc) {
+    xmlC14NCtxPtr ctx;
+
+    /* Line 1802: memset(ctx, 0, sizeof(xmlC14NCtx)); */
+    ctx = (xmlC14NCtxPtr) xmlMalloc(sizeof(xmlC14NCtx));
+    if (ctx == NULL) {
+        xmlC14NErrMemory("creating context");
+        return (NULL);
+    }
+    
+    /* VULNERABILITY ASSERTION: For OOB length-misuse in memset */
+    /* The size argument to memset is sizeof(xmlC14NCtx), which should be <= allocated size */
+    /* Since xmlMalloc returns exactly sizeof(xmlC14NCtx) bytes, the condition is: */
+    SAILR_ASSERT(sizeof(xmlC14NCtx) <= sizeof(xmlC14NCtx));
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(ctx, 0, sizeof(xmlC14NCtx));
+
+    /*
+     * initialize C14N context
+     */
+    ctx->doc = doc;
+    
+    return ctx;
+}
+
+int main(void) {
+    xmlDoc doc;
+    
+    /* Make doc symbolic to explore different paths */
+    klee_make_symbolic(&doc, sizeof(doc), "doc");
+    
+    /* Call the entrypoint function */
+    xmlC14NCtxPtr result = xmlC14NProcessAttrsAxis(&doc);
+    
+    /* Free if allocated */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}

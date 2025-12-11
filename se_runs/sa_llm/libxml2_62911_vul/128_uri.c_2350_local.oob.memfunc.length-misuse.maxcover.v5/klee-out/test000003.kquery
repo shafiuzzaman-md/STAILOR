@@ -1,0 +1,13 @@
+array input_uri[256] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+array uptr_buf[256] : w32 -> w8 = symbolic
+array uri_str[256] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 255 input_uri))
+         (Eq 0 (Read w8 255 uri_str))
+         (Sle 0
+              N0:(ReadLSB w32 0 len))
+         (Slt 0 N0)
+         (Eq false
+             (Eq 47 (Read w8 0 uptr_buf)))
+         (Sle N0 256)]
+        false)

@@ -1,0 +1,10 @@
+Error: memory error: object read only
+File: runtime/Freestanding/memset.c
+Line: 15
+assembly.ll line: 152
+State: 13
+Stack: 
+	#000000152 in memset(symbolic, 0, 8) at runtime/Freestanding/memset.c:15
+	#100000077 in xmlRegNewState(131998563696640) at se_runs/sa_llm/libxml2_62911_vul/293_xmlregexp.c_893_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:50
+	#200000102 in xmlFAGenerateTransitions(131998563696640) at se_runs/sa_llm/libxml2_62911_vul/293_xmlregexp.c_893_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:59
+	#300000114 in main() at se_runs/sa_llm/libxml2_62911_vul/293_xmlregexp.c_893_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:68

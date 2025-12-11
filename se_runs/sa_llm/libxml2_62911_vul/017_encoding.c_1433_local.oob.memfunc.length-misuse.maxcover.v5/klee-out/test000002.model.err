@@ -1,0 +1,14 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/017_encoding.c_1433_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 23
+assembly.ll line: 38
+State: 3
+Stack: 
+	#000000038 in xmlMalloc(symbolic) at se_runs/sa_llm/libxml2_62911_vul/017_encoding.c_1433_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23
+	#100000115 in isolat1ToUTF8() at se_runs/sa_llm/libxml2_62911_vul/017_encoding.c_1433_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:69
+	#200000051 in main() at se_runs/sa_llm/libxml2_62911_vul/017_encoding.c_1433_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32
+Info: 
+  size expr: (SExt w64 (Add w32 1
+                                 (ReadLSB w32 0 up_size)))
+  concretization : 1
+  unbound example: 129

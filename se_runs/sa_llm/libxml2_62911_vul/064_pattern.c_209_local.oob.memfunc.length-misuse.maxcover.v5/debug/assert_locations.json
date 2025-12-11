@@ -1,0 +1,29 @@
+{
+  "spec_id": "064_pattern.c_209_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/pattern.c",
+  "target_line": 209,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 110,
+        "text": "SAILR_ASSERT(maxStep > 0 && step_op_size > 0 &&"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 114,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

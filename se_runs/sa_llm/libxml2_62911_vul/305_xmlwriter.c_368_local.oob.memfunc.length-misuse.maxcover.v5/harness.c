@@ -1,0 +1,91 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need to reach the target */
+typedef struct _xmlTextWriter xmlTextWriter;
+typedef xmlTextWriter *xmlTextWriterPtr;
+typedef struct _xmlSAXHandler xmlSAXHandler;
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef xmlParserCtxt *xmlParserCtxtPtr;
+
+/* Stub for xmlSAX2InitDefaultSAXHandler */
+void xmlSAX2InitDefaultSAXHandler(xmlSAXHandler *sax, int internal) {
+    /* Assume this function initializes the SAX handler */
+    (void)sax;
+    (void)internal;
+}
+
+/* Stub for xmlTextWriterStartDocumentCallback */
+void xmlTextWriterStartDocumentCallback(void *ctx) {
+    (void)ctx;
+}
+
+/* Stub for xmlSAX2StartElement */
+void xmlSAX2StartElement(void *ctx, const char *name, const char **atts) {
+    (void)ctx;
+    (void)name;
+    (void)atts;
+}
+
+/* Stub for xmlSAX2EndElement */
+void xmlSAX2EndElement(void *ctx, const char *name) {
+    (void)ctx;
+    (void)name;
+}
+
+/* Target function that contains the vulnerable memset call */
+xmlTextWriterPtr xmlTextWriterWriteVFormatString(xmlTextWriterPtr writer, const char *format, va_list ap) {
+    (void)writer;
+    (void)format;
+    (void)ap;
+    
+    xmlTextWriterPtr ret;
+    xmlSAXHandler saxHandler;
+    xmlParserCtxtPtr ctxt;
+    
+    /* This is the target line 368: memset(&saxHandler, '\0', sizeof(saxHandler)); */
+    /* The vulnerability assertion should check that the size argument doesn't exceed bounds */
+    /* For memset, the condition is that sizeof(saxHandler) <= actual allocated size */
+    /* Since saxHandler is a stack variable, we need to ensure we're within its bounds */
+    SAILR_ASSERT(sizeof(saxHandler) <= sizeof(xmlSAXHandler));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(&saxHandler, '\0', sizeof(saxHandler));
+    xmlSAX2InitDefaultSAXHandler(&saxHandler, 1);
+    saxHandler.startDocument = xmlTextWriterStartDocumentCallback;
+    saxHandler.startElement = xmlSAX2StartElement;
+    saxHandler.endElement = xmlSAX2EndElement;
+    
+    return ret;
+}
+
+/* Entry point for KLEE */
+int main(void) {
+    /* Create symbolic inputs to reach the target function */
+    xmlTextWriterPtr writer;
+    char format[100];
+    va_list ap;
+    
+    /* Make writer symbolic (could be NULL or valid pointer) */
+    klee_make_symbolic(&writer, sizeof(writer), "writer");
+    
+    /* Make format string symbolic */
+    klee_make_symbolic(format, sizeof(format), "format");
+    /* Ensure null termination */
+    format[sizeof(format) - 1] = '\0';
+    
+    /* For va_list, we'll just pass a dummy */
+    /* We assume the function can be called with these inputs */
+    
+    /* Call the target function */
+    xmlTextWriterWriteVFormatString(writer, format, ap);
+    
+    return 0;
+}

@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: (children <= sizeof(xmlSchemaWildcard)) && "SAILR_VULN_ASSERT"
+File: se_runs/sa_llm/libxml2_62911_vul/333_xmlschemastypes.c_488_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 54
+assembly.ll line: 83
+State: 2
+Stack: 
+	#000000083 in xmlSchemaInitTypes() at se_runs/sa_llm/libxml2_62911_vul/333_xmlschemastypes.c_488_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:54
+	#100000130 in main() at se_runs/sa_llm/libxml2_62911_vul/333_xmlschemastypes.c_488_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:69

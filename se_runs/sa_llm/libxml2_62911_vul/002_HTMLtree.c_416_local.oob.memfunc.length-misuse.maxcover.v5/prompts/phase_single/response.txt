@@ -1,0 +1,97 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed */
+typedef struct _xmlBuffer xmlBuffer;
+typedef xmlBuffer *xmlBufferPtr;
+typedef struct _xmlCharEncodingHandler xmlCharEncodingHandler;
+typedef xmlCharEncodingHandler *xmlCharEncodingHandlerPtr;
+
+typedef struct _xmlOutputBuffer {
+    xmlBufferPtr buffer;
+    xmlCharEncodingHandlerPtr encoder;
+    void *writecallback;
+    void *closecallback;
+    void *context;
+    /* Other fields omitted for brevity */
+} xmlOutputBuffer;
+
+typedef xmlOutputBuffer *xmlOutputBufferPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for htmlSaveErrMemory */
+void htmlSaveErrMemory(const char *msg) {
+    /* Do nothing */
+}
+
+/* Target function: htmlGetMetaEncoding */
+int htmlGetMetaEncoding(void) {
+    xmlBufferPtr buf;
+    xmlOutputBufferPtr outbuf;
+    
+    /* Allocate buffer - make symbolic to explore different states */
+    buf = (xmlBufferPtr)xmlMalloc(sizeof(xmlBuffer));
+    if (buf == NULL) {
+        return -1;
+    }
+    
+    /* Allocate output buffer - this is the line before the target */
+    outbuf = (xmlOutputBufferPtr) xmlMalloc(sizeof(xmlOutputBuffer));
+    if (outbuf == NULL) {
+        htmlSaveErrMemory("allocating HTML output buffer");
+        free(buf);
+        return (-1);
+    }
+    
+    /* TARGET LINE 416: memset(outbuf, 0, sizeof(xmlOutputBuffer)); */
+    /* Vulnerability assertion: ensure we don't write beyond allocated memory */
+    /* The concern is that sizeof(xmlOutputBuffer) might be larger than 
+       what was actually allocated if xmlMalloc returned a smaller buffer */
+    SAILR_ASSERT(sizeof(xmlOutputBuffer) <= malloc_usable_size(outbuf));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(outbuf, 0, sizeof(xmlOutputBuffer));
+    outbuf->buffer = buf;
+    outbuf->encoder = NULL;
+    outbuf->writecallback = NULL;
+    outbuf->closecallback = NULL;
+    outbuf->context = NULL;
+    
+    /* Cleanup */
+    free(outbuf);
+    free(buf);
+    return 0;
+}
+
+/* Helper to get usable size of allocation (non-portable but works for KLEE) */
+size_t malloc_usable_size(void *ptr) {
+    if (ptr == NULL) return 0;
+    /* In KLEE's symbolic execution, we can treat this symbolically */
+    size_t size;
+    klee_make_symbolic(&size, sizeof(size), "alloc_size");
+    klee_assume(size >= sizeof(xmlOutputBuffer)); /* Assume at least minimal allocation */
+    return size;
+}
+
+int main(void) {
+    /* Symbolic variable to control execution path */
+    int symbolic_control;
+    klee_make_symbolic(&symbolic_control, sizeof(symbolic_control), "control");
+    
+    /* Assume conditions that would lead to calling htmlGetMetaEncoding */
+    klee_assume(symbolic_control > 0);
+    
+    /* Call the target function */
+    int result = htmlGetMetaEncoding();
+    
+    return result;
+}
+```

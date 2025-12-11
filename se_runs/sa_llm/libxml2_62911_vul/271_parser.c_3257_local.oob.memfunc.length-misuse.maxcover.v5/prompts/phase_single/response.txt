@@ -1,0 +1,77 @@
+#include "klee/klee.h"
+#include <stdlib.h>
+#include <string.h>
+
+/* Minimal stubs for libxml2 functions needed to reach the target */
+typedef unsigned char xmlChar;
+typedef void* xmlParserCtxtPtr;
+
+void xmlErrMemory(xmlParserCtxtPtr ctxt, const char *extra) {
+    /* stub */
+}
+
+void* xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+/* Entrypoint from SA spec */
+xmlChar* xmlParserNsLookup(xmlParserCtxtPtr ctxt, const xmlChar* prefix) {
+    /* Simulate the code path around line 3257 */
+    xmlChar* buffer;
+    xmlChar* tmp;
+    xmlChar* buf = (xmlChar*)prefix; /* reuse prefix as buf for simplicity */
+    int len;
+    int max;
+    int c = 1; /* non-zero to enter loop */
+
+    /* Make len and max symbolic */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_make_symbolic(&max, sizeof(max), "max");
+
+    /* Assume constraints from the code snippet and bounds hints */
+    klee_assume(len >= 0);
+    klee_assume(max >= 0);
+    klee_assume(max > 0); /* malloc requires positive size */
+
+    /* Allocate buffer with size max */
+    buffer = (xmlChar *) xmlMallocAtomic(max);
+    if (buffer == NULL) {
+        xmlErrMemory(ctxt, NULL);
+        return NULL;
+    }
+
+    /* Target line 3257: memcpy(buffer, buf, len); */
+    /* Vulnerability assertion: len must not exceed allocated buffer size */
+    SAILR_ASSERT(len <= max);
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+
+    /* The actual memcpy call (will not be reached due to klee_assert) */
+    memcpy(buffer, buf, len);
+
+    /* Simulate the loop that follows */
+    while (c != 0) {
+        if (len + 10 > max) {
+            max *= 2;
+            /* For simplicity, we break to avoid infinite loop */
+            break;
+        }
+        /* Avoid infinite loop */
+        c = 0;
+    }
+
+    free(buffer);
+    return NULL;
+}
+
+int main(void) {
+    xmlParserCtxtPtr ctxt = NULL;
+    xmlChar prefix[100]; /* arbitrary buffer */
+
+    /* Make prefix symbolic */
+    klee_make_symbolic(prefix, sizeof(prefix), "prefix");
+
+    /* Call the entrypoint to drive execution */
+    xmlParserNsLookup(ctxt, prefix);
+    return 0;
+}

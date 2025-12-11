@@ -1,0 +1,54 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include "klee/klee.h"
+
+#define BUFFER_SIZE 1024
+
+int main(void) {
+    int fd1, fd2;
+    unsigned char bytes1[BUFFER_SIZE];
+    unsigned char bytes2[BUFFER_SIZE];
+    int res1, res2;
+    
+    fd1 = open("test1.txt", O_RDONLY);
+    fd2 = open("test2.txt", O_RDONLY);
+    
+    klee_assume(fd1 >= 0);
+    klee_assume(fd2 >= 0);
+    
+    klee_make_symbolic(&res1, sizeof(res1), "res1");
+    klee_make_symbolic(&res2, sizeof(res2), "res2");
+    
+    klee_assume(res1 >= 0);
+    klee_assume(res2 >= 0);
+    klee_assume(res1 <= BUFFER_SIZE);
+    klee_assume(res2 <= BUFFER_SIZE);
+    
+    klee_make_symbolic(bytes1, sizeof(bytes1), "bytes1");
+    klee_make_symbolic(bytes2, sizeof(bytes2), "bytes2");
+    
+    if (res1 == 0) {
+        close(fd1);
+        close(fd2);
+        return 0;
+    }
+    
+    if (memcmp(bytes1, bytes2, res1) != 0) {
+        SAILR_ASSERT(res1 <= BUFFER_SIZE && res1 <= BUFFER_SIZE);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        close(fd1);
+        if (fd2 >= 0)
+            close(fd2);
+        return 1;
+    }
+    
+    close(fd1);
+    close(fd2);
+    return 0;
+}

@@ -1,0 +1,153 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include <klee/klee.h>
+
+/* Stub for PyObject */
+typedef struct PyObject PyObject;
+struct PyObject {
+    int refcnt;
+    char* data;
+    int length;
+};
+
+/* Stub for PyString_AsStringAndSize */
+int PyString_AsStringAndSize(PyObject* obj, char** buffer, int* length) {
+    if (obj == NULL || obj->data == NULL) {
+        return -1;
+    }
+    *buffer = obj->data;
+    *length = obj->length;
+    return 0;
+}
+
+/* Stub for PyFile_AsFile */
+void* PyFile_AsFile(PyObject* f) {
+    return malloc(1);
+}
+
+/* Stub for Py_InitModule */
+PyObject* Py_InitModule(char* name, void* methods) {
+    return malloc(sizeof(PyObject));
+}
+
+/* Stub for PyArg_ParseTuple */
+int PyArg_ParseTuple(PyObject* args, char* format, ...) {
+    return 1;
+}
+
+/* Stub for Py_BuildValue */
+PyObject* Py_BuildValue(char* format, ...) {
+    PyObject* obj = malloc(sizeof(PyObject));
+    obj->refcnt = 1;
+    obj->data = malloc(100);
+    obj->length = 100;
+    return obj;
+}
+
+/* Stub for Py_DECREF */
+void Py_DECREF(PyObject* obj) {
+    if (obj && --obj->refcnt <= 0) {
+        free(obj->data);
+        free(obj);
+    }
+}
+
+/* Stub for PyObject_CallObject */
+PyObject* PyObject_CallObject(PyObject* callable, PyObject* args) {
+    PyObject* obj = malloc(sizeof(PyObject));
+    obj->refcnt = 1;
+    
+    /* Make symbolic data for the return object */
+    int data_size = 100;
+    obj->data = malloc(data_size);
+    obj->length = data_size;
+    klee_make_symbolic(obj->data, data_size, "ret_data");
+    
+    return obj;
+}
+
+/* Target function signature inferred from context */
+int xmlPythonFileRead(void* context, char* buffer, int len) {
+    PyObject* ret;
+    char* data;
+    int lenread;
+    
+    /* Call Python function that returns data */
+    ret = PyObject_CallObject(NULL, NULL);
+    if (ret == NULL) {
+        return -1;
+    }
+    
+    /* Get string data from Python object */
+    if (PyString_AsStringAndSize(ret, &data, &lenread) < 0) {
+        printf("xmlPythonFileRead: result is not a String\n");
+        Py_DECREF(ret);
+        return -1;
+    }
+    
+    /* This is the target vulnerable code from line 349 */
+    if (lenread > len) {
+        memcpy(buffer, data, len);      /* LINE 349: potential OOB if len > buffer size */
+    } else {
+        memcpy(buffer, data, lenread);
+    }
+    
+    /* Vulnerability assertion: ensure len doesn't exceed buffer bounds */
+    /* We assume buffer has size 'len' (as per function contract), so the check is len <= buffer_size */
+    /* Since we don't know buffer_size, we assert len is reasonable (e.g., <= 1024) */
+    SAILR_ASSERT(len <= 1024);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    Py_DECREF(ret);
+    return lenread;
+}
+
+/* Entrypoint wrapper */
+int libxml_xmlCreatePushParser(PyObject* self, PyObject* args) {
+    char* buffer;
+    int len;
+    void* context = malloc(100);
+    
+    /* Parse arguments symbolically */
+    if (!PyArg_ParseTuple(args, "s#", &buffer, &len)) {
+        return -1;
+    }
+    
+    /* Make buffer and length symbolic */
+    klee_make_symbolic(buffer, len, "buffer");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    /* Assume reasonable bounds for symbolic values */
+    klee_assume(len >= 0);
+    klee_assume(len <= 2048);  /* Reasonable upper bound */
+    
+    /* Call the vulnerable function */
+    return xmlPythonFileRead(context, buffer, len);
+}
+
+int main(void) {
+    /* Create symbolic Python objects */
+    PyObject* self = malloc(sizeof(PyObject));
+    PyObject* args = malloc(sizeof(PyObject));
+    
+    self->refcnt = 1;
+    args->refcnt = 1;
+    
+    /* Initialize module (simplified) */
+    Py_InitModule("libxml", NULL);
+    
+    /* Call the entrypoint */
+    libxml_xmlCreatePushParser(self, args);
+    
+    /* Cleanup */
+    Py_DECREF(self);
+    Py_DECREF(args);
+    
+    return 0;
+}

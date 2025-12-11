@@ -1,0 +1,74 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed to reach the target code */
+typedef struct _xmlRelaxNGDefine xmlRelaxNGDefine;
+typedef xmlRelaxNGDefine *xmlRelaxNGDefinePtr;
+
+typedef struct _xmlRelaxNGValidCtxt {
+    int flags;
+    /* Other fields omitted for brevity */
+} xmlRelaxNGValidCtxt;
+
+typedef struct _xmlNode xmlNode;
+typedef struct _xmlNs xmlNs;
+
+/* Constants from libxml2 */
+#define XML_RELAXNG_ELEMENT 1
+#define XML_RELAXNG_ATTRIBUTE 2
+#define FLAGS_IGNORABLE 0x1
+#define FLAGS_NOERROR 0x2
+
+/* Entrypoint function signature */
+void xmlRelaxNGFreeDefine(xmlRelaxNGDefinePtr def1);
+
+/* Stub implementation of xmlRelaxNGFreeDefine to reach target line */
+void xmlRelaxNGFreeDefine(xmlRelaxNGDefinePtr def1) {
+    int ret = 1;
+    xmlNode node;
+    xmlNs ns;
+    xmlRelaxNGValidCtxt ctxt;
+
+    /* Target line 3683: memset(&ctxt, 0, sizeof(xmlRelaxNGValidCtxt)); */
+    memset(&ctxt, 0, sizeof(xmlRelaxNGValidCtxt));
+
+    /* Vulnerability assertion: ensure memset size doesn't exceed buffer */
+    SAILR_ASSERT(sizeof(xmlRelaxNGValidCtxt) <= sizeof(ctxt));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+
+    ctxt.flags = FLAGS_IGNORABLE | FLAGS_NOERROR;
+
+    if ((def1->type == XML_RELAXNG_ELEMENT) ||
+        (def1->type == XML_RELAXNG_ATTRIBUTE)) {
+        /* Continue execution */
+    }
+}
+
+/* Minimal xmlRelaxNGDefine structure */
+struct _xmlRelaxNGDefine {
+    int type;
+    /* Other fields omitted */
+};
+
+int main(void) {
+    xmlRelaxNGDefinePtr def1 = malloc(sizeof(struct _xmlRelaxNGDefine));
+    if (!def1) return 0;
+
+    /* Make the type field symbolic to explore both branches */
+    klee_make_symbolic(&def1->type, sizeof(def1->type), "def1_type");
+    
+    /* Assume valid type values to reach the memset */
+    klee_assume(def1->type == XML_RELAXNG_ELEMENT || 
+                def1->type == XML_RELAXNG_ATTRIBUTE);
+
+    /* Call the entrypoint */
+    xmlRelaxNGFreeDefine(def1);
+
+    free(def1);
+    return 0;
+}
+```

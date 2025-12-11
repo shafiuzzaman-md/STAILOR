@@ -1,0 +1,8 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x725ba6600000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x725926600000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x715926600000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x713926600000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/271_xzlib.c_745_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57: memory error: invalid pointer: make_symbolic
+KLEE: NOTE: now ignoring this error at this location

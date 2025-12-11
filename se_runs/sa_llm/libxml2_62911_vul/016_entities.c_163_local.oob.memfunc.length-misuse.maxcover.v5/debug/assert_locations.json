@@ -1,0 +1,29 @@
+{
+  "spec_id": "016_entities.c_163_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/entities.c",
+  "target_line": 163,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 74,
+        "text": "SAILR_ASSERT(1);  /* Allocation succeeded and size is valid */"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 77,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

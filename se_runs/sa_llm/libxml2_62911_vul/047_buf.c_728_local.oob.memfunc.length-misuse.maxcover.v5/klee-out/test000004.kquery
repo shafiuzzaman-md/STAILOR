@@ -1,0 +1,16 @@
+array allocation_size[8] : w32 -> w8 = symbolic
+array buf_size[8] : w32 -> w8 = symbolic
+array buf_use[8] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+(query [(Ult N0:(ReadLSB w64 0 buf_use)
+              4096)
+         (Sle 0
+              N1:(ReadLSB w32 0 len))
+         (Slt N1 4096)
+         (Eq 0
+             (ReadLSB w64 0 buf_size))
+         (Eq 0
+             (Add w64 N0 (SExt w64 N1)))
+         (Ule 0
+              (ReadLSB w64 0 allocation_size))]
+        false)

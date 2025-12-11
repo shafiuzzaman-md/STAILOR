@@ -1,0 +1,29 @@
+{
+  "spec_id": "140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/nanohttp.c",
+  "target_line": 541,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 76,
+        "text": "SAILR_ASSERT(ctxt->last <= remaining_space);"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 77,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

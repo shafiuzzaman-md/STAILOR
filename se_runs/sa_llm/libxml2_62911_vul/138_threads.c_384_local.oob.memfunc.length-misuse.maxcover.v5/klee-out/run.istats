@@ -1,0 +1,62 @@
+version: 1
+creator: klee
+pid: 100487
+cmd: se_runs/sa_llm/libxml2_62911_vul/138_threads.c_384_local.oob.memfunc.length-misuse.maxcover.v5/bc/harness.bc
+
+
+positions: instr line
+event: Icov : CoveredInstructions
+event: Forks : Forks
+event: Ireal : InstructionRealTimes
+event: Itime : InstructionTimes
+event: I : Instructions
+event: UCdist : MinDistToUncovered
+event: Rtime : ResolveTime
+event: States : States
+event: Iuncov : UncoveredInstructions
+event: Q : Queries
+event: Qiv : QueriesInvalid
+event: Qv : QueriesValid
+event: Qtime : QueryTime
+events: Icov Forks Ireal Itime I UCdist Rtime States Iuncov Q Qiv Qv Qtime 
+ob=assembly.ll
+fl=se_runs/sa_llm/libxml2_62911_vul/138_threads.c_384_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+fn=pthread_self
+14 15 0 0 0 0 0 1 0 0 1 0 0 0 0 
+15 16 0 0 0 0 0 1 0 0 1 0 0 0 0 
+16 17 0 0 0 0 0 1 0 0 1 0 0 0 0 
+17 17 0 0 0 0 0 1 0 0 1 0 0 0 0 
+18 18 0 0 0 0 0 1 0 0 1 0 0 0 0 
+19 18 0 0 0 0 0 1 0 0 1 0 0 0 0 
+fn=xmlGetThreadId
+29 22 1 0 0 0 1 0 0 0 0 0 0 0 0 
+30 23 1 0 0 0 1 0 0 0 0 0 0 0 0 
+31 23 1 0 0 0 1 0 0 0 0 1 0 0 0 
+32 37 1 0 0 0 1 0 0 0 0 0 0 0 0 
+fn=xmlInitParser
+37 44 1 0 0 0 1 0 0 0 0 0 0 0 0 
+fn=main
+42 46 1 0 0 0 1 0 0 0 0 0 0 0 0 
+43 46 1 0 0 0 1 0 0 0 0 0 0 0 0 
+44 46 1 0 0 0 1 0 0 0 0 0 0 0 0 
+45 46 1 0 0 0 1 0 0 0 0 1 0 0 0 
+46 47 1 0 0 0 1 0 0 0 0 0 0 0 0 
+47 50 1 0 0 0 1 0 0 0 0 0 0 0 0 
+48 50 1 0 0 0 1 0 0 0 0 2 0 0 0 
+49 53 1 0 0 0 1 0 0 0 0 1 0 0 0 
+50 53 1 0 0 0 1 0 0 0 0 0 0 0 0 
+51 53 1 0 0 0 1 0 0 0 0 0 0 0 0 
+52 53 1 0 0 0 1 0 0 0 0 0 0 0 0 
+53 53 1 0 0 0 1 0 0 0 0 1 1 0 4021 
+54 56 1 0 0 0 1 0 0 0 0 0 0 0 0 
+cfn=xmlInitParser
+calls=1 35 42
+54 56 1 0 0 0 1 0 0 0 0 0 0 0 0 
+55 59 1 0 0 0 1 0 0 0 0 0 0 0 0 
+56 59 1 0 0 0 1 0 0 0 0 0 0 0 0 
+cfn=xmlGetThreadId
+calls=1 27 22
+56 59 4 0 0 0 4 0 0 0 0 1 0 0 0 
+57 59 1 0 0 0 1 0 0 0 0 1 0 0 0 
+58 69 1 0 0 0 1 0 0 0 0 1 0 0 0 
+59 71 0 0 0 0 0 1 0 0 1 0 0 0 0 

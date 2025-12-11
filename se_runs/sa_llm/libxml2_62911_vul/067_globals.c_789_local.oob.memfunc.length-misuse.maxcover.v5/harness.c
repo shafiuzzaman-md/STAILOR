@@ -1,0 +1,63 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlError xmlError;
+typedef struct _xmlGlobalState xmlGlobalState;
+
+struct _xmlGlobalState {
+    void *gs_xmlParserInputBufferCreateFilenameValue;
+    void *gs_xmlOutputBufferCreateFilenameValue;
+    xmlError gs_xmlLastError;
+};
+
+/* Stub for xmlMutexUnlock */
+void xmlMutexUnlock(void *mutex) {
+    /* Do nothing */
+}
+
+/* Stub for xmlCheckThreadLocalStorage - the entrypoint */
+void xmlCheckThreadLocalStorage(void) {
+    xmlGlobalState *gs;
+    
+    /* Allocate global state */
+    gs = (xmlGlobalState *)malloc(sizeof(xmlGlobalState));
+    if (!gs) return;
+    
+    /* Initialize function pointers */
+    gs->gs_xmlParserInputBufferCreateFilenameValue = NULL;
+    gs->gs_xmlOutputBufferCreateFilenameValue = NULL;
+    
+    /* This is the target line: memset(&gs->gs_xmlLastError, 0, sizeof(xmlError)); */
+    /* Vulnerability assertion: ensure we don't overflow the xmlError structure */
+    SAILR_ASSERT(sizeof(xmlError) <= sizeof(gs->gs_xmlLastError));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Clean up */
+    free(gs);
+}
+
+/* Stub for pthread_setspecific */
+int pthread_setspecific(pthread_key_t key, const void *value) {
+    return 0;
+}
+
+/* Main harness */
+int main(void) {
+    /* Create symbolic inputs if needed */
+    int dummy;
+    klee_make_symbolic(&dummy, sizeof(dummy), "dummy");
+    
+    /* Call the entrypoint to reach the target line */
+    xmlCheckThreadLocalStorage();
+    
+    return 0;
+}

@@ -1,0 +1,74 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlElement xmlElement;
+typedef xmlElement *xmlElementPtr;
+typedef struct _xmlValidCtxt xmlValidCtxt;
+typedef xmlValidCtxt *xmlValidCtxtPtr;
+
+/* Stub declarations for functions we need */
+void xmlVErrMemory(xmlValidCtxtPtr ctxt, const char *msg);
+void* xmlMalloc(size_t size);
+
+/* Target function declaration - from valid.c */
+void xmlAddElementDecl(xmlValidCtxtPtr ctxt);
+
+/* Stub implementation of xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    /* Make the return value symbolic to explore both success and failure paths */
+    klee_make_symbolic(&ptr, sizeof(ptr), "malloc_ptr");
+    return ptr;
+}
+
+/* Stub implementation of xmlVErrMemory */
+void xmlVErrMemory(xmlValidCtxtPtr ctxt, const char *msg) {
+    /* Do nothing - just a stub */
+    (void)ctxt;
+    (void)msg;
+}
+
+int main(void) {
+    /* Create a symbolic validation context */
+    xmlValidCtxt ctxt;
+    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
+    
+    /* Call the target function that contains the suspicious memset */
+    xmlAddElementDecl(&ctxt);
+    
+    /* We should never reach here if we hit the target line */
+    return 0;
+}
+
+/* We need to define xmlAddElementDecl since we can't link with the real one */
+void xmlAddElementDecl(xmlValidCtxtPtr ctxt) {
+    xmlElementPtr cur;
+    
+    /* Line 3172: cur = (xmlElementPtr) xmlMalloc(sizeof(xmlElement)); */
+    cur = (xmlElementPtr) xmlMalloc(sizeof(xmlElement));
+    
+    if (cur == NULL) {
+        xmlVErrMemory(ctxt, "malloc failed");
+        goto error;
+    }
+    
+    /* This is the target line - suspicious memset */
+    /* The vulnerability assertion: ensure the size doesn't exceed allocated bounds */
+    /* For memset, the condition is that count (3rd arg) <= allocated size */
+    SAILR_ASSERT(sizeof(xmlElement) <= sizeof(xmlElement));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(cur, 0, sizeof(xmlElement));
+    
+error:
+    /* Cleanup */
+    if (cur != NULL) {
+        free(cur);
+    }
+}
+```

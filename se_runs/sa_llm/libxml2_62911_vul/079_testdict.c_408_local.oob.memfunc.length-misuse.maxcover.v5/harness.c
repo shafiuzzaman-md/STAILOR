@@ -1,0 +1,73 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+#define NB_STRINGS_MAX 1000
+
+typedef struct {
+    char *str;
+    int len;
+} xmlChar;
+
+void fill_string_pool(xmlChar *pool, int *seeds) {
+    for (int i = 0; i < NB_STRINGS_MAX; i++) {
+        if (seeds[i] > 0) {
+            pool[i].str = malloc(seeds[i] + 1);
+            pool[i].len = seeds[i];
+            if (pool[i].str) {
+                memset(pool[i].str, 'A', seeds[i]);
+                pool[i].str[seeds[i]] = '\0';
+            }
+        }
+    }
+}
+
+void print_strings(void) {
+}
+
+int main(void) {
+    xmlChar *strings1, *strings2, *test1, *test2;
+    int seeds1[NB_STRINGS_MAX], seeds2[NB_STRINGS_MAX];
+    
+    strings1 = malloc(NB_STRINGS_MAX * sizeof(xmlChar));
+    klee_make_symbolic(strings1, NB_STRINGS_MAX * sizeof(xmlChar), "strings1");
+    
+    strings2 = malloc(NB_STRINGS_MAX * sizeof(xmlChar));
+    klee_make_symbolic(strings2, NB_STRINGS_MAX * sizeof(xmlChar), "strings2");
+    
+    test1 = malloc(NB_STRINGS_MAX * sizeof(xmlChar));
+    klee_make_symbolic(test1, NB_STRINGS_MAX * sizeof(xmlChar), "test1");
+    
+    test2 = malloc(NB_STRINGS_MAX * sizeof(xmlChar));
+    klee_make_symbolic(test2, NB_STRINGS_MAX * sizeof(xmlChar), "test2");
+    
+    klee_make_symbolic(seeds1, sizeof(seeds1), "seeds1");
+    klee_make_symbolic(seeds2, sizeof(seeds2), "seeds2");
+    
+    for (int i = 0; i < NB_STRINGS_MAX; i++) {
+        klee_assume(seeds1[i] >= 0 && seeds1[i] < 100);
+        klee_assume(seeds2[i] >= 0 && seeds2[i] < 100);
+    }
+    
+    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
+    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
+    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
+    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
+    
+    fill_string_pool(strings1, seeds1);
+    fill_string_pool(strings2, seeds2);
+    
+    SAILR_ASSERT(NB_STRINGS_MAX * sizeof(strings2[0]) <= NB_STRINGS_MAX * sizeof(xmlChar));
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    free(strings1);
+    free(strings2);
+    free(test1);
+    free(test2);
+    
+    return 0;
+}

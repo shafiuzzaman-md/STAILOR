@@ -1,0 +1,9 @@
+array buf_size[8] : w32 -> w8 = symbolic
+array size[8] : w32 -> w8 = symbolic
+(query [(Ult 0
+              N0:(ReadLSB w64 0 size))
+         (Ule N0 1024)
+         (Eq 128
+             (ReadLSB w64 0 buf_size))
+         (Eq false (Eq 127 N0))]
+        false)

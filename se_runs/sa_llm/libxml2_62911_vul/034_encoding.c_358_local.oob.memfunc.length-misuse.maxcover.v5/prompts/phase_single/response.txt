@@ -1,0 +1,55 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declaration of the target function */
+int isolat1ToUTF8(unsigned char* out, int* outlen,
+                  const unsigned char* inb, int* inlenb);
+
+int main(void) {
+    /* Symbolic variables matching the function signature */
+    unsigned char out_buf[1024];
+    int outlen;
+    unsigned char inb_buf[1024];
+    int inlenb;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&outlen, sizeof(outlen), "outlen");
+    klee_make_symbolic(&inlenb, sizeof(inlenb), "inlenb");
+    klee_make_symbolic(inb_buf, sizeof(inb_buf), "inb_buf");
+    
+    /* Assume reasonable bounds for symbolic values */
+    klee_assume(inlenb >= 0 && inlenb < 1024);
+    klee_assume(outlen >= 0 && outlen < 1024);
+    
+    /* Call the target function */
+    int result = isolat1ToUTF8(out_buf, &outlen, inb_buf, &inlenb);
+    
+    /* This assertion will never be reached in normal execution,
+       but KLEE will explore paths leading to it */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return 0;
+}
+
+/* Implementation of the target function based on the SA spec */
+int isolat1ToUTF8(unsigned char* out, int* outlen,
+                  const unsigned char* inb, int* inlenb) {
+    int len = *inlenb;
+    
+    /* Vulnerability assertion: check if memcpy length exceeds buffer bounds */
+    SAILR_ASSERT(len <= 1024 && len >= 0);
+    
+    /*
+     * FIXME: Conversion functions must assure valid UTF-8, so we have
+     * to check for UTF-8 validity. Preferably, this converter shouldn't
+     * be used at all.
+     */
+    memcpy(out, inb, len);
+
+    *outlen = len;
+    *inlenb = len;
+    return(*outlen);
+}
+```

@@ -1,0 +1,106 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+typedef struct _xmlRegAtom xmlRegAtom;
+typedef xmlRegAtom *xmlRegAtomPtr;
+
+struct _xmlRegAtom {
+    int type;
+    void *valuep;
+};
+
+typedef struct _xmlRegState xmlRegState;
+typedef xmlRegState *xmlRegStatePtr;
+
+struct _xmlRegState {
+    int type;
+    int no;
+    xmlRegAtomPtr atom;
+};
+
+static void xmlRegFreeAtom(xmlRegAtomPtr atom) {
+    if (atom == NULL) return;
+    if (atom->valuep != NULL) {
+        free(atom->valuep);
+    }
+    free(atom);
+}
+
+static xmlRegAtomPtr xmlRegNewAtom(int type) {
+    xmlRegAtomPtr atom = malloc(sizeof(xmlRegAtom));
+    if (atom == NULL) return NULL;
+    atom->type = type;
+    atom->valuep = NULL;
+    return atom;
+}
+
+static void xmlFAGenerateTransitions(xmlRegStatePtr from, xmlRegStatePtr to, 
+                                     const unsigned char *token, int lenp,
+                                     const unsigned char *token2, int lenn) {
+    xmlRegAtomPtr atom;
+    unsigned char *str;
+    
+    if (from == NULL || to == NULL) return;
+    
+    atom = xmlRegNewAtom(1);
+    if (atom == NULL) return;
+    
+    if (token == NULL || token2 == NULL) {
+        xmlRegFreeAtom(atom);
+        return;
+    }
+    
+    str = malloc(lenn + lenp + 2);
+    if (str == NULL) {
+        xmlRegFreeAtom(atom);
+        return;
+    }
+    
+    memcpy(&str[0], token, lenp);
+    str[lenp] = '|';
+    memcpy(&str[lenp + 1], token2, lenn);
+    str[lenn + lenp + 1] = 0;
+    
+    atom->valuep = str;
+    
+    char err_msg[200];
+    snprintf((char *) err_msg, 199, "not %s", (const char *) atom->valuep);
+    
+    SAILR_ASSERT(lenp >= 0 && lenn >= 0 && (lenp + lenn + 2) <= 200);
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    xmlRegFreeAtom(atom);
+}
+
+int main(void) {
+    xmlRegState from_state, to_state;
+    unsigned char token[100];
+    unsigned char token2[100];
+    int lenp, lenn;
+    
+    memset(&from_state, 0, sizeof(xmlRegState));
+    memset(&to_state, 0, sizeof(xmlRegState));
+    
+    klee_make_symbolic(token, sizeof(token), "token");
+    klee_make_symbolic(token2, sizeof(token2), "token2");
+    klee_make_symbolic(&lenp, sizeof(lenp), "lenp");
+    klee_make_symbolic(&lenn, sizeof(lenn), "lenn");
+    
+    klee_assume(lenp >= 0 && lenp < 100);
+    klee_assume(lenn >= 0 && lenn < 100);
+    klee_assume(token[lenp] == 0);
+    klee_assume(token2[lenn] == 0);
+    
+    from_state.atom = xmlRegNewAtom(0);
+    to_state.atom = xmlRegNewAtom(0);
+    
+    xmlFAGenerateTransitions(&from_state, &to_state, token, lenp, token2, lenn);
+    
+    if (from_state.atom != NULL) xmlRegFreeAtom(from_state.atom);
+    if (to_state.atom != NULL) xmlRegFreeAtom(to_state.atom);
+    
+    return 0;
+}
+```

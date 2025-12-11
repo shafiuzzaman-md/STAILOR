@@ -1,0 +1,29 @@
+{
+  "spec_id": "390_xmlschemas.c_3375_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
+  "target_line": 3375,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 66,
+        "text": "SAILR_ASSERT(annotation != NULL && sizeof(xmlSchemaAnnot) <= sizeof(xmlSchemaAnnot));"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 69,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

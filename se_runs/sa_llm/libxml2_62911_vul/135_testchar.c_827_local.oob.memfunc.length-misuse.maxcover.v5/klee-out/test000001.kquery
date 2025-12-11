@@ -1,0 +1,7 @@
+array out[10000] : w32 -> w8 = symbolic
+array test_out[10000] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 38 (Read w8 25 test_out)))
+         (Eq false
+             (Eq 38 (Read w8 25 out)))]
+        false)

@@ -1,0 +1,71 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stubs for libxml2 types and functions needed to reach target */
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef struct _xmlHashTable xmlHashTable;
+typedef struct _xmlNsDB xmlNsDB;
+
+struct _xmlHashTable {
+    unsigned hashValue;
+};
+
+struct _xmlNsDB {
+    int hashSize;
+    struct _xmlHashTable *hash;
+};
+
+struct _xmlParserCtxt {
+    struct _xmlNsDB *nsdb;
+};
+
+void xmlErrMemory(xmlParserCtxt *ctxt, const char *extra) {
+    /* stub */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Target function signature from SA spec */
+int xmlParserEntityCheck(xmlParserCtxt *ctxt);
+
+int main(void) {
+    /* Symbolic inputs for the parser context and its nested structures */
+    xmlParserCtxt ctxt;
+    xmlNsDB nsdb;
+    struct _xmlHashTable hashArray[10]; /* arbitrary size for concrete allocation */
+    
+    /* Make hashSize symbolic - this controls loop bound */
+    klee_make_symbolic(&nsdb.hashSize, sizeof(nsdb.hashSize), "hashSize");
+    /* Assume hashSize is non-negative as per bounds_hints */
+    klee_assume(nsdb.hashSize >= 0);
+    /* Bound hashSize to avoid excessive loop iterations */
+    klee_assume(nsdb.hashSize <= 10);
+    
+    /* Allocate hash array */
+    nsdb.hash = hashArray;
+    ctxt.nsdb = &nsdb;
+    
+    /* Call the target function */
+    int result = xmlParserEntityCheck(&ctxt);
+    
+    /* The vulnerability assertion: 
+       Based on pattern local.oob.memfunc.length-misuse.maxcover.v5,
+       we need to check that newSize (computed inside xmlParserEntityCheck)
+       doesn't cause an overflow in memset's size calculation.
+       Since we can't directly access newSize, we assert that the function
+       didn't return -1 (memory allocation failure) which would happen
+       if newSize * sizeof(newHash[0]) overflows or allocation fails.
+       The actual OOB would occur in memset at line 1739 if newSize is too large.
+    */
+    SAILR_ASSERT(result != -1);
+    
+    /* Reachability marker - placed after vulnerability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return 0;
+}
+```

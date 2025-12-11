@@ -1,0 +1,12 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/296_xmlschemas.c_25155_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 58
+assembly.ll line: 141
+State: 2
+Stack: 
+	#000000141 in main() at se_runs/sa_llm/libxml2_62911_vul/296_xmlschemas.c_25155_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:58
+Info: 
+  size expr: (Mul w64 72
+                       (SExt w64 (ReadLSB w32 0 num_attrs)))
+  concretization : 0
+  unbound example: 3816

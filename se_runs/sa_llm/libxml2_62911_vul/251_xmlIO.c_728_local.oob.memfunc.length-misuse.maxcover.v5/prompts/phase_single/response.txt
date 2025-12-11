@@ -1,0 +1,70 @@
+```c
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Stub for xmlIOErr to avoid linking issues */
+void xmlIOErr(int domain, const char *msg) {
+    /* Do nothing for stub */
+}
+
+/* Target function from xmlIO.c */
+static int xmlFdRead(void *context, char *buffer, int len) {
+    int ret;
+    
+    ret = read((int)(ptrdiff_t)context, &buffer[0], len);
+    if (ret < 0) xmlIOErr(0, "read()");
+    return ret;
+}
+
+/* Entrypoint function that calls xmlFdRead */
+static int xmlFileOpen(const char *filename) {
+    /* Simplified entrypoint that creates a file descriptor */
+    int fd = open(filename, O_RDONLY);
+    return fd;
+}
+
+int main(void) {
+    int fd;
+    char *buffer;
+    int len;
+    int ret;
+    
+    /* Make symbolic inputs */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    /* Assume len is non-negative as hinted in bounds_hints */
+    klee_assume(len >= 0);
+    
+    /* Assume reasonable upper bound to avoid excessive exploration */
+    klee_assume(len <= 4096);
+    
+    /* Allocate buffer with size len+1 to ensure we have space */
+    buffer = malloc(len + 1);
+    if (buffer == NULL) {
+        return 1;
+    }
+    
+    /* Make buffer contents symbolic */
+    klee_make_symbolic(buffer, len + 1, "buffer");
+    
+    /* Create a file descriptor - use standard input for simplicity */
+    fd = 0; /* STDIN_FILENO */
+    
+    /* Call the target function */
+    ret = xmlFdRead((void *)(ptrdiff_t)fd, buffer, len);
+    
+    /* Vulnerability assertion: check that return value doesn't exceed buffer length */
+    /* The vulnerability would occur if read() returns more bytes than buffer can hold */
+    /* Since buffer is allocated with size len+1, ret should be <= len */
+    SAILR_ASSERT(ret <= len);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    free(buffer);
+    return 0;
+}
+```

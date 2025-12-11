@@ -1,0 +1,95 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNode xmlNode;
+typedef struct _xmlNodeSet xmlNodeSet;
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef enum {
+    XPATH_NODESET = 1
+} xmlXPathObjectType;
+
+/* Stub for xmlXPathErrMemory */
+void xmlXPathErrMemory(void* ctxt, const char* msg) {
+    /* Do nothing - just a stub */
+}
+
+/* Stub for xmlXPathFreeNodeSet */
+void xmlXPathFreeNodeSet(xmlNodeSet* ns) {
+    /* Do nothing - just a stub */
+}
+
+/* Target function signature from SA spec */
+xmlXPathObject* xmlXPathCmpNodesExt(xmlNode* node1, int depth1, 
+                                    xmlNode* node2, int depth2, int extended);
+
+/* Helper function that contains the vulnerable memset call */
+xmlXPathObject* vulnerable_helper(xmlNodeSet* val) {
+    xmlXPathObject* ret;
+    
+    /* Allocate memory for the return object */
+    ret = (xmlXPathObject*)malloc(sizeof(xmlXPathObject));
+    if (ret == NULL) {
+        xmlXPathErrMemory(NULL, "creating node set object\n");
+        xmlXPathFreeNodeSet(val);
+        return NULL;
+    }
+    
+    /* VULNERABLE LINE: memset with potentially unbounded size */
+    memset(ret, 0, sizeof(xmlXPathObject));
+    
+    /* Vulnerability assertion: ensure the size is within bounds */
+    /* For memset, the vulnerability is that sizeof(xmlXPathObject) might be 
+       larger than the allocated memory if allocation fails or is incorrect */
+    SAILR_ASSERT(ret != NULL && sizeof(xmlXPathObject) <= malloc_usable_size(ret));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    ret->type = XPATH_NODESET;
+    ret->nodesetval = val;
+    return ret;
+}
+
+/* Main harness entry point */
+int main(void) {
+    /* Symbolic inputs for xmlXPathCmpNodesExt parameters */
+    xmlNode* node1;
+    xmlNode* node2;
+    int depth1, depth2, extended;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&node1, sizeof(node1), "node1");
+    klee_make_symbolic(&node2, sizeof(node2), "node2");
+    klee_make_symbolic(&depth1, sizeof(depth1), "depth1");
+    klee_make_symbolic(&depth2, sizeof(depth2), "depth2");
+    klee_make_symbolic(&extended, sizeof(extended), "extended");
+    
+    /* Call the target function */
+    xmlXPathObject* result = xmlXPathCmpNodesExt(node1, depth1, node2, depth2, extended);
+    
+    /* Clean up if result was allocated */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}
+
+/* Implementation of xmlXPathCmpNodesExt that calls the vulnerable helper */
+xmlXPathObject* xmlXPathCmpNodesExt(xmlNode* node1, int depth1, 
+                                    xmlNode* node2, int depth2, int extended) {
+    /* Create a dummy node set to pass to the helper */
+    xmlNodeSet* val = (xmlNodeSet*)malloc(sizeof(xmlNodeSet));
+    if (val == NULL) {
+        return NULL;
+    }
+    
+    /* Call the helper function that contains the vulnerable memset */
+    return vulnerable_helper(val);
+}

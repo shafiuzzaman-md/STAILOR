@@ -1,0 +1,16 @@
+array len[4] : w32 -> w8 = symbolic
+array nodelen[4] : w32 -> w8 = symbolic
+array nodemem[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 0 len))
+         (Slt N0 1024)
+         (Sle 0
+              N1:(ReadLSB w32 0 nodelen))
+         (Slt N1 1024)
+         (Sle 0
+              N2:(ReadLSB w32 0 nodemem))
+         (Slt N2 2048)
+         (Sle N2 (Add w32 N1 N0))
+         (Slt 0 N2)
+         (Eq false (Eq 1 N2))]
+        false)

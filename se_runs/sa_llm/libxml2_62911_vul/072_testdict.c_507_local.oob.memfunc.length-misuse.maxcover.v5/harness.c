@@ -1,0 +1,82 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Structure definitions inferred from context */
+typedef struct _xmlDictStrings {
+    int num_entries;
+    int num_keys;
+    int num_strings;
+    int index;
+    int id;
+    char** strings;
+} xmlDictStrings;
+
+/* Target function signature inferred from context */
+xmlDictStrings* create_dict_strings(int num_entries, int num_keys, int id) {
+    xmlDictStrings* ret;
+    int num_strings;
+    
+    ret = xmlMalloc(sizeof(*ret));
+    if (ret == NULL) return NULL;
+    
+    ret->num_entries = num_entries;
+    ret->num_keys = num_keys;
+    num_strings = num_entries * num_keys;
+    ret->strings = xmlMalloc(num_strings * sizeof(ret->strings[0]));
+    
+    /* Target line 507: memset(ret->strings, 0, num_strings * sizeof(ret->strings[0])); */
+    memset(ret->strings, 0, num_strings * sizeof(ret->strings[0]));
+    
+    ret->num_strings = num_strings;
+    ret->index = 0;
+    ret->id = id;
+    
+    return ret;
+}
+
+int main(void) {
+    int num_entries, num_keys, id;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&num_entries, sizeof(num_entries), "num_entries");
+    klee_make_symbolic(&num_keys, sizeof(num_keys), "num_keys");
+    klee_make_symbolic(&id, sizeof(id), "id");
+    
+    /* Assume reasonable bounds to avoid overflow in multiplication */
+    klee_assume(num_entries >= 0);
+    klee_assume(num_entries <= 1000);
+    klee_assume(num_keys >= 0);
+    klee_assume(num_keys <= 1000);
+    
+    /* Vulnerability assertion: check that allocation size doesn't overflow */
+    int num_strings = num_entries * num_keys;
+    SAILR_ASSERT(num_strings >= 0 && num_strings <= 1000000);
+    
+    /* Reach the target line */
+    xmlDictStrings* dict = create_dict_strings(num_entries, num_keys, id);
+    
+    /* Reachability marker */
+    if (dict != NULL) {
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    /* Cleanup */
+    if (dict != NULL) {
+        if (dict->strings != NULL) {
+            free(dict->strings);
+        }
+        free(dict);
+    }
+    
+    return 0;
+}

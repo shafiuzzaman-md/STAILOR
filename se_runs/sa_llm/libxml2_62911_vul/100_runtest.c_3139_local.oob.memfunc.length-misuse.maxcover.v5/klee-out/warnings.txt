@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: fclose
+KLEE: WARNING: undefined reference to function: fgets
+KLEE: WARNING: undefined reference to function: fopen
+KLEE: WARNING ONCE: calling external: fopen(129602039054336, 129599623135232) at se_runs/sa_llm/libxml2_62911_vul/100_runtest.c_3139_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 7

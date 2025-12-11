@@ -1,0 +1,4 @@
+array name3[256] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0 (Read w8 0 name3)))]
+        false)

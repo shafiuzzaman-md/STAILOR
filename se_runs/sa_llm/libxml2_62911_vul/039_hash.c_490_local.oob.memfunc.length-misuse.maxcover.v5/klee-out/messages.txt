@@ -1,0 +1,8 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x72d90ac00000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x72d68ac00000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x71d68ac00000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x71b68ac00000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/039_hash.c_490_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:55: external call with symbolic argument: xmlHashRemoveEntry3
+KLEE: NOTE: now ignoring this error at this location

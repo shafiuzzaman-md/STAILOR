@@ -1,0 +1,12 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/251_xmlregexp.c_3100_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 103
+assembly.ll line: 245
+State: 3
+Stack: 
+	#000000245 in main() at se_runs/sa_llm/libxml2_62911_vul/251_xmlregexp.c_3100_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:103
+Info: 
+  size expr: (Mul w64 8
+                       (SExt w64 (ReadLSB w32 0 rollbacks_size)))
+  concretization : 8
+  unbound example: 32

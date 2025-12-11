@@ -1,0 +1,109 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the target code */
+typedef struct _xmlNs xmlNs;
+typedef xmlNs* xmlNsPtr;
+
+typedef enum {
+    XML_NAMESPACE_DECL
+} xmlElementType;
+
+typedef struct _xmlNode {
+    xmlElementType type;
+} xmlNode;
+
+typedef struct _xmlNodeSet {
+    xmlNode** nodeTab;
+    int nodeNr;
+} xmlNodeSet;
+
+typedef struct _xmlXPathObject {
+    xmlNodeSet* nodesetval;
+} xmlXPathObject;
+
+/* Stub for xmlXPathNodeSetFreeNs */
+void xmlXPathNodeSetFreeNs(xmlNsPtr ns) {
+    /* Stub implementation */
+}
+
+/* Entrypoint function from SA spec */
+void xmlXPathCmpNodesExt(xmlXPathObject* obj) {
+    xmlNodeSet* tmpset;
+    
+    if (obj == NULL) {
+        return;
+    }
+    
+    tmpset = obj->nodesetval;
+    
+    if (tmpset != NULL) {
+        if (tmpset->nodeTab != NULL && tmpset->nodeNr > 0) {
+            if ((tmpset->nodeTab[0] != NULL) &&
+                (tmpset->nodeTab[0]->type == XML_NAMESPACE_DECL)) {
+                xmlXPathNodeSetFreeNs((xmlNsPtr) tmpset->nodeTab[0]);
+            }
+        }
+        tmpset->nodeNr = 0;
+        
+        /* TARGET LINE 4967: memset(obj, 0, sizeof(xmlXPathObject)); */
+        /* Vulnerability assertion: ensure obj is not NULL before memset */
+        SAILR_ASSERT(obj != NULL);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memset(obj, 0, sizeof(xmlXPathObject));
+        obj->nodesetval = tmpset;
+    } else {
+        /* Vulnerability assertion: ensure obj is not NULL before memset */
+        SAILR_ASSERT(obj != NULL);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memset(obj, 0, sizeof(xmlXPathObject));
+    }
+    
+    return;
+}
+
+int main(void) {
+    xmlXPathObject* obj;
+    xmlNodeSet* set;
+    xmlNode* node;
+    
+    /* Allocate and make symbolic the xpath object */
+    obj = (xmlXPathObject*)malloc(sizeof(xmlXPathObject));
+    klee_make_symbolic(obj, sizeof(xmlXPathObject), "obj");
+    
+    /* Allocate and make symbolic the node set */
+    set = (xmlNodeSet*)malloc(sizeof(xmlNodeSet));
+    klee_make_symbolic(set, sizeof(xmlNodeSet), "set");
+    
+    /* Allocate and make symbolic a node for the nodeTab */
+    node = (xmlNode*)malloc(sizeof(xmlNode));
+    klee_make_symbolic(node, sizeof(xmlNode), "node");
+    
+    /* Set up the object structure */
+    obj->nodesetval = set;
+    
+    /* Set up the node set structure */
+    set->nodeTab = &node;
+    klee_make_symbolic(&set->nodeNr, sizeof(int), "nodeNr");
+    
+    /* Assume nodeNr is non-negative as hinted in bounds_hints */
+    klee_assume(set->nodeNr >= 0);
+    
+    /* Set up the node type symbolically */
+    klee_make_symbolic(&node->type, sizeof(xmlElementType), "node_type");
+    
+    /* Call the target function */
+    xmlXPathCmpNodesExt(obj);
+    
+    /* Cleanup */
+    free(node);
+    free(set);
+    free(obj);
+    
+    return 0;
+}
+```

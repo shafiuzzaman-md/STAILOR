@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: (allocated_size >= sizeof(xmlOutputBuffer)) && "SAILR_VULN_ASSERT"
+File: se_runs/sa_llm/libxml2_62911_vul/221_xmlIO.c_2338_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 61
+assembly.ll line: 119
+State: 2
+Stack: 
+	#000000119 in xmlFileOpen(123410592038912, 123408444555264) at se_runs/sa_llm/libxml2_62911_vul/221_xmlIO.c_2338_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:61
+	#100000180 in main() at se_runs/sa_llm/libxml2_62911_vul/221_xmlIO.c_2338_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:90

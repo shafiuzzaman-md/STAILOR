@@ -1,0 +1,5 @@
+array token2_buf[256] : w32 -> w8 = symbolic
+array token_buf[256] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 255 token_buf))
+         (Eq 0 (Read w8 0 token2_buf))]
+        false)

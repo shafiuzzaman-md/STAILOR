@@ -1,0 +1,29 @@
+{
+  "spec_id": "290_parser.c_1406_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/parser.c",
+  "target_line": 1406,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 62,
+        "text": "SAILR_ASSERT(1); /* In this specific case, xmlMalloc allocates exactly sizeof(*nsdb),"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 66,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

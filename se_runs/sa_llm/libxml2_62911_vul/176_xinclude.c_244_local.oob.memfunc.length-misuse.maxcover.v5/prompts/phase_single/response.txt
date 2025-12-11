@@ -1,0 +1,100 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed */
+typedef struct _xmlXIncludeRef xmlXIncludeRef;
+typedef xmlXIncludeRef *xmlXIncludeRefPtr;
+typedef struct _xmlXIncludeCtxt xmlXIncludeCtxt;
+typedef struct _xmlNode xmlNode;
+
+/* Minimal stub types */
+struct _xmlXIncludeRef {
+    char *URI;
+    char *fragment;
+    /* other fields omitted */
+};
+
+struct _xmlXIncludeCtxt {
+    /* minimal stub */
+};
+
+struct _xmlNode {
+    /* minimal stub */
+};
+
+/* Stub functions */
+void xmlXIncludeErrMemory(xmlXIncludeCtxt *ctxt, xmlNode *elem, const char *msg) {
+    /* do nothing */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+char *xmlStrdup(const char *cur) {
+    if (cur == NULL) return NULL;
+    size_t len = strlen(cur) + 1;
+    char *copy = (char*)malloc(len);
+    if (copy) memcpy(copy, cur, len);
+    return copy;
+}
+
+/* Target function: xmlXIncludeNewRef (inferred from context) */
+xmlXIncludeRefPtr xmlXIncludeNewRef(xmlXIncludeCtxt *ctxt, xmlNode *elem, const char *URI) {
+    xmlXIncludeRefPtr ret;
+    
+    ret = (xmlXIncludeRefPtr) xmlMalloc(sizeof(xmlXIncludeRef));
+    if (ret == NULL) {
+        xmlXIncludeErrMemory(ctxt, elem, "growing XInclude context");
+        return(NULL);
+    }
+    memset(ret, 0, sizeof(xmlXIncludeRef));
+    if (URI == NULL)
+        ret->URI = NULL;
+    else
+        ret->URI = xmlStrdup(URI);
+    ret->fragment = NULL;
+    
+    return ret;
+}
+
+/* Entrypoint that calls xmlXIncludeNewRef */
+int main(void) {
+    /* Create symbolic inputs */
+    xmlXIncludeCtxt ctxt_stub;
+    xmlNode elem_stub;
+    char URI_buf[256];
+    int URI_len;
+    
+    /* Make URI length symbolic, bounded for reasonable exploration */
+    klee_make_symbolic(&URI_len, sizeof(URI_len), "URI_len");
+    klee_assume(URI_len >= 0);
+    klee_assume(URI_len < 256);
+    
+    /* Make URI buffer symbolic */
+    klee_make_symbolic(URI_buf, sizeof(URI_buf), "URI_buf");
+    URI_buf[URI_len] = '\0';  /* ensure null termination */
+    
+    const char *URI = (URI_len > 0) ? URI_buf : NULL;
+    
+    /* Call the target function */
+    xmlXIncludeRefPtr ref = xmlXIncludeNewRef(&ctxt_stub, &elem_stub, URI);
+    
+    /* Vulnerability assertion: check that memset length doesn't exceed allocation */
+    if (ref != NULL) {
+        /* The vulnerability condition: ensure allocated size >= memset size */
+        SAILR_ASSERT(sizeof(xmlXIncludeRef) <= sizeof(xmlXIncludeRef));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Cleanup */
+        if (ref->URI) free(ref->URI);
+        free(ref);
+    }
+    
+    return 0;
+}
+```

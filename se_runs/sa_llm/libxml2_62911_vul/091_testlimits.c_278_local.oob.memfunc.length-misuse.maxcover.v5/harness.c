@@ -1,0 +1,61 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <string.h>
+#include <stdlib.h>
+#include "klee/klee.h"
+
+/* Stub for reset_timout() since it's called in the target function */
+void reset_timout(void) {
+    /* Empty stub - just to allow compilation */
+}
+
+/* Global variables from the target file */
+static char crazy[1024];  /* Assume some reasonable size */
+static int crazy_indx = 0;
+
+/* Target function from testlimits.c */
+static void *crazyOpen(const char *URI) {
+    if ((URI == NULL) || (strncmp(URI, "crazy:", 6)))
+        return(NULL);
+
+    if (crazy_indx > strlen(crazy))
+        return(NULL);
+    
+    /* VULNERABILITY ASSERTION: Check if the strncmp length (6) is within bounds */
+    /* The vulnerability is that strncmp(URI, "crazy:", 6) could read beyond URI's bounds */
+    /* We need to ensure URI has at least 6 bytes allocated */
+    SAILR_ASSERT(strlen(URI) >= 6);
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    reset_timout();
+    return NULL;
+}
+
+int main(void) {
+    /* Make URI symbolic to explore different paths */
+    char URI[256];
+    klee_make_symbolic(URI, sizeof(URI), "URI");
+    
+    /* Ensure URI is null-terminated */
+    URI[sizeof(URI)-1] = '\0';
+    
+    /* Make crazy array symbolic to explore different strlen(crazy) values */
+    klee_make_symbolic(crazy, sizeof(crazy), "crazy");
+    crazy[sizeof(crazy)-1] = '\0';
+    
+    /* Make crazy_indx symbolic */
+    klee_make_symbolic(&crazy_indx, sizeof(crazy_indx), "crazy_indx");
+    
+    /* Assume reasonable constraints to avoid trivial paths */
+    klee_assume(crazy_indx >= 0);
+    klee_assume(crazy_indx < 10000);  /* Reasonable upper bound */
+    
+    /* Call the target function */
+    crazyOpen(URI);
+    
+    return 0;
+}

@@ -1,0 +1,13 @@
+array d_content[4] : w32 -> w8 = symbolic
+array d_inptr[4] : w32 -> w8 = symbolic
+array d_inrptr[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 0 d_inptr))
+         (Slt N0 4096)
+         (Sle 0
+              N1:(ReadLSB w32 0 d_content))
+         (Slt N1 4096)
+         (Eq false
+             (Sle 0
+                  (ReadLSB w32 0 d_inrptr)))]
+        false)

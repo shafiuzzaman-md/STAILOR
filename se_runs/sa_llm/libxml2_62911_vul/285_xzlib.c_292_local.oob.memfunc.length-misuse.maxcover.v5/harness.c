@@ -1,0 +1,60 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+typedef struct lzma_stream {
+    const uint8_t *next_in;
+    size_t avail_in;
+} lzma_stream;
+
+typedef struct xz_state {
+    lzma_stream strm;
+    uint8_t in[1024];
+} xz_state;
+
+typedef xz_state* xz_statep;
+
+static int is_format_xz(xz_statep state) {
+    lzma_stream *strm = &(state->strm);
+    return strm->avail_in >= 6 && memcmp(state->in, "\3757zXZ", 6) == 0;
+}
+
+static int is_format_lzma(xz_statep state) {
+    return 0;
+}
+
+int __libxml2_xzread(xz_statep state) {
+    if (is_format_xz(state)) {
+        return 1;
+    }
+    if (is_format_lzma(state)) {
+        return 2;
+    }
+    return 0;
+}
+
+int main(void) {
+    xz_state state;
+    
+    klee_make_symbolic(&state.strm.avail_in, sizeof(state.strm.avail_in), "avail_in");
+    klee_make_symbolic(state.in, sizeof(state.in), "in_buffer");
+    
+    klee_assume(state.strm.avail_in >= 0);
+    klee_assume(state.strm.avail_in < 1024);
+    
+    state.strm.next_in = state.in;
+    
+    int result = __libxml2_xzread(&state);
+    
+    if (result == 1) {
+        SAILR_ASSERT(state.strm.avail_in >= 6);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    return 0;
+}

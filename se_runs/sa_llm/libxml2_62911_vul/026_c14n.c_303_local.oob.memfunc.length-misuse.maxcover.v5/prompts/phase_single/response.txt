@@ -1,0 +1,88 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types used in libxml2 */
+typedef struct _xmlNs xmlNs;
+typedef xmlNs* xmlNsPtr;
+typedef struct _xmlNode xmlNode;
+typedef xmlNode* xmlNodePtr;
+
+/* Simplified xmlC14NVisibleNsStack structure */
+typedef struct _xmlC14NVisibleNsStack {
+    xmlNsPtr* nsTab;
+    int nsMax;
+    xmlNodePtr* nodeTab;
+    int nodeMax;
+} xmlC14NVisibleNsStack;
+
+/* Stub for xmlFree */
+void xmlFree(void* ptr) {
+    free(ptr);
+}
+
+/* Entrypoint function from SA spec */
+void xmlC14NProcessAttrsAxis(xmlC14NVisibleNsStack* cur) {
+    if (cur == NULL) return;
+    
+    if (cur->nsTab != NULL) {
+        memset(cur->nsTab, 0, cur->nsMax * sizeof(xmlNsPtr));
+        xmlFree(cur->nsTab);
+    }
+    if (cur->nodeTab != NULL) {
+        memset(cur->nodeTab, 0, cur->nsMax * sizeof(xmlNodePtr));
+        xmlFree(cur->nodeTab);
+    }
+    memset(cur, 0, sizeof(xmlC14NVisibleNsStack));
+    xmlFree(cur);
+}
+
+int main(void) {
+    /* Allocate and make symbolic the xmlC14NVisibleNsStack structure */
+    xmlC14NVisibleNsStack* cur = (xmlC14NVisibleNsStack*)malloc(sizeof(xmlC14NVisibleNsStack));
+    if (cur == NULL) return 0;
+    
+    /* Make structure fields symbolic */
+    klee_make_symbolic(&cur->nsMax, sizeof(cur->nsMax), "nsMax");
+    klee_make_symbolic(&cur->nodeMax, sizeof(cur->nodeMax), "nodeMax");
+    
+    /* Assume reasonable bounds for symbolic values */
+    klee_assume(cur->nsMax >= 0 && cur->nsMax <= 1024);
+    klee_assume(cur->nodeMax >= 0 && cur->nodeMax <= 1024);
+    
+    /* Allocate nsTab if nsMax > 0 */
+    if (cur->nsMax > 0) {
+        cur->nsTab = (xmlNsPtr*)malloc(cur->nsMax * sizeof(xmlNsPtr));
+        klee_assume(cur->nsTab != NULL);
+    } else {
+        cur->nsTab = NULL;
+    }
+    
+    /* Allocate nodeTab if nodeMax > 0 */
+    if (cur->nodeMax > 0) {
+        cur->nodeTab = (xmlNodePtr*)malloc(cur->nodeMax * sizeof(xmlNodePtr));
+        klee_assume(cur->nodeTab != NULL);
+    } else {
+        cur->nodeTab = NULL;
+    }
+    
+    /* Call the target function */
+    xmlC14NProcessAttrsAxis(cur);
+    
+    /* Vulnerability assertion: check that nsMax doesn't cause OOB in memset */
+    /* The vulnerable line uses cur->nsMax for both nsTab and nodeTab memset calls */
+    /* We need to ensure allocated size >= nsMax * sizeof(pointer) */
+    if (cur->nsTab != NULL) {
+        SAILR_ASSERT(cur->nsMax >= 0 && cur->nsMax <= 1024);  /* Basic bounds check */
+    }
+    if (cur->nodeTab != NULL) {
+        SAILR_ASSERT(cur->nsMax >= 0 && cur->nsMax <= 1024);  /* Same check for nodeTab */
+    }
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return 0;
+}
+```

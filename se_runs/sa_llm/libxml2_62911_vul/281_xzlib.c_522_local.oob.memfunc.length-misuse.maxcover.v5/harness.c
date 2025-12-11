@@ -1,0 +1,87 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal types needed to match the context */
+typedef struct {
+    unsigned char *next_in;
+    unsigned int avail_in;
+} z_stream;
+
+typedef struct {
+    unsigned char *out;
+    unsigned char *next;
+    unsigned int have;
+    unsigned int pos;
+    unsigned char *raw;
+    int how;
+    int direct;
+} gz_state;
+
+/* Stub for __libxml2_xzread - the entrypoint mentioned in spec */
+int __libxml2_xzread(gz_state *state, z_stream *strm) {
+    /* From snippet: state->raw = state->pos; */
+    state->raw = (unsigned char *)(unsigned long)state->pos;
+    
+    /* state->next = state->out; */
+    state->next = state->out;
+    
+    /* Target line 522: memcpy(state->next + state->have, strm->next_in, strm->avail_in); */
+    if (strm->avail_in) {
+        /* VULNERABILITY ASSERTION: ensure copy length does not exceed destination buffer */
+        /* We need to infer buffer size. Assume state->next points to buffer of size BUFSIZE */
+        #define BUFSIZE 4096  /* reasonable default */
+        SAILR_ASSERT(state->have + strm->avail_in <= BUFSIZE);
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memcpy(state->next + state->have, strm->next_in, strm->avail_in);
+        state->have += strm->avail_in;
+        strm->avail_in = 0;
+    }
+    
+    state->how = 1; /* COPY */
+    state->direct = 1;
+    return 0;
+}
+
+int main(void) {
+    /* Allocate and make symbolic the state and stream structures */
+    gz_state *state = malloc(sizeof(gz_state));
+    z_stream *strm = malloc(sizeof(z_stream));
+    
+    /* Make fields symbolic to explore various paths */
+    klee_make_symbolic(state, sizeof(gz_state), "state");
+    klee_make_symbolic(strm, sizeof(z_stream), "strm");
+    
+    /* Assume reasonable constraints to avoid trivial crashes */
+    klee_assume(state != NULL);
+    klee_assume(strm != NULL);
+    
+    /* Assume state->out points to a valid buffer */
+    unsigned char buffer[4096];
+    state->out = buffer;
+    state->next = buffer; /* Will be overwritten in function */
+    
+    /* Assume strm->next_in points to valid memory */
+    unsigned char in_buffer[4096];
+    strm->next_in = in_buffer;
+    
+    /* Constrain avail_in to be within buffer bounds for source */
+    klee_assume(strm->avail_in >= 0 && strm->avail_in <= 4096);
+    
+    /* Constrain state->have to be within destination buffer bounds */
+    klee_assume(state->have >= 0 && state->have <= 4096);
+    
+    /* Call the target function */
+    __libxml2_xzread(state, strm);
+    
+    free(state);
+    free(strm);
+    return 0;
+}

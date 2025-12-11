@@ -1,0 +1,10 @@
+array XML_PARSER_BIG_BUFFER_SIZE[4] : w32 -> w8 = symbolic
+array an[4] : w32 -> w8 = symbolic
+array than[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              (ReadLSB w32 0 XML_PARSER_BIG_BUFFER_SIZE))
+         (Sle 0
+              (ReadLSB w32 0 an))
+         (Sle 0
+              (ReadLSB w32 0 than))]
+        false)

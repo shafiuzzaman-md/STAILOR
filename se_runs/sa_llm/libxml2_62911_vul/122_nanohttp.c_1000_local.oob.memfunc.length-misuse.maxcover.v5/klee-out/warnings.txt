@@ -1,0 +1,2 @@
+KLEE: WARNING: undefined reference to function: klee_make_symbolic_str
+KLEE: WARNING ONCE: calling external: klee_make_symbolic_str(256) at se_runs/sa_llm/libxml2_62911_vul/122_nanohttp.c_1000_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 11

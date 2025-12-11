@@ -1,0 +1,9 @@
+array node1[8] : w32 -> w8 = symbolic
+array node2[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 0 node1)))
+         (Ult N0 4096)
+         (Eq 0
+             (ReadLSB w64 0 node2))]
+        false)

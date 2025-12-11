@@ -1,0 +1,16 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/311_xmlregexp.c_447_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 18
+assembly.ll line: 28
+State: 5
+Stack: 
+	#000000028 in xmlMalloc(symbolic) at se_runs/sa_llm/libxml2_62911_vul/311_xmlregexp.c_447_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:18
+	#100000164 in xmlCallocLoc(symbolic, symbolic, symbolic) at se_runs/sa_llm/libxml2_62911_vul/311_xmlregexp.c_447_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:59
+	#200000103 in xmlRegNewParserCtxt(134573375619072) at se_runs/sa_llm/libxml2_62911_vul/311_xmlregexp.c_447_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:82
+	#300000199 in main() at se_runs/sa_llm/libxml2_62911_vul/311_xmlregexp.c_447_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:90
+Info: 
+  size expr: (Mul w64 (Mul w64 (ReadLSB w64 0 dim1)
+                                (ReadLSB w64 0 dim2))
+                       (ReadLSB w64 0 elemSize))
+  concretization : 128
+  unbound example: 1073741824

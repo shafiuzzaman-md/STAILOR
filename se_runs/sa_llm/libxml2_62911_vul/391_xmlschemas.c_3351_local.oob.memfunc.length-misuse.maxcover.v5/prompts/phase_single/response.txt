@@ -1,0 +1,58 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlSchemaFacet xmlSchemaFacet;
+typedef xmlSchemaFacet *xmlSchemaFacetPtr;
+
+/* Minimal stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Minimal stub for xmlSchemaFormatQName - just returns a dummy pointer */
+xmlSchemaFacetPtr xmlSchemaFormatQName(void) {
+    /* This is the function that calls the vulnerable allocation and memset */
+    xmlSchemaFacetPtr ret;
+    
+    /* Line 3351: ret = (xmlSchemaFacetPtr) xmlMalloc(sizeof(xmlSchemaFacet)); */
+    ret = (xmlSchemaFacetPtr) xmlMalloc(sizeof(xmlSchemaFacet));
+    
+    /* Vulnerability assertion: check if allocation size is reasonable */
+    /* For OOB memset, we need to ensure the size passed to memset is <= allocated size */
+    /* Since memset uses sizeof(xmlSchemaFacet), we need to ensure xmlMalloc returned enough memory */
+    SAILR_ASSERT(ret != NULL && "Allocation failed or returned insufficient memory");
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* The actual memset that follows in the original code */
+    if (ret != NULL) {
+        memset(ret, 0, sizeof(xmlSchemaFacet));
+    }
+    
+    return ret;
+}
+
+int main(void) {
+    /* Make symbolic variables to control execution paths */
+    int control;
+    klee_make_symbolic(&control, sizeof(control), "control");
+    
+    /* Assume conditions that would lead to calling xmlSchemaFormatQName */
+    /* In real code, this would be called from some schema parsing context */
+    klee_assume(control > 0);
+    
+    /* Call the entrypoint function that leads to the vulnerable line */
+    xmlSchemaFacetPtr result = xmlSchemaFormatQName();
+    
+    /* Clean up if allocation succeeded */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}
+```

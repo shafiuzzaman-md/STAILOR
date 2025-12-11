@@ -1,0 +1,66 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed */
+typedef struct _xmlGlobalState xmlGlobalState;
+
+/* Stub for xmlInitGlobalState - we only need it to be callable */
+void xmlInitGlobalState(xmlGlobalState *gs) {
+    /* Empty stub - just to satisfy linker */
+}
+
+/* Target function from globals.c */
+xmlGlobalState *xmlCheckThreadLocalStorage(void) {
+    xmlGlobalState *gs;
+    
+    /* Allocate memory for global state */
+    gs = (xmlGlobalState *)malloc(sizeof(xmlGlobalState));
+    if (gs == NULL) {
+        fprintf(stderr, "libxml2: Failed to allocate globals for thread\n"
+                        "libxml2: See xmlCheckThreadLocalStorage\n");
+        abort();
+    }
+
+    /* TARGET LINE 837: memset(gs, 0, sizeof(xmlGlobalState)); */
+    /* Vulnerability assertion: ensure we don't overflow the allocated memory */
+    SAILR_ASSERT(sizeof(xmlGlobalState) <= malloc_usable_size(gs));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(gs, 0, sizeof(xmlGlobalState));
+    xmlInitGlobalState(gs);
+    return (gs);
+}
+
+/* Helper to get usable size of malloc'd memory (simplified for KLEE) */
+size_t malloc_usable_size(void *ptr) {
+    /* In symbolic execution, we assume malloc succeeds with requested size */
+    return sizeof(xmlGlobalState);
+}
+
+int main(void) {
+    /* Make symbolic control to reach the allocation failure path or success path */
+    int alloc_fails;
+    klee_make_symbolic(&alloc_fails, sizeof(alloc_fails), "alloc_fails");
+    
+    /* Assume alloc_fails is either 0 or 1 */
+    klee_assume(alloc_fails == 0 || alloc_fails == 1);
+    
+    if (alloc_fails) {
+        /* Force malloc to return NULL by symbolic constraint */
+        /* We'll use klee_assume on a symbolic pointer later */
+        return 0;
+    }
+    
+    /* Call the target function - should reach line 837 */
+    xmlGlobalState *result = xmlCheckThreadLocalStorage();
+    
+    /* Free the allocated memory to avoid leak warnings */
+    free(result);
+    
+    return 0;
+}
+```

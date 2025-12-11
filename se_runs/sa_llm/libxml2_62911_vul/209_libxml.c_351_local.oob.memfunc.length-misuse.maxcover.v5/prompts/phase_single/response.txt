@@ -1,0 +1,91 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Stub for PyObject */
+typedef struct PyObject {
+    int dummy;
+} PyObject;
+
+/* Stub for Py_DECREF */
+void Py_DECREF(PyObject *obj) {
+    (void)obj;
+}
+
+/* Stub for PyBytes_AsStringAndSize */
+int PyBytes_AsStringAndSize(PyObject *obj, char **buffer, Py_ssize_t *length) {
+    static char dummy_data[1024];
+    *buffer = dummy_data;
+    *length = 1024;
+    return 0;
+}
+
+/* Stub for PyObject_CallMethod */
+PyObject* PyObject_CallMethod(PyObject *obj, const char *name, const char *format, ...) {
+    static PyObject dummy_ret;
+    return &dummy_ret;
+}
+
+/* Target function signature inferred from context */
+int libxml_xmlCreatePushParser(PyObject *self, PyObject *args) {
+    PyObject *ret;
+    char *data;
+    Py_ssize_t lenread;
+    char *buffer;
+    int len;
+
+    /* Symbolic inputs */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_make_symbolic(&lenread, sizeof(lenread), "lenread");
+    
+    /* Assume non-negative lengths as hinted in spec */
+    klee_assume(len >= 0);
+    klee_assume(lenread >= 0);
+    
+    /* Allocate buffer with symbolic size */
+    buffer = (char*)malloc(len + 1);
+    if (!buffer) return -1;
+    
+    /* Simulate PyBytes_AsStringAndSize returning data */
+    data = (char*)malloc(1024);
+    if (!data) {
+        free(buffer);
+        return -1;
+    }
+    
+    /* Simulate PyObject_CallMethod returning ret */
+    ret = (PyObject*)malloc(sizeof(PyObject));
+    if (!ret) {
+        free(buffer);
+        free(data);
+        return -1;
+    }
+    
+    /* This is the target vulnerable memcpy line */
+    if (lenread > len) {
+        /* Vulnerability assertion: buffer must have at least len bytes */
+        SAILR_ASSERT(len <= (len + 1));
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        memcpy(buffer, data, len);
+    } else {
+        /* Safe path */
+        memcpy(buffer, data, lenread);
+    }
+    
+    Py_DECREF(ret);
+    free(buffer);
+    free(data);
+    free(ret);
+    return (int)lenread;
+}
+
+int main(void) {
+    PyObject dummy_self, dummy_args;
+    
+    /* Call the entrypoint with symbolic environment */
+    libxml_xmlCreatePushParser(&dummy_self, &dummy_args);
+    
+    return 0;
+}
+```

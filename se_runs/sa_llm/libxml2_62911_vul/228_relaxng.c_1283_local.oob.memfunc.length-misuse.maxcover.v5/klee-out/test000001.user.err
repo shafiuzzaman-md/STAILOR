@@ -1,0 +1,8 @@
+Error: invalid klee_assume call (provably false)
+File: se_runs/sa_llm/libxml2_62911_vul/228_relaxng.c_1283_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 47
+assembly.ll line: 67
+State: 2
+Stack: 
+	#000000067 in xmlRelaxNGCopyValidState(130328517672960) at se_runs/sa_llm/libxml2_62911_vul/228_relaxng.c_1283_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:47
+	#100000225 in main() at se_runs/sa_llm/libxml2_62911_vul/228_relaxng.c_1283_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:90

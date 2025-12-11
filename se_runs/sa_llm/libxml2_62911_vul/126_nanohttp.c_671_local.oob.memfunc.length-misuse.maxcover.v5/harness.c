@@ -1,0 +1,51 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+typedef struct _xmlNanoHTTPCtxt {
+    int dummy;
+} xmlNanoHTTPCtxt, *xmlNanoHTTPCtxtPtr;
+
+void xmlNanoHTTPScanAnswer(xmlNanoHTTPCtxtPtr ctxt, const char *line) {
+    const char *cur = line;
+
+    if (line == NULL) return;
+
+    if (!strncmp(line, "HTTP/", 5)) {
+        int version = 0;
+        int ret = 0;
+
+        cur += 5;
+        while ((*cur >= '0') && (*cur <= '9')) {
+            version = version * 10 + (*cur - '0');
+            cur++;
+        }
+        
+        if (*cur == '.') {
+            cur++;
+            while ((*cur >= '0') && (*cur <= '9')) {
+                ret = ret * 10 + (*cur - '0');
+                cur++;
+            }
+        }
+        
+        SAILR_ASSERT(strlen(line) >= 5);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+}
+
+int main(void) {
+    xmlNanoHTTPCtxt ctxt;
+    char line[256];
+    
+    klee_make_symbolic(line, sizeof(line), "line");
+    klee_assume(line[255] == '\0');
+    
+    xmlNanoHTTPScanAnswer(&ctxt, line);
+    
+    return 0;
+}

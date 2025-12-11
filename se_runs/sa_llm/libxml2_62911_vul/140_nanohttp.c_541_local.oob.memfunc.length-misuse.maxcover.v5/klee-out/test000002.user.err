@@ -1,0 +1,8 @@
+Error: invalid klee_assume call (provably false)
+File: se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 60
+assembly.ll line: 203
+State: 3
+Stack: 
+	#000000203 in xmlNanoHTTPMethodRedir() at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:60
+	#100000351 in main() at se_runs/sa_llm/libxml2_62911_vul/140_nanohttp.c_541_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:94

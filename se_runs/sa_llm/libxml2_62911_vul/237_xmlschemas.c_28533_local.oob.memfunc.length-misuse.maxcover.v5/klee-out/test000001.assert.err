@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_62911_vul/237_xmlschemas.c_28533_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 45
+assembly.ll line: 58
+State: 1
+Stack: 
+	#000000058 in xmlSchemaFormatQName(symbolic, symbolic, symbolic) at se_runs/sa_llm/libxml2_62911_vul/237_xmlschemas.c_28533_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:45
+	#100000117 in main() at se_runs/sa_llm/libxml2_62911_vul/237_xmlschemas.c_28533_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:71

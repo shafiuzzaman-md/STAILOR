@@ -1,0 +1,9 @@
+array state[16] : w32 -> w8 = symbolic
+array state_buffer_size[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              (ReadLSB w32 12 state))
+         (Sle 0
+              N0:(ReadLSB w32 0 state_buffer_size))
+         (Ule N1:(SExt w64 N0) 32)
+         (Eq false (Ule 16 N1))]
+        false)

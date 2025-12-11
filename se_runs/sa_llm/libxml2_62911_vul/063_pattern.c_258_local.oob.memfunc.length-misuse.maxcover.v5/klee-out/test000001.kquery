@@ -1,0 +1,4 @@
+array trigger[4] : w32 -> w8 = symbolic
+(query [(Eq 1
+             (ReadLSB w32 0 trigger))]
+        false)

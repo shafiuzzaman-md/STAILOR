@@ -1,0 +1,87 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed */
+typedef struct _xmlXPathCompExpr xmlXPathCompExpr;
+typedef struct _xmlXPathStepOp xmlXPathStepOp;
+
+struct _xmlXPathCompExpr {
+    int maxStep;
+    int nbStep;
+    xmlXPathStepOp *steps;
+    /* other fields omitted for brevity */
+};
+
+void xmlXPathErrMemory(void *ctxt, const char *msg);
+void *xmlMalloc(size_t size);
+
+/* Stub implementations of libxml2 functions */
+void xmlXPathErrMemory(void *ctxt, const char *msg) {
+    /* Do nothing in stub */
+}
+
+void *xmlMalloc(size_t size) {
+    if (size == 0) return NULL;
+    return malloc(size);
+}
+
+/* Entrypoint function from SA spec */
+xmlXPathCompExpr *xmlXPathCmpNodesExt(void) {
+    xmlXPathCompExpr *cur;
+    
+    cur = (xmlXPathCompExpr *) xmlMalloc(sizeof(xmlXPathCompExpr));
+    if (cur == NULL) {
+        xmlXPathErrMemory(NULL, "allocating component\n");
+        return NULL;
+    }
+    
+    /* Target line 1021: memset(cur, 0, sizeof(xmlXPathCompExpr)); */
+    memset(cur, 0, sizeof(xmlXPathCompExpr));
+    
+    cur->maxStep = 10;
+    cur->nbStep = 0;
+    cur->steps = (xmlXPathStepOp *) xmlMalloc(cur->maxStep * sizeof(xmlXPathStepOp));
+    
+    /* Vulnerability assertion: check that the allocation size is non-negative */
+    SAILR_ASSERT(cur->maxStep >= 0);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    if (cur->steps == NULL) {
+        free(cur);
+        return NULL;
+    }
+    
+    return cur;
+}
+
+int main(void) {
+    /* Make symbolic inputs to control execution path */
+    int malloc_fail_1, malloc_fail_2;
+    
+    klee_make_symbolic(&malloc_fail_1, sizeof(malloc_fail_1), "malloc_fail_1");
+    klee_make_symbolic(&malloc_fail_2, sizeof(malloc_fail_2), "malloc_fail_2");
+    
+    /* Assume values to reach target line */
+    klee_assume(malloc_fail_1 == 0);  /* First malloc succeeds */
+    klee_assume(malloc_fail_2 == 0);  /* Second malloc succeeds */
+    
+    /* Call the entrypoint function */
+    xmlXPathCompExpr *result = xmlXPathCmpNodesExt();
+    
+    /* Cleanup if needed */
+    if (result) {
+        if (result->steps) {
+            free(result->steps);
+        }
+        free(result);
+    }
+    
+    return 0;
+}

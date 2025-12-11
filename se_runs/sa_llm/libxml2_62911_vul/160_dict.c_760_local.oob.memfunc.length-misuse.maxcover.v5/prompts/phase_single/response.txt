@@ -1,0 +1,106 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal declarations from libxml2 needed to reach the target */
+typedef struct _xmlDict xmlDict;
+typedef unsigned int xmlChar;
+
+struct _xmlDict {
+    int ref_counter;
+    xmlChar *dict;
+    size_t size;
+    xmlChar **table;
+    xmlChar *end;
+};
+
+/* Stub for xmlDictLookup - the entrypoint */
+xmlChar *xmlDictLookup(xmlDict *dict, const xmlChar *name, int len) {
+    /* Simplified implementation to reach the memmove call */
+    if (dict == NULL || dict->table == NULL) return NULL;
+    
+    xmlChar **cur = dict->table;
+    xmlChar **entry = dict->table;
+    xmlChar **end = &dict->table[dict->size];
+    
+    /* Simulate the condition that triggers the vulnerable path */
+    if (cur < entry) {
+        /* This is the vulnerable memmove call from line 760 */
+        memmove(&dict->table[1], dict->table,
+                (char *) cur - (char *) dict->table);
+        
+        /* VULNERABILITY ASSERTION: Check if memmove size is within bounds */
+        size_t move_size = (char *) cur - (char *) dict->table;
+        SAILR_ASSERT(move_size <= dict->size * sizeof(xmlChar *));
+        
+        /* REACHABILITY ASSERTION */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        cur = end - 1;
+        dict->table[0] = *cur;
+    }
+    
+    return (xmlChar *)name;
+}
+
+/* Helper to create a dictionary with symbolic state */
+xmlDict *create_dict_with_symbolic_state(void) {
+    xmlDict *dict = malloc(sizeof(xmlDict));
+    if (!dict) return NULL;
+    
+    /* Make size symbolic but bounded */
+    dict->size = 0;
+    klee_make_symbolic(&dict->size, sizeof(dict->size), "dict_size");
+    klee_assume(dict->size > 0 && dict->size < 100);
+    
+    /* Allocate table */
+    dict->table = malloc(dict->size * sizeof(xmlChar *));
+    if (!dict->table) {
+        free(dict);
+        return NULL;
+    }
+    
+    /* Initialize table entries */
+    for (size_t i = 0; i < dict->size; i++) {
+        dict->table[i] = (xmlChar *)malloc(sizeof(xmlChar));
+        if (dict->table[i]) {
+            *dict->table[i] = 'a' + (i % 26);
+        }
+    }
+    
+    dict->end = &dict->table[dict->size];
+    dict->ref_counter = 1;
+    
+    return dict;
+}
+
+int main(void) {
+    /* Create dictionary with symbolic size */
+    xmlDict *dict = create_dict_with_symbolic_state();
+    if (!dict) return 1;
+    
+    /* Make name and len symbolic */
+    const xmlChar *name;
+    int len;
+    
+    klee_make_symbolic(&name, sizeof(name), "name");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    /* Call the entrypoint - this should reach the vulnerable memmove */
+    xmlChar *result = xmlDictLookup(dict, name, len);
+    
+    /* Cleanup */
+    if (dict) {
+        if (dict->table) {
+            for (size_t i = 0; i < dict->size; i++) {
+                if (dict->table[i]) free(dict->table[i]);
+            }
+            free(dict->table);
+        }
+        free(dict);
+    }
+    
+    return 0;
+}
+```

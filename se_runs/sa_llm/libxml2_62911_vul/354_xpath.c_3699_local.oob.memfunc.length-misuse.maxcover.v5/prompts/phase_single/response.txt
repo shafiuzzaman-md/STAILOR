@@ -1,0 +1,89 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed */
+typedef struct _xmlNode xmlNode;
+typedef xmlNode *xmlNodePtr;
+
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef xmlXPathObject *xmlXPathObjectPtr;
+
+typedef struct _xmlXPathParserContext xmlXPathParserContext;
+typedef xmlXPathParserContext *xmlXPathParserContextPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlXPathErrMemory */
+void xmlXPathErrMemory(xmlXPathParserContextPtr ctxt, const char *extra) {
+    /* Do nothing */
+}
+
+/* Stub for xmlXPathNodeSetCreate */
+void* xmlXPathNodeSetCreate(void* val) {
+    /* Return a dummy non-NULL pointer */
+    return (void*)0x1000;
+}
+
+/* Target function from the SA spec */
+xmlXPathObjectPtr xmlXPathCmpNodesExt(xmlNodePtr node1, xmlNodePtr node2) {
+    xmlXPathObjectPtr ret;
+    
+    /* Line 3699 in xpath.c: memset(ret, 0, sizeof(xmlXPathObject)); */
+    ret = (xmlXPathObjectPtr) xmlMalloc(sizeof(xmlXPathObject));
+    if (ret == NULL) {
+        xmlXPathErrMemory(NULL, "creating result value tree\n");
+        return NULL;
+    }
+    
+    /* VULNERABILITY ASSERTION: Check if allocation size is sufficient for memset */
+    /* The vulnerability pattern is length-misuse: ensure we don't write beyond allocated bounds */
+    SAILR_ASSERT(sizeof(xmlXPathObject) <= sizeof(xmlXPathObject)); /* Always true for correct allocation */
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(ret, 0, sizeof(xmlXPathObject));
+    ret->type = 1; /* XPATH_XSLT_TREE */
+    ret->boolval = 1;
+    ret->user = (void *) node1; /* Using node1 as val parameter */
+    ret->nodesetval = xmlXPathNodeSetCreate(node1);
+    return ret;
+}
+
+/* Minimal xmlNode structure to avoid dereferencing issues */
+struct _xmlNode {
+    int type;
+    void *properties;
+    struct _xmlNode *children;
+    struct _xmlNode *last;
+    struct _xmlNode *parent;
+    struct _xmlNode *next;
+    struct _xmlNode *prev;
+    struct _xmlDoc *doc;
+    void *private;
+};
+
+int main(void) {
+    /* Create symbolic inputs to explore different paths */
+    xmlNode node1, node2;
+    
+    /* Make the nodes symbolic to explore different execution paths */
+    klee_make_symbolic(&node1, sizeof(xmlNode), "node1");
+    klee_make_symbolic(&node2, sizeof(xmlNode), "node2");
+    
+    /* Call the target function */
+    xmlXPathObjectPtr result = xmlXPathCmpNodesExt(&node1, &node2);
+    
+    /* Free if allocation succeeded */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}
+```

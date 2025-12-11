@@ -1,0 +1,12 @@
+Error: memory error: null page access
+File: se_runs/sa_llm/libxml2_62911_vul/053_HTMLparser.c_2284_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 29
+assembly.ll line: 69
+State: 1
+Stack: 
+	#000000069 in htmlParseComment(128598310649856) at se_runs/sa_llm/libxml2_62911_vul/053_HTMLparser.c_2284_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29
+	#100000032 in main() at se_runs/sa_llm/libxml2_62911_vul/053_HTMLparser.c_2284_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:67
+Info: 
+	address: 0
+	next: object at 128597236908032 of size 4
+		MO38[4] allocated at htmlParseComment():  %9 = alloca i32, align 4

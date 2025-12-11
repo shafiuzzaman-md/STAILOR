@@ -1,0 +1,41 @@
+```c
+#include <string.h>
+#include <stdlib.h>
+#include "klee/klee.h"
+
+/* Forward declaration of the target function from testlimits.c */
+static int hugeMatch(const char *URI);
+
+/* Main harness entry point */
+int main(void) {
+    /* Create symbolic buffer for URI parameter */
+    char URI[256];
+    klee_make_symbolic(URI, sizeof(URI), "URI");
+    
+    /* Ensure URI is null-terminated for safety */
+    URI[255] = '\0';
+    
+    /* Assume URI is not NULL (as checked in hugeMatch) */
+    klee_assume(URI != NULL);
+    
+    /* Call the target function */
+    int result = hugeMatch(URI);
+    
+    /* Vulnerability assertion for strncmp length misuse:
+       The strncmp call uses literal length 5, so we need to ensure
+       URI has at least 5 bytes accessible before the null terminator */
+    SAILR_ASSERT(strlen(URI) >= 5);
+    
+    /* Reachability marker - placed after vulnerability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return 0;
+}
+
+/* Implementation of the target function from testlimits.c */
+static int hugeMatch(const char *URI) {
+    if ((URI != NULL) && (!strncmp(URI, "huge:", 5)))
+        return 1;
+    return 0;
+}
+```

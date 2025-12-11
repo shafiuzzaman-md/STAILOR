@@ -1,0 +1,100 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include "klee/klee.h"
+
+/* Stub for HAVE_STAT - assume it's defined */
+#define HAVE_STAT 1
+
+/* Minimal stub for xmlParseCatalogFile context */
+char* xmlParseCatalogFile(const char *filename) {
+    int fd;
+    struct stat statbuf;
+    char *content = NULL;
+    size_t size;
+    ssize_t len;
+    
+    /* Open file */
+    fd = open(filename, O_RDONLY);
+    if (fd < 0) {
+        return NULL;
+    }
+    
+    /* Get file size */
+    if (fstat(fd, &statbuf) < 0) {
+        close(fd);
+        return NULL;
+    }
+    
+    size = statbuf.st_size;
+    if (size == 0) {
+        close(fd);
+        return NULL;
+    }
+    
+    /* Allocate buffer */
+    content = (char*)malloc(size + 1);
+    if (!content) {
+        close(fd);
+        return NULL;
+    }
+    
+#ifdef HAVE_STAT
+    /* TARGET LINE: 998 in catalog.c */
+    len = read(fd, content, size);
+    
+    /* VULNERABILITY ASSERTION: length should not exceed buffer size */
+    SAILR_ASSERT(len <= size);
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    close(fd);
+#else
+    /* Not executed in this harness */
+    len = fread(content, 1, size, fd);
+    fclose(fd);
+#endif
+    
+    if (len <= 0) {
+        free(content);
+        return NULL;
+    }
+    
+    content[len] = '\0';
+    return content;
+}
+
+int main(void) {
+    char filename[256];
+    struct stat statbuf;
+    
+    /* Make filename symbolic */
+    klee_make_symbolic(filename, sizeof(filename), "filename");
+    filename[sizeof(filename)-1] = '\0';
+    
+    /* Assume filename is valid and file exists */
+    klee_assume(access(filename, F_OK) == 0);
+    
+    /* Get file stats to ensure it's a regular file */
+    klee_assume(stat(filename, &statbuf) == 0);
+    klee_assume(S_ISREG(statbuf.st_mode));
+    
+    /* Assume file size is reasonable for symbolic exploration */
+    klee_assume(statbuf.st_size >= 1);
+    klee_assume(statbuf.st_size <= 4096);
+    
+    /* Call the vulnerable function */
+    char *result = xmlParseCatalogFile(filename);
+    
+    if (result) {
+        free(result);
+    }
+    
+    return 0;
+}
+```

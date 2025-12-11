@@ -1,0 +1,88 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stubs for libxml2 types and functions needed to reach target */
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef xmlParserCtxt *xmlParserCtxtPtr;
+typedef struct _xmlSAXHandler xmlSAXHandler;
+
+/* Global handler variables referenced in the snippet */
+xmlSAXHandler debugSAXHandler;
+xmlSAXHandler debugSAX2Handler;
+
+/* Stub for xmlCreateFileParserCtxt */
+xmlParserCtxtPtr xmlCreateFileParserCtxt(const char *filename) {
+    xmlParserCtxtPtr ctxt = (xmlParserCtxtPtr)malloc(sizeof(xmlParserCtxt));
+    if (!ctxt) return NULL;
+    
+    /* Allocate sax pointer */
+    ctxt->sax = (xmlSAXHandler*)malloc(sizeof(xmlSAXHandler));
+    if (!ctxt->sax) {
+        free(ctxt);
+        return NULL;
+    }
+    
+    /* Make the sax handler size symbolic for bounds checking */
+    klee_make_symbolic(ctxt->sax, sizeof(xmlSAXHandler), "sax_handler");
+    
+    return ctxt;
+}
+
+/* Stub for xmlCtxtUseOptions */
+void xmlCtxtUseOptions(xmlParserCtxtPtr ctxt, int options) {
+    /* Do nothing - just need to call it */
+}
+
+/* Main entrypoint that mimics the vulnerable path */
+int main(void) {
+    char filename[256];
+    int options;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(filename, sizeof(filename), "filename");
+    klee_make_symbolic(&options, sizeof(options), "options");
+    
+    /* Assume filename is null-terminated */
+    filename[255] = '\0';
+    
+    /* Create parser context */
+    xmlParserCtxtPtr ctxt = xmlCreateFileParserCtxt(filename);
+    if (!ctxt) return 0;
+    
+    /* Check if we have a valid sax pointer */
+    if (!ctxt->sax) {
+        free(ctxt);
+        return 0;
+    }
+    
+    /* Simulate the vulnerable memcpy path from the snippet */
+    if (options & 0x1000) {  /* XML_PARSE_SAX1 */
+        /* Vulnerability assertion: ensure source buffer size doesn't exceed destination */
+        SAILR_ASSERT(sizeof(xmlSAXHandler) <= sizeof(*ctxt->sax));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memcpy(ctxt->sax, &debugSAXHandler, sizeof(xmlSAXHandler));
+        options -= 0x1000;
+    } else {
+        /* Vulnerability assertion for the else branch */
+        SAILR_ASSERT(sizeof(xmlSAXHandler) <= sizeof(*ctxt->sax));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memcpy(ctxt->sax, &debugSAX2Handler, sizeof(xmlSAXHandler));
+    }
+    
+    xmlCtxtUseOptions(ctxt, options);
+    
+    /* Cleanup */
+    free(ctxt->sax);
+    free(ctxt);
+    
+    return 0;
+}
+```

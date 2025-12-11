@@ -1,0 +1,29 @@
+{
+  "spec_id": "027_c14n.c_306_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/c14n.c",
+  "target_line": 306,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 56,
+        "text": "SAILR_ASSERT(cur->nodeTab != NULL && cur->nsMax >= 0 && cur->nsMax <= 1024); /* Reasonable bound */"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 59,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

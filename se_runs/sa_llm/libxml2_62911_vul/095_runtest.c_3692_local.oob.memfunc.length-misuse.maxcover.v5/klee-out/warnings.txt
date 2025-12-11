@@ -1,0 +1,2 @@
+KLEE: WARNING: undefined reference to function: snprintf
+KLEE: WARNING ONCE: calling external: snprintf(126803721060352, 499, 127978931486720, 126799426093056) at se_runs/sa_llm/libxml2_62911_vul/095_runtest.c_3692_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:30 67

@@ -1,0 +1,94 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to compile dict.c functions */
+typedef struct _xmlDict xmlDict;
+typedef struct _xmlDictStrings xmlDictStrings;
+
+struct _xmlDictStrings {
+    xmlDictStrings *next;
+    char *free;
+    char *end;
+    int size;
+    int nbStrings;
+};
+
+struct _xmlDict {
+    xmlDictStrings *strings;
+    /* Other fields omitted for brevity */
+};
+
+/* Stub for xmlDictLookup - the actual function from dict.c */
+const char *xmlDictLookup(xmlDict *dict, const char *name, int namelen) {
+    xmlDictStrings *pool;
+    const char *ret;
+    
+    /* Simulate finding a pool */
+    pool = dict->strings;
+    if (pool == NULL) {
+        /* Allocate new pool */
+        pool = malloc(sizeof(xmlDictStrings));
+        pool->size = 1000; /* Arbitrary size */
+        pool->free = malloc(pool->size);
+        pool->end = pool->free + pool->size;
+        pool->nbStrings = 0;
+        pool->next = dict->strings;
+        dict->strings = pool;
+    }
+    
+    /* Check if there's enough space in pool */
+    if (pool->free + namelen + 1 > pool->end) {
+        /* Need to allocate new pool - simplified */
+        pool = malloc(sizeof(xmlDictStrings));
+        pool->size = 1000;
+        pool->free = malloc(pool->size);
+        pool->end = pool->free + pool->size;
+        pool->nbStrings = 0;
+        pool->next = dict->strings;
+        dict->strings = pool;
+    }
+    
+found_pool:
+    ret = pool->free;
+    
+    /* TARGET LINE 172: memcpy(pool->free, name, namelen); */
+    /* Vulnerability assertion: namelen must not exceed available space */
+    SAILR_ASSERT(namelen <= (pool->end - pool->free));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memcpy(pool->free, name, namelen);
+    pool->free += namelen;
+    *(pool->free++) = 0;
+    pool->nbStrings++;
+    return ret;
+}
+
+int main(void) {
+    xmlDict dict;
+    char name[100];
+    int namelen;
+    
+    /* Initialize dict */
+    dict.strings = NULL;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(name, sizeof(name), "name");
+    klee_make_symbolic(&namelen, sizeof(namelen), "namelen");
+    
+    /* Assume reasonable constraints */
+    klee_assume(namelen >= 0);
+    klee_assume(namelen < 100); /* Bound to name buffer size */
+    
+    /* Call the target function */
+    xmlDictLookup(&dict, name, namelen);
+    
+    /* Cleanup would go here in a real harness */
+    return 0;
+}

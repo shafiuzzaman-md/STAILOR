@@ -1,0 +1,12 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/192_xmlsave.c_2354_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 36
+assembly.ll line: 42
+State: 2
+Stack: 
+	#000000042 in xmlNodeDumpOutputInternal(symbolic, symbolic) at se_runs/sa_llm/libxml2_62911_vul/192_xmlsave.c_2354_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36
+	#100000155 in main() at se_runs/sa_llm/libxml2_62911_vul/192_xmlsave.c_2354_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:82
+Info: 
+  size expr: (SExt w64 (ReadLSB w32 0 return_size))
+  concretization : 0
+  unbound example: 128

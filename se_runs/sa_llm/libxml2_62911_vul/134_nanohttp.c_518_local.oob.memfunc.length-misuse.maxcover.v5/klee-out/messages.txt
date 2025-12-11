@@ -1,0 +1,16 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x7470b1e00000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x746e31e00000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x736e31e00000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x734e31e00000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:31: invalid klee_assume call (provably false)
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:33: concretized symbolic size
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:47: invalid klee_assume call (provably false)
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:48: invalid klee_assume call (provably false)
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/134_nanohttp.c_518_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:54: memory error: invalid pointer: make_symbolic
+KLEE: NOTE: now ignoring this error at this location

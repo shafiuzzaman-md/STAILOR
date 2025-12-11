@@ -1,0 +1,18 @@
+array has_empty_ns[4] : w32 -> w8 = symbolic
+array has_empty_ns_in_inclusive_list[4] : w32 -> w8 = symbolic
+array has_visibly_utilized_empty_ns[4] : w32 -> w8 = symbolic
+array visible[4] : w32 -> w8 = symbolic
+array visible_ns_find_result[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 (ReadLSB w32 0 visible)))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w32 0 has_visibly_utilized_empty_ns)))
+         (Eq 0
+             (ReadLSB w32 0 has_empty_ns))
+         (Eq 0
+             (ReadLSB w32 0 has_empty_ns_in_inclusive_list))
+         (Eq 0
+             (ReadLSB w32 0 visible_ns_find_result))]
+        false)

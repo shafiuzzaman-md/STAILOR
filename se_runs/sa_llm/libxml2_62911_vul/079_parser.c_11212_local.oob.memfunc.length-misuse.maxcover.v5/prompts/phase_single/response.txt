@@ -1,0 +1,98 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include "klee/klee.h"
+
+/* Minimal stubs for libxml2 types needed to reach the target */
+typedef struct _xmlParserInput xmlParserInput;
+typedef struct _xmlParserCtxt xmlParserCtxt;
+
+struct _xmlParserInput {
+    const char *cur;
+    const char *end;
+};
+
+struct _xmlParserCtxt {
+    xmlParserInput *input;
+    long checkIndex;
+};
+
+/* Stub for xmlParserNsLookup - the entrypoint that leads to the target */
+int xmlParserNsLookup(xmlParserCtxt *ctxt, const char *prefix) {
+    /* This is a simplified version that mimics the code path to line 11212 */
+    const char *cur;
+    int c = '>';  /* Character being searched for */
+    
+    if (ctxt->checkIndex == 0) {
+        cur = ctxt->input->cur + 1;
+    } else {
+        cur = ctxt->input->cur + ctxt->checkIndex;
+    }
+
+    /* This is the target line 11212: memchr(cur, c, ctxt->input->end - cur) */
+    if (memchr(cur, c, ctxt->input->end - cur) == NULL) {
+        size_t index = ctxt->input->end - ctxt->input->cur;
+        
+        if (index > LONG_MAX) {
+            ctxt->checkIndex = 0;
+            return 1;
+        }
+        
+        /* VULNERABILITY ASSERTION: Check if the length argument to memchr is safe */
+        /* The vulnerability is that (ctxt->input->end - cur) could be negative or overflow */
+        /* We assert the condition that should hold for safety: cur <= ctxt->input->end */
+        SAILR_ASSERT(cur <= ctxt->input->end);
+        
+        /* REACHABILITY ASSERTION: Mark that we reached the vulnerable location */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    return 0;
+}
+
+int main(void) {
+    /* Create symbolic parser context */
+    xmlParserCtxt *ctxt = (xmlParserCtxt *)malloc(sizeof(xmlParserCtxt));
+    xmlParserInput *input = (xmlParserInput *)malloc(sizeof(xmlParserInput));
+    
+    if (!ctxt || !input) {
+        return 1;
+    }
+    
+    ctxt->input = input;
+    
+    /* Make buffer pointers symbolic */
+    char buffer[256];
+    klee_make_symbolic(buffer, sizeof(buffer), "buffer");
+    
+    /* Symbolic start and end pointers within buffer */
+    size_t start_offset, end_offset;
+    klee_make_symbolic(&start_offset, sizeof(start_offset), "start_offset");
+    klee_make_symbolic(&end_offset, sizeof(end_offset), "end_offset");
+    
+    /* Constrain offsets to be within buffer bounds */
+    klee_assume(start_offset < sizeof(buffer));
+    klee_assume(end_offset < sizeof(buffer));
+    
+    /* Set up input pointers */
+    input->cur = buffer + start_offset;
+    input->end = buffer + end_offset;
+    
+    /* Make checkIndex symbolic */
+    klee_make_symbolic(&ctxt->checkIndex, sizeof(ctxt->checkIndex), "checkIndex");
+    
+    /* Constrain checkIndex to be reasonable */
+    klee_assume(ctxt->checkIndex >= 0);
+    klee_assume(ctxt->checkIndex < 1000);
+    
+    /* Call the entrypoint function */
+    int result = xmlParserNsLookup(ctxt, "test");
+    
+    /* Clean up */
+    free(input);
+    free(ctxt);
+    
+    return 0;
+}
+```

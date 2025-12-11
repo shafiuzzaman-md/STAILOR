@@ -1,0 +1,11 @@
+Error: memory error: invalid pointer: make_symbolic
+File: se_runs/sa_llm/libxml2_62911_vul/289_parser.c_1444_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 46
+assembly.ll line: 106
+State: 1
+Stack: 
+	#000000106 in main() at se_runs/sa_llm/libxml2_62911_vul/289_parser.c_1444_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:46
+Info: 
+	address: 123415910416392
+	next: object at 122982118719488 of size 4
+		MO23[4] allocated at main():  %1 = alloca i32, align 4

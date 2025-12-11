@@ -1,0 +1,14 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/205_xmlregexp.c_5794_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 58
+assembly.ll line: 246
+State: 4
+Stack: 
+	#000000246 in xmlFAGenerateTransitions(136843070799872, 136840923316224, 136868840603648, symbolic, 136866693120000, symbolic) at se_runs/sa_llm/libxml2_62911_vul/205_xmlregexp.c_5794_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:58
+	#100000104 in main() at se_runs/sa_llm/libxml2_62911_vul/205_xmlregexp.c_5794_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:102
+Info: 
+  size expr: (SExt w64 (Add w32 2
+                                 (Add w32 (ReadLSB w32 0 lenn)
+                                          (ReadLSB w32 0 lenp))))
+  concretization : 2
+  unbound example: 4

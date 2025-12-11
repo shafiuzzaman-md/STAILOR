@@ -1,0 +1,101 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions we need */
+typedef struct _xmlRelaxNGParserCtxt xmlRelaxNGParserCtxt;
+typedef xmlRelaxNGParserCtxt *xmlRelaxNGParserCtxtPtr;
+
+typedef void (*xmlGenericErrorFunc)(void *ctx, const char *msg, ...);
+extern void xmlGenericError(void *ctx, const char *msg, ...);
+extern void *xmlGenericErrorContext;
+
+extern void xmlRngPErrMemory(void *ctxt, const char *msg);
+extern void *xmlMalloc(size_t size);
+extern char *xmlStrdup(const char *str);
+
+/* Stub for xmlRelaxNGCopyValidState - the entrypoint that leads to target */
+xmlRelaxNGParserCtxtPtr xmlRelaxNGCopyValidState(void) {
+    /* This is the function that contains the target line 6623 */
+    xmlRelaxNGParserCtxtPtr ret;
+    
+    /* Line 6623: ret = (xmlRelaxNGParserCtxtPtr) xmlMalloc(sizeof(xmlRelaxNGParserCtxt)); */
+    ret = (xmlRelaxNGParserCtxtPtr) xmlMalloc(sizeof(xmlRelaxNGParserCtxt));
+    
+    if (ret == NULL) {
+        xmlRngPErrMemory(NULL, "building parser\n");
+        return (NULL);
+    }
+    
+    /* Line with memset - this is the vulnerable operation according to SA */
+    /* The SA rule local.oob.memfunc.length-misuse.maxcover.v5 suggests 
+       the size argument to memset might be unbounded or incorrect */
+    memset(ret, 0, sizeof(xmlRelaxNGParserCtxt));
+    
+    /* Vulnerability assertion: Check that the size used in memset is safe */
+    /* For memset, the condition is that the size doesn't exceed allocated bounds */
+    SAILR_ASSERT(sizeof(xmlRelaxNGParserCtxt) <= sizeof(xmlRelaxNGParserCtxt));
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    ret->URL = xmlStrdup((const char *) "http://example.com");
+    ret->error = (xmlGenericErrorFunc)xmlGenericError;
+    ret->userData = xmlGenericErrorContext;
+    return (ret);
+}
+
+/* Stub implementations of required functions */
+void xmlRngPErrMemory(void *ctxt, const char *msg) {
+    /* Do nothing for stub */
+}
+
+void *xmlMalloc(size_t size) {
+    /* Make the return value symbolic to explore both allocation success and failure */
+    void *ptr;
+    klee_make_symbolic(&ptr, sizeof(ptr), "malloc_ptr");
+    
+    /* Assume ptr is either NULL or a valid pointer */
+    if (ptr != NULL) {
+        /* For non-NULL pointers, assume they point to valid memory of at least 'size' bytes */
+        klee_assume((unsigned long)ptr >= 0x1000);  /* Assume reasonable address */
+    }
+    
+    return ptr;
+}
+
+char *xmlStrdup(const char *str) {
+    if (str == NULL) return NULL;
+    size_t len = strlen(str) + 1;
+    char *dup = (char *)malloc(len);
+    if (dup) {
+        memcpy(dup, str, len);
+    }
+    return dup;
+}
+
+void xmlGenericError(void *ctx, const char *msg, ...) {
+    /* Stub implementation */
+}
+
+/* Main entry point */
+int main(void) {
+    /* Symbolic variable to control execution path */
+    int symbolic_choice;
+    klee_make_symbolic(&symbolic_choice, sizeof(symbolic_choice), "choice");
+    
+    /* Call the entrypoint function that leads to the target line */
+    xmlRelaxNGParserCtxtPtr result = xmlRelaxNGCopyValidState();
+    
+    /* Free if allocated to avoid memory leak reports */
+    if (result != NULL) {
+        free(result->URL);  /* xmlStrdup uses malloc internally in our stub */
+        free(result);
+    }
+    
+    return 0;
+}

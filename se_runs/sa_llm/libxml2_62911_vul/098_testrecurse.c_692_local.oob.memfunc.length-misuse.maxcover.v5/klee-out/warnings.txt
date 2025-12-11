@@ -1,0 +1,2 @@
+KLEE: WARNING: undefined reference to function: strncpy
+KLEE: WARNING ONCE: calling external: strncpy(132791759011840, 132793906495488, 499) at se_runs/sa_llm/libxml2_62911_vul/098_testrecurse.c_692_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:34 1

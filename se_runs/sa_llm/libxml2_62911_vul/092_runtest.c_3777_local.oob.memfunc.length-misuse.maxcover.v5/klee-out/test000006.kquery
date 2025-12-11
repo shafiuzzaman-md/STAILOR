@@ -1,0 +1,13 @@
+array base[504] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0 (Read w8 0 base)))
+         (Eq false
+             (Eq 0 (Read w8 1 base)))
+         (Eq false
+             (Eq 0 (Read w8 2 base)))
+         (Eq false
+             (Eq 0 (Read w8 3 base)))
+         (Eq false
+             (Eq 0 (Read w8 4 base)))
+         (Eq 0 (Read w8 5 base))]
+        false)

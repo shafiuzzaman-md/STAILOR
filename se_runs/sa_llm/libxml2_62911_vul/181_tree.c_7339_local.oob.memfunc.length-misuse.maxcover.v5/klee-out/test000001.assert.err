@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: (buf->use <= (buf->size - start_buf) && buf->use <= newSize) && "SAILR_VULN_ASSERT"
+File: se_runs/sa_llm/libxml2_62911_vul/181_tree.c_7339_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 50
+assembly.ll line: 125
+State: 2
+Stack: 
+	#000000125 in target_function(130610400067584, symbolic) at se_runs/sa_llm/libxml2_62911_vul/181_tree.c_7339_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:50
+	#100000256 in main() at se_runs/sa_llm/libxml2_62911_vul/181_tree.c_7339_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:90

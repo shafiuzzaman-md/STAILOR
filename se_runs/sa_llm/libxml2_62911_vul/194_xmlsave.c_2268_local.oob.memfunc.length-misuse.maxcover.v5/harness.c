@@ -1,0 +1,175 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlBuf xmlBuf;
+typedef struct _xmlNode xmlNode;
+typedef struct _xmlSaveCtxt xmlSaveCtxt;
+
+/* Minimal struct definitions to make the code compile */
+struct _xmlBuf {
+    char *content;
+    unsigned int use;
+    unsigned int size;
+    unsigned int compat_use;
+    unsigned int compat_size;
+    int alloc;
+};
+
+struct _xmlNode {
+    void *private;
+    int type;
+    const char *name;
+    struct _xmlNode *children;
+    struct _xmlNode *last;
+    struct _xmlNode *parent;
+    struct _xmlNode *next;
+    struct _xmlNode *prev;
+    struct _xmlDoc *doc;
+    char *content;
+    struct _xmlAttr *properties;
+    struct _xmlNs *ns;
+    unsigned short line;
+};
+
+struct _xmlSaveCtxt {
+    xmlBuf *buf;
+    int level;
+    int format;
+    const char *encoding;
+    int options;
+    int doc_charset;
+    int indent_nr;
+    char *indent;
+    int indent_len;
+    int free_indent;
+    int nodelen;
+    int depth;
+    int incr;
+    int cur;
+    int max;
+    int type;
+    int state;
+    int err;
+    int well_formed;
+    int noent;
+    int html;
+    int dropdtd;
+    int xml_decl;
+    int size;
+    int alloc;
+    int compat;
+    int escape;
+    int noenc;
+    int nonull;
+    int nocdata;
+    int xhtml;
+    int ascii;
+    int old10;
+    int disable_escape;
+    int curcharset;
+    int savedcur;
+    int savedstate;
+    int savederr;
+    int savedwell_formed;
+    int savednoent;
+    int savedhtml;
+    int saveddropdtd;
+    int savedxml_decl;
+    int savedsize;
+    int savedalloc;
+    int savedcompat;
+    int savedescape;
+    int savednoenc;
+    int savednonull;
+    int savednocdata;
+    int savedxhtml;
+    int savedascii;
+    int savedold10;
+    int saveddisable_escape;
+    int savedcurcharset;
+};
+
+/* Stub for xmlSaveCtxtInit - we only care about its call site */
+void xmlSaveCtxtInit(xmlSaveCtxt *ctxt) {
+    /* This is where the vulnerability would manifest */
+    /* We'll place our assertions here */
+    
+    /* Vulnerability assertion: ensure buffer size is sufficient for memset */
+    /* The memset at line 2268 uses sizeof(ctxt) as length */
+    /* We need to ensure ctxt.buf has enough space */
+    if (ctxt->buf != NULL) {
+        SAILR_ASSERT(ctxt->buf->size >= sizeof(xmlSaveCtxt));
+    }
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+}
+
+/* Target function from xmlsave.c */
+void xmlNodeDumpOutputInternal(xmlBuf *buf, xmlNode *cur, int level, 
+                               int format, const char *encoding) {
+    xmlSaveCtxt ctxt;
+    
+    if ((buf == NULL) || (cur == NULL)) return;
+    
+    if (encoding == NULL)
+        encoding = "UTF-8";
+    
+    memset(&ctxt, 0, sizeof(ctxt));
+    ctxt.buf = buf;
+    ctxt.level = level;
+    ctxt.format = format ? 1 : 0;
+    ctxt.encoding = (const char *) encoding;
+    xmlSaveCtxtInit(&ctxt);
+}
+
+int main(void) {
+    /* Create symbolic inputs to reach the target line */
+    xmlBuf *buf = (xmlBuf *)malloc(sizeof(xmlBuf));
+    xmlNode *node = (xmlNode *)malloc(sizeof(xmlNode));
+    int level, format;
+    char encoding[32];
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(buf, sizeof(xmlBuf), "buf");
+    klee_make_symbolic(node, sizeof(xmlNode), "node");
+    klee_make_symbolic(&level, sizeof(level), "level");
+    klee_make_symbolic(&format, sizeof(format), "format");
+    klee_make_symbolic(encoding, sizeof(encoding), "encoding");
+    
+    /* Initialize buf fields to avoid null derefs */
+    if (buf != NULL) {
+        klee_make_symbolic(&buf->size, sizeof(buf->size), "buf_size");
+        klee_make_symbolic(&buf->use, sizeof(buf->use), "buf_use");
+        klee_make_symbolic(&buf->alloc, sizeof(buf->alloc), "buf_alloc");
+        
+        /* Assume reasonable values */
+        klee_assume(buf->size <= 1024 * 1024); /* 1MB max */
+        klee_assume(buf->use <= buf->size);
+        klee_assume(buf->alloc >= 0 && buf->alloc <= 2);
+    }
+    
+    /* Initialize node fields */
+    if (node != NULL) {
+        node->type = 1; /* Assume element node */
+    }
+    
+    /* Assume encoding is null-terminated */
+    encoding[sizeof(encoding)-1] = '\0';
+    
+    /* Call the target function */
+    xmlNodeDumpOutputInternal(buf, node, level, format, 
+                              encoding[0] ? encoding : NULL);
+    
+    /* Cleanup */
+    free(buf);
+    free(node);
+    
+    return 0;
+}

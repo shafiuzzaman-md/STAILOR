@@ -1,0 +1,95 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed */
+typedef struct _xmlRelaxNGValidCtxt xmlRelaxNGValidCtxt;
+typedef xmlRelaxNGValidCtxt* xmlRelaxNGValidCtxtPtr;
+
+typedef struct _xmlRelaxNGGrammar xmlRelaxNGGrammar;
+typedef xmlRelaxNGGrammar* xmlRelaxNGGrammarPtr;
+
+typedef struct _xmlRelaxNG xmlRelaxNG;
+typedef xmlRelaxNG* xmlRelaxNGPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlRngPErrMemory */
+void xmlRngPErrMemory(void* ctxt, const char* extra) {
+    /* Do nothing */
+}
+
+/* Target function from relaxng.c line 829 */
+xmlRelaxNGGrammarPtr xmlRelaxNGNewGrammar(xmlRelaxNGValidCtxtPtr ctxt) {
+    xmlRelaxNGGrammarPtr ret;
+    
+    ret = (xmlRelaxNGGrammarPtr) xmlMalloc(sizeof(xmlRelaxNGGrammar));
+    if (ret == NULL) {
+        xmlRngPErrMemory(ctxt, NULL);
+        return (NULL);
+    }
+    
+    /* LINE 829: memset(ret, 0, sizeof(xmlRelaxNGGrammar)); */
+    memset(ret, 0, sizeof(xmlRelaxNGGrammar));
+    
+    return (ret);
+}
+
+/* Entrypoint function that calls the target */
+xmlRelaxNGValidCtxtPtr xmlRelaxNGValidateDoc(xmlRelaxNGPtr schema, void* doc) {
+    /* Create symbolic context to explore different paths */
+    xmlRelaxNGValidCtxtPtr ctxt;
+    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
+    
+    /* Assume ctxt is either NULL or valid pointer */
+    klee_assume(ctxt == NULL || ctxt != NULL);
+    
+    /* Call the target function */
+    xmlRelaxNGGrammarPtr grammar = xmlRelaxNGNewGrammar(ctxt);
+    
+    /* Vulnerability assertion: Check if malloc succeeded and memset size is valid */
+    if (grammar != NULL) {
+        /* For OOB memset: ensure we're not writing beyond allocated bounds */
+        /* The vulnerability condition: sizeof(xmlRelaxNGGrammar) could be larger than allocated */
+        /* Since xmlMalloc returns exactly sizeof(xmlRelaxNGGrammar), we need to check if 
+           the allocation was actually that size. We'll make the size symbolic. */
+        size_t allocated_size;
+        klee_make_symbolic(&allocated_size, sizeof(allocated_size), "allocated_size");
+        
+        /* Assume allocated_size could be less than needed (simulating allocation failure or truncation) */
+        klee_assume(allocated_size <= sizeof(xmlRelaxNGGrammar));
+        
+        /* Vulnerability assertion: memset size should not exceed allocated size */
+        SAILR_ASSERT(sizeof(xmlRelaxNGGrammar) <= allocated_size);
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        free(grammar);
+    }
+    
+    return ctxt;
+}
+
+int main(void) {
+    /* Create symbolic inputs for the entrypoint */
+    xmlRelaxNGPtr schema;
+    void* doc;
+    
+    klee_make_symbolic(&schema, sizeof(schema), "schema");
+    klee_make_symbolic(&doc, sizeof(doc), "doc");
+    
+    /* Assume reasonable values to avoid null dereferences in stubs */
+    klee_assume(schema == NULL || schema != NULL);
+    klee_assume(doc == NULL || doc != NULL);
+    
+    /* Call the entrypoint which will eventually reach line 829 */
+    xmlRelaxNGValidCtxtPtr result = xmlRelaxNGValidateDoc(schema, doc);
+    
+    return 0;
+}
+```

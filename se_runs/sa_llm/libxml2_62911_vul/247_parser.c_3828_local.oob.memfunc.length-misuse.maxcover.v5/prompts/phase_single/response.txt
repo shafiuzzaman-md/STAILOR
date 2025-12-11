@@ -1,0 +1,95 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef unsigned char xmlChar;
+
+/* Stub for xmlMallocAtomic */
+void* xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlErrMemory */
+void xmlErrMemory(xmlParserCtxt* ctxt, const char* extra) {
+    /* Do nothing in stub */
+}
+
+/* Stub for xmlIsNameChar - returns symbolic value */
+int xmlIsNameChar(xmlParserCtxt* ctxt, int c) {
+    int result;
+    klee_make_symbolic(&result, sizeof(result), "xmlIsNameChar_result");
+    klee_assume(result == 0 || result == 1);
+    return result;
+}
+
+/* Target function - simplified version of xmlParserNsLookup or similar */
+xmlChar* target_function(xmlParserCtxt* ctxt, xmlChar* buf, int len, int max) {
+    xmlChar* buffer;
+    xmlChar* tmp;
+    int c = 0; /* Placeholder for character */
+
+    if (buf == NULL || len < 0 || max < 0) {
+        return NULL;
+    }
+
+    buffer = (xmlChar*)xmlMallocAtomic(max);
+    if (buffer == NULL) {
+        xmlErrMemory(ctxt, NULL);
+        return NULL;
+    }
+
+    /* VULNERABLE MEMCPY - TARGET LINE 3828 */
+    memcpy(buffer, buf, len);
+
+    /* Vulnerability assertion: len should not exceed buffer size */
+    SAILR_ASSERT(len <= max);
+
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+
+    while (xmlIsNameChar(ctxt, c)) {
+        if (len + 10 > max) {
+            max *= 2;
+            /* In real code, would realloc here */
+            break;
+        }
+        /* Simplified loop to avoid infinite execution */
+        break;
+    }
+
+    return buffer;
+}
+
+int main(void) {
+    /* Symbolic inputs */
+    xmlChar buf[256];
+    int len;
+    int max;
+    xmlParserCtxt ctxt_dummy;
+
+    /* Make inputs symbolic */
+    klee_make_symbolic(buf, sizeof(buf), "buf");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_make_symbolic(&max, sizeof(max), "max");
+
+    /* Assume reasonable bounds to avoid trivial failures */
+    klee_assume(len >= 0 && len < 256);
+    klee_assume(max >= 0 && max < 1024);
+    
+    /* Ensure buf is not NULL for memcpy */
+    klee_assume(buf != NULL);
+
+    /* Call target function */
+    xmlChar* result = target_function(&ctxt_dummy, buf, len, max);
+
+    /* Cleanup */
+    if (result != NULL) {
+        free(result);
+    }
+
+    return 0;
+}
+```

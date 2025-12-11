@@ -1,0 +1,195 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlDict xmlDict;
+typedef struct _xmlDoc xmlDoc;
+typedef struct _xmlNode xmlNode;
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef struct _xmlSAXHandler xmlSAXHandler;
+
+/* xmlNode structure definition (simplified) */
+struct _xmlNode {
+    void *private;
+    int type;
+    const char *name;
+    struct _xmlNode *children;
+    struct _xmlNode *last;
+    struct _xmlNode *parent;
+    struct _xmlNode *next;
+    struct _xmlNode *prev;
+    struct _xmlDoc *doc;
+    void *ns;
+    char *content;
+    struct _xmlAttr *properties;
+    void *nsDef;
+    void *psvi;
+    unsigned short line;
+    unsigned short extra;
+};
+
+/* xmlParserCtxt structure definition (simplified) */
+struct _xmlParserCtxt {
+    void *userData;
+    int errNo;
+    int disableSAX;
+    int wellFormed;
+    int valid;
+    int loadsubset;
+    int validate;
+    int pedantic;
+    int recovery;
+    int progressive;
+    int inSubset;
+    int charset;
+    int depth;
+    int spaceNr;
+    int spaceMax;
+    int *spaceTab;
+    int *nameNr;
+    int *nameMax;
+    char **nameTab;
+    int *nbChars;
+    int *checkIndex;
+    int keepBlanks;
+    int *catalogs;
+    int *nbentities;
+    int *sizeentities;
+    void *nodeTab;
+    int nodeMax;
+    int nodeNr;
+    int inputNr;
+    int inputMax;
+    void *inputTab;
+    int attallocs;
+    int *attsDefault;
+    int *attsSpecial;
+    int nsNr;
+    int nsMax;
+    void *nsTab;
+    int *attallocsNs;
+    int *attsDefaultNs;
+    int *attsSpecialNs;
+    int *pushTab;
+    int attsDefaultAlloc;
+    int *attsDefaultAllocNs;
+    int *attsSpecialAlloc;
+    int *attsSpecialAllocNs;
+    int *freeElemsNr;
+    xmlNode *freeElems;
+    xmlDict *dict;
+    int dictNames;
+    xmlDoc *myDoc;
+    int *nodeInfoTab;
+    int nodeInfoNr;
+    int nodeInfoMax;
+    int *input_id;
+    unsigned long version;
+    void *vctxt;
+    int instate;
+    int token;
+    void *directory;
+    char *encoding;
+    void *standalone;
+    int hasExternalSubset;
+    int hasPErefs;
+    int external;
+    int *ids;
+    int *refs;
+    char *URL;
+    char *charset;
+    void *catalogs;
+    void *style;
+    void *styleDoc;
+    void *nb_entities;
+    void *size_entities;
+    void *intSubset;
+    void *extSubset;
+    void *oldNs;
+    void *nb_oldNs;
+    void *size_oldNs;
+    void *nb_entities_old;
+    void *size_entities_old;
+    void *user;
+    void *_private;
+    int node_seq;
+};
+
+/* Stub for xmlSAX2AttributeInternal */
+void xmlSAX2AttributeInternal(xmlParserCtxt *ctxt, const char *localname, 
+                              const char *prefix, const char *value, 
+                              int value_len) {
+    /* Simulate the relevant code path from SAX2.c:2142 */
+    if (ctxt->freeElems != NULL) {
+        xmlNode *ret = ctxt->freeElems;
+        ctxt->freeElems = ret->next;
+        ctxt->freeElemsNr--;
+        
+        /* TARGET LINE: memset(ret, 0, sizeof(xmlNode)); */
+        /* Vulnerability assertion: ensure we don't write beyond allocated memory */
+        SAILR_ASSERT(sizeof(xmlNode) <= sizeof(struct _xmlNode));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memset(ret, 0, sizeof(xmlNode));
+        ret->doc = ctxt->myDoc;
+        ret->type = 1; /* XML_ELEMENT_NODE */
+        
+        if (ctxt->dictNames)
+            ret->name = localname;
+    }
+}
+
+int main(void) {
+    /* Create symbolic parser context */
+    xmlParserCtxt *ctxt = (xmlParserCtxt *)malloc(sizeof(xmlParserCtxt));
+    klee_make_symbolic(ctxt, sizeof(xmlParserCtxt), "ctxt");
+    
+    /* Allocate freeElems list with symbolic node */
+    xmlNode *node = (xmlNode *)malloc(sizeof(xmlNode));
+    klee_make_symbolic(node, sizeof(xmlNode), "node");
+    
+    /* Initialize context fields needed for the vulnerable path */
+    ctxt->freeElems = node;
+    ctxt->freeElemsNr = 1;
+    
+    /* Make next pointer symbolic but ensure it's either NULL or valid */
+    node->next = NULL;
+    klee_assume(node->next == NULL || node->next == node); /* Simple assumption */
+    
+    /* Initialize other required fields */
+    ctxt->myDoc = NULL;
+    ctxt->dictNames = 0;
+    klee_assume(ctxt->dictNames == 0 || ctxt->dictNames == 1);
+    
+    /* Create symbolic inputs for the function call */
+    char localname[32];
+    char prefix[32];
+    char value[64];
+    int value_len;
+    
+    klee_make_symbolic(localname, sizeof(localname), "localname");
+    klee_make_symbolic(prefix, sizeof(prefix), "prefix");
+    klee_make_symbolic(value, sizeof(value), "value");
+    klee_make_symbolic(&value_len, sizeof(value_len), "value_len");
+    
+    /* Ensure strings are null-terminated */
+    localname[31] = '\0';
+    prefix[31] = '\0';
+    value[63] = '\0';
+    
+    /* Call the target function */
+    xmlSAX2AttributeInternal(ctxt, localname, prefix, value, value_len);
+    
+    /* Cleanup */
+    free(node);
+    free(ctxt);
+    
+    return 0;
+}

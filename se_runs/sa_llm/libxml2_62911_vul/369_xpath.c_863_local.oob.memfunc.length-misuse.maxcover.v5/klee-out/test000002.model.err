@@ -1,0 +1,14 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_62911_vul/369_xpath.c_863_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 31
+assembly.ll line: 60
+State: 4
+Stack: 
+	#000000060 in xmlPointerListAddSize(138166082207744, 0, symbolic) at se_runs/sa_llm/libxml2_62911_vul/369_xpath.c_863_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:31
+	#100000137 in xmlPointerListCreate(symbolic) at se_runs/sa_llm/libxml2_62911_vul/369_xpath.c_863_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:56
+	#200000183 in main() at se_runs/sa_llm/libxml2_62911_vul/369_xpath.c_863_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:78
+Info: 
+  size expr: (Mul w64 8
+                       (SExt w64 (ReadLSB w32 0 initialSize)))
+  concretization : 128
+  unbound example: 8589934592

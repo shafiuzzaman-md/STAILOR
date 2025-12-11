@@ -1,0 +1,15 @@
+Error: memory error: out of bound pointer
+File: se_runs/sa_llm/libxml2_62911_vul/293_xmlregexp.c_893_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 52
+assembly.ll line: 80
+State: 28
+Stack: 
+	#000000080 in xmlRegNewState(131998563696640) at se_runs/sa_llm/libxml2_62911_vul/293_xmlregexp.c_893_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:52
+	#100000102 in xmlFAGenerateTransitions(131998563696640) at se_runs/sa_llm/libxml2_62911_vul/293_xmlregexp.c_893_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:59
+	#200000114 in main() at se_runs/sa_llm/libxml2_62911_vul/293_xmlregexp.c_893_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:68
+Info: 
+	address: (ReadLSB w64 0 malloc_ptr)
+	example: 132005543018496
+	range: [132005543018496, 132005543018496]
+	next: object at 131998563696640 of size 4
+		MO25[4] allocated at main():  %2 = alloca %struct._xmlRegParserCtxt, align 4

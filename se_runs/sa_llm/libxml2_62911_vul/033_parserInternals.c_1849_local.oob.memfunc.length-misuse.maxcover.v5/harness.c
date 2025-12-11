@@ -1,0 +1,87 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlSAXHandler {
+    int initialized;
+    /* Other fields omitted for brevity */
+} xmlSAXHandler;
+
+typedef struct _xmlParserCtxt {
+    xmlSAXHandler *sax;
+    void *userData;
+    /* Other fields omitted for brevity */
+} xmlParserCtxt;
+
+/* Stub for xmlErrMemory */
+void xmlErrMemory(void *ctx, const char *msg) {
+    /* Do nothing */
+}
+
+/* Stub for xmlSAXVersion */
+void xmlSAXVersion(xmlSAXHandler *sax, int version) {
+    /* Do nothing */
+}
+
+/* Entrypoint function that leads to the target line */
+int xmlNextChar(xmlParserCtxt *ctxt, xmlSAXHandler *sax) {
+    if (ctxt->sax == NULL) {
+        xmlErrMemory(NULL, "cannot initialize parser context\n");
+        return(-1);
+    }
+    if (sax == NULL) {
+        memset(ctxt->sax, 0, sizeof(xmlSAXHandler));
+        xmlSAXVersion(ctxt->sax, 2);
+        ctxt->userData = ctxt;
+    } else {
+        if (sax->initialized == 0xDEADBEEF) { /* XML_SAX2_MAGIC */
+            memcpy(ctxt->sax, sax, sizeof(xmlSAXHandler));
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    /* Allocate and make symbolic the parser context */
+    xmlParserCtxt *ctxt = malloc(sizeof(xmlParserCtxt));
+    if (!ctxt) return 0;
+    
+    /* Allocate sax pointer - make symbolic to explore both NULL and non-NULL */
+    ctxt->sax = malloc(sizeof(xmlSAXHandler));
+    
+    /* Make the sax pointer symbolic to allow KLEE to explore both branches */
+    klee_make_symbolic(ctxt->sax, sizeof(xmlSAXHandler*), "sax_ptr");
+    
+    /* Assume sax pointer is either NULL or points to valid memory */
+    if (ctxt->sax != NULL) {
+        klee_assume(ctxt->sax != (void*)0);
+    }
+    
+    /* Create a symbolic sax handler for the else branch */
+    xmlSAXHandler *sax = malloc(sizeof(xmlSAXHandler));
+    if (sax) {
+        klee_make_symbolic(sax, sizeof(xmlSAXHandler), "sax_handler");
+    }
+    
+    /* Call the entrypoint function */
+    int result = xmlNextChar(ctxt, sax);
+    
+    /* Vulnerability assertion: Check that memset/memcpy size doesn't exceed buffer */
+    /* The condition ensures we don't write beyond the allocated sax structure */
+    if (ctxt->sax != NULL && sax != NULL && sax->initialized == 0xDEADBEEF) {
+        SAILR_ASSERT(sizeof(xmlSAXHandler) <= sizeof(xmlSAXHandler));
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    /* Cleanup */
+    free(sax);
+    free(ctxt->sax);
+    free(ctxt);
+    
+    return 0;
+}

@@ -1,0 +1,4 @@
+klee --output-dir=se_runs/sa_llm/libxml2_62911_vul/367_xmlschemas.c_9927_local.oob.memfunc.length-misuse.maxcover.v5/klee-out --search=nurs:covnew --max-time=3600 se_runs/sa_llm/libxml2_62911_vul/367_xmlschemas.c_9927_local.oob.memfunc.length-misuse.maxcover.v5/bc/harness.bc
+PID: 218175
+Using monotonic steady clock with 1/1000000000s resolution
+Started: 2025-12-10 19:56:37

@@ -1,0 +1,17 @@
+array base[1000] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 0 len))
+         (Slt N0 1000)
+         (Ult N1:(SExt w64 (Add w32 4294967295 N0))
+              1000)
+         (Eq 0
+             (Read w8 (Extract w32 0 N1)
+                      base))
+         (Ult N2:(SExt w64 (Add w32 4294967294 N0))
+              1000)
+         (Eq 95
+             (Read w8 (Extract w32 0 N2)
+                      base))
+         (Eq false (Ult 0 N2))]
+        false)

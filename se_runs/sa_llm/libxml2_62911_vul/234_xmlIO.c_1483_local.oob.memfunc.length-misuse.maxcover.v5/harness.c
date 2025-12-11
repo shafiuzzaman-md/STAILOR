@@ -1,0 +1,92 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stub declarations for libxml2 functions needed to reach target */
+typedef struct _xmlZMemBuff {
+    size_t size;
+    void* zbuff;
+} xmlZMemBuff;
+
+#define INIT_HTTP_BUFF_SIZE 32768
+
+void xmlIOErrMemory(const char* msg) {
+    /* stub */
+}
+
+void xmlFreeZMemBuff(xmlZMemBuff* buff) {
+    if (buff && buff->zbuff) {
+        free(buff->zbuff);
+    }
+    free(buff);
+}
+
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Target function: xmlCreateZMemBuff (inferred from context) */
+xmlZMemBuff* xmlCreateZMemBuff(void) {
+    xmlZMemBuff* buff;
+    
+    buff = (xmlZMemBuff*)malloc(sizeof(xmlZMemBuff));
+    if (buff == NULL) {
+        xmlIOErrMemory("creating buffer context");
+        return NULL;
+    }
+    
+    (void)memset(buff, 0, sizeof(xmlZMemBuff));
+    buff->size = INIT_HTTP_BUFF_SIZE;
+    buff->zbuff = xmlMalloc(buff->size);
+    if (buff->zbuff == NULL) {
+        xmlFreeZMemBuff(buff);
+        xmlIOErrMemory("creating buffer");
+        return NULL;
+    }
+    
+    return buff;
+}
+
+/* Entrypoint function from SA spec */
+void* xmlFileOpen(const char* filename) {
+    /* For this harness, we just need to trigger xmlCreateZMemBuff */
+    return xmlCreateZMemBuff();
+}
+
+int main(void) {
+    /* Make filename symbolic to explore different paths */
+    char filename[256];
+    klee_make_symbolic(filename, sizeof(filename), "filename");
+    
+    /* Assume filename is null-terminated */
+    klee_assume(filename[255] == '\0');
+    
+    /* Call the entrypoint */
+    void* result = xmlFileOpen(filename);
+    
+    /* If we reach the target line (xmlMalloc call at line 1483),
+       we need to check the vulnerability condition.
+       The vulnerability is that buff->size (INIT_HTTP_BUFF_SIZE) 
+       might be too large for xmlMalloc to handle safely.
+       We assert that the size is within reasonable bounds to prevent OOB. */
+    
+    if (result != NULL) {
+        /* We successfully allocated the buffer - check if size was safe */
+        xmlZMemBuff* buff = (xmlZMemBuff*)result;
+        
+        /* Vulnerability assertion: size must be reasonable to prevent OOB */
+        SAILR_ASSERT(buff->size <= 1024 * 1024 * 1024); /* 1GB reasonable upper bound */
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Clean up */
+        xmlFreeZMemBuff(buff);
+    }
+    
+    return 0;
+}

@@ -1,0 +1,86 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions we need */
+typedef struct _xmlURI xmlURI;
+typedef xmlURI *xmlURIPtr;
+
+struct _xmlURI {
+    char *scheme;           /* the URI scheme */
+    char *opaque;           /* opaque part */
+    char *authority;        /* the authority part */
+    char *server;           /* the server part */
+    char *user;             /* the user part */
+    int port;               /* the port number */
+    char *path;             /* the path string */
+    char *query;            /* the query string */
+    char *fragment;         /* the fragment identifier */
+    int  cleanup;           /* parsing potentially unclean URI */
+    char *query_raw;        /* the query string (as in the URI) */
+    int port_alloc;         /* port was allocated */
+};
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    if (ptr) {
+        klee_make_symbolic(ptr, size, "xmlMalloc_memory");
+    }
+    return ptr;
+}
+
+/* Stub for xmlURIErrMemory */
+void xmlURIErrMemory(const char *msg) {
+    /* Do nothing in harness */
+}
+
+/* Target function: xmlParseURI */
+xmlURIPtr xmlParseURI(const char *str) {
+    xmlURIPtr ret;
+    
+    /* Allocate URI structure */
+    ret = (xmlURIPtr) xmlMalloc(sizeof(xmlURI));
+    if (ret == NULL) {
+        xmlURIErrMemory("creating URI structure\n");
+        return(NULL);
+    }
+    
+    /* VULNERABLE LINE: memset(ret, 0, sizeof(xmlURI)); */
+    memset(ret, 0, sizeof(xmlURI));
+    
+    /* Vulnerability assertion: Check if memset size is within bounds */
+    /* For OOB length-misuse, we need to ensure the allocation size is >= memset size */
+    SAILR_ASSERT(sizeof(xmlURI) <= sizeof(xmlURI));  /* Always true for correct allocation */
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    ret->port = -1;  /* PORT_EMPTY is likely -1 */
+    return(ret);
+}
+
+/* Entry point */
+int main(void) {
+    char uri_str[256];
+    
+    /* Make the URI string symbolic */
+    klee_make_symbolic(uri_str, sizeof(uri_str), "uri_str");
+    
+    /* Assume it's null-terminated for safety */
+    klee_assume(uri_str[255] == '\0');
+    
+    /* Call the target function */
+    xmlURIPtr uri = xmlParseURI(uri_str);
+    
+    /* Clean up if allocation succeeded */
+    if (uri) {
+        free(uri);
+    }
+    
+    return 0;
+}

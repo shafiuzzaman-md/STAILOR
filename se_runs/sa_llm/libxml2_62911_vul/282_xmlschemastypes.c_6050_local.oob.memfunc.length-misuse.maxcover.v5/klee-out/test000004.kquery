@@ -1,0 +1,14 @@
+array buffer_size[4] : w32 -> w8 = symbolic
+array dec[8] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 4 dec))
+         (Sle 0
+              N1:(ReadLSB w32 0 dec))
+         (Sle N1 N0)
+         (Eq 1
+             (ReadLSB w32 0 buffer_size))
+         (Eq false (Eq N1 N0))
+         (Sle (Add w32 1
+                       (Add w32 (Sub w32 N0 N1) N1))
+              1)]
+        false)

@@ -1,0 +1,6 @@
+array cur_ptr[8] : w32 -> w8 = symbolic
+(query [(Ule 133069585514496
+              N0:(ReadLSB w64 0 cur_ptr))
+         (Ule N0 133069585514516)
+         (Sle 9 (Add w64 18446611004124037120 N0))]
+        false)

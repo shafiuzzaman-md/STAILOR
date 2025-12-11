@@ -1,0 +1,8 @@
+array ContentLength[8] : w32 -> w8 = symbolic
+array ret[8] : w32 -> w8 = symbolic
+(query [(Eq 128602737737712
+             (ReadLSB w64 0 ret))
+         (Eq false
+             (Sle 0
+                  (ReadLSB w64 0 ContentLength)))]
+        false)

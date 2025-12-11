@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: strncpy
+KLEE: WARNING ONCE: calling external: strlen(122635058937856) at se_runs/sa_llm/libxml2_62911_vul/210_xmlIO.c_3679_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:42 12
+KLEE: WARNING ONCE: calling external: strncpy(122632911454208, 122635058937856, 1023) at se_runs/sa_llm/libxml2_62911_vul/210_xmlIO.c_3679_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:68 5

@@ -1,0 +1,52 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+char* xmlFgets(char* line_read, int size, FILE* stream) {
+    if (!fgets(line_read, size, stream))
+        return NULL;
+    line_read[size] = 0;
+    return line_read;
+}
+
+char* xmlReadline(const char* prompt) {
+    char line_read[501];
+    char* ret;
+    int len;
+
+    if (prompt != NULL)
+        fprintf(stdout, "%s", prompt);
+    fflush(stdout);
+    
+    if (!xmlFgets(line_read, 500, stdin))
+        return NULL;
+    
+    len = strlen(line_read);
+    ret = (char*)malloc(len + 1);
+    
+    if (ret != NULL) {
+        SAILR_ASSERT(len <= 500);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        memcpy(ret, line_read, len + 1);
+    }
+    
+    return ret;
+}
+
+int main(void) {
+    char prompt[100];
+    klee_make_symbolic(prompt, sizeof(prompt), "prompt");
+    prompt[sizeof(prompt) - 1] = '\0';
+    
+    char* result = xmlReadline(prompt);
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}

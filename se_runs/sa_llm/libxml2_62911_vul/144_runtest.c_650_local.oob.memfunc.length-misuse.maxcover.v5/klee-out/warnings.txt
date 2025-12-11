@@ -1,0 +1,7 @@
+KLEE: WARNING: undefined reference to function: close
+KLEE: WARNING: undefined reference to function: open
+KLEE: WARNING: undefined reference to function: read
+KLEE: WARNING: undefined reference to function: write
+KLEE: WARNING ONCE: calling external: open(138841241419776, 0) at se_runs/sa_llm/libxml2_62911_vul/144_runtest.c_650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:16 9
+KLEE: WARNING ONCE: calling external: read(12, 137703611957248, 4096) at se_runs/sa_llm/libxml2_62911_vul/144_runtest.c_650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:29 14
+KLEE: WARNING ONCE: calling external: write(13, 137703611957248, 4096) at se_runs/sa_llm/libxml2_62911_vul/144_runtest.c_650_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:33 14

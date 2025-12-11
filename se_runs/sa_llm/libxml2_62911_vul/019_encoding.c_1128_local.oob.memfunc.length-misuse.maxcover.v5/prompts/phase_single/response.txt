@@ -1,0 +1,110 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stub types to match libxml2 structures */
+typedef struct _xmlCharEncodingAlias {
+    const char *name;
+    const char *alias;
+} xmlCharEncodingAlias;
+
+/* Global variables from encoding.c */
+static xmlCharEncodingAlias *xmlCharEncodingAliases = NULL;
+static int xmlCharEncodingAliasesNb = 0;
+
+/* Stub for xmlFree */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+/* Entrypoint function from SA spec */
+int isolat1ToUTF8(unsigned char *out, int *outlen, const unsigned char *in, int *inlen) {
+    /* This is just a stub to allow linking */
+    return -1;
+}
+
+/* Target function - extracted from snippet around line 1128 */
+int xmlDelEncodingAlias(const char *alias) {
+    int i;
+    for (i = 0; i < xmlCharEncodingAliasesNb; i++) {
+        if (!strcmp(xmlCharEncodingAliases[i].alias, alias)) {
+            xmlFree((char *) xmlCharEncodingAliases[i].name);
+            xmlFree((char *) xmlCharEncodingAliases[i].alias);
+            xmlCharEncodingAliasesNb--;
+            
+            /* VULNERABLE LINE - line 1128 */
+            memmove(&xmlCharEncodingAliases[i], &xmlCharEncodingAliases[i + 1],
+                    sizeof(xmlCharEncodingAlias) * (xmlCharEncodingAliasesNb - i));
+            
+            return(0);
+        }
+    }
+    return(-1);
+}
+
+int main(void) {
+    int alias_count;
+    char *alias_to_delete;
+    int i;
+    
+    /* Make alias_count symbolic with constraints */
+    klee_make_symbolic(&alias_count, sizeof(alias_count), "alias_count");
+    klee_assume(alias_count >= 0);
+    klee_assume(alias_count <= 100);  /* Reasonable bound */
+    
+    /* Allocate and initialize the global array */
+    xmlCharEncodingAliases = (xmlCharEncodingAlias *)malloc(
+        sizeof(xmlCharEncodingAlias) * (alias_count + 1));  /* +1 for potential OOB */
+    
+    /* Initialize the array with valid data */
+    for (i = 0; i < alias_count; i++) {
+        xmlCharEncodingAliases[i].name = strdup("test_name");
+        xmlCharEncodingAliases[i].alias = strdup("test_alias");
+    }
+    
+    /* Set the global count */
+    xmlCharEncodingAliasesNb = alias_count;
+    
+    /* Make alias_to_delete symbolic */
+    alias_to_delete = (char *)malloc(256);
+    klee_make_symbolic(alias_to_delete, 256, "alias_to_delete");
+    alias_to_delete[255] = '\0';  /* Ensure null termination */
+    
+    /* Ensure the alias exists in the array to trigger the deletion path */
+    if (alias_count > 0) {
+        /* Copy one of the existing aliases to ensure match */
+        strncpy((char *)alias_to_delete, xmlCharEncodingAliases[0].alias, 255);
+    }
+    
+    /* Call the target function */
+    int result = xmlDelEncodingAlias(alias_to_delete);
+    
+    /* Vulnerability assertion: check that memmove size is safe */
+    /* Condition: (xmlCharEncodingAliasesNb - i) must be >= 0 and 
+       &xmlCharEncodingAliases[i + 1] must be within allocated bounds */
+    if (result == 0) {
+        /* We reached the deletion path - check the memmove arguments */
+        /* The vulnerable condition is when xmlCharEncodingAliasesNb - i < 0 
+           OR when accessing xmlCharEncodingAliases[i + 1] goes out of bounds */
+        /* Since i < original xmlCharEncodingAliasesNb (before decrement),
+           and xmlCharEncodingAliasesNb-- was executed,
+           we need to ensure the memmove size is non-negative and 
+           the source pointer is within bounds */
+        SAILR_ASSERT((xmlCharEncodingAliasesNb - i) >= 0);
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    /* Cleanup */
+    for (i = 0; i < alias_count; i++) {
+        free((char *)xmlCharEncodingAliases[i].name);
+        free((char *)xmlCharEncodingAliases[i].alias);
+    }
+    free(xmlCharEncodingAliases);
+    free(alias_to_delete);
+    
+    return 0;
+}
+```

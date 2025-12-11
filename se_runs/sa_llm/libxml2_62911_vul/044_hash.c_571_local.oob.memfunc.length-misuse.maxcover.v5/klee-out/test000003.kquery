@@ -1,0 +1,19 @@
+array cur[8] : w32 -> w8 = symbolic
+array entry[8] : w32 -> w8 = symbolic
+array table_size[4] : w32 -> w8 = symbolic
+(query [(Slt 1
+              N0:(ReadLSB w32 0 table_size))
+         (Slt N0 100)
+         (Eq 16
+             (Mul w64 8 (SExt w64 N0)))
+         (Ule 124523070357504
+              N1:(ReadLSB w64 0 cur))
+         (Ult N1 124523070357520)
+         (Ule 124523070357504
+              N2:(ReadLSB w64 0 entry))
+         (Ult N2 124523070357520)
+         (Ult N1 N2)
+         (Ule (Add w64 18446619550639194112 N1)
+              (Mul w64 8
+                       (SExt w64 (Add w32 4294967295 N0))))]
+        false)

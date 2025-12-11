@@ -1,0 +1,29 @@
+{
+  "spec_id": "311_xmlregexp.c_447_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
+  "target_line": 447,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 119,
+        "text": "SAILR_ASSERT(!(dim1 > SIZE_MAX / dim2 / elemSize));"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 122,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}
