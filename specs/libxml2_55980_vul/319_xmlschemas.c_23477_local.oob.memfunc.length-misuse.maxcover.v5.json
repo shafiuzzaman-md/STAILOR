@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemas.c:23477",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xmlschemas.c",
+  "line": 23477,
+  "column": 6,
+  "end_line": 23477,
+  "end_column": 12,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 23472,
+    "contextEnd": 23482,
+    "snippet": "\t    if (matcher == NULL) {\n\t\txmlSchemaVErrMemory(vctxt,\n\t\t    \"allocating an IDC matcher\", NULL);\n\t\treturn (-1);\n\t    }\n\t    memset(matcher, 0, sizeof(xmlSchemaIDCMatcher));\n\t}\n\tif (last == NULL)\n\t    vctxt->inode->idcMatchers = matcher;\n\telse\n\t    last->next = matcher;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 23477,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

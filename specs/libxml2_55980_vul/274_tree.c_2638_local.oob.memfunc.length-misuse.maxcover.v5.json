@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@tree.c:2638",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/tree.c",
+  "line": 2638,
+  "column": 5,
+  "end_line": 2638,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 2633,
+    "contextEnd": 2643,
+    "snippet": "    cur = (xmlNodePtr) xmlMalloc(sizeof(xmlNode));\n    if (cur == NULL) {\n\txmlTreeErrMemory(\"building reference\");\n\treturn(NULL);\n    }\n    memset(cur, 0, sizeof(xmlNode));\n    cur->type = XML_ENTITY_REF_NODE;\n\n    cur->doc = (xmlDoc *)doc;\n    if (name[0] == '&') {\n        int len;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 2638,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

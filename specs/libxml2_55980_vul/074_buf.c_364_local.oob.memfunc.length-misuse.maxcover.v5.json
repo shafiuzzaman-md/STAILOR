@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@buf.c:364",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/buf.c",
+  "line": 364,
+  "column": 3,
+  "end_line": 364,
+  "end_column": 10,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memmove().",
+  "context": {
+    "contextStart": 359,
+    "contextEnd": 369,
+    "snippet": "\t * on IO buffers\n\t */\n\tif ((buf->alloc == XML_BUFFER_ALLOC_IO) && (buf->contentIO != NULL)) {\n\t    size_t start_buf = buf->content - buf->contentIO;\n\t    if (start_buf >= buf->size) {\n\t\tmemmove(buf->contentIO, &buf->content[0], buf->use);\n\t\tbuf->content = buf->contentIO;\n\t\tbuf->content[buf->use] = 0;\n\t\tbuf->size += start_buf;\n\t    }\n\t}"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 364,
+    "column_start": 3,
+    "column_end": 10
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

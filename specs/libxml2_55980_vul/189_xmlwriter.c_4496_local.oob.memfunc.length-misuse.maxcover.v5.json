@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlwriter.c:4496",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xmlwriter.c",
+  "line": 4496,
+  "column": 2,
+  "end_line": 4496,
+  "end_column": 25,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 4491,
+    "contextEnd": 4501,
+    "snippet": "        if (buf == NULL) {\n            xmlWriterErrMsg(NULL, XML_ERR_NO_MEMORY,\n                            \"xmlTextWriterVSprintf : out of memory!\\n\");\n            return NULL;\n        }\n\tVA_COPY(locarg, argptr);\n    }\n    va_end(locarg);\n\n    return buf;\n}"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 4496,
+    "column_start": 2,
+    "column_end": 25
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

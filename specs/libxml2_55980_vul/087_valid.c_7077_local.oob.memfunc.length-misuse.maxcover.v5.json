@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@valid.c:7077",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/valid.c",
+  "line": 7077,
+  "column": 5,
+  "end_line": 7077,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 7072,
+    "contextEnd": 7082,
+    "snippet": "        return(-1);\n\n    if (names == NULL) return(-1);\n    if (max <= 0) return(-1);\n\n    memset(&vctxt, 0, sizeof (xmlValidCtxt));\n    vctxt.error = xmlNoValidityErr;\t/* this suppresses err/warn output */\n\n    nb_valid_elements = 0;\n    ref_node = prev ? prev : next;\n    parent = ref_node->parent;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 7077,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

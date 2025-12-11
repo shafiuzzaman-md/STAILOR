@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xzlib.c:286",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xzlib.c",
+  "line": 286,
+  "column": 35,
+  "end_line": 286,
+  "end_column": 41,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcmp().",
+  "context": {
+    "contextStart": 281,
+    "contextEnd": 291,
+    "snippet": "static int\nis_format_xz(xz_statep state)\n{\n    lzma_stream *strm = &(state->strm);\n\n    return strm->avail_in >= 6 && memcmp(state->in, \"\\3757zXZ\", 6) == 0;\n}\n\nstatic int\nis_format_lzma(xz_statep state)\n{"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 286,
+    "column_start": 35,
+    "column_end": 41
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

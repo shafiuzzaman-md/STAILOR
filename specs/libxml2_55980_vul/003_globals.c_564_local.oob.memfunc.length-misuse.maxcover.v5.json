@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@globals.c:564",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/globals.c",
+  "line": 564,
+  "column": 5,
+  "end_line": 564,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 559,
+    "contextEnd": 569,
+    "snippet": "    gs->xmlRegisterNodeDefaultValue = xmlRegisterNodeDefaultValueThrDef;\n    gs->xmlDeregisterNodeDefaultValue = xmlDeregisterNodeDefaultValueThrDef;\n\n\tgs->xmlParserInputBufferCreateFilenameValue = xmlParserInputBufferCreateFilenameValueThrDef;\n\tgs->xmlOutputBufferCreateFilenameValue = xmlOutputBufferCreateFilenameValueThrDef;\n    memset(&gs->xmlLastError, 0, sizeof(xmlError));\n\n    xmlMutexUnlock(xmlThrDefMutex);\n}\n\n/**"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 564,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

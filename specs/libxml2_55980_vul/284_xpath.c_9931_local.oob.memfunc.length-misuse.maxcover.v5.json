@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xpath.c:9931",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xpath.c",
+  "line": 9931,
+  "column": 6,
+  "end_line": 9931,
+  "end_column": 12,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 9926,
+    "contextEnd": 9936,
+    "snippet": "            }\n\t    buffer = (xmlChar *) xmlMallocAtomic(max);\n\t    if (buffer == NULL) {\n\t\tXP_ERRORNULL(XPATH_MEMORY_ERROR);\n\t    }\n\t    memcpy(buffer, buf, len);\n\t    while ((IS_LETTER(c)) || (IS_DIGIT(c)) || /* test bigname.xml */\n\t\t   (c == '.') || (c == '-') ||\n\t\t   (c == '_') || ((qualified) && (c == ':')) ||\n\t\t   (IS_COMBINING(c)) ||\n\t\t   (IS_EXTENDER(c))) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 9931,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

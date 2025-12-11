@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@testapi.c:141",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/testapi.c",
+  "line": 141,
+  "column": 5,
+  "end_line": 141,
+  "end_column": 12,
+  "message": "High-coverage OOB risk: length/count may be unbounded for strncpy().",
+  "context": {
+    "contextStart": 136,
+    "contextEnd": 146,
+    "snippet": "    /* access to the proxy can slow up regression tests a lot */\n    putenv((char *) \"http_proxy=\");\n#endif\n\n    memset(chartab, 0, sizeof(chartab));\n    strncpy((char *) chartab, \"  chartab\\n\", 20);\n    memset(inttab, 0, sizeof(inttab));\n    memset(longtab, 0, sizeof(longtab));\n\n    xmlInitParser();\n#ifdef LIBXML_SCHEMAS_ENABLED"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 141,
+    "column_start": 5,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

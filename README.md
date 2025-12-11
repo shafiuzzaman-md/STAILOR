@@ -95,8 +95,8 @@ SAILR assumes a frozen dataset snapshot under ./dataset/… and, optionally, met
 
 1. Extract source code for a task
 ```
-python3 extract_from_cybergym.py arvo:62911 libxml2
-# Produces: ./dataset/62911/libxml2_62911_vul/...
+python3 extract_from_cybergym.py arvo:55980 libxml2
+# Produces: ./dataset/55980/libxml2_55980_vul/...
 ```
 
 2. Fetch ground-truth metadata (optional)
@@ -118,8 +118,8 @@ chmod +x codeql_scan.sh
 
 ```
 ./codeql_scan.sh \
-  PROJECT_NAME=libxml2_62911_vul \
-  SRC_ROOT=./dataset/62911/libxml2_62911_vul \
+  PROJECT_NAME=libxml2_55980_vul \
+  SRC_ROOT=./dataset/55980/libxml2_55980_vul \
   BUILD_CMD="./build.sh" \
   QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
   CONTEXT_LINES=5 \
@@ -135,9 +135,9 @@ This produces, under ```sa_outputs/libxml2_62911_vul```, artifacts like:
 ### Extract Vul Specs (example)
 ```
 python3 scripts/make_vul_specs.py \
-  --findings sa_outputs/libxml2_62911_vul/findings.json \
+  --findings sa_outputs/libxml2_55980_vul/findings.json \
   --facts sa_outputs/libxml2_62911_vul/fact_pack.json \
-  --out specs/libxml2_62911_vul
+  --out specs/libxml2_55980_vul
 ```
 This generates one JSON spec per finding (entrypoint, rule id, location, etc).
 

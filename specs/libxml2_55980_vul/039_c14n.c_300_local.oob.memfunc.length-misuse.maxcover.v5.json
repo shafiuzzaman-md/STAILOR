@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@c14n.c:300",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/c14n.c",
+  "line": 300,
+  "column": 2,
+  "end_line": 300,
+  "end_column": 8,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 295,
+    "contextEnd": 305,
+    "snippet": "    if(cur == NULL) {\n        xmlC14NErrParam(\"destroying namespaces stack\");\n        return;\n    }\n    if(cur->nsTab != NULL) {\n\tmemset(cur->nsTab, 0, cur->nsMax * sizeof(xmlNsPtr));\n\txmlFree(cur->nsTab);\n    }\n    if(cur->nodeTab != NULL) {\n\tmemset(cur->nodeTab, 0, cur->nsMax * sizeof(xmlNodePtr));\n\txmlFree(cur->nodeTab);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 300,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

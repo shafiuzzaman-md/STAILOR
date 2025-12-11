@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@SAX2.c:2260",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/SAX2.c",
+  "line": 2260,
+  "column": 2,
+  "end_line": 2260,
+  "end_column": 8,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 2255,
+    "contextEnd": 2265,
+    "snippet": "     */\n    if (ctxt->freeElems != NULL) {\n        ret = ctxt->freeElems;\n\tctxt->freeElems = ret->next;\n\tctxt->freeElemsNr--;\n\tmemset(ret, 0, sizeof(xmlNode));\n        ret->doc = ctxt->myDoc;\n\tret->type = XML_ELEMENT_NODE;\n\n\tif (ctxt->dictNames)\n\t    ret->name = localname;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 2260,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

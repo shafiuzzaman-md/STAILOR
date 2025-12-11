@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@SAX2.c:2629",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/SAX2.c",
+  "line": 2629,
+  "column": 6,
+  "end_line": 2629,
+  "end_column": 12,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 2624,
+    "contextEnd": 2634,
+    "snippet": "\t\t    return;\n\t\t}\n\t\tctxt->nodemem = size;\n\t\tlastChild->content = newbuf;\n\t    }\n\t    memcpy(&lastChild->content[ctxt->nodelen], ch, len);\n\t    ctxt->nodelen += len;\n\t    lastChild->content[ctxt->nodelen] = 0;\n\t} else if (coalesceText) {\n\t    if (xmlTextConcat(lastChild, ch, len)) {\n\t\txmlSAX2ErrMemory(ctxt, \"xmlSAX2Characters\");"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 2629,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

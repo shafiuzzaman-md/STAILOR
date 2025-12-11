@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlschemastypes.c:445",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xmlschemastypes.c",
+  "line": 445,
+  "column": 2,
+  "end_line": 445,
+  "end_column": 8,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 440,
+    "contextEnd": 450,
+    "snippet": "\twild = (xmlSchemaWildcardPtr) xmlMalloc(sizeof(xmlSchemaWildcard));\n\tif (wild == NULL) {\n\t    xmlSchemaTypeErrMemory(NULL, \"allocating wildcard component\");\n\t    return;\n\t}\n\tmemset(wild, 0, sizeof(xmlSchemaWildcard));\n\twild->type = XML_SCHEMA_TYPE_ANY;\n\twild->any = 1;\n\twild->processContents = XML_SCHEMAS_ANY_LAX;\n\tparticle->children = (xmlSchemaTreeItemPtr) wild;\n\t/*"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 445,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@SAX2.c:1884",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/SAX2.c",
+  "line": 1884,
+  "column": 6,
+  "end_line": 1884,
+  "end_column": 12,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 1879,
+    "contextEnd": 1889,
+    "snippet": "\n\tif ((len < (int) (2 * sizeof(void *))) &&\n\t    (ctxt->options & XML_PARSE_COMPACT)) {\n\t    /* store the string in the node overriding properties and nsDef */\n\t    xmlChar *tmp = (xmlChar *) &(ret->properties);\n\t    memcpy(tmp, str, len);\n\t    tmp[len] = 0;\n\t    intern = tmp;\n\t} else if ((len <= 3) && ((cur == '\"') || (cur == '\\'') ||\n\t    ((cur == '<') && (str[len + 1] != '!')))) {\n\t    intern = xmlDictLookup(ctxt->dict, str, len);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 1884,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

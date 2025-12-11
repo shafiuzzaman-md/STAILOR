@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlregexp.c:4255",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
+  "line": 4255,
+  "column": 5,
+  "end_line": 4255,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 4250,
+    "contextEnd": 4260,
+    "snippet": "\t    return(-1);\n\t}\n    } else {\n\tstr = buf;\n    }\n    memcpy(&str[0], value, lenp);\n    str[lenp] = XML_REG_STRING_SEPARATOR;\n    memcpy(&str[lenp + 1], value2, lenn);\n    str[lenn + lenp + 1] = 0;\n\n    if (exec->comp->compact != NULL)"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 4255,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

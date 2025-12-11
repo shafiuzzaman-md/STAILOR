@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@xmlregexp.c:444",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
+  "line": 444,
+  "column": 9,
+  "end_line": 444,
+  "end_column": 15,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memset().",
+  "context": {
+    "contextStart": 439,
+    "contextEnd": 449,
+    "snippet": "    if (dim1 > SIZE_MAX / dim2 / elemSize)\n        return (NULL);\n    totalSize = dim1 * dim2 * elemSize;\n    ret = xmlMalloc(totalSize);\n    if (ret != NULL)\n        memset(ret, 0, totalSize);\n    return (ret);\n}\n\n/**\n * xmlRegEpxFromParse:"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 444,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

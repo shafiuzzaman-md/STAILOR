@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@hash.c:289",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/hash.c",
+  "line": 289,
+  "column": 3,
+  "end_line": 289,
+  "end_column": 9,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 284,
+    "contextEnd": 294,
+    "snippet": "\t     */\n\n\t    key = xmlHashComputeKey(table, iter->name, iter->name2,\n\t\t                    iter->name3);\n\t    if (table->table[key].valid == 0) {\n\t\tmemcpy(&(table->table[key]), iter, sizeof(xmlHashEntry));\n\t\ttable->table[key].next = NULL;\n\t\txmlFree(iter);\n\t    } else {\n\t\titer->next = table->table[key].next;\n\t\ttable->table[key].next = iter;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 289,
+    "column_start": 3,
+    "column_end": 9
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

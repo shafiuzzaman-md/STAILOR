@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@encoding.c:391",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/encoding.c",
+  "line": 391,
+  "column": 5,
+  "end_line": 391,
+  "end_column": 11,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcpy().",
+  "context": {
+    "contextStart": 386,
+    "contextEnd": 396,
+    "snippet": "    /*\n     * FIXME: Conversion functions must assure valid UTF-8, so we have\n     * to check for UTF-8 validity. Preferably, this converter shouldn't\n     * be used at all.\n     */\n    memcpy(out, inb, len);\n\n    *outlen = len;\n    *inlenb = len;\n    return(*outlen);\n}"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 391,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

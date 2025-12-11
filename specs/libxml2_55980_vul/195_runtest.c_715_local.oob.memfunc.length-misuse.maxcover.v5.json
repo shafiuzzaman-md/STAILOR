@@ -1,0 +1,44 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local.oob.memfunc.length-misuse.maxcover.v5@runtest.c:715",
+  "project": null,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "family": "OOB_MEMCMP",
+  "file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/runtest.c",
+  "line": 715,
+  "column": 6,
+  "end_line": 715,
+  "end_column": 12,
+  "message": "High-coverage OOB risk: length/count may be unbounded for memcmp().",
+  "context": {
+    "contextStart": 710,
+    "contextEnd": 720,
+    "snippet": "        res = read(fd, bytes, 4096);\n\tif (res <= 0)\n\t    break;\n\tif (res + idx > size)\n\t    break;\n\tif (memcmp(bytes, &mem[idx], res) != 0) {\n\t    int ix;\n\t    for (ix=0; ix<res; ix++)\n\t\tif (bytes[ix] != mem[idx+ix])\n\t\t\tbreak;\n\t    fprintf(stderr,\"Compare error at position %d\\n\", idx+ix);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 715,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* model: n <= min(len(lhs), len(rhs)) */ /* fill with program vars */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}
