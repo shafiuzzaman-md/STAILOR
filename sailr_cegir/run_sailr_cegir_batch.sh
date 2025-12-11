@@ -10,9 +10,9 @@ set -euo pipefail
 #   LLM_API_BASE=https://api.deepseek.com \
 #   CLANG_FLAGS="-I/usr/include/libxml2" \
 #   KLEE_FLAGS="--search=nurs:covnew --max-time=3600 --external-calls=all" \
-#   MAX_A=8 \
+#   MAX_A=15 \
 #   MAX_B=12 \
-#   TIMEOUT=120 \
+#   TIMEOUT=300 \
 #   bash sailr_cegir/run_sailr_cegir_batch.sh \
 #     62911/libxml2_62911_vul \
 #     local.oob.memfunc.length-misuse \
@@ -39,9 +39,10 @@ DATASET_ROOT="${DATASET_ROOT:-dataset}"
 LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
 LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
 
-MAX_A="${MAX_A:-8}"
+# Increased defaults to support Smart Builder (shell interaction latency)
+MAX_A="${MAX_A:-15}"     # Higher iteration cap for builder tool use
 MAX_B="${MAX_B:-12}"
-TIMEOUT="${TIMEOUT:-120}"
+TIMEOUT="${TIMEOUT:-300}" # Increased to 5 mins to handle multiple LLM round-trips
 
 CLANG="${CLANG:-clang-14}"
 KLEE="${KLEE:-klee}"
@@ -128,6 +129,8 @@ for SPEC in "${SPECS[@]}"; do
 
   mkdir -p "${RUN_DIR}"
 
+  # Run the Python agent
+  # Note: using `python3` explicitly to ensure env compatibility
   python3 "${REPO_ROOT}/sailr_cegir/scripts/run_agent_for_spec.py" \
     --sa-out-dir "${SA_PROJECT_DIR}" \
     --dataset-root "${DATASET_ROOT}" \
@@ -142,9 +145,9 @@ for SPEC in "${SPECS[@]}"; do
     --llm-model "${LLM_MODEL}" \
     --llm-api-base "${LLM_API_BASE}" \
     --clang "${CLANG}" \
-    --clang-flags "${CLANG_FLAGS}" \
+    --clang-flags="${CLANG_FLAGS}" \
     --klee "${KLEE}" \
-    --klee-flags "${KLEE_FLAGS}" \
+    --klee-flags="${KLEE_FLAGS}" \
     --max-a "${MAX_A}" \
     --max-b "${MAX_B}" \
     --timeout "${TIMEOUT}" \
