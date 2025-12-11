@@ -42,7 +42,7 @@ LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
 # Increased defaults to support Smart Builder (shell interaction latency)
 MAX_A="${MAX_A:-15}"     # Higher iteration cap for builder tool use
 MAX_B="${MAX_B:-12}"
-TIMEOUT="${TIMEOUT:-300}" # Increased to 5 mins to handle multiple LLM round-trips
+TIMEOUT="${TIMEOUT:-1200}" # Increased to 5 mins to handle multiple LLM round-trips
 
 CLANG="${CLANG:-clang-14}"
 KLEE="${KLEE:-klee}"

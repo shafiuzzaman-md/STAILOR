@@ -183,6 +183,20 @@ STUB REQUIREMENTS
    provided CLANG_FLAGS (e.g., libxml2 headers). But if you invent helpers or types
    that are not defined in those headers, you must define them yourself in harness.c.
 
+CRITICAL: SOURCE TRUTH OVER METADATA
+====================================
+The `spec.json` might contain a suggested "entrypoint", but this is often just a guess.
+You MUST verify this against the provided `vul_snippet` and `enclosing_function`.
+
+1. Identify the function that ACTUALLY contains the `vul_line`.
+   - Look at the `enclosing_function` text provided in the user message.
+   - If the `vul_line` is inside `xmlSAX2StartElementNs`, but the spec says "entrypoint: xmlSAX2AttributeInternal", you MUST IGNORE the spec and target `xmlSAX2StartElementNs`.
+
+2. Do NOT hallucinate function bodies.
+   - You must copy the function body verbatim from `enclosing_function` or `vul_file_full.c`.
+   - If the function body is missing, use "action": "shell" to `cat` the file and get the real code.
+   - Never write a stub for the vulnerable function itself.
+
 BUDGET RECOMMENDATION (OPTIONAL)
 ================================
 
@@ -200,3 +214,5 @@ REMINDER
 - Either request a shell command ("action": "shell") OR provide the final plan
   ("action": "final_plan") in each response.
 - Do NOT output raw commentary or code outside the JSON object.
+
+

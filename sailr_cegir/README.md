@@ -115,3 +115,10 @@ plan_R*.json — planner outputs per replan attempt.
 
 run_meta.json — summary metadata for this spec (class, KLEE stats, etc.).
 ```
+
+## Result Summary
+```
+python3 sailr_cegir/aggregate_sailr_cegir_results.py \
+  --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
+  --out-tsv se_runs/sailr_cegir/libxml2_62911_vul/summary_full.tsv
+```

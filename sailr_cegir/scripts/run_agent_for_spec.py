@@ -254,7 +254,9 @@ def build_context(
         if "{" in line:
             brace_depth += line.count("{")
             if brace_depth == 1 and func_start is None:
-                func_start = i
+                # FIX: Capture the 3 lines BEFORE the brace to get the function signature/name
+                sig_start = max(0, i - 3)
+                func_start = sig_start
         if "}" in line:
             brace_depth -= line.count("}")
             if brace_depth == 0 and func_start is not None:
@@ -754,7 +756,7 @@ def interactive_klee_refiner(
     last_klee_stats = initial_klee_stats
     last_clang_err: str | None = None
 
-    MAX_STEPS = max_klee_runs * 4  # safety cap on interactions
+    MAX_STEPS = max_klee_runs * 2  # safety cap on interactions
 
     def record_history(chunk: str, key: str, idx: int):
         history_chunks.append(chunk)
@@ -790,9 +792,9 @@ def interactive_klee_refiner(
         return "\n\n".join(history_chunks) if history_chunks else "(no prior shell explorations in KLEE refiner)"
 
     def make_user_msg(step_idx: int) -> str:
-        # Pressure: if we have used > 50% of MAX_STEPS without more KLEE runs, nudge to run KLEE or finish.
+        # Trigger pressure after 5 non-KLEE steps regardless of total budget
         pressure_msg = ""
-        if step_idx > (MAX_STEPS // 2):
+        if step_idx > 5:
             pressure_msg = (
                 "\nSYSTEM WARNING: You have spent many refiner steps without running KLEE.\n"
                 "You MUST either:\n"
@@ -871,6 +873,13 @@ def interactive_klee_refiner(
             out_dir=prompts_dir,
             tag=f"klee_refiner_step{step_idx:03d}",
         )
+
+        # This one-liner prints the Agent's thought process immediately
+        r_act = resp.get("action", "UNKNOWN")
+        r_reason = resp.get("reason", "")
+        # Truncate reason to 80 chars to keep it readable
+        print(f"    > AGENT: {r_act} | Reason: {r_reason[:80]}...")
+        # ---------------------------
         step_idx += 1
 
         action = resp.get("action")

@@ -16,7 +16,7 @@ On every call, you MUST respond with a SINGLE JSON object in one of two forms:
   "command": "<shell command from project root>",
   "reason": "<why this helps fix the compilation error>"
 }
-  - Allowed tools: rg, grep, ls, find, cat, head.
+  - Allowed tools: rg, grep, ls, find, sed, cat, head, tail.
 - No shell metacharacters (; & | > < ` $).
 2) Emit/Refine the Harness:
 
@@ -35,14 +35,18 @@ HARNESS REQUIREMENTS
 - Define realistic stub implementations.
 2. Provide a realistic ENTRYPOINT (follow the PLAN).
 
-3. CRITICAL: IN-FUNCTION ASSERTIONS (BUG + REACH)
-   - Do NOT place assertions in main() if the bug happens deep inside a function.
-   - You MUST copy/inline the vulnerable function body into `harness.c`.
-   - You MUST insert the `BUG_ASSERT` and `REACH_ASSERT` **INSIDE** that function,
-     immediately **BEFORE** the specific vulnerable line (e.g., before the memcpy, array access, or pointer dereference).
-   - This ensures KLEE catches the logical violation before the program crashes (SegFault).
+3. CRITICAL: TARGET FUNCTION FIDELITY (NO HALLUCINATION)
+   - Identify the "Target Function" that contains the vulnerable line.
+   - You MUST COPY the body of this function **VERBATIM** from the `vul_file_full.c` or `enclosing_function` context.
+   - **DO NOT SIMPLIFY** the logic. Do not remove branches. Do not replace complex logic with comments like `/* ... logic ... */`.
+   - The vulnerability relies on specific pointer arithmetic, allocation logic, and memory ops (memcpy, strcpy). If you simplify the code, you DELETE the bug.
+   - You MAY only stub *external* function calls *inside* the target function, but the control flow and logic of the target function itself must remain exact.
 
-4. Assertion Order:
+4. IN-FUNCTION ASSERTIONS (BUG + REACH)
+   - Place assertions INSIDE this verbatim copy.
+   - You MUST insert the `BUG_ASSERT` and `REACH_ASSERT`.
+   - Insert them immediately **BEFORE** the vulnerable line.
+   - This ensures KLEE catches the logical violation before the program crashes (SegFault).
    - BUG_ASSERT must appear logically/syntactically before REACH_ASSERT.
    - Never REMOVE these two assertions.
 
@@ -73,3 +77,105 @@ You must use a specific syntax so our post-processing tools can detect the asser
 3. PLACEMENT:
    - Copy the vulnerable function body into harness.c.
    - Place these two assertions INSIDE the function, immediately before the vulnerable line.
+
+HANDLING INTERNAL DEPENDENCIES (SMART STUBBING & BOUNDING)
+=============================================================
+You must isolate the vulnerable function by stubbing its dependencies.
+
+A. RETURN VALUE STRATEGY (TRACEABLE INFERENCE):
+   1. INFER & CONSTRAIN (Summarization): 
+      - If you can infer the logical return value (e.g., success=0, is_admin=1), do NOT return a raw constant.
+      - **Technique:** Create a named symbolic variable and `klee_assume` it to that value.
+      - **Why:** This ensures the decision appears in KLEE's path constraints for debugging, without causing state explosion.
+      - **Example:**
+        int is_debug_active() {
+            int res;
+            klee_make_symbolic(&res, sizeof(res), "stub_is_debug_active");
+            klee_assume(res == 1); // Inferred value: Debug is ON
+            return res;
+        }
+
+   2. PURE SYMBOLIC (Critical Logic): 
+      - If the return value determines a buffer size, offset, or loop count, keep it unconstrained (or loosely bounded).
+      - **Example:**
+        int get_header_len() {
+            int len;
+            klee_make_symbolic(&len, sizeof(len), "stub_header_len");
+            klee_assume(len > 0);
+            klee_assume(len < 100); // Loose bound to avoid OOM
+            return len;
+        }
+
+B. BOUNDING RULES:
+   1. Indirect Call Bound (Depth 1): 
+      - Do NOT inline dependencies of dependencies.
+      - If `VulnFunc` calls `HelperA`, stub `HelperA`. Do NOT copy `HelperA`'s body if it calls `HelperB`.
+   
+   2. Loop Bound:
+      - If you must include a loop, add `klee_assume(i < 4)` to prevent infinite unwinding.
+
+COMPLEX DATA STRUCTURE STRATEGY (MEMBER-WISE BINDING)
+=====================================================
+When initializing structs, you MUST use the "Member-wise Binding" pattern to avoid KLEE errors.
+
+ERROR TO AVOID:
+   - NEVER pass a symbolic variable as the *size* argument to `klee_make_symbolic`.
+   - WRONG: klee_make_symbolic(ptr, sym_len, "name"); // CRASH: Size must be concrete!
+   - WRONG: klee_make_symbolic(&struct, sizeof(struct), "name"); // CRASH: Corrupts pointers!
+
+CORRECT PATTERN (STEP-BY-STEP):
+1. Create separate local symbolic variables with FIXED, CONCRETE sizes.
+2. Constrain them (klee_assume).
+3. Bind them to the struct fields manually.
+4. For buffers, allocate a FIXED maximum size (e.g., 4096) and constrain the length variable to be less than that max.
+
+REQUIRED TEMPLATE (Use this structure):
+
+   // Step 1: Create separate symbolic variables
+   int sym_index;
+   int sym_length;
+   int sym_buffer[10]; // Fixed size on stack (or malloc a fixed size)
+
+   klee_make_symbolic(&sym_index,  sizeof(sym_index),  "index");
+   klee_make_symbolic(&sym_length, sizeof(sym_length), "length");
+   klee_make_symbolic(sym_buffer,  sizeof(sym_buffer), "buffer");
+
+   // Constrain sizes
+   klee_assume(sym_length >= 0);
+   klee_assume(sym_length < 10); // Must fit in the fixed buffer
+
+   // Step 2: Bind vars into the struct
+   RequestFrame frame;
+   memset(&frame, 0, sizeof(frame)); // Important!
+   frame.index  = sym_index;
+   frame.length = sym_length;
+   
+   // Copy array/buffer data
+   for (int i = 0; i < 10; ++i) {
+       frame.buffer[i] = sym_buffer[i];
+   }
+
+   // Step 3: Pass to function
+   complex_function(&frame);
+
+COMPLEX DATA STRUCTURE STRATEGY (PREVENTING MEMORY ERRORS)
+==========================================================
+Memory errors (OOB pointer, null dereference) will cause KLEE to abort before checking your BUG_ASSERT. 
+You MUST initialize structs safely to prevent this.
+
+1. POINTER INITIALIZATION RULE:
+   - NEVER use `klee_make_symbolic` on a whole struct if it contains pointers.
+     * BAD: klee_make_symbolic(&node, sizeof(node), "node"); // Pointers become junk values!
+   - INSTEAD, initialize the struct to 0, then malloc the pointers:
+     * GOOD:
+       xmlNode node;
+       memset(&node, 0, sizeof(node)); // Pointers are NULL
+       node.content = (xmlChar*) malloc(4096); // Pointer is valid heap address
+       klee_make_symbolic(node.content, 4096, "node_content"); // Content is symbolic
+       klee_assume(node.content[4095] == 0); // Null-terminate
+
+2. BUFFER SIZING RULE:
+   - When calling a function that performs a copy (memcpy, strcpy):
+   - Ensure the DESTINATION buffer is allocated with sufficient size (e.g., 1024 or 4096 bytes).
+   - Ensure the SOURCE length variable is constrained to be LESS than that size.
+     * Example: klee_assume(len < 4096);
