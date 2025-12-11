@@ -605,163 +605,123 @@ def interactive_builder(
     replan_idx: int,
 ) -> Tuple[bool, str, str]:
     """
-    Phase A loop.
-    Optimization: Separates 'compilation attempts' from 'tool usage'.
-    Adds 'pressure' to force code generation if tool usage is excessive.
+    Phase A loop with 'Reactive' Shell Budget.
+    - Discovery Phase: Strict shell limit (4 turns) to force early coding.
+    - Repair Phase: Resets shell budget to allow debugging of compile errors.
     """
     harness_src = ""
     last_clang_err = ""
     history_chunks: List[str] = []
-
-    # Budget counters
+    
     compilation_attempts = 0
     total_turns = 0
-    MAX_TOTAL_TURNS = max_iters * 3  # Hard limit on interactions
+    MAX_TOTAL_TURNS = max_iters * 3
+    
+    # REACTIVE BUDGET STATE
+    has_attempted_compile = False
+    consecutive_shell_count = 0
+    
+    # Strict limit for initial discovery; relaxed for debugging
+    DISCOVERY_SHELL_LIMIT = 4 
+    DEBUG_SHELL_LIMIT = 3 # Consecutive limit during repair to prevent infinite loops
 
     while compilation_attempts < max_iters and total_turns < MAX_TOTAL_TURNS:
         tag = f"builder_R{replan_idx}_T{total_turns:03d}"
-        print(f"[A] Builder (R{replan_idx}) turn {total_turns} (Compile Attempt {compilation_attempts}/{max_iters})...")
-
-        history_text = (
-            "\n\n".join(history_chunks)
-            if history_chunks else "(no shell usage yet)"
-        )
-
-        # Pressure: if we have spent > 50% of our total budget on shell commands, force harness
+        print(f"[A] Builder (R{replan_idx}) turn {total_turns} (Compile Attempt {compilation_attempts + 1}/{max_iters})...")
+        
+        history_text = "\n\n".join(history_chunks) if history_chunks else "(no shell usage yet)"
+        
+        # --- REACTIVE PRESSURE MECHANISM ---
         pressure_msg = ""
-        if total_turns > (MAX_TOTAL_TURNS // 2):
-            pressure_msg = (
-                "\nSYSTEM WARNING: You have spent many turns on shell exploration.\n"
-                "You MUST stop exploring and output a harness ('action': 'harness') NOW,\n"
-                "even if you are not 100% sure. Compilation feedback will help you fix errors."
-            )
+        
+        if not has_attempted_compile:
+            # Phase 1: Discovery - Apply strict pressure early
+            if consecutive_shell_count >= DISCOVERY_SHELL_LIMIT:
+                pressure_msg = (
+                    f"\nSYSTEM WARNING: You have used {consecutive_shell_count} shell commands for exploration.\n"
+                    "You have enough context. You MUST output a harness ('action': 'harness') NOW.\n"
+                    "Do not worry about perfection; compilation errors will guide your fixes."
+                )
+        else:
+            # Phase 2: Repair - Allow debugging but prevent infinite shell loops
+            if consecutive_shell_count >= DEBUG_SHELL_LIMIT:
+                pressure_msg = (
+                    f"\nSYSTEM WARNING: You have used {consecutive_shell_count} consecutive shell commands to debug.\n"
+                    "You MUST attempt a code fix ('action': 'harness') now based on your findings."
+                )
 
-        user_msg_builder = textwrap.dedent(
-            f"""
-            Project ID    : {args.project_id}
-            Target vul    : {args.target_vul}
-
-            Current plan JSON:
-            {json.dumps(plan, indent=2)}
-
-            Most recent harness (if any):
-            ------------------ HARNESS START ------------------
-            {harness_src if harness_src else "(none)"}
-            ------------------- HARNESS END -------------------
-
-            Last clang error (if any):
-            ------------------ CLANG ERROR START --------------
-            {last_clang_err if last_clang_err else "(none)"}
-            ------------------- CLANG ERROR END ---------------
-
-            Builder Shell History:
-            ----------------- HISTORY START ---------------
-            {history_text}
-            ------------------ HISTORY END ----------------
-
-            Protocol:
-            1) To debug build errors (find missing headers/types):
-               {{ "action": "shell", "command": "...", "reason": "..." }}
-
-            2) To emit/fix the harness:
-               {{ "action": "harness", "harness_c": "<full C code>" }}
-
-            Allowed tools: rg, grep, ls, find, cat, head, tail.
+        user_msg = textwrap.dedent(f"""
+            Plan: {json.dumps(plan, indent=2)}
+            Current Harness: {harness_src if harness_src else "(none)"}
+            Last Clang Error: {last_clang_err if last_clang_err else "(none)"}
+            History: {history_text}
             {pressure_msg}
-            """
-        )
+        """)
 
-        resp = call_llm_json(
-            system_prompt=builder_prompt,
-            user_prompt=user_msg_builder,
-            out_dir=prompts_dir,
-            tag=tag,
-        )
-
+        resp = call_llm_json(builder_prompt, user_msg, prompts_dir, tag)
         action = resp.get("action")
         total_turns += 1
 
-        # 1. Handle Shell (does NOT increment compilation_attempts)
-        if action == "shell":
-            cmd_str = resp.get("command", "")
-            reason = resp.get("reason", "")
-            try:
-                argv = sanitize_shell_command(cmd_str)
-                rc, out, err, _ = run_cmd(argv, cwd=src_root)
-                chunk = (
-                    f"SHELL $ {cmd_str}\n"
-                    f"REASON: {reason}\n"
-                    f"RC={rc}\n"
-                    f"STDOUT:\n{out}\n"
-                    f"STDERR:\n{err}\n"
-                )
-            except Exception as e:
-                chunk = f"SHELL $ {cmd_str}\nERROR: {e}\n"
+        # Implicit harness check
+        if not action:
+            maybe_harness = resp.get("harness_c") or resp.get("harness")
+            if isinstance(maybe_harness, str) and len(maybe_harness) > 50:
+                action = "harness"
+                resp["harness_c"] = maybe_harness
 
+        # 1. Handle Shell
+        if action == "shell":
+            consecutive_shell_count += 1
+            cmd = resp.get("command", "")
+            try:
+                argv = sanitize_shell_command(cmd)
+                rc, out, err, _ = run_cmd(argv, cwd=src_root)
+                chunk = f"SHELL $ {cmd}\nRC={rc}\nSTDOUT:\n{out}\nSTDERR:\n{err}"
+            except Exception as e: chunk = f"SHELL $ {cmd}\nERROR: {e}"
             history_chunks.append(chunk)
             continue
 
-        # 2. Handle Harness (increments compilation_attempts)
+        # 2. Handle Harness
         new_harness = resp.get("harness_c")
-
         if new_harness and isinstance(new_harness, str):
             harness_src = new_harness
-            missing_patterns = []
-            # Check for BUG_ASSERT label syntax
-            if '&& "BUG_ASSERT"' not in harness_src:
-                missing_patterns.append('Missing syntax: klee_assert(cond && "BUG_ASSERT")')
             
-            # Check for REACH_ASSERT label syntax (must be 0/False)
-            if '0 && "REACH_ASSERT"' not in harness_src:
-                missing_patterns.append('Missing or incorrect syntax: klee_assert(0 && "REACH_ASSERT")')
-
+            # --- SYNTAX LINTER (Enforces correct Assertions) ---
+            missing_patterns = []
+            if '&& "BUG_ASSERT"' not in harness_src: missing_patterns.append('Missing syntax: klee_assert(cond && "BUG_ASSERT")')
+            if '0 && "REACH_ASSERT"' not in harness_src: missing_patterns.append('Missing syntax: klee_assert(0 && "REACH_ASSERT")')
+            
             if missing_patterns:
-                # Reject this turn and ask LLM to fix it
-                err_msg = (
-                    "SYSTEM ERROR: Assertion syntax invalid.\n"
-                    "1. Labels must be strings inside the assert: klee_assert(cond && \"LABEL\").\n"
-                    "2. Reachability must be 0 (False) to force a stop: klee_assert(0 && \"REACH_ASSERT\").\n"
-                    f"Issues found: {'; '.join(missing_patterns)}"
-                )
+                err_msg = f"SYSTEM ERROR: Assertion syntax invalid. {'; '.join(missing_patterns)}"
                 history_chunks.append(err_msg)
-                # Skip compilation, loop back to let LLM fix it. 
-                # We do NOT increment compilation_attempts here because we want to save those for actual compiler errors.
-                continue
+                # Does NOT count as a compile attempt, just a rejection
+                continue 
+            # ---------------------------------------------------
 
-
-            compilation_attempts += 1  # This counts as a "Try"
-
-            # Save snapshot
-            harness_snapshot = write_harness(
-                harness_dir, f"harness_R{replan_idx}_C{compilation_attempts:03d}.c", harness_src
-            )
+            # Successful harness generation step
+            has_attempted_compile = True
+            consecutive_shell_count = 0 # Reset shell counter because we acted
+            compilation_attempts += 1
+            
+            write_harness(harness_dir, f"harness_R{replan_idx}_C{compilation_attempts:03d}.c", harness_src)
             write_harness(harness_dir, "harness.c", harness_src)
-            harness_bc = harness_dir / "harness.bc"
-
-            # Compile
-            clang_ok, err_log = compile_harness(
-                harness_c=harness_snapshot,
-                harness_bc=harness_bc,
-                clang=args.clang,
-                clang_flags=args.clang_flags,
-                log_dir=logs_dir,
+            
+            ok, err = compile_harness(
+                harness_dir / "harness.c", harness_dir / "harness.bc",
+                args.clang, args.clang_flags, logs_dir
             )
 
-            if clang_ok:
+            if ok:
                 print(f"[A] clang build succeeded at attempt {compilation_attempts}")
                 return True, harness_src, ""
             else:
                 print(f"[A] clang build FAILED at attempt {compilation_attempts}")
-                last_clang_err = err_log
+                last_clang_err = err
                 continue
-
-        # Fallback
-        history_chunks.append("SYSTEM: Invalid response format. Use 'shell' or 'harness'.")
-        continue
+        
+        history_chunks.append("SYSTEM: Invalid response. Use 'shell' or 'harness'.")
 
     return False, harness_src, last_clang_err
-
-
 # --------------------------------------------------------------------------------------
 # Phase B micro-agent: interactive KLEE refiner
 # --------------------------------------------------------------------------------------
