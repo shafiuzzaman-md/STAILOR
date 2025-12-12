@@ -53,7 +53,16 @@ python3 sailr_cegir/collect_verification_pack.py \
   --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
   --out-dir se_runs/sailr_cegir/libxml2_62911_vul/verification_pack_libxml2_62911_vul
 ```
-
+Single spec run:
+```
+SA_OUT_DIR=sa_outputs DATASET_ROOT=dataset \
+CLANG_FLAGS="-I/usr/include/libxml2" \
+MAX_A=8 MAX_B=20 TIMEOUT=300 \
+bash sailr_cegir/run_sailr_cegir_single.sh \
+  62911/libxml2_62911_vul \
+  local.oob.memfunc.length-misuse \
+  specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
+```
 Where:
 ```
 SA_OUT_DIR — root directory of static-analysis outputs (per-project subdir inside).
