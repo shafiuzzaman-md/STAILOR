@@ -1,9 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -n '#define.*ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c",
-    "grep -n 'xmlStrQEqual' dict.c | head -1",
-    "sed -n '1,30p' dict.c | grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER'"
-  ],
-  "reason": "Need to understand ATTRIBUTE_NO_SANITIZE_INTEGER macro (likely empty) and find xmlStrQEqual definition (maybe in another file). Also verify macro not defined in header."
-}

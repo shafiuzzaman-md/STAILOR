@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '59,80p' dict.c",
-  "reason": "Need to see the definition of struct _xmlDict to understand xmlDictPtr and its fields (size, table)."
-}

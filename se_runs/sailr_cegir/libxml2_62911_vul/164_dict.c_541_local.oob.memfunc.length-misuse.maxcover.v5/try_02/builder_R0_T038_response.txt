@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '500,600p' xmlstring.c",
-  "reason": "Need to locate xmlStrEqual and xmlStrQEqual functions in xmlstring.c to embed them exactly."
-}

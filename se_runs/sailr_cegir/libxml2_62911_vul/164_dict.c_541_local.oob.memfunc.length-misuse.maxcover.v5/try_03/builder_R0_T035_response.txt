@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -B 1 -A 1 | head -30",
-  "reason": "Need to see the exact context of ATTRIBUTE_NO_SANITIZE_INTEGER to understand if it's a macro definition or an attribute. The previous grep output shows it's used before function definitions but not defined in dict.c. Likely defined in a header. Need to find its definition to properly embed it."
-}

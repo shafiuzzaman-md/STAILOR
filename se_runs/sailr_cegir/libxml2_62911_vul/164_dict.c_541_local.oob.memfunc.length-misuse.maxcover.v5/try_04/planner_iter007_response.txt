@@ -1,9 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -n '#define ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c",
-    "grep -n 'xmlChar' /usr/include/libxml2/libxml/dict.h",
-    "grep -n 'xmlDictEntry' /usr/include/libxml2/libxml/dict.h"
-  ],
-  "reason": "Need to find the definition of ATTRIBUTE_NO_SANITIZE_INTEGER macro and understand xmlChar and xmlDictEntry types from public headers to ensure correct types in harness."
-}

@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -5",
-  "reason": "Need to see if ATTRIBUTE_NO_SANITIZE_INTEGER is defined as a macro or used as a function attribute. The grep output shows it's used as a line before function definitions, but we need to know if it's defined elsewhere (maybe in config.h). We'll check for its definition in dict.c or nearby includes."
-}

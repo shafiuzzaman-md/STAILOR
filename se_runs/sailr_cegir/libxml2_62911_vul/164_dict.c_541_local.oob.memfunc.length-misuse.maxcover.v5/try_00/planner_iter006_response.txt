@@ -1,9 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -n \"xmlDictHashName\" dict.c -A 30 | head -40",
-    "grep -n \"xmlDictHashQName\" dict.c -A 30 | head -40",
-    "grep -n \"xmlStrQEqual\" dict.c -B 5 -A 10"
-  ],
-  "reason": "Need to see the bodies of xmlDictHashName and xmlDictHashQName because they are called by xmlDictLookup (the entrypoint) and affect the hashValue and len parameters passed to xmlDictFindEntry. Also need xmlStrQEqual because it's used in the else branch of the target function. These functions must be embedded or stubbed to reach the target line."
-}

@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "commands": ["grep -n 'xmlChar' dict.c", "grep -n 'xmlHashedString' dict.c", "sed -n '/^typedef struct _xmlHashedString/,/^}/p' dict.c", "grep -n '^struct _xmlDictEntry' dict.c"],
-  "reason": "Need exact definitions of xmlChar, xmlHashedString, and xmlDictEntry to understand the data structures used at line 541 (entry->name). This is critical for embedding types and designing assertions."
-}

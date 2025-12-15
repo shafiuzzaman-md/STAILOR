@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'xmlHashedString' dict.c -B 30 | grep -A 30 'struct _xmlHashedString'",
-  "reason": "Need the exact struct definition of xmlHashedString to define it in harness.c. The earlier grep shows xmlHashedString is used as a type but not defined in the snippet. Must find its definition."
-}

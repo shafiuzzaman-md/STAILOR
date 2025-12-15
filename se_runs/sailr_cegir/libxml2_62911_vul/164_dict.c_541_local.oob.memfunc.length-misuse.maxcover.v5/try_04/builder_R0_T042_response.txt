@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '516,565p' dict.c",
-  "reason": "Need the complete xmlDictFindEntry function body (lines 516-565) to embed it exactly in harness.c. The previous snippet only showed up to line 541; we need the rest of the function to ensure we have the full logic."
-}

@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n '^#define' dict.c | grep -i attribute",
-  "reason": "Need to find the definition of ATTRIBUTE_NO_SANITIZE_INTEGER macro to properly embed it in harness.c. The previous grep attempts didn't find it; maybe it's defined earlier in the file with a different pattern."
-}

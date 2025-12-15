@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '516,600p' dict.c",
-  "reason": "Need to see the complete xmlDictFindEntry function body to copy it exactly, including the vulnerable statement and surrounding code."
-}

@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1 | cut -d: -f1",
-  "reason": "Need to find the line number of the first occurrence of ATTRIBUTE_NO_SANITIZE_INTEGER to see its definition context. The previous grep commands had syntax errors due to using '|' incorrectly. This command will get the line number correctly."
-}

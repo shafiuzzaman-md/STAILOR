@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '1,30p' dict.c",
-  "reason": "Need to see the beginning of dict.c to find any #includes and macro definitions (like ATTRIBUTE_NO_SANITIZE_INTEGER) that are used before the target function."
-}

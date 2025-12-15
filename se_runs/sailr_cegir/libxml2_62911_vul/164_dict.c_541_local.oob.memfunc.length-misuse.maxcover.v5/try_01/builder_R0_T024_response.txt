@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'static xmlDictEntry \\* xmlDictFindEntry' dict.c",
-  "reason": "Need to locate the exact line number of the target function to retrieve its full body."
-}

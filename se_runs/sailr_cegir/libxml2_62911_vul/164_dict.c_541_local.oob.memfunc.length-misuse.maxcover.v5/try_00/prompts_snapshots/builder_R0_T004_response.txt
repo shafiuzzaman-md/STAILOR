@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '/^typedef.*xmlDictPtr/,/^}/p' dict.c",
-  "reason": "Need to find the definition of xmlDictPtr (likely a typedef for xmlDict*). Also need the full struct _xmlDict definition to fix incomplete type errors and see hashValue field."
-}

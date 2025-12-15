@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1",
-  "reason": "Need to see the exact definition or usage of ATTRIBUTE_NO_SANITIZE_INTEGER to properly define it in harness.c. The previous grep attempts failed due to shell metacharacters; using a simpler command to get the first occurrence."
-}

@@ -1,9 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -n '^typedef.*xmlChar' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include/libxml/xmlstring.h",
-    "grep -B5 -A10 'struct _xmlHashedString' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c",
-    "sed -n '1,100p' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c | grep -n xmlChar"
-  ],
-  "reason": "Need exact xmlChar typedef (likely from libxml headers) and xmlHashedString struct definition to understand entry->name and entry->hashValue fields. This is essential for embedding correct types in the standalone harness."
-}

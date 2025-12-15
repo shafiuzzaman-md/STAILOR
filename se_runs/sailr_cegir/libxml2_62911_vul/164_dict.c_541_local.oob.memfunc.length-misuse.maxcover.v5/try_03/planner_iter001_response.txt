@@ -1,9 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -r \"struct xmlHashedString\" .",
-    "grep -r \"typedef.*xmlHashedString\" .",
-    "find . -name \"*.h\" -exec grep -l xmlDict {} \\;"
-  ],
-  "reason": "Need to find the definition of xmlHashedString (since xmlDictEntry is a typedef of it) and locate header files for xmlDict. The previous find command failed due to pipe misuse; we'll use correct syntax."
-}

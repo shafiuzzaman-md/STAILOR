@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '500,600p' dict.c",
-  "reason": "Need to see the full xmlDictFindEntry function body to copy it exactly for the harness."
-}

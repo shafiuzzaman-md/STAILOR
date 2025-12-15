@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "commands": ["grep -n \"xmlStrQEqual\" dict.c -B 2 -A 10", "grep -n \"xmlDictGrow\" dict.c -B 2 -A 10", "grep -n \"xmlDictAddString\" dict.c -B 2 -A 10"],
-  "reason": "Need to understand helper functions called by xmlDictFindEntry (xmlStrQEqual) and xmlDictLookupInternal (xmlDictGrow, xmlDictAddString) to decide whether to embed or stub."
-}

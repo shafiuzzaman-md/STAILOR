@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '1,100p' dict.c | grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' -A 5 -B 5",
-  "reason": "Need to see the exact macro definition of ATTRIBUTE_NO_SANITIZE_INTEGER to properly define it in harness.c"
-}

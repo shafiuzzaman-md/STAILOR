@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'struct xmlHashedString' dict.c",
-  "reason": "Need to find the definition of xmlHashedString to properly define xmlDictEntry."
-}

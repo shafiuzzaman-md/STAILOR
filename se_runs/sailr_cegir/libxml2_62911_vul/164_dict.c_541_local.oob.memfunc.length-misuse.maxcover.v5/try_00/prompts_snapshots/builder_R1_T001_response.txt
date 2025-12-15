@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n '^typedef.*xmlChar' *.h",
-  "reason": "Find xmlChar typedef in project headers (relative path)."
-}

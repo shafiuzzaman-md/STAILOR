@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'xmlChar' dict.c | head -20",
-  "reason": "Need to find xmlChar definition (likely from libxml2 headers). If not in dict.c, we must see how it's included (e.g., #include \"libxml/dict.h\") to understand the type."
-}

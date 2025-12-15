@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n '^typedef.*xmlHashedString' ./include/private/dict.h",
-  "reason": "Need exact definition of xmlHashedString to define xmlDictEntry."
-}

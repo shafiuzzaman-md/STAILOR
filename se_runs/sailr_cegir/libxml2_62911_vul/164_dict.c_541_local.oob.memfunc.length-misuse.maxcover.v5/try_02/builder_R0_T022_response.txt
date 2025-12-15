@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '1,30p' dict.c",
-  "reason": "Need to see the beginning of dict.c to get the exact typedef for xmlDictEntry and any other macros (like ATTRIBUTE_NO_SANITIZE_INTEGER) that appear before the target function."
-}

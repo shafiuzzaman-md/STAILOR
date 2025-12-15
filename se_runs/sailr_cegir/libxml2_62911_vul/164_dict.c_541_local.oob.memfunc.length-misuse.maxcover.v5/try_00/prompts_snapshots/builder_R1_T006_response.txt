@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'xmlHashedString' dict.c -B 30 | head -40",
-  "reason": "Need to see the definition of xmlHashedString struct (likely earlier in dict.c) to know its fields, especially 'name' and 'hashValue', for correct type definitions in harness."
-}

@@ -1,9 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -n 'xmlStrQEqual' xmlstring.c -A 30",
-    "grep -n 'xmlDictHashName' dict.c -A 30",
-    "grep -n 'xmlDictHashQName' dict.c -A 30"
-  ],
-  "reason": "Need exact function bodies for xmlStrQEqual (called in target function) and hash functions (used to compute hashValue). Also need to understand xmlHashedString struct (already found)."
-}

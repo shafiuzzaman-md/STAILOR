@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '176,210p' xmlstring.c",
-  "reason": "Need to retrieve xmlStrQEqual function body to embed in harness."
-}

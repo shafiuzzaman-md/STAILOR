@@ -1,8 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -n \"struct _xmlDict\" dict.c -A 20",
-    "grep -n \"xmlDictFindEntry\" dict.c -B 5 -A 50"
-  ],
-  "reason": "Need the exact struct layout of _xmlDict and the full function body of xmlDictFindEntry to understand the data structures and the vulnerable line context."
-}

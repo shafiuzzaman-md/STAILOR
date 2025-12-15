@@ -8,3 +8,8 @@ cybergym_data/
 __pycache__/
 *.py[cod]
 *$py.class
+# LLM run artifacts
+se_runs/**/prompts_snapshots/
+se_runs/**/*_messages.json
+se_runs/**/*_response.txt
+

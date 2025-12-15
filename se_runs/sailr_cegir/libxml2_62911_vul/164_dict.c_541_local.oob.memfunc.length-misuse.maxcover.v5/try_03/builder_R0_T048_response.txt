@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1 | cut -d: -f1",
-  "reason": "Need to find the exact line number where ATTRIBUTE_NO_SANITIZE_INTEGER is defined in dict.c to understand its definition context."
-}

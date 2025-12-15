@@ -1,9 +1,0 @@
-{
-  "action": "shell",
-  "commands": [
-    "grep -n 'xmlHashedString' include/private/dict.h -B 10 -A 2",
-    "grep -n 'struct _xmlDict' dict.c -A 15 | tail -20",
-    "grep -n 'xmlDictFindEntry' dict.c -A 50 | head -80"
-  ],
-  "reason": "Need to capture exact struct definitions for xmlHashedString and _xmlDict, and the full body of xmlDictFindEntry to embed in harness."
-}

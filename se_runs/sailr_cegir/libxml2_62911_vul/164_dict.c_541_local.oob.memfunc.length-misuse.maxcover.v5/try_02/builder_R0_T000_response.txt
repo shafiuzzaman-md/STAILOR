@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "cat dict.c | sed -n '59,72p'",
-  "reason": "Need the exact struct _xmlDict definition to embed in harness.c for proper layout of dict->table and dict->size."
-}

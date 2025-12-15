@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "grep -n 'xmlDictFindEntry' dict.c | head -5",
-  "reason": "Need to locate the exact function definition of xmlDictFindEntry to copy its body."
-}

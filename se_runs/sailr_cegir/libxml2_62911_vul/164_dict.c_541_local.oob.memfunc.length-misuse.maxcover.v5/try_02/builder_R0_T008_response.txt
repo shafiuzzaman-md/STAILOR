@@ -1,5 +1,0 @@
-{
-  "action": "shell",
-  "command": "sed -n '514,600p' dict.c",
-  "reason": "Need to retrieve the exact body of xmlDictFindEntry (starting from its definition) to embed correctly."
-}
