@@ -3,7 +3,7 @@ codeql-db/
 dataset/
 cybergym_data/
 **/llm_usage.tsv
-*.bc
+**/*.bc
 # Python bytecode
 __pycache__/
 *.py[cod]
