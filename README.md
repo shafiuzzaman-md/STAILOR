@@ -95,13 +95,13 @@ SAILR assumes a frozen dataset snapshot under ./dataset/… and, optionally, met
 
 1. Extract source code for a task
 ```
-python3 extract_from_cybergym.py arvo:55980 libxml2
+python3 extract_from_cybergym.py arvo:19910 binutils
 # Produces: ./dataset/55980/libxml2_55980_vul/...
 ```
 
 2. Fetch ground-truth metadata (optional)
 ```
-python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
+python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:19910 
 ```
 This pulls task manifests / metadata that SAILR can later use when evaluating refinement quality.
 
@@ -118,8 +118,8 @@ chmod +x codeql_scan.sh
 
 ```
 ./codeql_scan.sh \
-  PROJECT_NAME=libxml2_55980_vul \
-  SRC_ROOT=./dataset/55980/libxml2_55980_vul \
+  PROJECT_NAME=binutils_19910_vul \
+  SRC_ROOT=./dataset/19910/binutils_19910_vul \
   BUILD_CMD="./build.sh" \
   QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
   CONTEXT_LINES=5 \

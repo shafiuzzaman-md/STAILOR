@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2025-12-01T01:26:24.032827+00:00",
+  "timestamp_utc": "2025-12-15T18:31:22.021221+00:00",
   "project": "binutils_19910_vul",
   "args": {
     "query_suites": [
@@ -9,18 +9,18 @@
     "context_lines": 5,
     "overwrite": true,
     "additional_packs": [
-      "/mnt/WorkDrive/SAILR/rules"
+      "/home/shafi/workspace/SAILR/rules"
     ]
   },
   "codeql_version": "CodeQL command-line toolchain release 2.22.1.\nCopyright (C) 2019-2025 GitHub, Inc.\nUnpacked in: /home/shafi/codeql-cli/codeql\n   Analysis results depend critically on separately distributed query and\n   extractor modules. To list modules that are visible to the toolchain,\n   use 'codeql resolve packs' and 'codeql resolve languages'.",
   "installed_packs": {},
   "paths": {
-    "outputs_root": "/mnt/WorkDrive/SAILR/sa_outputs/binutils_19910_vul",
-    "db_path": "/mnt/WorkDrive/SAILR/sa_outputs/binutils_19910_vul/codeql-db",
-    "sarif": "/mnt/WorkDrive/SAILR/sa_outputs/binutils_19910_vul/codeql-results.sarif",
-    "json": "/mnt/WorkDrive/SAILR/sa_outputs/binutils_19910_vul/findings.json",
-    "jsonl": "/mnt/WorkDrive/SAILR/sa_outputs/binutils_19910_vul/findings.jsonl",
-    "csv": "/mnt/WorkDrive/SAILR/sa_outputs/binutils_19910_vul/findings.csv",
-    "ccdb": "/mnt/WorkDrive/SAILR/sa_outputs/binutils_19910_vul/compile_commands.json"
+    "outputs_root": "/home/shafi/workspace/SAILR/sa_outputs/binutils_19910_vul",
+    "db_path": "/home/shafi/workspace/SAILR/sa_outputs/binutils_19910_vul/codeql-db",
+    "sarif": "/home/shafi/workspace/SAILR/sa_outputs/binutils_19910_vul/codeql-results.sarif",
+    "json": "/home/shafi/workspace/SAILR/sa_outputs/binutils_19910_vul/findings.json",
+    "jsonl": "/home/shafi/workspace/SAILR/sa_outputs/binutils_19910_vul/findings.jsonl",
+    "csv": "/home/shafi/workspace/SAILR/sa_outputs/binutils_19910_vul/findings.csv",
+    "ccdb": "/home/shafi/workspace/SAILR/sa_outputs/binutils_19910_vul/compile_commands.json"
   }
 }
