@@ -1,0 +1,117 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlDoc xmlDoc;
+typedef xmlDoc *xmlDocPtr;
+typedef struct _xmlTextWriter xmlTextWriter;
+typedef xmlTextWriter *xmlTextWriterPtr;
+typedef struct _xmlSAXHandler xmlSAXHandler;
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef xmlParserCtxt *xmlParserCtxtPtr;
+
+/* Minimal stub types to satisfy compilation */
+struct _xmlSAXHandler {
+    void *startDocument;
+    void *startElement;
+    void *endElement;
+    /* Other fields omitted for brevity */
+};
+
+struct _xmlParserCtxt {
+    /* Minimal structure */
+};
+
+enum {
+    XML_ERR_INTERNAL_ERROR = 1
+};
+
+/* Stub functions that would be called */
+void xmlWriterErrMsg(void *ctx, int error, const char *msg) {
+    /* Do nothing in harness */
+}
+
+void xmlSAX2InitDefaultSAXHandler(xmlSAXHandler *hdl, int entities) {
+    /* Initialize handler minimally */
+    if (hdl) {
+        /* Minimal initialization */
+    }
+}
+
+xmlParserCtxtPtr xmlCreatePushParserCtxt(xmlSAXHandler *hdl, void *user_data, 
+                                         const char *chunk, int size, const char *filename) {
+    /* Return symbolic or concrete pointer */
+    xmlParserCtxtPtr ctxt;
+    ctxt = (xmlParserCtxtPtr)malloc(sizeof(struct _xmlParserCtxt));
+    klee_assume(ctxt != NULL); /* Assume allocation succeeds */
+    return ctxt;
+}
+
+void xmlTextWriterStartDocumentCallback(void *ctx) {}
+void xmlSAX2StartElement(void *ctx, const char *name, const char **atts) {}
+void xmlSAX2EndElement(void *ctx, const char *name) {}
+
+/* The target function we need to reach */
+xmlTextWriterPtr xmlNewTextWriterTree(xmlDocPtr doc) {
+    xmlSAXHandler saxHandler;
+    xmlParserCtxtPtr ctxt;
+
+    if (doc == NULL) {
+        xmlWriterErrMsg(NULL, XML_ERR_INTERNAL_ERROR,
+                        "xmlNewTextWriterTree : invalid document tree!\n");
+        return NULL;
+    }
+
+    /* TARGET LINE 436: memset(&saxHandler, '\0', sizeof(saxHandler)); */
+    /* Vulnerability assertion: ensure sizeof(saxHandler) is reasonable */
+    /* For memset OOB, we need to ensure we're not writing beyond saxHandler bounds */
+    /* Since saxHandler is a local struct, sizeof gives correct size, but the SA rule
+       flags potential unbounded length. We'll assert that sizeof(saxHandler) is positive
+       and less than some reasonable upper bound to catch if it were corrupted. */
+    SAILR_ASSERT(sizeof(saxHandler) > 0 && sizeof(saxHandler) <= 1024);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(&saxHandler, '\0', sizeof(saxHandler));
+    xmlSAX2InitDefaultSAXHandler(&saxHandler, 1);
+    saxHandler.startDocument = xmlTextWriterStartDocumentCallback;
+    saxHandler.startElement = xmlSAX2StartElement;
+    saxHandler.endElement = xmlSAX2EndElement;
+
+    ctxt = xmlCreatePushParserCtxt(&saxHandler, NULL, NULL, 0, NULL);
+    if (ctxt == NULL) {
+        xmlWriterErrMsg(NULL, XML_ERR_INTERNAL_ERROR,
+                        "xmlNewTextWriterTree : failed to create parser context!\n");
+        return NULL;
+    }
+
+    /* Return a dummy writer pointer */
+    return (xmlTextWriterPtr)malloc(1);
+}
+
+int main(void) {
+    /* Make doc pointer symbolic to explore both NULL and non-NULL paths */
+    xmlDocPtr doc;
+    klee_make_symbolic(&doc, sizeof(doc), "doc");
+    
+    /* Assume doc is either NULL or points to valid memory */
+    if (doc != NULL) {
+        klee_assume(doc != (void*)0); /* Ensure it's not exactly zero if non-NULL */
+    }
+    
+    /* Call the target function */
+    xmlTextWriterPtr writer = xmlNewTextWriterTree(doc);
+    
+    /* Clean up if needed */
+    if (writer != NULL) {
+        free(writer);
+    }
+    
+    return 0;
+}

@@ -1,0 +1,60 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <klee/klee.h>
+#include <string.h>
+#include <stdlib.h>
+
+/* Global variable from the original code */
+static int urip_rlen;
+
+/* Function prototype matching the target function */
+static int uripRead(void *context, char *buffer, int len);
+
+/* Implementation of the target function */
+static int uripRead(void *context, char *buffer, int len) {
+    const char *ptr = (const char *) context;
+
+    if ((context == NULL) || (buffer == NULL) || (len < 0))
+        return(-1);
+
+    if (len > urip_rlen) len = urip_rlen;
+    
+    /* Vulnerability assertion: ensure len doesn't exceed buffer bounds */
+    SAILR_ASSERT(len <= 1024);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memcpy(buffer, ptr, len);
+    urip_rlen -= len;
+    return(len);
+}
+
+int main(void) {
+    /* Symbolic inputs for the function parameters */
+    char context_buffer[1024];
+    char *buffer;
+    int len;
+    
+    /* Initialize global variable */
+    urip_rlen = 2048;  /* Arbitrary value larger than typical buffer */
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(context_buffer, sizeof(context_buffer), "context_buffer");
+    klee_make_symbolic(&buffer, sizeof(buffer), "buffer");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    /* Assume buffer points to valid memory of reasonable size */
+    char local_buffer[1024];
+    buffer = local_buffer;
+    
+    /* Assume len is non-negative (as checked in function) */
+    klee_assume(len >= 0);
+    
+    /* Call the target function */
+    uripRead(context_buffer, buffer, len);
+    
+    return 0;
+}

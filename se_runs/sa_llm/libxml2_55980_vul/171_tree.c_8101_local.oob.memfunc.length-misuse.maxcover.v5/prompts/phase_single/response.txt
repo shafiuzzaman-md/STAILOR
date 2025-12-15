@@ -1,0 +1,62 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlDOMWrapCtxt xmlDOMWrapCtxt;
+typedef xmlDOMWrapCtxt *xmlDOMWrapCtxtPtr;
+
+/* Stub for xmlMalloc */
+void *xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    return ptr;
+}
+
+/* Stub for xmlTreeErrMemory */
+void xmlTreeErrMemory(const char *msg) {
+    /* Do nothing in stub */
+}
+
+/* The target function from tree.c:8092 */
+xmlDOMWrapCtxtPtr xmlDOMWrapNewCtxt(void) {
+    xmlDOMWrapCtxtPtr ret;
+
+    ret = xmlMalloc(sizeof(xmlDOMWrapCtxt));
+    if (ret == NULL) {
+        xmlTreeErrMemory("allocating DOM-wrapper context");
+        return (NULL);
+    }
+    /* TARGET LINE 8101 */
+    memset(ret, 0, sizeof(xmlDOMWrapCtxt));
+    return (ret);
+}
+
+int main(void) {
+    /* Create symbolic variable to influence malloc behavior */
+    int malloc_fails;
+    klee_make_symbolic(&malloc_fails, sizeof(malloc_fails), "malloc_fails");
+    
+    /* Override xmlMalloc to potentially return NULL based on symbolic input */
+    /* We'll use klee_assume to explore both paths */
+    
+    /* Call the target function */
+    xmlDOMWrapCtxtPtr ctxt = xmlDOMWrapNewCtxt();
+    
+    /* If we reach here, malloc succeeded and memset was called */
+    if (ctxt != NULL) {
+        /* Vulnerability assertion: For memset, the size should be 
+           less than or equal to the allocated size. Since we allocated
+           exactly sizeof(xmlDOMWrapCtxt), the memset is safe only if
+           the allocated memory is at least that size. */
+        SAILR_ASSERT(sizeof(xmlDOMWrapCtxt) <= malloc_usable_size(ctxt));
+        
+        /* Reachability assertion */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        free(ctxt);
+    }
+    
+    return 0;
+}
+```

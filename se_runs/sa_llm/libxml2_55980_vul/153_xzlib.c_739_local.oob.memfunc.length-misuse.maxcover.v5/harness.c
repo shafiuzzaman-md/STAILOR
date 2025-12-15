@@ -1,0 +1,79 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to compile the relevant code */
+typedef struct {
+    unsigned char *next;
+    unsigned int have;
+    int eof;
+} xz_state;
+
+typedef struct {
+    unsigned int avail_in;
+} z_stream;
+
+/* Stub function that contains the target line */
+static void target_function(unsigned char *buf, unsigned int len, xz_state *state, z_stream *strm) {
+    unsigned int got = 0;
+    unsigned int n;
+    
+    do {
+        /* first just try copying data from the output buffer */
+        if (state->have) {
+            n = state->have > len ? len : state->have;
+            /* TARGET LINE 739 */
+            memcpy(buf, state->next, n);
+            
+            /* VULNERABILITY ASSERTION: ensure n doesn't exceed buf size */
+            SAILR_ASSERT(n <= len);
+            
+            /* REACHABILITY ASSERTION */
+            klee_assert(0 && "SAILR_REACH_ASSERT");
+            
+            state->next += n;
+            state->have -= n;
+        }
+        
+        /* output buffer empty -- return if we're at the end of the input */
+        else if (state->eof && strm->avail_in == 0)
+            break;
+            
+    } while (0); /* Simplified loop for demonstration */
+}
+
+int main(void) {
+    /* Symbolic inputs */
+    unsigned int len;
+    unsigned char *buf;
+    xz_state *state = malloc(sizeof(xz_state));
+    z_stream *strm = malloc(sizeof(z_stream));
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_make_symbolic(&buf, sizeof(buf), "buf");
+    klee_make_symbolic(state, sizeof(*state), "state");
+    klee_make_symbolic(strm, sizeof(*strm), "strm");
+    
+    /* Assume reasonable constraints to reach the target path */
+    klee_assume(state != NULL);
+    klee_assume(strm != NULL);
+    klee_assume(buf != NULL);
+    klee_assume(state->next != NULL);
+    
+    /* Ensure we take the if(state->have) branch */
+    klee_assume(state->have > 0);
+    
+    /* Call the target function */
+    target_function(buf, len, state, strm);
+    
+    /* Cleanup */
+    free(state);
+    free(strm);
+    
+    return 0;
+}

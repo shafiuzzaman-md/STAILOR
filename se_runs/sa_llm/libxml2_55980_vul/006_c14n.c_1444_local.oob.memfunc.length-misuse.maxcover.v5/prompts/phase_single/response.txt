@@ -1,0 +1,91 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed to reach target */
+typedef struct _xmlC14NCtx xmlC14NCtx;
+typedef struct _xmlC14NVisibleNsStackState xmlC14NVisibleNsStackState;
+
+struct _xmlC14NCtx {
+    void *ns_rendered;
+    int parent_is_doc;
+    int pos;
+};
+
+struct _xmlC14NVisibleNsStackState {
+    /* Minimal structure to allow memset */
+    char data[64]; /* Assume reasonable size */
+};
+
+/* Stub for xmlC14NVisibleNsStackSave */
+void xmlC14NVisibleNsStackSave(void *stack, xmlC14NVisibleNsStackState *state) {
+    /* Do nothing - just a stub */
+    (void)stack;
+    (void)state;
+}
+
+/* Stub for xmlC14NErrInternal */
+void xmlC14NErrInternal(const char *msg) {
+    (void)msg;
+}
+
+/* Function containing the target line - simplified version */
+int target_function(xmlC14NCtx *ctx, int visible) {
+    xmlC14NVisibleNsStackState state;
+    int parent_is_doc = 0;
+    
+    /* Simulate the check that might fail */
+    if (ctx == NULL) {
+        xmlC14NErrInternal("checking for relative namespaces");
+        return (-1);
+    }
+    
+    /*
+     * Save ns_rendered stack position
+     */
+    memset(&state, 0, sizeof(state));
+    /* VULNERABILITY ASSERTION HERE */
+    SAILR_ASSERT(sizeof(state) >= 0 && sizeof(state) <= 1024); /* Reasonable bounds check */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    xmlC14NVisibleNsStackSave(ctx->ns_rendered, &state);
+    
+    if (visible) {
+        if (ctx->parent_is_doc) {
+            /* save this flag into the stack */
+            parent_is_doc = ctx->parent_is_doc;
+            ctx->parent_is_doc = 0;
+            ctx->pos = 1; /* XMLC14N_INSIDE_DOCUMENT_ELEMENT */
+        }
+    }
+    
+    return 0;
+}
+
+int main(void) {
+    /* Create symbolic context */
+    xmlC14NCtx *ctx = malloc(sizeof(xmlC14NCtx));
+    if (ctx == NULL) return 1;
+    
+    /* Make context fields symbolic */
+    klee_make_symbolic(&ctx->ns_rendered, sizeof(ctx->ns_rendered), "ns_rendered");
+    klee_make_symbolic(&ctx->parent_is_doc, sizeof(ctx->parent_is_doc), "parent_is_doc");
+    klee_make_symbolic(&ctx->pos, sizeof(ctx->pos), "pos");
+    
+    /* Make visible parameter symbolic */
+    int visible;
+    klee_make_symbolic(&visible, sizeof(visible), "visible");
+    
+    /* Assume reasonable values to avoid trivial failures */
+    klee_assume(ctx != NULL);
+    klee_assume(visible == 0 || visible == 1);
+    klee_assume(ctx->parent_is_doc == 0 || ctx->parent_is_doc == 1);
+    
+    /* Call the target function */
+    int result = target_function(ctx, visible);
+    
+    free(ctx);
+    return result;
+}
+```

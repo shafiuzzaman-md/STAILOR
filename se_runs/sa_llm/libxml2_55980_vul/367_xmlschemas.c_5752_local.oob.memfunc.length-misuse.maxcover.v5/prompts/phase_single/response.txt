@@ -1,0 +1,81 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlSchemaParserCtxt xmlSchemaParserCtxt;
+typedef xmlSchemaParserCtxt *xmlSchemaParserCtxtPtr;
+typedef struct _xmlSchemaWildcard xmlSchemaWildcard;
+typedef xmlSchemaWildcard *xmlSchemaWildcardPtr;
+typedef struct _xmlNode xmlNode;
+typedef xmlNode *xmlNodePtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlSchemaPErrMemory */
+void xmlSchemaPErrMemory(xmlSchemaParserCtxtPtr ctxt, const char* msg, const char* extra) {
+    (void)ctxt; (void)msg; (void)extra;
+}
+
+/* Stub for WXS_ADD_LOCAL */
+#define WXS_ADD_LOCAL(ctxt, ret) ((void)0)
+
+/* Target function signature from xmlschemas.c */
+static xmlSchemaWildcardPtr xmlSchemaNewWildcard(xmlSchemaParserCtxtPtr ctxt, int type, xmlNodePtr node);
+
+/* Implementation of the target function (copied from snippet) */
+static xmlSchemaWildcardPtr xmlSchemaNewWildcard(xmlSchemaParserCtxtPtr ctxt, int type, xmlNodePtr node) {
+    xmlSchemaWildcardPtr ret;
+
+    if ((ctxt == NULL) || (node == NULL))
+        return (NULL);
+
+    ret = (xmlSchemaWildcardPtr) xmlMalloc(sizeof(xmlSchemaWildcard));
+    if (ret == NULL) {
+        xmlSchemaPErrMemory(ctxt, "adding wildcard", NULL);
+        return (NULL);
+    }
+    /* TARGET LINE 5752 */
+    memset(ret, 0, sizeof(xmlSchemaWildcard));
+    /* Vulnerability assertion: ensure the size argument to memset is not larger than allocated size */
+    SAILR_ASSERT(sizeof(xmlSchemaWildcard) <= malloc_usable_size(ret));
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    ret->type = type;
+    ret->node = node;
+    WXS_ADD_LOCAL(ctxt, ret);
+    return (ret);
+}
+
+/* Helper to get allocated size (KLEE built-in) */
+extern size_t malloc_usable_size(void *ptr);
+
+int main(void) {
+    xmlSchemaParserCtxtPtr ctxt;
+    xmlNodePtr node;
+    int type;
+
+    /* Make inputs symbolic */
+    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
+    klee_make_symbolic(&node, sizeof(node), "node");
+    klee_make_symbolic(&type, sizeof(type), "type");
+
+    /* Assume non-NULL to reach the allocation */
+    klee_assume(ctxt != NULL);
+    klee_assume(node != NULL);
+
+    /* Call the target function */
+    xmlSchemaWildcardPtr result = xmlSchemaNewWildcard(ctxt, type, node);
+
+    /* Free if allocated */
+    if (result != NULL) {
+        free(result);
+    }
+
+    return 0;
+}
+```

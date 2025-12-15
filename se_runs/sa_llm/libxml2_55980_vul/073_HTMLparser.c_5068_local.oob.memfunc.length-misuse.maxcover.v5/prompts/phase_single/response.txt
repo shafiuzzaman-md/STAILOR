@@ -1,0 +1,96 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed */
+typedef struct _htmlSAXHandler htmlSAXHandler;
+typedef struct _htmlParserCtxt htmlParserCtxt;
+typedef struct _htmlParserInput htmlParserInput;
+typedef htmlParserInput* htmlParserInputPtr;
+
+/* Minimal stub for htmlParserCtxt */
+struct _htmlParserCtxt {
+    htmlSAXHandler* sax;
+    void* userData;
+    htmlParserInputPtr* inputTab;
+};
+
+/* Minimal stub for htmlSAXHandler - exact size matters for memcpy */
+struct _htmlSAXHandler {
+    char placeholder[256]; /* Conservative size - actual may differ */
+};
+
+/* Stub functions to avoid linking */
+void htmlErrMemory(void* ctx, const char* msg) {
+    /* Do nothing */
+}
+
+void xmlSAX2InitHtmlDefaultSAXHandler(htmlSAXHandler* sax) {
+    /* Do nothing */
+}
+
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Target function from HTMLparser.c */
+int htmlInitParserCtxt(htmlParserCtxt* ctxt, htmlSAXHandler* sax, void* userData) {
+    /* Allocate sax field */
+    ctxt->sax = (htmlSAXHandler*)xmlMalloc(sizeof(htmlSAXHandler));
+    if (ctxt->sax == NULL) {
+        htmlErrMemory(NULL, "htmlInitParserCtxt: out of memory\n");
+        return -1;
+    }
+    
+    if (sax == NULL) {
+        memset(ctxt->sax, 0, sizeof(htmlSAXHandler));
+        xmlSAX2InitHtmlDefaultSAXHandler(ctxt->sax);
+        ctxt->userData = ctxt;
+    } else {
+        /* TARGET LINE 5068: memcpy(ctxt->sax, sax, sizeof(htmlSAXHandler)); */
+        /* Vulnerability assertion: ensure sax points to valid memory of at least sizeof(htmlSAXHandler) bytes */
+        SAILR_ASSERT(sax != NULL);
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memcpy(ctxt->sax, sax, sizeof(htmlSAXHandler));
+        ctxt->userData = userData ? userData : ctxt;
+    }
+
+    /* Allocate the Input stack */
+    ctxt->inputTab = (htmlParserInputPtr*)xmlMalloc(5 * sizeof(htmlParserInputPtr));
+    if (ctxt->inputTab == NULL) {
+        htmlErrMemory(NULL, "htmlInitParserCtxt: out of memory\n");
+        return -1;
+    }
+    
+    return 0;
+}
+
+int main(void) {
+    /* Symbolic parser context */
+    htmlParserCtxt ctxt;
+    
+    /* Symbolic SAX handler pointer - could be NULL or point to valid/invalid memory */
+    htmlSAXHandler* sax;
+    klee_make_symbolic(&sax, sizeof(sax), "sax_ptr");
+    
+    /* Symbolic user data */
+    void* userData;
+    klee_make_symbolic(&userData, sizeof(userData), "userData");
+    
+    /* Assume sax is non-NULL to take the else branch (line 5068) */
+    klee_assume(sax != NULL);
+    
+    /* Call the target function */
+    int result = htmlInitParserCtxt(&ctxt, sax, userData);
+    
+    /* Clean up */
+    if (ctxt.sax) free(ctxt.sax);
+    if (ctxt.inputTab) free(ctxt.inputTab);
+    
+    return 0;
+}
+```

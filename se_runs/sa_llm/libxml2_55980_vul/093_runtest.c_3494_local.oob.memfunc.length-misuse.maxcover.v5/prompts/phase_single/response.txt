@@ -1,0 +1,30 @@
+```c
+#include <klee/klee.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX_PREFIX_LEN 500
+
+int main(void) {
+    char base[MAX_PREFIX_LEN];
+    char prefix[MAX_PREFIX_LEN];
+    int len;
+    
+    klee_make_symbolic(base, sizeof(base), "base");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    klee_assume(len >= 0);
+    klee_assume(len < MAX_PREFIX_LEN);
+    klee_assume(base[len] == '_');
+    
+    memcpy(prefix, base, len);
+    prefix[len] = 0;
+    
+    len += 2;
+    
+    SAILR_ASSERT(len < MAX_PREFIX_LEN);
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return 0;
+}
+```

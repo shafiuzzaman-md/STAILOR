@@ -1,0 +1,15 @@
+Error: memory error: out of bound pointer
+File: runtime/Freestanding/memset.c
+Line: 15
+assembly.ll line: 284
+State: 72
+Stack: 
+	#000000284 in memset(symbolic, 0, 8) at runtime/Freestanding/memset.c:15
+	#100000117 in target_function(symbolic, symbolic) at se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57
+	#200000203 in main() at se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:97
+Info: 
+	address: (ReadLSB w64 0 obj_ptr)
+	example: 0
+	range: [0, 18446744073709551615]
+	next: object at 126616577507328 of size 4
+		MO117[4] allocated at memset():  %5 = alloca i32, align 4

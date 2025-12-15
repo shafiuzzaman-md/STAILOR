@@ -1,0 +1,9 @@
+array count[4] : w32 -> w8 = symbolic
+array is_tuple[4] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 0 count))
+         (Eq 0
+             (ReadLSB w32 0 is_tuple))
+         (Eq 8
+             (Mul w64 8 (SExt w64 N0)))]
+        false)

@@ -1,0 +1,87 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlSchemaParserCtxt xmlSchemaParserCtxt;
+typedef xmlSchemaParserCtxt *xmlSchemaParserCtxtPtr;
+
+struct _xmlSchemaParserCtxt {
+    int type;
+    void *attrProhibs;
+};
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    return ptr;
+}
+
+/* Stub for xmlFree */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+/* Stub for xmlSchemaPErrMemory */
+void xmlSchemaPErrMemory(void *ctxt, const char *msg, const char *extra) {
+    /* Do nothing */
+}
+
+/* Stub for xmlSchemaItemListCreate */
+void* xmlSchemaItemListCreate(void) {
+    /* Return symbolic pointer to simulate both success and failure */
+    void *ptr;
+    klee_make_symbolic(&ptr, sizeof(ptr), "item_list_ptr");
+    klee_assume(ptr == 0 || ptr != 0); /* Ensure it's either NULL or non-NULL */
+    return ptr;
+}
+
+/* Target function - extracted from xmlschemas.c line 10045 context */
+xmlSchemaParserCtxtPtr xmlSchemaNewParserCtxt(void) {
+    xmlSchemaParserCtxtPtr ret;
+
+    ret = (xmlSchemaParserCtxtPtr) xmlMalloc(sizeof(xmlSchemaParserCtxt));
+    if (ret == NULL) {
+        xmlSchemaPErrMemory(NULL, "allocating schema parser context", NULL);
+        return (NULL);
+    }
+    
+    /* TARGET LINE 10045: memset(ret, 0, sizeof(xmlSchemaParserCtxt)); */
+    /* Vulnerability assertion: ensure ret points to at least sizeof(xmlSchemaParserCtxt) bytes */
+    SAILR_ASSERT(ret != NULL);  /* The malloc succeeded, so ret is non-NULL */
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(ret, 0, sizeof(xmlSchemaParserCtxt));
+    ret->type = 1; /* XML_SCHEMA_CTXT_PARSER */
+    ret->attrProhibs = xmlSchemaItemListCreate();
+    if (ret->attrProhibs == NULL) {
+        xmlFree(ret);
+        return(NULL);
+    }
+    return(ret);
+}
+
+/* Main harness entry point */
+int main(void) {
+    xmlSchemaParserCtxtPtr ctxt;
+    
+    /* Call the target function */
+    ctxt = xmlSchemaNewParserCtxt();
+    
+    /* Clean up if needed */
+    if (ctxt != NULL) {
+        if (ctxt->attrProhibs != NULL) {
+            /* Free the item list if it was allocated */
+            free(ctxt->attrProhibs);
+        }
+        xmlFree(ctxt);
+    }
+    
+    return 0;
+}

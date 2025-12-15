@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: glob
+KLEE: WARNING: undefined reference to function: snprintf
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING ONCE: calling external: strlen(128763608170496) at se_runs/sa_llm/libxml2_55980_vul/086_runtest.c_3651_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28 12

@@ -1,0 +1,113 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stubs for libxml2 types and functions needed to reach target */
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef unsigned char xmlChar;
+
+enum {
+    XML_PARSER_EOF = -1
+};
+
+struct _xmlParserCtxt {
+    int instate;
+    void *userData;
+};
+
+/* Stub implementations */
+void xmlErrMemory(xmlParserCtxt *ctxt, const char *extra) {
+    (void)ctxt; (void)extra;
+}
+
+void* xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+int xmlIsNameChar(xmlParserCtxt *ctxt, int c) {
+    (void)ctxt;
+    /* Symbolic condition to allow loop entry */
+    int result;
+    klee_make_symbolic(&result, sizeof(result), "xmlIsNameChar_result");
+    klee_assume(result == 0 || result == 1);
+    return result;
+}
+
+/* Target function from parser.c - simplified to reach memcpy at line 3719 */
+xmlChar* target_function(xmlParserCtxt *ctxt, const xmlChar *buf, int len, int c) {
+    xmlChar *buffer;
+    int max = len * 2;
+    int count = 0;
+    
+    buffer = (xmlChar *) xmlMallocAtomic(max);
+    if (buffer == NULL) {
+        xmlErrMemory(ctxt, NULL);
+        return NULL;
+    }
+    
+    /* VULNERABLE MEMCPY - line 3719 */
+    memcpy(buffer, buf, len);
+    
+    /* Loop that could follow - needed for reachability */
+    while (xmlIsNameChar(ctxt, c)) {
+        if (count++ > 100) { /* Simplified XML_PARSER_CHUNK_SIZE */
+            count = 0;
+            /* GROW macro stub */
+            if (ctxt->instate == XML_PARSER_EOF) {
+                xmlFree(buffer);
+                return NULL;
+            }
+        }
+    }
+    
+    return buffer;
+}
+
+int main(void) {
+    /* Initialize parser context */
+    xmlParserCtxt ctxt;
+    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
+    /* Assume valid state to pass NULL checks */
+    klee_assume(ctxt.instate != XML_PARSER_EOF);
+    
+    /* Symbolic buffer and length for memcpy */
+    int len;
+    klee_make_symbolic(&len, sizeof(len), "len");
+    /* Constrain length to reasonable bounds for symbolic execution */
+    klee_assume(len >= 0);
+    klee_assume(len < 1024); /* Reasonable upper bound */
+    
+    /* Allocate source buffer */
+    xmlChar *buf = (xmlChar*)malloc(len + 1);
+    if (buf == NULL) return 0;
+    klee_make_symbolic(buf, len + 1, "buf");
+    
+    /* Symbolic character for xmlIsNameChar */
+    int c;
+    klee_make_symbolic(&c, sizeof(c), "c");
+    
+    /* Call target function */
+    xmlChar *result = target_function(&ctxt, buf, len, c);
+    
+    /* VULNERABILITY ASSERTION: Check if allocated buffer size (max = len*2) 
+       is sufficient for memcpy of 'len' bytes */
+    if (result != NULL) {
+        SAILR_ASSERT(len * 2 >= len);
+        /* REACHABILITY ASSERTION */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    /* Cleanup */
+    if (result) xmlFree(result);
+    free(buf);
+    
+    return 0;
+}

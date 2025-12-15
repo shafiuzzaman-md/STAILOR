@@ -1,0 +1,11 @@
+array buffer_size[4] : w32 -> w8 = symbolic
+array len_val[4] : w32 -> w8 = symbolic
+array remove_head[4] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 0 remove_head))
+         (Slt 0
+              (ReadLSB w32 0 len_val))
+         (Eq 1
+             (ReadLSB w32 0 buffer_size))
+         (Eq false (Sle N0 1))]
+        false)

@@ -1,0 +1,5 @@
+array bind_nbNodes[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Sle 0
+                  (ReadLSB w32 0 bind_nbNodes)))]
+        false)

@@ -1,0 +1,83 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed */
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef xmlParserCtxt *xmlParserCtxtPtr;
+typedef void (*xmlSAXHandlerPtr)(void);
+
+/* Minimal stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Minimal stub for htmlErrMemory */
+void htmlErrMemory(void* ctx, const char* msg) {
+    /* Do nothing */
+}
+
+/* Minimal stub for htmlInitParserCtxt */
+int htmlInitParserCtxt(xmlParserCtxtPtr ctxt, xmlSAXHandlerPtr sax, void* userData) {
+    /* Return symbolic value to explore both success and failure paths */
+    int result;
+    klee_make_symbolic(&result, sizeof(result), "init_result");
+    klee_assume(result == 0 || result == -1);
+    return result;
+}
+
+/* Minimal stub for htmlFreeParserCtxt */
+void htmlFreeParserCtxt(xmlParserCtxtPtr ctxt) {
+    free(ctxt);
+}
+
+/* The target function from HTMLparser.c:5196 */
+xmlParserCtxtPtr htmlNewParserCtxt(xmlSAXHandlerPtr sax, void* userData) {
+    xmlParserCtxtPtr ctxt;
+
+    ctxt = (xmlParserCtxtPtr) xmlMalloc(sizeof(xmlParserCtxt));
+    if (ctxt == NULL) {
+        htmlErrMemory(NULL, "NewParserCtxt: out of memory\n");
+        return(NULL);
+    }
+    
+    /* TARGET LINE 5196 - memset call */
+    memset(ctxt, 0, sizeof(xmlParserCtxt));
+    
+    /* Vulnerability assertion: ensure size argument doesn't exceed allocated bounds */
+    SAILR_ASSERT(sizeof(xmlParserCtxt) <= sizeof(xmlParserCtxt));
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    if (htmlInitParserCtxt(ctxt, sax, userData) < 0) {
+        htmlFreeParserCtxt(ctxt);
+        return(NULL);
+    }
+    return(ctxt);
+}
+
+/* Main entry point for KLEE */
+int main(void) {
+    /* Create symbolic inputs to drive execution */
+    xmlSAXHandlerPtr sax;
+    void* userData;
+    
+    /* Make inputs symbolic to explore different paths */
+    klee_make_symbolic(&sax, sizeof(sax), "sax_handler");
+    klee_make_symbolic(&userData, sizeof(userData), "user_data");
+    
+    /* Call the target function */
+    xmlParserCtxtPtr result = htmlNewParserCtxt(sax, userData);
+    
+    /* Clean up if allocation succeeded */
+    if (result != NULL) {
+        htmlFreeParserCtxt(result);
+    }
+    
+    return 0;
+}

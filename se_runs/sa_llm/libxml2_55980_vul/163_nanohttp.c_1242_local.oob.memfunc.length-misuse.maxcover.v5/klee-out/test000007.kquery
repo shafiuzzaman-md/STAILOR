@@ -1,0 +1,51 @@
+array bytes_received[4] : w32 -> w8 = symbolic
+array ctxt[24] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 0 len))
+         (Sle N0 1024)
+         (Eq false
+             (Eq 0
+                 N1:(ReadLSB w64 0 ctxt)))
+         (Eq false
+             (Eq 0
+                 N2:(ReadLSB w64 8 ctxt)))
+         (Ule N2 N1)
+         (Ule N3:(Sub w64 N1 N2) 2048)
+         (Eq false (Ult 0 N3))
+         (Eq 128
+             (ReadLSB w32 0 bytes_received))
+         (Eq false (Eq 135499046541032 N1))
+         (Eq false (Eq 135499046541024 N1))
+         (Eq false (Eq 135499046541016 N1))
+         (Eq false (Eq 135499046541008 N1))
+         (Eq false (Eq 135499041417152 N1))
+         (Eq false (Eq 135499041414592 N1))
+         (Eq false (Eq 135499041413056 N1))
+         (Eq false (Eq 135484508471296 N1))
+         (Eq false (Eq 135483434729472 N1))
+         (Eq false (Eq 135483166294016 N1))
+         (Eq false (Eq 135482360987648 N1))
+         (Eq false (Eq 135482092552192 N1))
+         (Eq false (Eq 135481287245824 N1))
+         (Eq false (Eq 135481018810368 N1))
+         (Eq false (Eq 135480012177408 N1))
+         (Eq false (Eq 135479139762176 N1))
+         (Eq false (Eq 134824694120448 N1))
+         (Eq false (Eq 134807514251264 N1))
+         (Eq false (Eq 134305003077632 N1))
+         (Eq false (Eq 134279233273856 N1))
+         (Eq false (Eq 134265274630144 N1))
+         (Eq false (Eq 134264200888320 N1))
+         (Eq false (Eq 134263127146496 N1))
+         (Eq false (Eq 134262053404672 N1))
+         (Eq false (Eq 134260979662848 N1))
+         (Eq false (Eq 134259905921024 N1))
+         (Eq false (Eq 134258832179200 N1))
+         (Eq false (Eq 134258295308288 N1))
+         (Eq false (Eq 134256684695552 N1))
+         (Eq false (Eq 134255610953728 N1))
+         (Eq false (Eq 134253463470080 N1))
+         (Eq false (Eq 134251315986432 N1))
+         (Eq false (Eq 134250242244608 N1))]
+        false)

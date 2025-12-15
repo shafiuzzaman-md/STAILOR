@@ -1,0 +1,15 @@
+Error: free of alloca
+File: se_runs/sa_llm/libxml2_55980_vul/163_nanohttp.c_1242_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 37
+assembly.ll line: 132
+State: 143
+Stack: 
+	#000000132 in xmlNanoHTTPRecv(134279233273856) at se_runs/sa_llm/libxml2_55980_vul/163_nanohttp.c_1242_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:37
+	#100000216 in xmlNanoHTTPRead(134279233273856, 134305003077632, symbolic) at se_runs/sa_llm/libxml2_55980_vul/163_nanohttp.c_1242_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:53
+	#200000388 in main() at se_runs/sa_llm/libxml2_55980_vul/163_nanohttp.c_1242_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:86
+Info: 
+	address: (ReadLSB w64 0 ctxt)
+	example: 134305003077632
+	range: [134305003077632, 134305003077632]
+	next: object at 134250242244608 of size 4
+		MO53[4] allocated at xmlNanoHTTPRead():  %7 = alloca i32, align 4

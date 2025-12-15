@@ -1,0 +1,66 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlDict xmlDict;
+typedef unsigned char xmlChar;
+
+xmlDict* xmlDictCreateSub(xmlDict* parent);
+void xmlDictFree(xmlDict* dict);
+
+/* Stub implementation of xmlDictCreateSub */
+xmlDict* xmlDictCreateSub(xmlDict* parent) {
+    (void)parent;
+    xmlDict* dict = malloc(sizeof(xmlDict));
+    if (dict) {
+        klee_make_symbolic(dict, sizeof(xmlDict), "dict");
+    }
+    return dict;
+}
+
+/* Stub implementation of xmlDictFree */
+void xmlDictFree(xmlDict* dict) {
+    free(dict);
+}
+
+/* Global variable from testdict.c that we need to access */
+extern xmlChar test2[100]; /* Assuming test2 is an array - size unknown from snippet */
+
+int main(void) {
+    xmlDict* parent = NULL;
+    xmlDict* dict;
+    
+    /* Make parent symbolic to explore both NULL and non-NULL paths */
+    parent = malloc(sizeof(xmlDict));
+    if (parent) {
+        klee_make_symbolic(parent, sizeof(xmlDict), "parent");
+    }
+    
+    /* Call xmlDictCreateSub which is in the path to the target line */
+    dict = xmlDictCreateSub(parent);
+    
+    /* The target line is reached when dict != NULL */
+    if (dict != NULL) {
+        /* Vulnerability assertion: For memset OOB, we need to ensure 
+           sizeof(test2) doesn't exceed actual array bounds.
+           Since test2 is external, we assume it's an array of size 100.
+           The vulnerability would be if memset writes beyond array bounds.
+           We assert that sizeof(test2) <= actual array size (100 bytes). */
+        SAILR_ASSERT(sizeof(test2) <= 100);
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Clean up */
+        xmlDictFree(dict);
+    }
+    
+    if (parent) {
+        free(parent);
+    }
+    
+    return 0;
+}
+```

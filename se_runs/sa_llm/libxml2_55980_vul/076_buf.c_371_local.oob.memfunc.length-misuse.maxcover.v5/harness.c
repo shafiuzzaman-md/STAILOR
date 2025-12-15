@@ -1,0 +1,110 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to compile the target function */
+typedef struct _xmlBuf xmlBuf;
+struct _xmlBuf {
+    char *content;      /* The buffer content */
+    char *contentIO;    /* IO buffer */
+    size_t use;         /* Buffer used length */
+    size_t size;        /* Buffer total size */
+    int compat_use;     /* Compatibility use */
+    int compat_size;    /* Compatibility size */
+};
+
+#define UPDATE_COMPAT(buf) \
+    do { \
+        (buf)->compat_use = (int)(buf)->use; \
+        (buf)->compat_size = (int)(buf)->size; \
+    } while (0)
+
+/* Target function signature from buf.c */
+int xmlBufShrink(xmlBufPtr buf, size_t len);
+
+/* Stub for xmlBufPtr */
+typedef xmlBuf *xmlBufPtr;
+
+/* Target function implementation (simplified to reach line 371) */
+int xmlBufShrink(xmlBufPtr buf, size_t len) {
+    if (buf == NULL) return -1;
+    if (len == 0) return 0;
+    if (len > buf->use) return -1;
+    
+    /* Simulate the else branch at line 371 */
+    if (buf->content != buf->contentIO) {
+        /* This branch simulates the else case at line 370 */
+        memmove(buf->content, &buf->content[len], buf->use);
+        buf->content[buf->use] = 0;
+    } else {
+        /* This would be the if branch, not taken */
+        return -1;
+    }
+    
+    UPDATE_COMPAT(buf);
+    return (int)len;
+}
+
+int main(void) {
+    /* Symbolic variables */
+    size_t len;
+    size_t buf_use;
+    size_t buf_size;
+    char *content_buffer;
+    
+    /* Allocate and initialize the xmlBuf structure */
+    xmlBuf *buf = (xmlBuf *)malloc(sizeof(xmlBuf));
+    if (buf == NULL) return 0;
+    
+    /* Make key variables symbolic */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_make_symbolic(&buf_use, sizeof(buf_use), "buf_use");
+    klee_make_symbolic(&buf_size, sizeof(buf_size), "buf_size");
+    
+    /* Assume constraints to reach the vulnerable line */
+    klee_assume(len > 0);               /* len must be > 0 to pass early check */
+    klee_assume(len <= buf_use);        /* len <= buf->use to pass early check */
+    klee_assume(buf_use < buf_size);    /* buf->use < buf->size for buffer bounds */
+    klee_assume(buf_size > 0);          /* Buffer must have positive size */
+    klee_assume(buf_use + len <= buf_size); /* Ensure source region doesn't overflow */
+    
+    /* Allocate content buffer with symbolic size */
+    content_buffer = (char *)malloc(buf_size + 1);
+    if (content_buffer == NULL) {
+        free(buf);
+        return 0;
+    }
+    
+    /* Initialize buffer structure */
+    buf->content = content_buffer;
+    buf->contentIO = NULL;  /* Force else branch at line 370 */
+    buf->use = buf_use;
+    buf->size = buf_size;
+    
+    /* Initialize buffer content with symbolic data */
+    klee_make_symbolic(content_buffer, buf_size + 1, "content_buffer");
+    content_buffer[buf_size] = '\0';  /* Ensure null termination */
+    
+    /* Call the target function */
+    int result = xmlBufShrink(buf, len);
+    
+    /* Vulnerability assertion: check that memmove doesn't read out of bounds */
+    /* The vulnerable memmove at line 371 is: memmove(buf->content, &buf->content[len], buf->use) */
+    /* The source region is &buf->content[len] with size buf->use */
+    /* The source region must be within buf->content[0..buf->size-1] */
+    /* Condition: len + buf->use <= buf->size */
+    SAILR_ASSERT(len + buf_use <= buf_size);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Cleanup */
+    free(content_buffer);
+    free(buf);
+    
+    return 0;
+}

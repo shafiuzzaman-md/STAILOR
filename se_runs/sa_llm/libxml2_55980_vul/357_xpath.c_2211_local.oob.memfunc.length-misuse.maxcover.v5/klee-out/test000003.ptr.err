@@ -1,0 +1,15 @@
+Error: memory error: out of bound pointer
+File: runtime/Freestanding/memset.c
+Line: 15
+assembly.ll line: 185
+State: 25
+Stack: 
+	#000000185 in memset(symbolic, 0, 20) at runtime/Freestanding/memset.c:15
+	#100000060 in xmlXPathContextCacheCreate() at se_runs/sa_llm/libxml2_55980_vul/357_xpath.c_2211_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:41
+	#200000105 in main() at se_runs/sa_llm/libxml2_55980_vul/357_xpath.c_2211_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:59
+Info: 
+	address: (ReadLSB w64 0 xmlMalloc_ptr)
+	example: 255
+	range: [1, 18446744073709551615]
+	next: object at 139229900308480 of size 4
+		MO48[4] allocated at memset():  %5 = alloca i32, align 4

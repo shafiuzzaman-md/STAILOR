@@ -1,0 +1,70 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declaration of the function containing the target line */
+char *prompt(char *prompt_str);
+
+/* Stub for the actual prompt function from xmllint.c */
+char *prompt(char *prompt_str) {
+    char line_read[501]; /* 500 + 1 for null terminator */
+    char *ret;
+    size_t len;
+    
+    /* Make the input line symbolic to explore different lengths */
+    klee_make_symbolic(line_read, sizeof(line_read), "line_read");
+    
+    /* Ensure the string is null-terminated for strlen */
+    line_read[500] = '\0';
+    
+    /* Simulate fgets behavior - assume it reads successfully */
+    /* We'll use klee_assume to ensure the string is properly terminated */
+    int i;
+    for (i = 0; i < 500; i++) {
+        if (line_read[i] == '\0') break;
+    }
+    /* Ensure there's a null terminator within the buffer */
+    klee_assume(i < 500);
+    
+    len = strlen(line_read);
+    
+    /* Vulnerability: memcpy uses len + 1 as count, but malloc also used len + 1 */
+    /* The vulnerability assertion should check that len + 1 doesn't exceed 
+       the allocated buffer size (which is len + 1, so always true) OR
+       that len doesn't exceed the source buffer size (500) */
+    /* Actually, the real issue: line_read[500] = 0; writes out of bounds 
+       if the array is only 500 bytes (indices 0-499). So line_read[500] is OOB. */
+    
+    ret = (char *)malloc(len + 1);
+    if (ret != NULL) {
+        /* VULNERABILITY ASSERTION: Check that we're not copying more than 
+           the source buffer can hold (500 bytes max, but line_read[500] write is OOB) */
+        /* The actual bug is line_read[500] = 0; which writes out of bounds.
+           But for memcpy, we need to ensure len + 1 <= sizeof(line_read) */
+        SAILR_ASSERT(len + 1 <= 500);
+        
+        /* REACHABILITY ASSERTION */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        memcpy(ret, line_read, len + 1);
+    }
+    return ret;
+}
+
+int main(void) {
+    char dummy_prompt[] = "test>";
+    
+    /* Call the function to reach the target line */
+    char *result = prompt(dummy_prompt);
+    
+    if (result) {
+        free(result);
+    }
+    
+    return 0;
+}

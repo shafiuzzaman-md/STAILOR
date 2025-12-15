@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/078_dict.c_358_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 63
+assembly.ll line: 101
+State: 1
+Stack: 
+	#000000101 in xmlDictAddString(132601538936832, 132635898675200, symbolic, 132633751191552, symbolic) at se_runs/sa_llm/libxml2_55980_vul/078_dict.c_358_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:63
+	#100000177 in main() at se_runs/sa_llm/libxml2_55980_vul/078_dict.c_358_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:95

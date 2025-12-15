@@ -1,0 +1,45 @@
+array tmpset_ptr[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 0 tmpset_ptr)))
+         (Eq false
+             (Ult (Add w64 18446617448542109704 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446617446394626056 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446617444247142408 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446617175811686408 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446617158631817224 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446617089912340488 N0) 9))
+         (Eq false
+             (Ult (Add w64 18446616228435853320 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446616227429220360 N0) 3))
+         (Eq false
+             (Ult (Add w64 18446616227160784904 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446616226355478536 N0) 19))
+         (Eq false
+             (Ult (Add w64 18446616226087043080 N0) 11))
+         (Eq false
+             (Ult (Add w64 18446616225281736712 N0) 46))
+         (Eq false
+             (Ult (Add w64 18446616225013301256 N0) 36))
+         (Eq false
+             (Ult (Add w64 18446616223939559432 N0) 97))
+         (Eq false
+             (Ult (Add w64 18446616209406617672 N0) 1529))
+         (Eq false
+             (Ult (Add w64 18446616209406616136 N0) 1529))
+         (Eq false
+             (Ult (Add w64 18446616209406613576 N0) 761))
+         (Eq false
+             (Ult (Add w64 18446616209401325872 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446616209401325864 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446616209401325856 N0) 1))]
+        false)

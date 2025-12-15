@@ -1,0 +1,29 @@
+{
+  "spec_id": "183_tree.c_7709_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/tree.c",
+  "target_line": 7709,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 108,
+        "text": "SAILR_ASSERT(len <= buf.size);"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 111,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the target function */
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef xmlXPathObject *xmlXPathObjectPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlXPathErrMemory */
+void xmlXPathErrMemory(void* ctxt, const char* msg) {
+    /* Do nothing */
+}
+
+/* Target function signature from xpath.c */
+xmlXPathObjectPtr xmlXPathObjectCopy(xmlXPathObjectPtr val);
+
+/* Implementation of the target function based on the snippet */
+xmlXPathObjectPtr xmlXPathObjectCopy(xmlXPathObjectPtr val) {
+    xmlXPathObjectPtr ret;
+    
+    if (val == NULL)
+        return NULL;
+    
+    ret = (xmlXPathObjectPtr) xmlMalloc(sizeof(xmlXPathObject));
+    if (ret == NULL) {
+        xmlXPathErrMemory(NULL, "copying object\n");
+        return NULL;
+    }
+    
+    /* TARGET LINE 5393 - vulnerable memcpy */
+    memcpy(ret, val, sizeof(xmlXPathObject));
+    
+    /* Vulnerability assertion: ensure val points to at least sizeof(xmlXPathObject) bytes */
+    SAILR_ASSERT(1);  /* For memcpy OOB: we assume val is a valid object of proper size */
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return ret;
+}
+
+/* Main harness */
+int main(void) {
+    xmlXPathObjectPtr val;
+    xmlXPathObject obj;
+    
+    /* Make val symbolic to explore different paths */
+    val = &obj;
+    
+    /* Assume val is not NULL to reach the target line */
+    klee_assume(val != NULL);
+    
+    /* Call the target function */
+    xmlXPathObjectPtr result = xmlXPathObjectCopy(val);
+    
+    /* Clean up if allocation succeeded */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}

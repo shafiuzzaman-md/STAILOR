@@ -1,0 +1,45 @@
+array ent[8] : w32 -> w8 = symbolic
+array in_buffer[1024] : w32 -> w8 = symbolic
+array inlen[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 0 inlen))
+         (Sle N0 1024)
+         (Slt 0 N0)
+         (Eq 38 (Read w8 0 in_buffer))
+         (Eq false
+             (Eq 0
+                 N1:(ReadLSB w64 0 ent)))
+         (Eq false
+             (Ult (Add w64 18446612979755039000 N1) 1))
+         (Eq false
+             (Ult (Add w64 18446612979755039008 N1) 1))
+         (Eq false
+             (Ult (Add w64 18446612979755039016 N1) 1))
+         (Eq false
+             (Ult (Add w64 18446612979872225344 N1) 761))
+         (Eq false
+             (Ult (Add w64 18446612979872227904 N1) 1529))
+         (Eq false
+             (Ult (Add w64 18446612979872229440 N1) 1529))
+         (Eq false
+             (Ult (Add w64 18446612994405171200 N1) 102))
+         (Eq false
+             (Ult (Add w64 18446612994673606656 N1) 103))
+         (Eq false
+             (Ult (Add w64 18446612995478913024 N1) 38))
+         (Eq false
+             (Ult (Add w64 18446612996552654848 N1) 11))
+         (Eq false
+             (Ult (Add w64 18446612996821090304 N1) 19))
+         (Eq false
+             (Ult (Add w64 18446612997626396672 N1) 2))
+         (Eq false
+             (Ult (Add w64 18446612997894832128 N1) 3))
+         (Eq false
+             (Ult (Add w64 18446613585500045312 N1) 1017))
+         (Eq false
+             (Ult (Add w64 18446613602679914496 N1) 1017))
+         (Eq false
+             (Ult (Add w64 18446614182500499456 N1) 249))
+         (Ult (Add w64 18446614212833705984 N1) 1)]
+        false)

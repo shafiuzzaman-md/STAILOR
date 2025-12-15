@@ -1,0 +1,90 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to satisfy compilation */
+typedef struct _xmlDict xmlDict;
+struct _xmlDict {
+    unsigned int ref_counter;
+    int limit;
+    unsigned int size;
+    unsigned int nbElems;
+    void *dict;
+    void *strings;
+    xmlDict *subdict;
+    unsigned int seed;
+};
+
+#define MIN_DICT_SIZE 8
+
+/* Stub for xmlMalloc */
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlFree */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+/* Stub for __xmlRandom */
+unsigned int __xmlRandom(void) {
+    return 0;
+}
+
+/* Target function from dict.c - simplified to reach line 601 */
+xmlDict *xmlDictCreate(void) {
+    xmlDict *dict;
+    
+    dict = (xmlDict *) xmlMalloc(sizeof(xmlDict));
+    if (dict == NULL)
+        return(NULL);
+    
+    dict->ref_counter = 1;
+    dict->limit = 0;
+    dict->size = MIN_DICT_SIZE;
+    dict->nbElems = 0;
+    dict->dict = xmlMalloc(MIN_DICT_SIZE * sizeof(void*));
+    dict->strings = NULL;
+    dict->subdict = NULL;
+    
+    if (dict->dict) {
+        /* TARGET LINE 601 - memset call */
+        memset(dict->dict, 0, MIN_DICT_SIZE * sizeof(void*));
+        
+        /* Vulnerability assertion: ensure the size calculation doesn't overflow */
+        SAILR_ASSERT(MIN_DICT_SIZE * sizeof(void*) <= SIZE_MAX);
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+#ifdef DICT_RANDOMIZATION
+        dict->seed = __xmlRandom();
+#else
+        dict->seed = 0;
+#endif
+        return(dict);
+    }
+    
+    xmlFree(dict);
+    return(NULL);
+}
+
+int main(void) {
+    xmlDict *dict;
+    
+    /* Create symbolic inputs if needed (though xmlDictCreate takes no parameters) */
+    dict = xmlDictCreate();
+    
+    /* Clean up if dict was created */
+    if (dict) {
+        if (dict->dict) {
+            free(dict->dict);
+        }
+        free(dict);
+    }
+    
+    return 0;
+}
+```

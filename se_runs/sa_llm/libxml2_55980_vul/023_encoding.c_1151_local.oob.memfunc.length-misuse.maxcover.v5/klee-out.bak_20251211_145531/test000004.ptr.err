@@ -1,0 +1,13 @@
+Error: memory error: invalid pointer: free
+File: se_runs/sa_llm/libxml2_55980_vul/023_encoding.c_1151_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 21
+assembly.ll line: 26
+State: 1
+Stack: 
+	#000000026 in xmlFree(100370732289192) at se_runs/sa_llm/libxml2_55980_vul/023_encoding.c_1151_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21
+	#100000300 in xmlDelEncodingAlias(137518085308416) at se_runs/sa_llm/libxml2_55980_vul/023_encoding.c_1151_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:115
+	#200000174 in main() at se_runs/sa_llm/libxml2_55980_vul/023_encoding.c_1151_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:76
+Info: 
+	address: 100370732289192
+	next: object at 137471914409984 of size 4
+		MO38[4] allocated at main():  %8 = alloca i32, align 4

@@ -1,0 +1,91 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed */
+typedef struct _xmlSchemaAttrInfo xmlSchemaAttrInfo;
+typedef struct _xmlSchemaValidationCtxt xmlSchemaValidationCtxt;
+
+struct _xmlSchemaAttrInfo {
+    unsigned int flags;
+    void *value;
+    void *val;
+};
+
+struct _xmlSchemaValidationCtxt {
+    int nbAttrInfos;
+    xmlSchemaAttrInfo *attrInfos;
+};
+
+/* Stub for xmlFree */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+/* Stub for xmlSchemaFreeValue */
+void xmlSchemaFreeValue(void *val) {
+    /* Assume it frees internal structures */
+    free(val);
+}
+
+/* Function that contains the target line */
+static void xmlSchemaCleanAttrInfo(xmlSchemaValidationCtxt *vctxt) {
+    int i;
+    xmlSchemaAttrInfo *attr;
+    
+    if (vctxt == NULL || vctxt->attrInfos == NULL)
+        return;
+    
+    for (i = 0; i < vctxt->nbAttrInfos; i++) {
+        attr = &(vctxt->attrInfos[i]);
+        
+        if (attr->flags & 1) {  /* XML_SCHEMA_NODE_INFO_FLAG_OWNED_VALUES */
+            if (attr->value != NULL)
+                xmlFree((char *)attr->value);
+        }
+        if (attr->val != NULL) {
+            xmlSchemaFreeValue(attr->val);
+            attr->val = NULL;
+        }
+        
+        /* TARGET LINE: 25428 */
+        SAILR_ASSERT(vctxt->nbAttrInfos > 0 && i < vctxt->nbAttrInfos);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        memset(attr, 0, sizeof(xmlSchemaAttrInfo));
+    }
+    vctxt->nbAttrInfos = 0;
+}
+
+int main(void) {
+    xmlSchemaValidationCtxt vctxt;
+    int num_attrs;
+    
+    /* Make number of attributes symbolic */
+    klee_make_symbolic(&num_attrs, sizeof(num_attrs), "num_attrs");
+    
+    /* Constrain to reasonable bounds for exploration */
+    klee_assume(num_attrs >= 0);
+    klee_assume(num_attrs <= 100);
+    
+    /* Allocate attribute array */
+    vctxt.nbAttrInfos = num_attrs;
+    if (num_attrs > 0) {
+        vctxt.attrInfos = (xmlSchemaAttrInfo *)malloc(num_attrs * sizeof(xmlSchemaAttrInfo));
+        
+        /* Initialize each attribute symbolically */
+        for (int i = 0; i < num_attrs; i++) {
+            klee_make_symbolic(&vctxt.attrInfos[i].flags, sizeof(vctxt.attrInfos[i].flags), "flags");
+            klee_make_symbolic(&vctxt.attrInfos[i].value, sizeof(vctxt.attrInfos[i].value), "value");
+            klee_make_symbolic(&vctxt.attrInfos[i].val, sizeof(vctxt.attrInfos[i].val), "val");
+        }
+        
+        /* Call the function that contains the target line */
+        xmlSchemaCleanAttrInfo(&vctxt);
+        
+        free(vctxt.attrInfos);
+    }
+    
+    return 0;
+}
+```

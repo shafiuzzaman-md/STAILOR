@@ -1,0 +1,17 @@
+array alias[256] : w32 -> w8 = symbolic
+array alias_buf[256] : w32 -> w8 = symbolic
+array array_size[4] : w32 -> w8 = symbolic
+array match_idx[4] : w32 -> w8 = symbolic
+array name_buf[256] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 255 alias))
+         (Sle 1
+              N0:(ReadLSB w32 0 array_size))
+         (Sle N0 10)
+         (Eq 16
+             (Mul w64 16 (SExt w64 N0)))
+         (Eq 0 (Read w8 255 name_buf))
+         (Eq 0 (Read w8 255 alias_buf))
+         (Eq false
+             (Sle 0
+                  (ReadLSB w32 0 match_idx)))]
+        false)

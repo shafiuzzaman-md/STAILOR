@@ -1,0 +1,17 @@
+array key[4] : w32 -> w8 = symbolic
+array newsize[4] : w32 -> w8 = symbolic
+array oldsize[4] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 0 oldsize))
+         (Slt N0 100)
+         (Slt 0
+              N1:(ReadLSB w32 0 newsize))
+         (Slt N1 100)
+         (Eq 48
+             (Mul w64 48 (SExt w64 N0)))
+         (Eq 48
+             (Mul w64 48 (SExt w64 N1)))
+         (Sle 0
+              N2:(ReadLSB w32 0 key))
+         (Slt N2 N1)]
+        false)

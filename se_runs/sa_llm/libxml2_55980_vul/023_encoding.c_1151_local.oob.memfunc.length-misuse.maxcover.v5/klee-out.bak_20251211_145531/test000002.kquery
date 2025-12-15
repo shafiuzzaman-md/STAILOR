@@ -1,0 +1,11 @@
+array alias[256] : w32 -> w8 = symbolic
+array array_size[4] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 255 alias))
+         (Sle 0
+              N0:(ReadLSB w32 0 array_size))
+         (Sle N0 100)
+         (Slt 0 N0)
+         (Eq false
+             (Eq 64
+                 (Mul w64 16 (SExt w64 N0))))]
+        false)

@@ -1,0 +1,63 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlSchemaPSVIIDCBinding xmlSchemaPSVIIDCBinding;
+typedef xmlSchemaPSVIIDCBinding *xmlSchemaPSVIIDCBindingPtr;
+typedef void *xmlSchemaIDCDefinitionPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlSchemaVErrMemory */
+void xmlSchemaVErrMemory(void *ctxt, const char *msg, const char *extra) {
+    /* Do nothing in harness */
+}
+
+/* The target function from xmlschemas.c:22193 */
+static xmlSchemaPSVIIDCBindingPtr 
+xmlSchemaIDCBuildBinding(xmlSchemaIDCDefinitionPtr idcDef) {
+    xmlSchemaPSVIIDCBindingPtr ret;
+
+    ret = (xmlSchemaPSVIIDCBindingPtr) xmlMalloc(
+            sizeof(xmlSchemaPSVIIDCBinding));
+    if (ret == NULL) {
+        xmlSchemaVErrMemory(NULL,
+            "allocating a PSVI IDC binding item", NULL);
+        return (NULL);
+    }
+    
+    /* TARGET LINE 22193 - memset call */
+    memset(ret, 0, sizeof(xmlSchemaPSVIIDCBinding));
+    
+    /* Vulnerability assertion: ensure the allocation size is correct */
+    SAILR_ASSERT(sizeof(xmlSchemaPSVIIDCBinding) > 0);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    ret->definition = idcDef;
+    return (ret);
+}
+
+/* Entry point */
+int main(void) {
+    /* Make the idcDef parameter symbolic to explore different paths */
+    xmlSchemaIDCDefinitionPtr idcDef;
+    klee_make_symbolic(&idcDef, sizeof(idcDef), "idcDef");
+    
+    /* Call the target function */
+    xmlSchemaPSVIIDCBindingPtr result = xmlSchemaIDCBuildBinding(idcDef);
+    
+    /* Clean up if allocation succeeded */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}
+```

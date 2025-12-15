@@ -1,0 +1,10 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x7e9101e00000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x7e8e81e00000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x7d8e81e00000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x7d6e81e00000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_55980_vul/028_runtest.c_4595_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28: external call with symbolic argument: fgets
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_55980_vul/028_runtest.c_4595_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:73: memory error: double free
+KLEE: NOTE: now ignoring this error at this location

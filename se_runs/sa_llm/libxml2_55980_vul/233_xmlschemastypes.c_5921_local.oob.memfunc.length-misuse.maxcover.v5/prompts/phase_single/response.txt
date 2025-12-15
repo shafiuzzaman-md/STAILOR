@@ -1,0 +1,79 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Structure definitions from libxml2 */
+typedef struct {
+    unsigned long lo;
+    unsigned int frac;
+    unsigned int total;
+} xmlSchemaDecimal;
+
+/* Minimal stub of the function containing the target line */
+static void target_function(char *offs, xmlSchemaDecimal dec) {
+    if (dec.frac != dec.total) {
+        int diff = dec.total - dec.frac;
+        /* Insert the decimal point. */
+        memmove(offs + diff + 1, offs + diff, dec.frac + 1);
+        offs[diff] = '.';
+    } else {
+        unsigned int i = 0;
+        /* Insert missing zeroes behind the decimal point. */
+        while (*(offs + i) != 0)
+            i++;
+    }
+}
+
+int main(void) {
+    /* Symbolic decimal structure */
+    xmlSchemaDecimal dec;
+    klee_make_symbolic(&dec, sizeof(dec), "dec");
+    
+    /* Constraints to match the vulnerable path */
+    klee_assume(dec.frac != 0);               /* From line 5915 */
+    klee_assume(dec.frac != dec.total);       /* From line 5916 */
+    klee_assume(dec.total > dec.frac);        /* diff > 0 */
+    klee_assume(dec.total < 1024);            /* Reasonable bound */
+    klee_assume(dec.frac < 1024);             /* Reasonable bound */
+    
+    /* Allocate buffer with symbolic size, but ensure minimum size */
+    unsigned int buf_size;
+    klee_make_symbolic(&buf_size, sizeof(buf_size), "buf_size");
+    klee_assume(buf_size >= dec.total + 2);   /* Minimum for the operation */
+    klee_assume(buf_size < 2048);             /* Upper bound for KLEE */
+    
+    char *offs = (char *)malloc(buf_size);
+    if (!offs) return 0;
+    
+    /* Initialize buffer with null-terminated decimal representation */
+    /* Simulate the snprintf call from line 5913 */
+    unsigned int written = dec.total;  /* Assume snprintf wrote dec.total chars */
+    klee_assume(written <= buf_size - 1);
+    for (unsigned int i = 0; i < written; i++) {
+        offs[i] = '0' + (i % 10);  /* Arbitrary digit */
+    }
+    offs[written] = '\0';
+    
+    /* Vulnerability assertion: memmove length must not exceed buffer bounds */
+    /* The memmove copies dec.frac + 1 bytes starting at offs + diff.
+       Ensure the source and destination regions are within [0, buf_size). */
+    int diff = dec.total - dec.frac;
+    SAILR_ASSERT(
+        (diff >= 0) &&
+        (diff < buf_size) &&
+        (diff + 1 < buf_size) &&
+        (dec.frac + 1 <= buf_size - (diff + 1)) &&  /* Destination space */
+        (dec.frac + 1 <= buf_size - diff)           /* Source space */
+    );
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Call the target function */
+    target_function(offs, dec);
+    
+    free(offs);
+    return 0;
+}
+```

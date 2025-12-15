@@ -1,0 +1,29 @@
+{
+  "spec_id": "215_relaxng.c_6813_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/relaxng.c",
+  "target_line": 6813,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 48,
+        "text": "SAILR_ASSERT(sizeof(xmlRelaxNGParserCtxt) <= malloc_usable_size(ret));"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 51,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

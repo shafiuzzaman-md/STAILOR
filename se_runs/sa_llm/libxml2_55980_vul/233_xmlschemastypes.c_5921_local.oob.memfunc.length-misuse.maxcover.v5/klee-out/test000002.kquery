@@ -1,0 +1,17 @@
+array buf_size[4] : w32 -> w8 = symbolic
+array dec[16] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w32 8 dec)))
+         (Eq false
+             (Eq N0
+                 N1:(ReadLSB w32 12 dec)))
+         (Ult N0 N1)
+         (Ult N1 1024)
+         (Ult N0 1024)
+         (Ule (Add w32 2 N1) 64)
+         (Eq 64
+             (ReadLSB w32 0 buf_size))
+         (Ule N1 63)
+         (Eq false (Ult 2 N1))]
+        false)

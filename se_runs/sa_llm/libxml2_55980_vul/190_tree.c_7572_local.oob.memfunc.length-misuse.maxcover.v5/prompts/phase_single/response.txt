@@ -1,0 +1,99 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to compile the relevant code */
+typedef struct _xmlBuffer xmlBuffer;
+struct _xmlBuffer {
+    xmlChar *content;
+    unsigned int use;
+    unsigned int size;
+};
+
+typedef unsigned char xmlChar;
+
+/* Stub functions */
+void* xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+void xmlTreeErrMemory(const char *extra) {
+    /* Do nothing */
+}
+
+/* Target function from tree.c - simplified version */
+int xmlBufferGrow(xmlBuffer *buf, unsigned int newSize) {
+    xmlChar *rebuf = NULL;
+
+    if (buf->size >= newSize) {
+        return 0;
+    }
+
+    if ((buf->size > 0) && (buf->size < 40)) {
+        /* Original code path not taken */
+        return 0;
+    } else {
+        rebuf = (xmlChar *) xmlMallocAtomic(newSize);
+        if (rebuf != NULL) {
+            /* TARGET LINE 7572: memcpy(rebuf, buf->content, buf->use); */
+            /* Vulnerability assertion: ensure buf->use doesn't exceed allocated size */
+            SAILR_ASSERT(buf->use <= newSize);
+            /* Reachability marker */
+            klee_assert(0 && "SAILR_REACH_ASSERT");
+            
+            memcpy(rebuf, buf->content, buf->use);
+            xmlFree(buf->content);
+            rebuf[buf->use] = 0;
+        }
+    }
+    
+    if (rebuf == NULL) {
+        xmlTreeErrMemory("growing buffer");
+        return 0;
+    }
+    
+    buf->content = rebuf;
+    buf->size = newSize;
+    return 1;
+}
+
+/* Entry point */
+int main(void) {
+    xmlBuffer buf;
+    
+    /* Make buffer fields symbolic */
+    klee_make_symbolic(&buf.use, sizeof(buf.use), "buf_use");
+    klee_make_symbolic(&buf.size, sizeof(buf.size), "buf_size");
+    
+    /* Assume reasonable bounds for symbolic values */
+    klee_assume(buf.use < 4096);      /* Reasonable maximum use */
+    klee_assume(buf.size < 4096);     /* Reasonable maximum size */
+    klee_assume(buf.use <= buf.size); /* Current use shouldn't exceed current size */
+    
+    /* Allocate content buffer with current size */
+    buf.content = (xmlChar*)malloc(buf.size);
+    klee_assume(buf.content != NULL); /* Ensure allocation succeeds */
+    
+    /* Make newSize symbolic */
+    unsigned int newSize;
+    klee_make_symbolic(&newSize, sizeof(newSize), "newSize");
+    
+    /* Assume newSize is larger than current size (to trigger the else branch) */
+    klee_assume(newSize > buf.size);
+    /* Assume newSize is reasonable */
+    klee_assume(newSize < 8192);
+    
+    /* Call the target function */
+    xmlBufferGrow(&buf, newSize);
+    
+    /* Cleanup */
+    free(buf.content);
+    
+    return 0;
+}
+```

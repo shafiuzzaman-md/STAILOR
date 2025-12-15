@@ -1,0 +1,102 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNode xmlNode;
+typedef xmlNode *xmlNodePtr;
+typedef struct _xmlDoc xmlDoc;
+typedef struct _xmlDoc *xmlDocPtr;
+
+struct _xmlNode {
+    int type;
+    xmlDocPtr doc;
+    /* Other fields omitted for brevity */
+};
+
+/* Minimal stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    return ptr;
+}
+
+/* Minimal stub for xmlStrlen */
+int xmlStrlen(const char* str) {
+    if (str == NULL) return 0;
+    int len = 0;
+    while (str[len] != '\0') {
+        len++;
+    }
+    return len;
+}
+
+/* Minimal stub for xmlTreeErrMemory */
+void xmlTreeErrMemory(const char* msg) {
+    /* Do nothing */
+}
+
+/* Target function from tree.c - simplified version to reach line 2638 */
+xmlNodePtr xmlNewReference(xmlDocPtr doc, const char* name) {
+    xmlNodePtr cur;
+    
+    cur = (xmlNodePtr) xmlMalloc(sizeof(xmlNode));
+    if (cur == NULL) {
+        xmlTreeErrMemory("building reference");
+        return NULL;
+    }
+    
+    /* TARGET LINE 2638: memset(cur, 0, sizeof(xmlNode)); */
+    memset(cur, 0, sizeof(xmlNode));
+    
+    /* Vulnerability assertion: Check if sizeof(xmlNode) is within bounds */
+    SAILR_ASSERT(sizeof(xmlNode) > 0 && sizeof(xmlNode) <= 1024); /* Reasonable upper bound */
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    cur->type = 1; /* XML_ENTITY_REF_NODE */
+    cur->doc = (xmlDoc *)doc;
+    
+    if (name[0] == '&') {
+        int len;
+        name++;
+        len = xmlStrlen(name);
+        if (name[len - 1] == ';') {
+            /* Handle entity reference */
+        }
+    }
+    
+    return cur;
+}
+
+int main(void) {
+    xmlDocPtr doc;
+    char name[256];
+    
+    /* Make doc symbolic (simplified as a pointer) */
+    klee_make_symbolic(&doc, sizeof(doc), "doc");
+    
+    /* Make name symbolic with reasonable constraints */
+    klee_make_symbolic(name, sizeof(name), "name");
+    
+    /* Assume name is null-terminated */
+    klee_assume(name[255] == '\0');
+    
+    /* Assume name starts with '&' to take the interesting path */
+    klee_assume(name[0] == '&');
+    
+    /* Assume name has at least 2 characters (after skipping '&') */
+    klee_assume(name[1] != '\0');
+    
+    /* Call the target function */
+    xmlNodePtr result = xmlNewReference(doc, name);
+    
+    /* Free if allocated */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}
+```

@@ -1,0 +1,89 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNs xmlNs;
+typedef xmlNs *xmlNsPtr;
+typedef struct _xmlNode xmlNode;
+typedef xmlNode *xmlNodePtr;
+
+/* Structure matching xmlC14NCtx from libxml2 */
+typedef struct _xmlC14NCtx {
+    xmlNsPtr *nsTab;
+    xmlNodePtr *nodeTab;
+    int nsMax;
+    int nsCurEnd;
+} xmlC14NCtx;
+
+/* Stub functions to avoid linking with libxml2 */
+void* xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    return ptr;
+}
+
+void* xmlRealloc(void *ptr, size_t size) {
+    return realloc(ptr, size);
+}
+
+void xmlC14NErrMemory(const char *msg) {
+    /* Do nothing - just a stub */
+}
+
+/* The function containing the target line - simplified version */
+void xmlC14NAddNodeToStack(xmlC14NCtx *cur) {
+    if ((cur->nsTab == NULL) && (cur->nodeTab == NULL)) {
+        cur->nsTab = (xmlNsPtr*) xmlMalloc(XML_NAMESPACES_DEFAULT * sizeof(xmlNsPtr));
+        cur->nodeTab = (xmlNodePtr*) xmlMalloc(XML_NAMESPACES_DEFAULT * sizeof(xmlNodePtr));
+        if ((cur->nsTab == NULL) || (cur->nodeTab == NULL)) {
+            xmlC14NErrMemory("adding node to stack");
+            return;
+        }
+        /* TARGET LINE 328 - memset with potentially unsafe size */
+        memset(cur->nsTab, 0, XML_NAMESPACES_DEFAULT * sizeof(xmlNsPtr));
+        memset(cur->nodeTab, 0, XML_NAMESPACES_DEFAULT * sizeof(xmlNodePtr));
+        cur->nsMax = XML_NAMESPACES_DEFAULT;
+    } else if (cur->nsMax == cur->nsCurEnd) {
+        void *tmp;
+        int tmpSize;
+        
+        tmpSize = 2 * cur->nsMax;
+        tmp = xmlRealloc(cur->nsTab, tmpSize * sizeof(xmlNsPtr));
+        /* ... rest of function omitted for brevity */
+    }
+}
+
+/* Main harness entry point */
+int main(void) {
+    /* Symbolic context to explore different states */
+    xmlC14NCtx ctx;
+    
+    /* Initialize context fields symbolically */
+    klee_make_symbolic(&ctx.nsTab, sizeof(ctx.nsTab), "nsTab");
+    klee_make_symbolic(&ctx.nodeTab, sizeof(ctx.nodeTab), "nodeTab");
+    klee_make_symbolic(&ctx.nsMax, sizeof(ctx.nsMax), "nsMax");
+    klee_make_symbolic(&ctx.nsCurEnd, sizeof(ctx.nsCurEnd), "nsCurEnd");
+    
+    /* Assume conditions that lead to the target path:
+       Both pointers are NULL to enter the first if branch */
+    klee_assume(ctx.nsTab == NULL);
+    klee_assume(ctx.nodeTab == NULL);
+    
+    /* Call the function that contains the target line */
+    xmlC14NAddNodeToStack(&ctx);
+    
+    /* Vulnerability assertion: Check that XML_NAMESPACES_DEFAULT * sizeof(xmlNsPtr)
+       doesn't overflow or exceed reasonable bounds. Since XML_NAMESPACES_DEFAULT
+       is a constant, we check that the multiplication doesn't overflow size_t.
+       For length-misuse patterns, we want to ensure the size is within bounds. */
+    SAILR_ASSERT(XML_NAMESPACES_DEFAULT * sizeof(xmlNsPtr) <= (size_t)-1 / sizeof(xmlNsPtr));
+    
+    /* Reachability assertion - placed after vulnerability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return 0;
+}

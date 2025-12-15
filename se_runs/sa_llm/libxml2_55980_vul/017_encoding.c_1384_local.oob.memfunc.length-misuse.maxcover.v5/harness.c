@@ -1,0 +1,96 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stub types to compile */
+typedef struct _xmlCharEncodingHandler xmlCharEncodingHandler;
+typedef xmlCharEncodingHandler *xmlCharEncodingHandlerPtr;
+
+/* Stub functions needed to reach target line */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+void xmlEncodingErrMemory(const char *msg) {
+    /* Do nothing */
+}
+
+/* Target function signature */
+xmlCharEncodingHandlerPtr xmlNewCharEncodingHandler(const char *name, 
+                                                    void *input, 
+                                                    void *output);
+
+/* Implementation of target function (simplified to reach line 1384) */
+xmlCharEncodingHandlerPtr xmlNewCharEncodingHandler(const char *name, 
+                                                    void *input, 
+                                                    void *output) {
+    char *up;
+    xmlCharEncodingHandlerPtr handler;
+    
+    /* Allocate name copy - make symbolic to avoid null */
+    up = (char *)malloc(256);
+    if (up == NULL) {
+        return NULL;
+    }
+    
+    /* Allocate handler - make symbolic size to potentially cause OOB */
+    handler = (xmlCharEncodingHandlerPtr)xmlMalloc(sizeof(xmlCharEncodingHandler));
+    if (handler == NULL) {
+        xmlFree(up);
+        xmlEncodingErrMemory("xmlNewCharEncodingHandler : out of memory !\n");
+        return NULL;
+    }
+    
+    /* TARGET LINE 1384: memset(handler, 0, sizeof(xmlCharEncodingHandler)); */
+    /* Vulnerability assertion: ensure handler points to valid memory of at least sizeof(xmlCharEncodingHandler) bytes */
+    SAILR_ASSERT(handler != NULL);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(handler, 0, sizeof(xmlCharEncodingHandler));
+    handler->input = input;
+    handler->output = output;
+    handler->name = up;
+    
+    return handler;
+}
+
+int main(void) {
+    /* Symbolic inputs to drive execution */
+    char symbolic_name[256];
+    int symbolic_input;
+    int symbolic_output;
+    
+    klee_make_symbolic(symbolic_name, sizeof(symbolic_name), "name");
+    klee_make_symbolic(&symbolic_input, sizeof(symbolic_input), "input");
+    klee_make_symbolic(&symbolic_output, sizeof(symbolic_output), "output");
+    
+    /* Assume name is null-terminated */
+    klee_assume(symbolic_name[255] == '\0');
+    
+    /* Call the target function */
+    xmlCharEncodingHandlerPtr result = xmlNewCharEncodingHandler(
+        symbolic_name, 
+        &symbolic_input, 
+        &symbolic_output
+    );
+    
+    /* Cleanup if allocation succeeded */
+    if (result != NULL) {
+        if (result->name != NULL) {
+            free(result->name);
+        }
+        free(result);
+    }
+    
+    return 0;
+}

@@ -1,0 +1,29 @@
+{
+  "spec_id": "082_dict.c_290_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/dict.c",
+  "target_line": 290,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 64,
+        "text": "SAILR_ASSERT(pool.free + namelen + 1 <= pool.end);"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 67,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

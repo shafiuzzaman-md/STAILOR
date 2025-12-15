@@ -1,0 +1,13 @@
+array initial_size[8] : w32 -> w8 = symbolic
+array initial_use[8] : w32 -> w8 = symbolic
+array len[8] : w32 -> w8 = symbolic
+(query [(Ult N0:(ReadLSB w64 0 initial_use)
+              127)
+         (Ult 0
+              N1:(ReadLSB w64 0 len))
+         (Ule N1 1024)
+         (Eq 127
+             (ReadLSB w64 0 initial_size))
+         (Eq false (Ult 0 N0))
+         (Eq false (Eq 128 N1))]
+        false)

@@ -1,0 +1,9 @@
+Error: memory error: object read only
+File: runtime/Freestanding/memcpy.c
+Line: 17
+assembly.ll line: 260
+State: 55
+Stack: 
+	#000000260 in memcpy(symbolic, symbolic, symbolic) at runtime/Freestanding/memcpy.c:17
+	#100000155 in target_function(symbolic, symbolic, 124669768237056, 124601048760320) at se_runs/sa_llm/libxml2_55980_vul/153_xzlib.c_739_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:30
+	#200000080 in main() at se_runs/sa_llm/libxml2_55980_vul/153_xzlib.c_739_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:72

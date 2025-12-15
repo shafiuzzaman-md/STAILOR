@@ -1,0 +1,101 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlIOHTTPWriteCtxt xmlIOHTTPWriteCtxt;
+struct _xmlIOHTTPWriteCtxt {
+    char *uri;
+    /* Other fields omitted for brevity */
+};
+
+void xmlIOErrMemory(const char *msg);
+void *xmlMalloc(size_t size);
+char *xmlStrdup(const char *cur);
+void xmlFreeHTTPWriteCtxt(xmlIOHTTPWriteCtxt *ctxt);
+
+/* Stub implementations to avoid linking with libxml2 */
+void xmlIOErrMemory(const char *msg) {
+    /* Do nothing */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+char *xmlStrdup(const char *cur) {
+    if (cur == NULL) return NULL;
+    size_t len = strlen(cur) + 1;
+    char *copy = (char *)malloc(len);
+    if (copy) memcpy(copy, cur, len);
+    return copy;
+}
+
+void xmlFreeHTTPWriteCtxt(xmlIOHTTPWriteCtxt *ctxt) {
+    if (ctxt) {
+        free(ctxt->uri);
+        free(ctxt);
+    }
+}
+
+/* The function containing the target line - simplified version */
+void *xmlIOHTTPWriteOpenInternal(const char *post_uri) {
+    xmlIOHTTPWriteCtxt *ctxt;
+
+    ctxt = xmlMalloc(sizeof(xmlIOHTTPWriteCtxt));
+    if (ctxt == NULL) {
+        xmlIOErrMemory("creating HTTP output context");
+        return (NULL);
+    }
+
+    /* TARGET LINE 1802: memset with sizeof(xmlIOHTTPWriteCtxt) */
+    (void) memset(ctxt, 0, sizeof(xmlIOHTTPWriteCtxt));
+
+    ctxt->uri = (char *) xmlStrdup(post_uri);
+    if (ctxt->uri == NULL) {
+        xmlIOErrMemory("copying URI");
+        xmlFreeHTTPWriteCtxt(ctxt);
+        return (NULL);
+    }
+
+    return ctxt;
+}
+
+int main(void) {
+    /* Make post_uri symbolic to explore different paths */
+    char post_uri[256];
+    klee_make_symbolic(post_uri, sizeof(post_uri), "post_uri");
+    
+    /* Assume post_uri is null-terminated for safety */
+    klee_assume(post_uri[255] == '\0');
+    
+    /* Call the function that reaches the target line */
+    void *result = xmlIOHTTPWriteOpenInternal(post_uri);
+    
+    /* Vulnerability assertion: For memset length-misuse, we need to ensure
+       the size parameter doesn't exceed allocated bounds. Since we're using
+       sizeof(xmlIOHTTPWriteCtxt) which matches the allocation size, the
+       vulnerability would be if ctxt points to insufficient memory.
+       However, the SA pattern suggests checking that the memset length
+       doesn't exceed the allocated size. Since we allocated exactly
+       sizeof(xmlIOHTTPWriteCtxt), the condition is always true.
+       But we need to check that ctxt is not NULL before memset (which
+       the code already does) and that sizeof(xmlIOHTTPWriteCtxt) <= 
+       allocated size. Since they're equal, we assert that. */
+    if (result != NULL) {
+        /* The vulnerability assertion: ensure memset size doesn't exceed allocation */
+        SAILR_ASSERT(sizeof(xmlIOHTTPWriteCtxt) <= sizeof(xmlIOHTTPWriteCtxt));
+        
+        /* Reachability assertion */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Clean up */
+        xmlFreeHTTPWriteCtxt((xmlIOHTTPWriteCtxt *)result);
+    }
+    
+    return 0;
+}

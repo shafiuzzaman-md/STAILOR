@@ -1,0 +1,142 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to compile dict.c functions */
+typedef struct _xmlDict xmlDict;
+typedef xmlDict *xmlDictPtr;
+
+struct _xmlDictEntry {
+    char *name;
+    unsigned int len;
+    unsigned int okey;
+    int valid;
+    struct _xmlDictEntry *next;
+};
+
+struct _xmlDict {
+    struct _xmlDictEntry *dict;
+    unsigned int size;
+};
+
+/* Stub for xmlStrncmp - we'll use memcmp in our harness */
+int xmlStrncmp(const char *str1, const char *str2, int len) {
+    return memcmp(str1, str2, len);
+}
+
+/* Function from dict.c that we need to reach */
+const char *xmlDictLookup(xmlDictPtr dict, const char *name, int len) {
+    unsigned int okey = 0;
+    unsigned int key;
+    struct _xmlDictEntry *insert;
+    int l = len;
+    int nbi = 0;
+
+    if ((dict == NULL) || (name == NULL) || (len < 0))
+        return NULL;
+
+    /* Simple hash computation for okey */
+    for (int i = 0; i < len; i++) {
+        okey = okey + (unsigned char)name[i];
+    }
+
+    key = okey % dict->size;
+    if (dict->dict[key].valid == 0) {
+        insert = NULL;
+    } else {
+        for (insert = &(dict->dict[key]); insert->next != NULL;
+             insert = insert->next) {
+#ifdef __GNUC__
+            if ((insert->okey == okey) && (insert->len == l)) {
+                if (!memcmp(insert->name, name, l))
+                    return insert->name;
+            }
+#else
+            if ((insert->okey == okey) && (insert->len == l) &&
+                (!xmlStrncmp(insert->name, name, l)))
+                return insert->name;
+#endif
+            nbi++;
+        }
+    }
+    return NULL;
+}
+
+int main(void) {
+    /* Symbolic inputs */
+    xmlDict dict;
+    unsigned int dict_size;
+    char name[256];
+    int len;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&dict_size, sizeof(dict_size), "dict_size");
+    klee_make_symbolic(name, sizeof(name), "name");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    /* Assume reasonable bounds */
+    klee_assume(dict_size > 0 && dict_size < 100);
+    klee_assume(len >= 0 && len < 256);
+    
+    /* Allocate and initialize dictionary */
+    dict.size = dict_size;
+    dict.dict = malloc(sizeof(struct _xmlDictEntry) * dict_size);
+    klee_assume(dict.dict != NULL);
+    
+    /* Initialize dictionary entries */
+    for (unsigned int i = 0; i < dict_size; i++) {
+        dict.dict[i].valid = 0;
+        dict.dict[i].next = NULL;
+        dict.dict[i].name = NULL;
+        dict.dict[i].len = 0;
+        dict.dict[i].okey = 0;
+    }
+    
+    /* Create a specific entry that will match */
+    unsigned int hash = 0;
+    for (int i = 0; i < len; i++) {
+        hash += (unsigned char)name[i];
+    }
+    unsigned int key = hash % dict_size;
+    
+    /* Set up the entry to match our search */
+    dict.dict[key].valid = 1;
+    dict.dict[key].okey = hash;
+    dict.dict[key].len = len;
+    dict.dict[key].name = malloc(len + 1);
+    klee_assume(dict.dict[key].name != NULL);
+    
+    /* Copy name into the entry */
+    for (int i = 0; i < len; i++) {
+        dict.dict[key].name[i] = name[i];
+    }
+    dict.dict[key].name[len] = '\0';
+    
+    /* Create a chain to enter the else branch */
+    dict.dict[key].next = malloc(sizeof(struct _xmlDictEntry));
+    klee_assume(dict.dict[key].next != NULL);
+    dict.dict[key].next->valid = 0;
+    dict.dict[key].next->next = NULL;
+    
+    /* Call the target function */
+    const char *result = xmlDictLookup(&dict, name, len);
+    
+    /* Vulnerability assertion: ensure memcmp length doesn't exceed buffer bounds */
+    /* The vulnerability is that l (which equals len) might be larger than 
+       the allocated buffer for insert->name or name */
+    SAILR_ASSERT(len <= 256 && dict.dict[key].len <= 256);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Cleanup */
+    free(dict.dict[key].name);
+    free(dict.dict[key].next);
+    free(dict.dict);
+    
+    return 0;
+}

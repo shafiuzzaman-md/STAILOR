@@ -1,0 +1,29 @@
+{
+  "spec_id": "232_xmlschemas.c_28864_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xmlschemas.c",
+  "target_line": 28864,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 58,
+        "text": "SAILR_ASSERT(ret != NULL && \"Buffer must be non-NULL for safe memset\");"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 61,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

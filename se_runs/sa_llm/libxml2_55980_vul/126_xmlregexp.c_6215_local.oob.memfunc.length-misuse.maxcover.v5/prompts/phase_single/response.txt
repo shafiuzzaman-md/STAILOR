@@ -1,0 +1,87 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stubs for libxml2 types and functions needed to reach target */
+typedef struct _xmlRegAtom xmlRegAtom;
+typedef unsigned char xmlChar;
+
+struct _xmlRegAtom {
+    void *valuep;
+    int data;
+    int quant;
+};
+
+/* Stub for xmlMallocAtomic */
+void* xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlRegFreeAtom */
+void xmlRegFreeAtom(xmlRegAtom *atom) {
+    if (atom) free(atom);
+}
+
+/* Target function signature inferred from context */
+xmlRegAtom* xmlRegNewAtom(int type, xmlChar* token, xmlChar* token2, int data) {
+    xmlRegAtom* atom = (xmlRegAtom*)malloc(sizeof(xmlRegAtom));
+    if (!atom) return NULL;
+    
+    size_t lenn = strlen((char*)token2);
+    size_t lenp = strlen((char*)token);
+    
+    xmlChar* str = (xmlChar*)xmlMallocAtomic(lenn + lenp + 2);
+    if (str == NULL) {
+        xmlRegFreeAtom(atom);
+        return NULL;
+    }
+    
+    /* TARGET LINE 6215 - vulnerable memcpy */
+    memcpy(&str[0], token, lenp);
+    
+    /* Vulnerability assertion: ensure lenp doesn't exceed allocated buffer */
+    SAILR_ASSERT(lenp <= (lenn + lenp + 2));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    str[lenp] = '|';
+    memcpy(&str[lenp + 1], token2, lenn);
+    str[lenn + lenp + 1] = 0;
+    
+    atom->valuep = str;
+    atom->data = data;
+    atom->quant = 1; /* XML_REGEXP_QUANT_ONCEONLY */
+    
+    return atom;
+}
+
+int main(void) {
+    /* Symbolic inputs to drive execution */
+    xmlChar token[256];
+    xmlChar token2[256];
+    int data;
+    
+    klee_make_symbolic(token, sizeof(token), "token");
+    klee_make_symbolic(token2, sizeof(token2), "token2");
+    klee_make_symbolic(&data, sizeof(data), "data");
+    
+    /* Ensure null-terminated strings for strlen */
+    token[255] = 0;
+    token2[255] = 0;
+    
+    /* Constrain string lengths to reasonable bounds */
+    klee_assume(strlen((char*)token) < 256);
+    klee_assume(strlen((char*)token2) < 256);
+    
+    /* Call the target function */
+    xmlRegAtom* atom = xmlRegNewAtom(0, token, token2, data);
+    
+    if (atom) {
+        xmlRegFreeAtom(atom);
+    }
+    
+    return 0;
+}
+```

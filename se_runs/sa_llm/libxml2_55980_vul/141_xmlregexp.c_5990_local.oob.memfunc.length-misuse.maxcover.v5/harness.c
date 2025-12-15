@@ -1,0 +1,94 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stub for xmlChar */
+typedef unsigned char xmlChar;
+
+/* Minimal stub for xmlMallocAtomic */
+void* xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+/* Minimal stub for xmlRegFreeAtom */
+void xmlRegFreeAtom(void* atom) {
+    /* Empty stub - just to avoid linking issues */
+}
+
+/* Minimal structure for atom */
+typedef struct {
+    xmlChar* valuep;
+} xmlRegAtom;
+
+/* Function prototype matching the target code */
+xmlRegAtom* target_function(xmlChar* token, xmlChar* token2) {
+    size_t lenn, lenp;
+    xmlChar* str;
+    xmlRegAtom* atom;
+    
+    /* Allocate atom structure */
+    atom = (xmlRegAtom*)malloc(sizeof(xmlRegAtom));
+    if (!atom) return NULL;
+    
+    /* Get string lengths - matching lines 5982-5983 */
+    lenn = strlen((char*)token2);
+    lenp = strlen((char*)token);
+    
+    /* Allocate buffer - matching line 5985 */
+    str = (xmlChar*)xmlMallocAtomic(lenn + lenp + 2);
+    if (str == NULL) {
+        xmlRegFreeAtom(atom);
+        free(atom);
+        return NULL;
+    }
+    
+    /* VULNERABLE MEMCPY - target line 5990 */
+    memcpy(&str[0], token, lenp);
+    
+    /* Vulnerability assertion: ensure lenp doesn't exceed allocated buffer */
+    SAILR_ASSERT(lenp <= lenn + lenp + 2);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Continue with rest of function to avoid compiler warnings */
+    str[lenp] = '|';
+    memcpy(&str[lenp + 1], token2, lenn);
+    str[lenn + lenp + 1] = 0;
+    
+    atom->valuep = str;
+    return atom;
+}
+
+int main(void) {
+    xmlChar token[256];
+    xmlChar token2[256];
+    xmlRegAtom* result;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(token, sizeof(token), "token");
+    klee_make_symbolic(token2, sizeof(token2), "token2");
+    
+    /* Ensure null-terminated strings for strlen */
+    token[255] = 0;
+    token2[255] = 0;
+    
+    /* Assume reasonable lengths to avoid overflow in our test buffers */
+    klee_assume(strlen((char*)token) < 256);
+    klee_assume(strlen((char*)token2) < 256);
+    
+    /* Call the target function */
+    result = target_function(token, token2);
+    
+    /* Cleanup */
+    if (result) {
+        if (result->valuep) free(result->valuep);
+        free(result);
+    }
+    
+    return 0;
+}

@@ -1,0 +1,14 @@
+array oldsize[4] : w32 -> w8 = symbolic
+array table_size[4] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 0 oldsize))
+         (Sle N0 100)
+         (Slt 0
+              N1:(ReadLSB w32 0 table_size))
+         (Sle N1 100)
+         (Eq 40
+             (Mul w64 40 (SExt w64 N1)))
+         (Eq false
+             (Eq 40
+                 (Mul w64 40 (SExt w64 N0))))]
+        false)

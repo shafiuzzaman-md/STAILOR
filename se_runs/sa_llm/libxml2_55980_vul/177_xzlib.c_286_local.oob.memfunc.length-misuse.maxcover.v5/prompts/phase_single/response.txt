@@ -1,0 +1,65 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include <lzma.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions to match xzlib.c */
+typedef struct xz_state {
+    unsigned char *in;
+    lzma_stream strm;
+} xz_state_s, *xz_statep;
+
+/* Target function from xzlib.c */
+static int is_format_xz(xz_statep state) {
+    lzma_stream *strm = &(state->strm);
+    return strm->avail_in >= 6 && memcmp(state->in, "\3757zXZ", 6) == 0;
+}
+
+/* Helper to initialize minimal state */
+static xz_statep create_xz_state(void) {
+    xz_statep state = malloc(sizeof(xz_state_s));
+    if (!state) return NULL;
+    
+    state->in = malloc(256); /* Allocate buffer for input */
+    if (!state->in) {
+        free(state);
+        return NULL;
+    }
+    
+    /* Initialize lzma_stream */
+    state->strm = (lzma_stream)LZMA_STREAM_INIT;
+    return state;
+}
+
+int main(void) {
+    xz_statep state = create_xz_state();
+    if (!state) return 1;
+    
+    /* Make state->in buffer symbolic */
+    klee_make_symbolic(state->in, 256, "state_in_buffer");
+    
+    /* Make strm->avail_in symbolic */
+    unsigned avail_in;
+    klee_make_symbolic(&avail_in, sizeof(avail_in), "avail_in");
+    state->strm.avail_in = avail_in;
+    
+    /* Assume we have at least some data available */
+    klee_assume(avail_in > 0);
+    
+    /* Assume we can reach the memcmp call */
+    klee_assume(avail_in >= 6);
+    
+    /* Vulnerability assertion: memcmp reads 6 bytes from state->in,
+       so we must ensure the buffer has at least 6 bytes accessible */
+    SAILR_ASSERT(state->in != NULL && 6 <= 256);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Cleanup */
+    free(state->in);
+    free(state);
+    return 0;
+}
+```

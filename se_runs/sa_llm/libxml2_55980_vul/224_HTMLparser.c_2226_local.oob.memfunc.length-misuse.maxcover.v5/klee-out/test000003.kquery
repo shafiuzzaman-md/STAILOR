@@ -1,0 +1,26 @@
+array branch_choice[4] : w32 -> w8 = symbolic
+array ent[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 0 ent)))
+         (Eq false
+             (Ult (Add w64 18446618009532366848 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446618008995495936 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446618008458625024 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446618007921754112 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446618006848012288 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446618005774270464 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446618004700528640 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446618003626786816 N0) 1))
+         (Ult (Add w64 18446618003089915904 N0) 1)
+         (Eq false
+             (Eq 0
+                 (ReadLSB w32 0 branch_choice)))]
+        false)

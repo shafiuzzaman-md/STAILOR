@@ -1,0 +1,51 @@
+array xmlMalloc_ptr[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 0 xmlMalloc_ptr)))
+         (Eq false
+             (Ult (Add w64 18446604843809243136 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446604841661759488 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446604836829921280 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446604835219308544 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446604834145566720 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446604833071824896 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446604831998083072 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446604830924341248 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446604407870062592 N0) 20))
+         (Eq false
+             (Ult (Add w64 18446603614106419200 N0) 15))
+         (Eq false
+             (Ult (Add w64 18446603613837983744 N0) 14))
+         (Eq false
+             (Ult (Add w64 18446603613032677376 N0) 18))
+         (Eq false
+             (Ult (Add w64 18446603612764241920 N0) 23))
+         (Eq false
+             (Ult (Add w64 18446603612495806464 N0) 26))
+         (Eq false
+             (Ult (Add w64 18446603610885193728 N0) 104))
+         (Eq false
+             (Ult (Add w64 18446603610616758272 N0) 83))
+         (Eq false
+             (Ult (Add w64 18446603596083816512 N0) 1536))
+         (Eq false
+             (Ult (Add w64 18446603596083814976 N0) 1536))
+         (Eq false
+             (Ult (Add w64 18446603596083812416 N0) 768))
+         (Eq false
+             (Ult (Add w64 18446603595966482736 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446603595966482728 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446603595966482720 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446603595966482712 N0) 8))]
+        false)

@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: access
+KLEE: WARNING: undefined reference to function: stat
+KLEE: WARNING ONCE: calling external: access(136890204291072, 0) at se_runs/sa_llm/libxml2_55980_vul/119_catalog.c_997_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:34 40

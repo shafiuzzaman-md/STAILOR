@@ -1,0 +1,136 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlXPathCompExpr xmlXPathCompExpr;
+typedef xmlXPathCompExpr* xmlXPathCompExprPtr;
+
+typedef struct _xmlXPathStepOp xmlXPathStepOp;
+
+typedef struct _xmlXPathParserContext {
+    xmlXPathStepOp *steps;    /* steps array */
+    int maxStep;              /* allocated size of steps array */
+    int nbStep;               /* number of steps used */
+    int last;                 /* index of last step */
+#ifdef DEBUG_EVAL_COUNTS
+    int nb;                   /* debug counter */
+#endif
+} xmlXPathParserContext;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlFree */
+void xmlFree(void* ptr) {
+    free(ptr);
+}
+
+/* Stub for xmlXPathErrMemory */
+void xmlXPathErrMemory(void* ctxt, const char* msg) {
+    /* Do nothing in harness */
+}
+
+/* The target function - xmlXPathNewParserContext */
+xmlXPathParserContext* xmlXPathNewParserContext(xmlXPathCompExprPtr comp) {
+    xmlXPathParserContext* cur;
+    
+    if (comp == NULL)
+        return NULL;
+    
+    cur = (xmlXPathParserContext*) xmlMalloc(sizeof(xmlXPathParserContext));
+    if (cur == NULL) {
+        xmlXPathErrMemory(NULL, "allocating context\n");
+        return NULL;
+    }
+    
+    memset(cur, 0, sizeof(xmlXPathParserContext));
+    cur->maxStep = 10;  /* Default allocation size */
+    cur->nbStep = 0;
+    cur->steps = (xmlXPathStepOp *) xmlMalloc(cur->maxStep * sizeof(xmlXPathStepOp));
+    if (cur->steps == NULL) {
+        xmlXPathErrMemory(NULL, "allocating steps\n");
+        xmlFree(cur);
+        return NULL;
+    }
+    
+    /* TARGET LINE 1033 - vulnerable memset call */
+    memset(cur->steps, 0, cur->maxStep * sizeof(xmlXPathStepOp));
+    
+    cur->last = -1;
+#ifdef DEBUG_EVAL_COUNTS
+    cur->nb = 0;
+#endif
+    return cur;
+}
+
+/* Helper to manipulate maxStep before allocation */
+xmlXPathParserContext* create_parser_context_with_maxStep(int maxStep) {
+    xmlXPathParserContext* cur;
+    
+    /* Create a dummy comp expression */
+    xmlXPathCompExprPtr comp = (xmlXPathCompExprPtr) malloc(1);
+    if (comp == NULL)
+        return NULL;
+    
+    cur = xmlXPathNewParserContext(comp);
+    if (cur == NULL) {
+        free(comp);
+        return NULL;
+    }
+    
+    /* Free the original steps array */
+    free(cur->steps);
+    
+    /* Set the potentially problematic maxStep value */
+    cur->maxStep = maxStep;
+    
+    /* Reallocate steps with the new maxStep */
+    cur->steps = (xmlXPathStepOp *) xmlMalloc(cur->maxStep * sizeof(xmlXPathStepOp));
+    if (cur->steps == NULL) {
+        xmlXPathErrMemory(NULL, "reallocating steps\n");
+        free(comp);
+        xmlFree(cur);
+        return NULL;
+    }
+    
+    free(comp);
+    return cur;
+}
+
+int main(void) {
+    int maxStep;
+    
+    /* Make maxStep symbolic to explore different allocation sizes */
+    klee_make_symbolic(&maxStep, sizeof(maxStep), "maxStep");
+    
+    /* Constrain maxStep to reasonable bounds for exploration */
+    klee_assume(maxStep >= 0);
+    klee_assume(maxStep <= 1000000);  /* Upper bound to avoid excessive memory */
+    
+    /* Create parser context with symbolic maxStep */
+    xmlXPathParserContext* ctxt = create_parser_context_with_maxStep(maxStep);
+    
+    if (ctxt != NULL) {
+        /* Vulnerability assertion: Check that maxStep * sizeof(xmlXPathStepOp) 
+           doesn't overflow or exceed reasonable bounds */
+        /* The actual vulnerability would be if maxStep causes an overflow in 
+           the multiplication or if it's negative */
+        SAILR_ASSERT(maxStep >= 0 && maxStep <= (SIZE_MAX / sizeof(xmlXPathStepOp)));
+        
+        /* Reachability assertion - we reached the target code path */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Cleanup */
+        free(ctxt->steps);
+        xmlFree(ctxt);
+    }
+    
+    return 0;
+}

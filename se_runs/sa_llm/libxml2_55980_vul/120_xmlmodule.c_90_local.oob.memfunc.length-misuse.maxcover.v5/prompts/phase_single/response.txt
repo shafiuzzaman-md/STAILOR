@@ -1,0 +1,94 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlModule xmlModule;
+typedef xmlModule *xmlModulePtr;
+
+struct _xmlModule {
+    void *handle;
+    /* Other fields would be here, but we only need handle for this path */
+};
+
+/* Stub functions needed to reach the target line */
+void xmlModuleErrMemory(void *ctx, const char *msg) {
+    /* Stub implementation */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+void *xmlModulePlatformOpen(const char *name) {
+    /* Symbolic handle - can be NULL or non-NULL */
+    void *handle;
+    klee_make_symbolic(&handle, sizeof(handle), "handle");
+    return handle;
+}
+
+void __xmlRaiseError(void *schannel, void *data, void *ctx, 
+                     void *node, void *error, int domain, 
+                     int code, int level, const char *file, 
+                     int line, int col, const char *str1, 
+                     const char *str2, int int1, int int2, 
+                     const char *msg, ...) {
+    /* Stub implementation */
+}
+
+/* The function we need to call to reach line 90 */
+xmlModulePtr xmlModuleOpen(const char *name) {
+    xmlModulePtr module;
+
+    module = (xmlModulePtr) xmlMalloc(sizeof(xmlModule));
+    if (module == NULL) {
+        xmlModuleErrMemory(NULL, "creating module");
+        return (NULL);
+    }
+
+    /* TARGET LINE 90: memset(module, 0, sizeof(xmlModule)); */
+    memset(module, 0, sizeof(xmlModule));
+    
+    /* Vulnerability assertion: ensure the memset size is safe */
+    SAILR_ASSERT(sizeof(xmlModule) > 0 && module != NULL);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+
+    module->handle = xmlModulePlatformOpen(name);
+
+    if (module->handle == NULL) {
+        xmlFree(module);
+        __xmlRaiseError(NULL, NULL, NULL, NULL, NULL, 0,
+                        0, 0, NULL, 0, 0,
+                        name, NULL, 0, 0, "failed to open %s\n", name);
+        return NULL;
+    }
+
+    return module;
+}
+
+int main(void) {
+    /* Create symbolic input for the module name */
+    char name[256];
+    klee_make_symbolic(name, sizeof(name), "name");
+    
+    /* Ensure name is null-terminated */
+    klee_assume(name[255] == '\0');
+    
+    /* Call the function that contains the target line */
+    xmlModulePtr result = xmlModuleOpen(name);
+    
+    /* Clean up if module was created */
+    if (result != NULL && result->handle != NULL) {
+        xmlFree(result);
+    }
+    
+    return 0;
+}
+```

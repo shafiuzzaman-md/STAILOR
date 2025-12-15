@@ -1,0 +1,15 @@
+array sax_ptr[8] : w32 -> w8 = symbolic
+array userData_ptr[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 0 sax_ptr)))
+         (Eq false
+             (Ult (Add w64 18446620353827438592 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446620347384987648 N0) 5))
+         (Eq false
+             (Ult (Add w64 18446620345237504000 N0) 5))
+         (Ult N1:(Add w64 18446620343090020352 N0) 5)
+         (Eq 3740122799
+             (ReadLSB w32 N2:(Extract w32 0 N1) userData_ptr))]
+        false)

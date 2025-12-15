@@ -1,0 +1,9 @@
+Error: memory error: object read only
+File: runtime/Freestanding/memmove.c
+Line: 21
+assembly.ll line: 311
+State: 81
+Stack: 
+	#000000311 in memmove(symbolic, symbolic, symbolic) at runtime/Freestanding/memmove.c:21
+	#100000096 in target_function(121921140162560, symbolic) at se_runs/sa_llm/libxml2_55980_vul/046_buf.c_721_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:45
+	#200000252 in main() at se_runs/sa_llm/libxml2_55980_vul/046_buf.c_721_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:96

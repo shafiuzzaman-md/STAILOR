@@ -1,0 +1,87 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations of types and functions needed from libxml2 */
+typedef struct _xmlRelaxNGParserCtxt xmlRelaxNGParserCtxt;
+typedef xmlRelaxNGParserCtxt *xmlRelaxNGParserCtxtPtr;
+
+typedef void (*xmlGenericErrorFunc)(void *ctx, const char *msg, ...);
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef unsigned char xmlChar;
+
+/* Stub implementations of libxml2 functions used in the target code */
+void xmlRngPErrMemory(void *ctxt, const char *msg) {
+    /* Stub - does nothing */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+xmlChar *xmlStrdup(const xmlChar *cur) {
+    if (cur == NULL) return NULL;
+    size_t len = strlen((const char *)cur) + 1;
+    xmlChar *res = (xmlChar *)malloc(len);
+    if (res) memcpy(res, cur, len);
+    return res;
+}
+
+/* Global variables used in the target code */
+xmlGenericErrorFunc xmlGenericError = NULL;
+void *xmlGenericErrorContext = NULL;
+
+/* The target function - extracted from relaxng.c around line 6782 */
+xmlRelaxNGParserCtxtPtr xmlRelaxNGNewParserCtxt(const char *URL) {
+    xmlRelaxNGParserCtxtPtr ret;
+
+    if (URL == NULL)
+        return (NULL);
+
+    ret = (xmlRelaxNGParserCtxtPtr) xmlMalloc(sizeof(xmlRelaxNGParserCtxt));
+    if (ret == NULL) {
+        xmlRngPErrMemory(NULL, "building parser\n");
+        return (NULL);
+    }
+    
+    /* TARGET LINE 6782: memset(ret, 0, sizeof(xmlRelaxNGParserCtxt)); */
+    memset(ret, 0, sizeof(xmlRelaxNGParserCtxt));
+    
+    /* Vulnerability assertion: ensure the size argument to memset is safe */
+    SAILR_ASSERT(sizeof(xmlRelaxNGParserCtxt) > 0);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    ret->URL = xmlStrdup((const xmlChar *) URL);
+    ret->error = xmlGenericError;
+    ret->userData = xmlGenericErrorContext;
+    return (ret);
+}
+
+/* Main harness entry point */
+int main(void) {
+    /* Make URL symbolic to explore different paths */
+    char URL[256];
+    klee_make_symbolic(URL, sizeof(URL), "URL");
+    
+    /* Assume URL is null-terminated for safety */
+    URL[255] = '\0';
+    
+    /* Call the target function */
+    xmlRelaxNGParserCtxtPtr result = xmlRelaxNGNewParserCtxt(URL);
+    
+    /* Clean up if allocation succeeded */
+    if (result != NULL) {
+        if (result->URL != NULL) {
+            free(result->URL);
+        }
+        free(result);
+    }
+    
+    return 0;
+}

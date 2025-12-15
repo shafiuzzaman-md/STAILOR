@@ -1,0 +1,13 @@
+array buf[121] : w32 -> w8 = symbolic
+array bufsize[4] : w32 -> w8 = symbolic
+array dec_total[4] : w32 -> w8 = symbolic
+(query [(Ult 0
+              N0:(ReadLSB w32 0 dec_total))
+         (Ule N0 121)
+         (Eq 121
+             (ReadLSB w32 0 bufsize))
+         (Eq 0 (Read w8 60 buf))
+         (Eq false
+             (Ule (Add w64 133642013638717 (ZExt w64 N0))
+                  133642013638777))]
+        false)

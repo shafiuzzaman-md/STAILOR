@@ -1,0 +1,94 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlDoc xmlDoc;
+typedef xmlDoc *xmlDocPtr;
+
+#define XML_DOCUMENT_NODE 13
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    return ptr;
+}
+
+/* Stub for xmlStrdup */
+char* xmlStrdup(const char* cur) {
+    if (cur == NULL) return NULL;
+    size_t len = strlen(cur) + 1;
+    char* new_str = (char*)malloc(len);
+    if (new_str) {
+        memcpy(new_str, cur, len);
+    }
+    return new_str;
+}
+
+/* Stub for xmlTreeErrMemory */
+void xmlTreeErrMemory(const char* msg) {
+    /* Do nothing */
+}
+
+/* Stub for xmlFree */
+void xmlFree(void* ptr) {
+    free(ptr);
+}
+
+/* Target function - extracted from tree.c around line 1175 */
+xmlDocPtr xmlNewDoc(const char* version) {
+    xmlDocPtr cur;
+    
+    cur = (xmlDocPtr) xmlMalloc(sizeof(xmlDoc));
+    if (cur == NULL) {
+        xmlTreeErrMemory("building doc");
+        return(NULL);
+    }
+    
+    /* TARGET LINE 1175 - memset with sizeof(xmlDoc) */
+    memset(cur, 0, sizeof(xmlDoc));
+    
+    /* Vulnerability assertion: ensure the size argument to memset is safe */
+    SAILR_ASSERT(sizeof(xmlDoc) > 0);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    cur->type = XML_DOCUMENT_NODE;
+    
+    cur->version = xmlStrdup(version);
+    if (cur->version == NULL) {
+        xmlTreeErrMemory("building doc");
+        xmlFree(cur);
+        return(NULL);
+    }
+    
+    return cur;
+}
+
+/* Entry point */
+int main(void) {
+    /* Make version string symbolic to explore different paths */
+    char version[32];
+    klee_make_symbolic(version, sizeof(version), "version");
+    
+    /* Assume version is null-terminated for safety */
+    version[sizeof(version)-1] = '\0';
+    
+    /* Call the target function */
+    xmlDocPtr doc = xmlNewDoc(version);
+    
+    /* Clean up if allocation succeeded */
+    if (doc != NULL) {
+        if (doc->version != NULL) {
+            free(doc->version);
+        }
+        free(doc);
+    }
+    
+    return 0;
+}

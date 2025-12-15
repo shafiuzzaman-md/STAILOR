@@ -1,0 +1,98 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlFree */
+void xmlFree(void* ptr) {
+    free(ptr);
+}
+
+/* Stub for xmlWriterErrMsg */
+void xmlWriterErrMsg(void* ctx, int code, const char* msg) {
+    /* Do nothing */
+}
+
+/* Constants from libxml2 */
+#define XML_ERR_NO_MEMORY 1000
+#define BUFSIZ 1024
+
+/* Target function signature */
+char* xmlTextWriterVSprintf(char* buf, int size, const char* fmt, va_list argptr);
+
+/* Implementation of xmlTextWriterVSprintf that reaches the target line */
+char* xmlTextWriterVSprintf(char* buf, int size, const char* fmt, va_list argptr) {
+    va_list locarg;
+    
+    /* Simulate the loop that leads to line 4496 */
+    while (1) {
+        /* Free existing buffer if it exists */
+        if (buf != NULL) {
+            xmlFree(buf);
+        }
+        
+        /* Increase size and allocate new buffer */
+        size += BUFSIZ;
+        buf = (char*)xmlMalloc(size);
+        
+        /* This is the target line 4496 context */
+        if (buf == NULL) {
+            xmlWriterErrMsg(NULL, XML_ERR_NO_MEMORY,
+                           "xmlTextWriterVSprintf : out of memory!\n");
+            return NULL;
+        }
+        
+        /* VULNERABILITY ASSERTION: Check if allocation size is safe */
+        /* For OOB length-misuse patterns, we need to ensure size doesn't overflow */
+        SAILR_ASSERT(size > 0 && size < 1024 * 1024); /* Reasonable upper bound */
+        
+        /* REACHABILITY ASSERTION: Mark that we reached the target location */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* VA_COPY would go here in real code */
+        va_copy(locarg, argptr);
+        break;
+    }
+    
+    va_end(locarg);
+    return buf;
+}
+
+/* Entry point */
+int main(void) {
+    /* Create symbolic inputs */
+    char* buf = NULL;
+    int size;
+    char fmt[100];
+    va_list argptr;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&size, sizeof(size), "size");
+    klee_make_symbolic(fmt, sizeof(fmt), "fmt");
+    
+    /* Constrain inputs to reasonable values */
+    klee_assume(size >= 0);
+    klee_assume(size < 10000); /* Reasonable upper bound */
+    
+    /* Ensure fmt is null-terminated for safety */
+    fmt[sizeof(fmt)-1] = '\0';
+    
+    /* Call the target function */
+    char* result = xmlTextWriterVSprintf(buf, size, fmt, argptr);
+    
+    /* Clean up if needed */
+    if (result != NULL) {
+        xmlFree(result);
+    }
+    
+    return 0;
+}

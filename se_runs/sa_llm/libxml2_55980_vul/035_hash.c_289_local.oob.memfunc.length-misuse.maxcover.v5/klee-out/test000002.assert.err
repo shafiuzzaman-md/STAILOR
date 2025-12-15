@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/035_hash.c_289_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 50
+assembly.ll line: 254
+State: 5
+Stack: 
+	#000000254 in vulnerable_path(129744158851072, 129864417935360) at se_runs/sa_llm/libxml2_55980_vul/035_hash.c_289_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:50
+	#100000160 in main() at se_runs/sa_llm/libxml2_55980_vul/035_hash.c_289_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:91

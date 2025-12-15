@@ -1,0 +1,91 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions from testlimits.c */
+typedef struct {
+    char *buffer;
+    char *current;
+    int len;
+    int rlen;
+    int instate;
+    int curlen;
+} TestContext;
+
+/* Minimal stub of the relevant function from testlimits.c */
+void test_limits_function(TestContext *ctx) {
+    if (ctx->instate == 2) {
+        if (ctx->len >= ctx->rlen) {
+            ctx->len = ctx->rlen;
+            ctx->rlen = 0;
+            
+            /* TARGET LINE 348: memcpy(buffer, current, len); */
+            /* Vulnerability assertion: ensure len does not exceed buffer bounds */
+            SAILR_ASSERT(ctx->len <= (int)(ctx->buffer + 4096 - ctx->current) && ctx->len >= 0);
+            klee_assert(0 && "SAILR_REACH_ASSERT");
+            
+            memcpy(ctx->buffer, ctx->current, ctx->len);
+            ctx->instate = 3;
+            ctx->curlen = 0;
+        } else {
+            memcpy(ctx->buffer, ctx->current, ctx->len);
+            ctx->rlen -= ctx->len;
+            ctx->current += ctx->len;
+        }
+    }
+}
+
+int main(void) {
+    /* Allocate and initialize test context */
+    TestContext *ctx = malloc(sizeof(TestContext));
+    if (!ctx) return 1;
+    
+    /* Allocate buffer with symbolic size up to 4096 bytes */
+    ctx->buffer = malloc(4096);
+    if (!ctx->buffer) {
+        free(ctx);
+        return 1;
+    }
+    
+    /* Make buffer contents symbolic */
+    klee_make_symbolic(ctx->buffer, 4096, "buffer");
+    
+    /* Allocate current pointer with symbolic offset */
+    ctx->current = malloc(4096);
+    if (!ctx->current) {
+        free(ctx->buffer);
+        free(ctx);
+        return 1;
+    }
+    klee_make_symbolic(ctx->current, 4096, "current");
+    
+    /* Make key variables symbolic */
+    klee_make_symbolic(&ctx->len, sizeof(ctx->len), "len");
+    klee_make_symbolic(&ctx->rlen, sizeof(ctx->rlen), "rlen");
+    klee_make_symbolic(&ctx->instate, sizeof(ctx->instate), "instate");
+    
+    /* Constrain variables to reach target path */
+    klee_assume(ctx->instate == 2);           /* Must be in state 2 */
+    klee_assume(ctx->len >= ctx->rlen);       /* Must take the first branch */
+    klee_assume(ctx->rlen >= 0);              /* rlen must be non-negative */
+    klee_assume(ctx->len >= 0);               /* len must be non-negative */
+    klee_assume(ctx->rlen <= 4096);           /* Reasonable upper bound */
+    klee_assume(ctx->len <= 4096);            /* Reasonable upper bound */
+    
+    /* Initialize remaining fields */
+    ctx->curlen = 0;
+    
+    /* Call the function that contains the target line */
+    test_limits_function(ctx);
+    
+    /* Cleanup */
+    free(ctx->current);
+    free(ctx->buffer);
+    free(ctx);
+    
+    return 0;
+}

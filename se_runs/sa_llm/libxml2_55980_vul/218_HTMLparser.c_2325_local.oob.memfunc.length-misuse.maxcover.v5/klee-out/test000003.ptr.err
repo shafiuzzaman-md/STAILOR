@@ -1,0 +1,14 @@
+Error: memory error: out of bound pointer
+File: se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 55
+assembly.ll line: 113
+State: 43
+Stack: 
+	#000000113 in xmlStringDecodeEntities(0, 130488209506304, 129846111895552, 130471029637120, 129850406862848, 0, 0, 0, 0) at se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:55
+	#100000262 in main() at se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:121
+Info: 
+	address: (ReadLSB w64 0 ent)
+	example: 280375465082880
+	range: [1, 18446744073709551615]
+	next: object at 129844501282816 of size 4
+		MO6237[4] allocated at xmlStringDecodeEntities():  %17 = alloca i32, align 4

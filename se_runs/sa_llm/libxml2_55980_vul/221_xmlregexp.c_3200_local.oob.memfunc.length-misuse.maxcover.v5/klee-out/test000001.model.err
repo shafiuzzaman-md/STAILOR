@@ -1,0 +1,14 @@
+Error: concretized symbolic size
+File: se_runs/sa_llm/libxml2_55980_vul/221_xmlregexp.c_3200_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 51
+assembly.ll line: 222
+State: 4
+Stack: 
+	#000000222 in simulate_vulnerable_path(130885307334656, symbolic) at se_runs/sa_llm/libxml2_55980_vul/221_xmlregexp.c_3200_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:51
+	#100000144 in main() at se_runs/sa_llm/libxml2_55980_vul/221_xmlregexp.c_3200_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:108
+Info: 
+  size expr: (Mul w64 24
+                       (SExt w64 (Mul w32 2
+                                          (ReadLSB w32 8 exec))))
+  concretization : 48
+  unbound example: 96

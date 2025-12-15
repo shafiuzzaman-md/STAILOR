@@ -1,0 +1,73 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations of functions we need from libxml2 */
+int xmlUTF8Strsize(const xmlChar *utf, int len);
+void *xmlMallocAtomic(size_t size);
+
+/* Type definitions */
+typedef unsigned char xmlChar;
+
+/* Stub for xmlUTF8Strsize - returns symbolic size */
+int xmlUTF8Strsize(const xmlChar *utf, int len) {
+    int result;
+    klee_make_symbolic(&result, sizeof(result), "xmlUTF8Strsize_result");
+    /* Assume result is non-negative and reasonable for allocation */
+    klee_assume(result >= 0);
+    klee_assume(result < 1024); /* Reasonable bound for KLEE */
+    return result;
+}
+
+/* Stub for xmlMallocAtomic - always succeeds for our purposes */
+void *xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+/* The target function from xmlstring.c */
+xmlChar *xmlUTF8Strndup(const xmlChar *utf, int len) {
+    int i;
+    xmlChar *ret;
+
+    if ((utf == NULL) || (len < 0)) return(NULL);
+    i = xmlUTF8Strsize(utf, len);
+    ret = (xmlChar *) xmlMallocAtomic((size_t) i + 1);
+    if (ret == NULL) {
+        return(NULL);
+    }
+    
+    /* Vulnerability assertion: i must not exceed actual utf buffer size */
+    SAILR_ASSERT(i <= strlen((const char*)utf));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memcpy(ret, utf, i);
+    ret[i] = 0;
+    return(ret);
+}
+
+int main(void) {
+    /* Symbolic UTF-8 string buffer */
+    xmlChar utf_buffer[1024];
+    int len;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(utf_buffer, sizeof(utf_buffer), "utf_buffer");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    /* Ensure utf_buffer is null-terminated for strlen */
+    utf_buffer[sizeof(utf_buffer)-1] = 0;
+    
+    /* Call the target function */
+    xmlChar *result = xmlUTF8Strndup(utf_buffer, len);
+    
+    /* Clean up */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}
+```

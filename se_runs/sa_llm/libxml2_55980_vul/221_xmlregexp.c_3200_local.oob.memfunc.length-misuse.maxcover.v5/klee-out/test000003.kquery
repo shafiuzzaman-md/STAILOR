@@ -1,0 +1,26 @@
+array exec[40] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+array nbCounters[4] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 8 exec))
+         (Slt N0 10000)
+         (Sle 0
+              N1:(ReadLSB w32 12 exec))
+         (Slt N1 10000)
+         (Sle 0
+              N2:(ReadLSB w32 28 exec))
+         (Slt N2 10000)
+         (Sle 0
+              N3:(ReadLSB w32 0 nbCounters))
+         (Slt N3 100)
+         (Sle 0
+              N4:(ReadLSB w32 0 len))
+         (Slt N4 10000)
+         (Sle N0 N4)
+         (Eq false (Eq 0 N0))
+         (Eq 48
+             (Mul w64 24
+                      (SExt w64 N5:(Mul w32 2 N0))))
+         (Eq false
+             (Sle 0 (Sub w32 N5 N4)))]
+        false)

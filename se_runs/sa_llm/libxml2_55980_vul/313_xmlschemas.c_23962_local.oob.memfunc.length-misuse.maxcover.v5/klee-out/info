@@ -1,0 +1,20 @@
+klee --output-dir=se_runs/sa_llm/libxml2_55980_vul/313_xmlschemas.c_23962_local.oob.memfunc.length-misuse.maxcover.v5/klee-out --search=nurs:covnew --max-time=3600 se_runs/sa_llm/libxml2_55980_vul/313_xmlschemas.c_23962_local.oob.memfunc.length-misuse.maxcover.v5/bc/harness.bc
+PID: 186270
+Using monotonic steady clock with 1/1000000000s resolution
+Started: 2025-12-11 21:15:36
+BEGIN searcher description
+WeightedRandomSearcher::CoveringNew
+END searcher description
+Finished: 2025-12-11 21:15:37
+Elapsed: 00:00:01
+KLEE: done: explored paths = 5
+KLEE: done: avg. constructs per query = 19
+KLEE: done: total queries = 14
+KLEE: done: valid queries = 3
+KLEE: done: invalid queries = 11
+KLEE: done: query cex = 14
+
+KLEE: done: total instructions = 199
+KLEE: done: completed paths = 1
+KLEE: done: partially completed paths = 4
+KLEE: done: generated tests = 4

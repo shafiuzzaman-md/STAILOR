@@ -1,0 +1,8 @@
+Error: external call with symbolic argument: fgets
+File: se_runs/sa_llm/libxml2_55980_vul/028_runtest.c_4595_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 28
+assembly.ll line: 68
+State: 2
+Stack: 
+	#000000068 in simulate_runtest_code(symbolic, symbolic, 138497694367744) at se_runs/sa_llm/libxml2_55980_vul/028_runtest.c_4595_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28
+	#100000230 in main() at se_runs/sa_llm/libxml2_55980_vul/028_runtest.c_4595_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:71

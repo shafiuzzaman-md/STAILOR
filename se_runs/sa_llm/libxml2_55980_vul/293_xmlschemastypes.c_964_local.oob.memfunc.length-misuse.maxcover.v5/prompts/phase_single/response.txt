@@ -1,0 +1,80 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the target function */
+typedef unsigned char xmlChar;
+typedef enum {
+    XML_SCHEMAS_STRING
+} xmlSchemaValType;
+
+typedef struct _xmlSchemaVal xmlSchemaVal;
+struct _xmlSchemaVal {
+    xmlSchemaValType type;
+    xmlChar* value_str;
+};
+
+typedef xmlSchemaVal* xmlSchemaValPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Target function from xmlschemastypes.c line 964 */
+xmlSchemaValPtr xmlSchemaNewStringValue(xmlSchemaValType type, const xmlChar* value) {
+    xmlSchemaValPtr val;
+
+    if (type != XML_SCHEMAS_STRING)
+        return NULL;
+    val = (xmlSchemaValPtr) xmlMalloc(sizeof(xmlSchemaVal));
+    if (val == NULL) {
+        return NULL;
+    }
+    /* TARGET LINE 964: memset(val, 0, sizeof(xmlSchemaVal)); */
+    memset(val, 0, sizeof(xmlSchemaVal));
+    val->type = type;
+    val->value_str = (xmlChar *) value;
+    return val;
+}
+
+int main(void) {
+    /* Make symbolic inputs to reach the target line */
+    xmlSchemaValType type;
+    char value_buffer[256];
+    
+    klee_make_symbolic(&type, sizeof(type), "type");
+    klee_make_symbolic(value_buffer, sizeof(value_buffer), "value_buffer");
+    
+    /* Assume type is XML_SCHEMAS_STRING to pass the first check */
+    klee_assume(type == XML_SCHEMAS_STRING);
+    
+    /* Call the target function */
+    xmlSchemaValPtr result = xmlSchemaNewStringValue(type, (xmlChar*)value_buffer);
+    
+    /* Vulnerability assertion: For memset length-misuse, ensure the allocated
+       size is at least the size being zeroed. Since xmlMalloc can fail (returning NULL),
+       we need to check that if allocation succeeded, the size is correct.
+       The actual vulnerability would be if sizeof(xmlSchemaVal) exceeds allocated size,
+       but xmlMalloc(sizeof(xmlSchemaVal)) allocates exactly that size.
+       However, the SA pattern flags memset with potentially unbounded length.
+       The proper condition: val != NULL (already checked) AND the allocated
+       memory region is at least sizeof(xmlSchemaVal) bytes.
+       Since xmlMalloc is our stub, we assume it allocates at least requested size.
+       The real risk is if xmlMalloc returns a smaller buffer than requested.
+       We'll assert that if val is non-NULL, the allocation was proper. */
+    if (result != NULL) {
+        /* Vulnerability assertion: The memset size should not exceed allocated size */
+        SAILR_ASSERT(sizeof(xmlSchemaVal) <= malloc_usable_size(result));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Clean up */
+        free(result);
+    }
+    
+    return 0;
+}
+```

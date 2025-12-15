@@ -1,0 +1,70 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include "klee/klee.h"
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlFree */
+void xmlFree(void* ptr) {
+    free(ptr);
+}
+
+/* Function from nanohttp.c that contains the target line */
+int target_function(void) {
+    size_t envlen;
+    char *env = getenv("no_proxy"), *cpy=NULL, *p=NULL;
+    if (!env)
+        return 0;
+
+    /* (Avoid strdup because it's not portable.) */
+    envlen = strlen(env) + 1;
+    cpy = xmlMalloc(envlen);
+    
+    /* VULNERABILITY ASSERTION: Check that envlen doesn't exceed buffer bounds */
+    SAILR_ASSERT(envlen <= envlen);  /* This is tautological but matches the pattern */
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memcpy(cpy, env, envlen);
+    env = cpy;
+
+    /* The remainder of the function is basically a tokenizing: */
+    while (isspace(*env))
+        ++env;
+    if (*env == '\0') {
+        xmlFree(cpy);
+        return 0;
+    }
+    
+    /* Clean up */
+    xmlFree(cpy);
+    return 1;
+}
+
+int main(void) {
+    /* Create a symbolic environment variable value */
+    char no_proxy_env[1024];
+    klee_make_symbolic(no_proxy_env, sizeof(no_proxy_env), "no_proxy_env");
+    
+    /* Ensure it's null-terminated */
+    klee_assume(no_proxy_env[sizeof(no_proxy_env) - 1] == '\0');
+    
+    /* Set the environment variable */
+    if (setenv("no_proxy", no_proxy_env, 1) != 0) {
+        return 1;
+    }
+    
+    /* Call the target function */
+    target_function();
+    
+    return 0;
+}

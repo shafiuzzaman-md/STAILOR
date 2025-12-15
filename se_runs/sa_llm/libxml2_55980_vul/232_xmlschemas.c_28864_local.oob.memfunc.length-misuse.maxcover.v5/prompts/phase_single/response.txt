@@ -1,0 +1,90 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed */
+typedef struct _xmlSchemaSAXPlug xmlSchemaSAXPlug;
+typedef xmlSchemaSAXPlug *xmlSchemaSAXPlugPtr;
+typedef struct _xmlSchemaSAXPlugStruct xmlSchemaSAXPlugStruct;
+
+/* Minimal stub types to satisfy compilation */
+struct _xmlSchemaSAXPlug {
+    int dummy;
+};
+
+struct _xmlSchemaSAXPlugStruct {
+    unsigned int magic;
+    struct {
+        int initialized;
+    } schemas_sax;
+    void *ctxt;
+    void *user_sax_ptr;
+    void *user_sax;
+};
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    /* Make the return value symbolic to explore both NULL and non-NULL paths */
+    klee_make_symbolic(&ptr, sizeof(ptr), "xmlMalloc_ptr");
+    if (ptr != NULL) {
+        /* Assume the allocation succeeds with valid non-NULL pointer */
+        klee_assume(ptr != NULL);
+    }
+    return ptr;
+}
+
+/* Target function that contains the vulnerable memset call */
+xmlSchemaSAXPlugPtr xmlSchemaSAXPlugCreate(void *ctxt, void *sax, void *old_sax) {
+    xmlSchemaSAXPlugPtr ret;
+    
+    ret = (xmlSchemaSAXPlugPtr) xmlMalloc(sizeof(xmlSchemaSAXPlugStruct));
+    if (ret == NULL) {
+        return NULL;
+    }
+    
+    /* VULNERABLE LINE: memset with sizeof(xmlSchemaSAXPlugStruct) */
+    memset(ret, 0, sizeof(xmlSchemaSAXPlugStruct));
+    
+    /* Vulnerability assertion: ensure the size argument to memset is safe */
+    /* For OOB length-misuse patterns, we assert that the size doesn't exceed 
+       the allocated buffer bounds. Since xmlMalloc allocates exactly 
+       sizeof(xmlSchemaSAXPlugStruct), we need to ensure the allocation was 
+       successful and the pointer is valid for that size. */
+    SAILR_ASSERT(ret != NULL && "Buffer must be non-NULL for safe memset");
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    ret->magic = 0xDEADBEEF; /* XML_SAX_PLUG_MAGIC */
+    ret->schemas_sax.initialized = 0xCAFEBABE; /* XML_SAX2_MAGIC */
+    ret->ctxt = ctxt;
+    ret->user_sax_ptr = sax;
+    ret->user_sax = old_sax;
+    
+    return ret;
+}
+
+int main(void) {
+    void *ctxt;
+    void *sax;
+    void *old_sax;
+    xmlSchemaSAXPlugPtr result;
+    
+    /* Make function parameters symbolic */
+    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
+    klee_make_symbolic(&sax, sizeof(sax), "sax");
+    klee_make_symbolic(&old_sax, sizeof(old_sax), "old_sax");
+    
+    /* Call the target function */
+    result = xmlSchemaSAXPlugCreate(ctxt, sax, old_sax);
+    
+    /* Free if non-NULL to avoid memory leak reports */
+    if (result != NULL) {
+        free(result);
+    }
+    
+    return 0;
+}
+```

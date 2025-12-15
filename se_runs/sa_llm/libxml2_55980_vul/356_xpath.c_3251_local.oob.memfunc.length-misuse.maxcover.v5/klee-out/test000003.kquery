@@ -1,0 +1,7 @@
+array buffersize[4] : w32 -> w8 = symbolic
+array str[256] : w32 -> w8 = symbolic
+(query [(Eq 46 (Read w8 0 str))
+         (Eq 0 (Read w8 1 str))
+         (Eq 1
+             (ReadLSB w32 0 buffersize))]
+        false)

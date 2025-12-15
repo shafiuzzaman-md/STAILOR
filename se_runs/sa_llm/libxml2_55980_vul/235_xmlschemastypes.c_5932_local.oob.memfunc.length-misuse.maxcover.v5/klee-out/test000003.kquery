@@ -1,0 +1,10 @@
+array bufsize[4] : w32 -> w8 = symbolic
+array dec_total[4] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 0 bufsize))
+         (Sle N0 1024)
+         (Slt 0
+              N1:(ReadLSB w32 0 dec_total))
+         (Sle N1 100)
+         (Eq false (Eq 1 N0))]
+        false)

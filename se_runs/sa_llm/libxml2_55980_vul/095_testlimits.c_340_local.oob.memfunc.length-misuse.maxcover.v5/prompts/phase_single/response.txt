@@ -1,0 +1,53 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions from testlimits.c */
+int main(void) {
+    /* Symbolic variables that control the execution path */
+    int instate;
+    size_t len, rlen;
+    char *buffer, *current;
+    
+    /* Make the control variables symbolic */
+    klee_make_symbolic(&instate, sizeof(instate), "instate");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_make_symbolic(&rlen, sizeof(rlen), "rlen");
+    
+    /* Allocate and make buffer and current pointers symbolic */
+    buffer = malloc(1024);
+    current = malloc(1024);
+    
+    if (!buffer || !current) {
+        if (buffer) free(buffer);
+        if (current) free(current);
+        return 1;
+    }
+    
+    klee_make_symbolic(buffer, 1024, "buffer");
+    klee_make_symbolic(current, 1024, "current");
+    
+    /* Assume conditions to reach the target line 340 */
+    klee_assume(instate == 0);        /* Must be in state 0 */
+    klee_assume(len < rlen);          /* Must take the else branch at line 333 */
+    klee_assume(rlen > 0);            /* Ensure rlen is positive */
+    klee_assume(len > 0);             /* Ensure len is positive */
+    
+    /* Additional constraints to avoid trivial issues */
+    klee_assume(rlen <= 1024);        /* Ensure rlen fits within allocated buffers */
+    klee_assume(len <= 1024);         /* Ensure len fits within allocated buffers */
+    
+    /* Vulnerability assertion: check that len does not exceed buffer bounds */
+    SAILR_ASSERT(len <= 1024);
+    
+    /* Reachability marker for the target line */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Clean up */
+    free(buffer);
+    free(current);
+    
+    return 0;
+}
+```

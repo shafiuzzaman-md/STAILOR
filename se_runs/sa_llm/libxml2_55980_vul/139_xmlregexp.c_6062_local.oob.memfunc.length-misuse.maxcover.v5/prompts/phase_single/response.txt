@@ -1,0 +1,126 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the target function */
+typedef unsigned char xmlChar;
+typedef struct _xmlRegAtom xmlRegAtom;
+struct _xmlRegAtom {
+    int type;
+    void *valuep;
+    void *valuep2;
+    void *data;
+    int min;
+    int max;
+    int neg;
+    int start;
+    int end;
+};
+
+/* Forward declarations of functions we need */
+void *xmlMallocAtomic(size_t size);
+void xmlRegFreeAtom(xmlRegAtom *atom);
+
+/* Stub implementations for functions we don't need to model fully */
+void *xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+void xmlRegFreeAtom(xmlRegAtom *atom) {
+    free(atom->valuep);
+    free(atom->valuep2);
+    free(atom);
+}
+
+/* Target function signature from the context */
+xmlRegAtom *xmlRegNewAtom(int type, int data);
+
+/* We'll implement a simplified version that focuses on the vulnerable path */
+xmlRegAtom *xmlRegNewAtom(int type, int data) {
+    xmlRegAtom *atom;
+    xmlChar *str;
+    xmlChar *token = (xmlChar*)"token1";
+    xmlChar *token2 = (xmlChar*)"token2";
+    int lenp, lenn;
+    int min = 0;
+    
+    /* Make lengths symbolic to explore different values */
+    klee_make_symbolic(&lenp, sizeof(lenp), "lenp");
+    klee_make_symbolic(&lenn, sizeof(lenn), "lenn");
+    
+    /* Assume reasonable bounds for lengths */
+    klee_assume(lenp >= 0 && lenp < 100);
+    klee_assume(lenn >= 0 && lenn < 100);
+    
+    atom = (xmlRegAtom *)malloc(sizeof(xmlRegAtom));
+    if (atom == NULL) {
+        return NULL;
+    }
+    
+    atom->type = type;
+    atom->valuep = NULL;
+    atom->valuep2 = NULL;
+    atom->data = NULL;
+    
+    /* This is the allocation from line 6055 */
+    str = (xmlChar *)xmlMallocAtomic(lenn + lenp + 2);
+    if (str == NULL) {
+        xmlRegFreeAtom(atom);
+        return NULL;
+    }
+    
+    /* Lines 6060-6062: the vulnerable memcpy operations */
+    memcpy(&str[0], token, lenp);
+    str[lenp] = '|';
+    
+    /* VULNERABILITY ASSERTION: Check if the second memcpy would be safe */
+    /* The buffer has size lenn + lenp + 2, and we're writing at offset lenp+1 */
+    /* So we need: lenp + 1 + lenn <= lenn + lenp + 2, which simplifies to: 1 <= 2 (always true) */
+    /* But more importantly, we need to check that lenn doesn't exceed the actual size of token2 */
+    /* Since token2 is a fixed string "token2" (6 chars + null terminator), we need lenn <= 6 */
+    /* However, the real issue is that lenn might be larger than allocated buffer allows */
+    /* The correct check is that lenn doesn't cause writing beyond allocated buffer */
+    /* Buffer size is lenn + lenp + 2, writing starts at offset lenp+1, writing lenn bytes */
+    /* So we need: (lenp + 1 + lenn) <= (lenn + lenp + 2) */
+    /* This simplifies to: 1 <= 2, which is always true */
+    /* But wait - the actual vulnerability is that lenn might be larger than the actual length of token2 */
+    /* Since we're using a fixed token2 of length 6, the vulnerability condition is lenn > 6 */
+    SAILR_ASSERT(lenn <= 6);
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memcpy(&str[lenp + 1], token2, lenn);
+    str[lenn + lenp + 1] = 0;
+    
+    atom->valuep = str;
+    atom->data = (void*)(long)data;
+    
+    if (min == 0)
+        atom->min = 1;
+    else
+        atom->min = min;
+    
+    return atom;
+}
+
+int main(void) {
+    xmlRegAtom *atom;
+    int type, data;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&type, sizeof(type), "type");
+    klee_make_symbolic(&data, sizeof(data), "data");
+    
+    /* Call the function that contains the vulnerable code */
+    atom = xmlRegNewAtom(type, data);
+    
+    /* Clean up if allocation succeeded */
+    if (atom != NULL) {
+        xmlRegFreeAtom(atom);
+    }
+    
+    return 0;
+}
+```

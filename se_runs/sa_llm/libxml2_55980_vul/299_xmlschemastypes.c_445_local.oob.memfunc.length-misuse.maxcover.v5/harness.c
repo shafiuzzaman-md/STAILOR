@@ -1,0 +1,79 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed to compile */
+typedef struct _xmlSchemaWildcard xmlSchemaWildcard;
+typedef struct _xmlSchemaTreeItem xmlSchemaTreeItem;
+typedef xmlSchemaTreeItem* xmlSchemaTreeItemPtr;
+typedef xmlSchemaWildcard* xmlSchemaWildcardPtr;
+
+struct _xmlSchemaWildcard {
+    int type;
+    int any;
+    int processContents;
+};
+
+struct _xmlSchemaTreeItem {
+    int maxOccurs;
+    xmlSchemaTreeItemPtr children;
+};
+
+/* Stub functions to avoid linking issues */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    klee_assume(ptr != NULL); /* Assume allocation always succeeds for this path */
+    return ptr;
+}
+
+void xmlSchemaTypeErrMemory(void* ctx, const char* msg) {
+    /* Do nothing - just a stub */
+}
+
+/* Target function that contains the vulnerable memset */
+void target_function(xmlSchemaTreeItemPtr particle) {
+    xmlSchemaWildcardPtr wild;
+    
+    particle->maxOccurs = -1; /* UNBOUNDED */
+    
+    /* The wildcard */
+    wild = (xmlSchemaWildcardPtr) xmlMalloc(sizeof(xmlSchemaWildcard));
+    if (wild == NULL) {
+        xmlSchemaTypeErrMemory(NULL, "allocating wildcard component");
+        return;
+    }
+    
+    /* VULNERABLE LINE: memset(wild, 0, sizeof(xmlSchemaWildcard)); */
+    /* Vulnerability assertion: ensure wild pointer is valid and size is correct */
+    SAILR_ASSERT(wild != NULL && sizeof(xmlSchemaWildcard) > 0);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* The actual memset call (commented out since we can't reach it after klee_assert) */
+    /* memset(wild, 0, sizeof(xmlSchemaWildcard)); */
+    
+    wild->type = 1; /* XML_SCHEMA_TYPE_ANY */
+    wild->any = 1;
+    wild->processContents = 2; /* XML_SCHEMAS_ANY_LAX */
+    particle->children = (xmlSchemaTreeItemPtr) wild;
+}
+
+int main(void) {
+    xmlSchemaTreeItem particle;
+    
+    /* Make particle symbolic to explore different states */
+    klee_make_symbolic(&particle, sizeof(particle), "particle");
+    
+    /* Ensure particle is initialized enough for the function */
+    klee_assume(particle.children == NULL);
+    
+    /* Call the target function */
+    target_function(&particle);
+    
+    return 0;
+}

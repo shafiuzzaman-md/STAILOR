@@ -1,0 +1,51 @@
+array const_arr1[96] : w32 -> w8 = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 171 171 171 171 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 171 171 171 171 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 171 171 171 171 0 0 0 0 0 0 0 0]
+array dict_size[4] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+(query [(Ult 0
+              N0:(ReadLSB w32 0 dict_size))
+         (Ult N0 100)
+         (Sle 0
+              N1:(ReadLSB w32 0 len))
+         (Slt N1 256)
+         (Eq 96
+             (Mul w64 32 (ZExt w64 N0)))
+         (Eq false (Slt 0 N1))
+         (Eq false
+             (Eq 0
+                 (Concat w64 0
+                             (ReadLSB w56 N2:(Extract w32 0 N3:(Mul w64 32
+                                                                        (ZExt w64 (URem w32 0 N0)))) U0:[(Add w32 7 N2)=0,
+                                                                                                         N4:(Add w32 6 N2)=0,
+                                                                                                         N5:(Add w32 5 N2)=118,
+                                                                                                         N6:(Add w32 4 N2)=109,
+                                                                                                         N7:(Add w32 3 N2)=252,
+                                                                                                         N8:(Add w32 2 N2)=192,
+                                                                                                         N9:(Add w32 1 N2)=0,
+                                                                                                         N2=0,
+                                                                                                         (Add w32 3
+                                                                                                                  N10:(Extract w32 0 (Add w64 8 N3)))=N11:(Read w8 3 len),
+                                                                                                         (Add w32 2 N10)=N12:(Read w8 2 len),
+                                                                                                         (Add w32 1 N10)=N13:(Read w8 1 len),
+                                                                                                         N10=N14:(Read w8 0 len),
+                                                                                                         (Add w32 3
+                                                                                                                  N15:(Extract w32 0 (Add w64 12 N3)))=0,
+                                                                                                         (Add w32 2 N15)=0,
+                                                                                                         (Add w32 1 N15)=0,
+                                                                                                         N15=0,
+                                                                                                         (Add w32 3
+                                                                                                                  N16:(Extract w32 0 (Add w64 16 N3)))=0,
+                                                                                                         (Add w32 2 N16)=0,
+                                                                                                         (Add w32 1 N16)=0,
+                                                                                                         N16=1] @ const_arr1))))
+         (Eq false
+             (Eq 0
+                 (Concat w64 0
+                             (ReadLSB w56 N17:(Extract w32 0 (Add w64 24 N3)) U1:[(Add w32 7 N17)=0,
+                                                                                  N18:(Add w32 6 N17)=0,
+                                                                                  N19:(Add w32 5 N17)=118,
+                                                                                  N20:(Add w32 4 N17)=141,
+                                                                                  N21:(Add w32 3 N17)=252,
+                                                                                  N22:(Add w32 2 N17)=192,
+                                                                                  N23:(Add w32 1 N17)=0,
+                                                                                  N17=0] @ U0))))]
+        false)

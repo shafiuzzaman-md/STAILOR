@@ -1,0 +1,15 @@
+array dim1[8] : w32 -> w8 = symbolic
+array dim2[8] : w32 -> w8 = symbolic
+array elemSize[8] : w32 -> w8 = symbolic
+(query [(Ule N0:(ReadLSB w64 0 dim1)
+              1024)
+         (Ule N1:(ReadLSB w64 0 dim2)
+              1024)
+         (Ule N2:(ReadLSB w64 0 elemSize)
+              1024)
+         (Ult 0 N2)
+         (Eq false (Eq 0 N1))
+         (Eq false
+             (Eq 0
+                 (Mul w64 (Mul w64 N0 N1) N2)))]
+        false)

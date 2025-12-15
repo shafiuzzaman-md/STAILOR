@@ -1,0 +1,117 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlOutputBuffer xmlOutputBuffer;
+typedef struct _xmlDoc xmlDoc;
+typedef struct _xmlSaveCtxt xmlSaveCtxt;
+
+/* Minimal stub structures to satisfy type requirements */
+struct _xmlOutputBuffer {
+    void* context;
+    int written;
+};
+
+struct _xmlDoc {
+    int type;
+    void* children;
+};
+
+struct _xmlSaveCtxt {
+    xmlOutputBuffer* buf;
+    int level;
+    int format;
+    const char* encoding;
+    int options;
+};
+
+/* Stub functions that will be called */
+int xmlOutputBufferClose(xmlOutputBuffer* buf) {
+    if (buf == NULL) return -1;
+    free(buf->context);
+    free(buf);
+    return 0;
+}
+
+void xmlSaveCtxtInit(xmlSaveCtxt* ctxt) {
+    /* Minimal initialization */
+    if (ctxt) {
+        ctxt->options = 0;
+    }
+}
+
+void xmlDocContentDumpOutput(xmlSaveCtxt* ctxt, xmlDoc* doc) {
+    /* Stub implementation - does nothing */
+    (void)ctxt;
+    (void)doc;
+}
+
+/* The target function from xmlsave.c */
+int xmlSaveDoc(xmlOutputBuffer* buf, xmlDoc* cur, const char* encoding) {
+    xmlSaveCtxt ctxt;
+    int ret;
+
+    if (buf == NULL) return(-1);
+    if (cur == NULL) {
+        xmlOutputBufferClose(buf);
+        return(-1);
+    }
+    /* TARGET LINE 2536 - memset with sizeof(ctxt) */
+    memset(&ctxt, 0, sizeof(ctxt));
+    ctxt.buf = buf;
+    ctxt.level = 0;
+    ctxt.format = 0;
+    ctxt.encoding = (const char*) encoding;
+    xmlSaveCtxtInit(&ctxt);
+    ctxt.options |= 1; /* XML_SAVE_AS_XML */
+    xmlDocContentDumpOutput(&ctxt, cur);
+    ret = xmlOutputBufferClose(buf);
+    return ret;
+}
+
+int main(void) {
+    /* Create symbolic inputs to reach the target line */
+    xmlOutputBuffer* buf;
+    xmlDoc* cur;
+    char encoding[32];
+    
+    /* Allocate and make symbolic the buffer pointer */
+    buf = (xmlOutputBuffer*)malloc(sizeof(xmlOutputBuffer));
+    klee_make_symbolic(buf, sizeof(xmlOutputBuffer), "buf");
+    
+    /* Allocate and make symbolic the document pointer */
+    cur = (xmlDoc*)malloc(sizeof(xmlDoc));
+    klee_make_symbolic(cur, sizeof(xmlDoc), "cur");
+    
+    /* Make encoding symbolic */
+    klee_make_symbolic(encoding, sizeof(encoding), "encoding");
+    
+    /* Assume conditions to pass the early checks */
+    klee_assume(buf != NULL);  /* First check at line 2531 */
+    klee_assume(cur != NULL);  /* Second check at line 2532 */
+    
+    /* Call the target function */
+    int result = xmlSaveDoc(buf, cur, encoding);
+    
+    /* Vulnerability assertion for memset length misuse:
+       The size argument to memset should be valid (non-negative and reasonable).
+       Since sizeof(ctxt) is compile-time constant, the vulnerability would be
+       if ctxt had uninitialized padding or if the pointer &ctxt was invalid.
+       The main concern is that the destination buffer (&ctxt) must be fully
+       within valid memory. We assert that the entire ctxt structure is valid. */
+    SAILR_ASSERT(sizeof(xmlSaveCtxt) > 0 && sizeof(xmlSaveCtxt) <= 1024);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Cleanup */
+    free(buf);
+    free(cur);
+    
+    return result;
+}

@@ -1,0 +1,5 @@
+array line_read[501] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0 (Read w8 0 line_read)))
+         (Eq 0 (Read w8 1 line_read))]
+        false)

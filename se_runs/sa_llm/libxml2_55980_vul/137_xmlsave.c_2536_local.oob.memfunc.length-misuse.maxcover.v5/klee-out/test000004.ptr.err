@@ -1,0 +1,13 @@
+Error: memory error: double free
+File: se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 37
+assembly.ll line: 38
+State: 16
+Stack: 
+	#000000038 in xmlOutputBufferClose(136110564966400) at se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:37
+	#100000141 in xmlSaveDoc(136110564966400, 136093385097216, 135771262550016) at se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:73
+	#200000194 in main() at se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:99
+Info: 
+	address: 136110564966400
+	next: object at 135742271520768 of size 4
+		MO53[4] allocated at xmlSaveDoc():  %9 = alloca i32, align 4

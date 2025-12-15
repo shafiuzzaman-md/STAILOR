@@ -1,0 +1,29 @@
+{
+  "spec_id": "258_xmlregexp.c_820_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
+  "target_line": 820,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 112,
+        "text": "SAILR_ASSERT(sizeof(xmlRegAtom) <= malloc_usable_size(ret));"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 115,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

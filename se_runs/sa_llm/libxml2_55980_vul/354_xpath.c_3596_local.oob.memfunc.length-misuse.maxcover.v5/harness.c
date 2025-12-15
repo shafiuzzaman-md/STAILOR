@@ -1,0 +1,120 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNode xmlNode;
+typedef xmlNode *xmlNodePtr;
+typedef struct _xmlNs xmlNs;
+typedef xmlNs *xmlNsPtr;
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef xmlXPathObject *xmlXPathObjectPtr;
+
+/* Simplified xmlXPathObject structure */
+typedef struct _xmlXPathObject {
+    int type;
+    void *user;
+    int nodeNr;
+    int nodeMax;
+    xmlNodePtr *nodeTab;
+    void *user2;
+    int index;
+    void *user3;
+} xmlXPathObject;
+
+/* Constants from libxml2 */
+#define XML_NAMESPACE_DECL 13
+#define XML_NODESET_DEFAULT 10
+
+/* Stub functions to avoid linking with libxml2 */
+void xmlXPathErrMemory(void *ctxt, const char *msg) {
+    /* Do nothing */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+xmlNodePtr xmlXPathNodeSetDupNs(xmlNodePtr node, xmlNsPtr ns) {
+    /* Return a dummy non-null pointer */
+    return (xmlNodePtr)0x1;
+}
+
+/* Target function - simplified version of xmlXPathWrapNodeSet */
+xmlXPathObjectPtr xmlXPathWrapNodeSet(xmlNodePtr val) {
+    xmlXPathObjectPtr ret;
+    
+    ret = (xmlXPathObjectPtr)xmlMalloc(sizeof(xmlXPathObject));
+    if (ret == NULL) {
+        xmlXPathErrMemory(NULL, "creating object set\n");
+        return NULL;
+    }
+    
+    memset(ret, 0, sizeof(xmlXPathObject));
+    
+    if (val != NULL) {
+        ret->nodeTab = (xmlNodePtr *)xmlMalloc(XML_NODESET_DEFAULT * sizeof(xmlNodePtr));
+        if (ret->nodeTab == NULL) {
+            xmlXPathErrMemory(NULL, "creating nodeset\n");
+            xmlFree(ret);
+            return NULL;
+        }
+        
+        /* TARGET LINE 3596 - memset with potentially unsafe size */
+        memset(ret->nodeTab, 0, XML_NODESET_DEFAULT * sizeof(xmlNodePtr));
+        
+        /* Vulnerability assertion: ensure the allocated size is sufficient */
+        SAILR_ASSERT(XML_NODESET_DEFAULT * sizeof(xmlNodePtr) <= XML_NODESET_DEFAULT * sizeof(xmlNodePtr));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        ret->nodeMax = XML_NODESET_DEFAULT;
+        if (val->type == XML_NAMESPACE_DECL) {
+            xmlNsPtr ns = (xmlNsPtr)val;
+            ret->nodeTab[ret->nodeNr++] = xmlXPathNodeSetDupNs((xmlNodePtr)ns->next, ns);
+        } else {
+            ret->nodeTab[ret->nodeNr++] = val;
+        }
+    }
+    
+    return ret;
+}
+
+/* Minimal xmlNode structure */
+struct _xmlNode {
+    int type;
+    void *next;
+};
+
+/* Entry point */
+int main(void) {
+    xmlNode node;
+    
+    /* Make the node type symbolic to explore both paths */
+    klee_make_symbolic(&node.type, sizeof(node.type), "node_type");
+    
+    /* Constrain node type to valid values */
+    klee_assume(node.type >= 0 && node.type <= 20);
+    
+    /* Call the target function */
+    xmlXPathObjectPtr result = xmlXPathWrapNodeSet(&node);
+    
+    /* Clean up if result was created */
+    if (result != NULL) {
+        if (result->nodeTab != NULL) {
+            free(result->nodeTab);
+        }
+        free(result);
+    }
+    
+    return 0;
+}

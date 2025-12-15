@@ -1,0 +1,126 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal struct definitions to match libxml2's dict.c */
+typedef struct _xmlDictEntry xmlDictEntry;
+typedef xmlDictEntry *xmlDictEntryPtr;
+struct _xmlDictEntry {
+    xmlDictEntryPtr next;
+    const xmlChar *name;
+    unsigned int len;
+    unsigned int okey;
+    int valid;
+};
+
+typedef struct _xmlDict xmlDict;
+struct _xmlDict {
+    xmlDict *subdict;
+    xmlDictEntry *dict;
+    unsigned int size;
+};
+
+typedef unsigned char xmlChar;
+
+/* Stub for xmlStrncmp */
+int xmlStrncmp(const xmlChar *str1, const xmlChar *str2, int len) {
+    if (len <= 0) return 0;
+    return memcmp(str1, str2, len);
+}
+
+/* Target function from dict.c - simplified to reach line 1078 */
+const xmlChar *xmlDictLookup(xmlDict *dict, const xmlChar *name, int l) {
+    unsigned int skey = 0;
+    unsigned int key;
+    xmlDictEntryPtr tmp;
+    
+    /* Simplified key computation */
+    for (int i = 0; i < l; i++) {
+        skey = skey * 31 + name[i];
+    }
+    
+    key = skey % dict->subdict->size;
+    if (dict->subdict->dict[key].valid != 0) {
+        for (tmp = &(dict->subdict->dict[key]); tmp->next != NULL;
+             tmp = tmp->next) {
+#ifdef __GNUC__
+            if ((tmp->okey == skey) && (tmp->len == l)) {
+                if (!memcmp(tmp->name, name, l))
+                    return(tmp->name);
+            }
+#else
+            if ((tmp->okey == skey) && (tmp->len == l) &&
+                (!xmlStrncmp(tmp->name, name, l)))
+                return(tmp->name);
+#endif
+        }
+    }
+    return NULL;
+}
+
+int main(void) {
+    /* Create dictionary structure */
+    xmlDict *dict = malloc(sizeof(xmlDict));
+    xmlDict *subdict = malloc(sizeof(xmlDict));
+    
+    /* Allocate dict array with one entry */
+    subdict->size = 1;
+    subdict->dict = malloc(sizeof(xmlDictEntry));
+    subdict->subdict = NULL;
+    
+    dict->subdict = subdict;
+    
+    /* Initialize the entry */
+    xmlDictEntry *entry = &subdict->dict[0];
+    entry->valid = 1;
+    entry->next = NULL;
+    
+    /* Make name length symbolic */
+    int l;
+    klee_make_symbolic(&l, sizeof(l), "l");
+    klee_assume(l >= 0);
+    klee_assume(l <= 256); /* Reasonable bound */
+    
+    /* Make name buffer symbolic */
+    xmlChar *name = malloc(l + 1);
+    klee_make_symbolic(name, l + 1, "name");
+    name[l] = '\0';
+    
+    /* Make entry data symbolic */
+    entry->len = l;
+    entry->okey = 0; /* Will be computed from name */
+    
+    /* Compute the same key as in the function */
+    unsigned int skey = 0;
+    for (int i = 0; i < l; i++) {
+        skey = skey * 31 + name[i];
+    }
+    entry->okey = skey;
+    
+    /* Allocate entry name with same length */
+    entry->name = malloc(l + 1);
+    klee_make_symbolic((void*)entry->name, l + 1, "entry_name");
+    ((char*)entry->name)[l] = '\0';
+    
+    /* Call the target function */
+    const xmlChar *result = xmlDictLookup(dict, name, l);
+    
+    /* Vulnerability assertion: memcmp length should not exceed buffer sizes */
+    SAILR_ASSERT(l <= strlen((char*)name) && l <= strlen((char*)entry->name));
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Cleanup */
+    free((void*)entry->name);
+    free(name);
+    free(subdict->dict);
+    free(subdict);
+    free(dict);
+    
+    return 0;
+}

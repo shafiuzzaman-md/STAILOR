@@ -1,0 +1,7 @@
+Error: invalid klee_assume call (provably false)
+File: se_runs/sa_llm/libxml2_55980_vul/361_xpath.c_861_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 74
+assembly.ll line: 187
+State: 2
+Stack: 
+	#000000187 in main() at se_runs/sa_llm/libxml2_55980_vul/361_xpath.c_861_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:74

@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: (n <= len) && "SAILR_VULN_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/153_xzlib.c_739_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 33
+assembly.ll line: 168
+State: 2425
+Stack: 
+	#000000168 in target_function(symbolic, symbolic, 124669768237056, 124601048760320) at se_runs/sa_llm/libxml2_55980_vul/153_xzlib.c_739_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:33
+	#100000080 in main() at se_runs/sa_llm/libxml2_55980_vul/153_xzlib.c_739_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:72

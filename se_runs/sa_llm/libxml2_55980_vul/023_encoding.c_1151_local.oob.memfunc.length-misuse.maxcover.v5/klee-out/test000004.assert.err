@@ -1,0 +1,7 @@
+Error: ASSERTION FAIL: (match_idx < array_size && match_idx + 1 < array_size && count >= 0 && count <= (array_size - match_idx - 1)) && "SAILR_VULN_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/023_encoding.c_1151_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 93
+assembly.ll line: 230
+State: 1
+Stack: 
+	#000000230 in main() at se_runs/sa_llm/libxml2_55980_vul/023_encoding.c_1151_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:93

@@ -1,0 +1,11 @@
+array cur[8] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 (ReadLSB w64 0 cur)))
+         (Sle 0
+              N0:(ReadLSB w32 0 len))
+         (Ult 0
+              (Add w64 1 (SExt w64 N0)))
+         (Eq false (Eq 0 N0))]
+        false)

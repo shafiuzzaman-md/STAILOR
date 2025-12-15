@@ -1,0 +1,44 @@
+```c
+#include <string.h>
+#include <stdlib.h>
+#include "klee/klee.h"
+
+/* Forward declaration of the target function from testlimits.c */
+static int hugeMatch(const char *URI);
+
+int main(void) {
+    /* Create a symbolic buffer for the URI parameter */
+    char URI[256];
+    klee_make_symbolic(URI, sizeof(URI), "URI");
+
+    /* Assume URI is null-terminated to avoid reading beyond buffer */
+    klee_assume(URI[255] == '\0');
+
+    /* Call the target function */
+    int result = hugeMatch(URI);
+
+    /* Vulnerability assertion: strncmp reads at most 5 bytes from URI.
+       We must ensure URI has at least 5 bytes accessible before null terminator.
+       The condition is: there exists no null byte in the first 5 bytes of URI.
+       If there is a null byte earlier, strncmp stops early and no OOB occurs.
+       The OOB risk is when URI points to a buffer shorter than 5 bytes.
+       Since we made URI 256 bytes and assumed null termination at index 255,
+       the actual risk is if URI points to less than 5 valid bytes before null.
+       We assert the safe condition: the first 5 bytes are all non-null.
+    */
+    if ((URI != NULL) && (strlen(URI) >= 5)) {
+        SAILR_ASSERT(strlen(URI) >= 5);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+
+    return 0;
+}
+
+/* Implementation of the target function (copied from testlimits.c) */
+static int
+hugeMatch(const char * URI) {
+    if ((URI != NULL) && (!strncmp(URI, "huge:", 5)))
+        return(1);
+    return(0);
+}
+```

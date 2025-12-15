@@ -1,0 +1,98 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal types needed from libxml2 */
+typedef unsigned char xmlChar;
+typedef struct _xmlBuf xmlBuf;
+struct _xmlBuf {
+    xmlChar *content;     /* The buffer content */
+    xmlChar *contentIO;   /* IO buffer if any */
+    unsigned int use;     /* The buffer size used */
+    unsigned int size;    /* The buffer size */
+    unsigned int alloc;   /* The buffer alloc type */
+};
+
+/* Stub for xmlBufMemoryError */
+void xmlBufMemoryError(xmlBuf* buf, const char* msg) {
+    (void)buf;
+    (void)msg;
+}
+
+/* Stub for xmlRealloc */
+void* xmlRealloc(void* ptr, size_t size) {
+    (void)ptr;
+    (void)size;
+    return NULL;
+}
+
+/* Target function - extracted from buf.c around line 721 */
+int target_function(xmlBuf* buf, unsigned int newSize) {
+    xmlChar* rebuf;
+    unsigned int start_buf;
+
+    if ((buf->alloc == 1) && (buf->contentIO != NULL)) {  /* XML_BUFFER_ALLOC_IO = 1 */
+        start_buf = buf->content - buf->contentIO;
+
+        if (start_buf > newSize) {
+            /* move data back to start - TARGET LINE 721 */
+            memmove(buf->contentIO, buf->content, buf->use);
+            buf->content = buf->contentIO;
+            buf->content[buf->use] = 0;
+            buf->size += start_buf;
+        } else {
+            rebuf = (xmlChar *) xmlRealloc(buf->contentIO, start_buf + newSize);
+            if (rebuf == NULL) {
+                xmlBufMemoryError(buf, "growing buffer");
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+int main(void) {
+    xmlBuf buf;
+    unsigned int newSize;
+    xmlChar contentIO_buffer[256];
+    xmlChar content_buffer[256];
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&buf.alloc, sizeof(buf.alloc), "buf_alloc");
+    klee_make_symbolic(&buf.use, sizeof(buf.use), "buf_use");
+    klee_make_symbolic(&buf.size, sizeof(buf.size), "buf_size");
+    klee_make_symbolic(&newSize, sizeof(newSize), "newSize");
+    
+    /* Constrain alloc to be XML_BUFFER_ALLOC_IO (1) */
+    klee_assume(buf.alloc == 1);
+    
+    /* Constrain use to be within buffer bounds */
+    klee_assume(buf.use < 256);
+    
+    /* Ensure contentIO is not NULL */
+    buf.contentIO = contentIO_buffer;
+    
+    /* Make content point somewhere within contentIO buffer */
+    unsigned int offset;
+    klee_make_symbolic(&offset, sizeof(offset), "offset");
+    klee_assume(offset < 256);
+    buf.content = buf.contentIO + offset;
+    
+    /* Constrain start_buf = buf.content - buf.contentIO > newSize */
+    /* This ensures we take the true branch of the if statement */
+    klee_assume(offset > newSize);
+    
+    /* Vulnerability assertion: memmove length (buf.use) should not exceed 
+       destination buffer size (256 - 0) and source buffer size (256 - offset) */
+    SAILR_ASSERT(buf.use <= 256 && buf.use <= (256 - offset));
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Call target function */
+    target_function(&buf, newSize);
+    
+    return 0;
+}
+```

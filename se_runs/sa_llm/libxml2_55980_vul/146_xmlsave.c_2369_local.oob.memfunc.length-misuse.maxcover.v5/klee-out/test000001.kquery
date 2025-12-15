@@ -1,0 +1,13 @@
+array buf[8] : w32 -> w8 = symbolic
+array conv_hdlr[8] : w32 -> w8 = symbolic
+array out_doc[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 (ReadLSB w64 0 conv_hdlr)))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w64 0 out_doc)))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w64 0 buf)))]
+        false)

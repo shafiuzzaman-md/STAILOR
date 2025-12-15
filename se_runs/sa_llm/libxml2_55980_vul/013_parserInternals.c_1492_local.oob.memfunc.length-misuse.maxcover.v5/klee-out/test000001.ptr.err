@@ -1,0 +1,14 @@
+Error: memory error: out of bound pointer
+File: se_runs/sa_llm/libxml2_55980_vul/013_parserInternals.c_1492_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 51
+assembly.ll line: 37
+State: 21
+Stack: 
+	#000000037 in xmlInitParserCtxt(132857351634944) at se_runs/sa_llm/libxml2_55980_vul/013_parserInternals.c_1492_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:51
+	#100000081 in main() at se_runs/sa_llm/libxml2_55980_vul/013_parserInternals.c_1492_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:77
+Info: 
+	address: (ReadLSB w64 0 sax)
+	example: 255
+	range: [1, 18446744073709551615]
+	next: object at 132829434347520 of size 4
+		MO22[4] allocated at main():  %3 = alloca %struct._xmlSAXHandler, align 4

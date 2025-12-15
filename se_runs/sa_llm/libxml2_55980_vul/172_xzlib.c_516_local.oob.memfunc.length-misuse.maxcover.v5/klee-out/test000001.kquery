@@ -1,0 +1,5 @@
+array out_buf_size[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Ult 0
+                  (ReadLSB w32 0 out_buf_size)))]
+        false)

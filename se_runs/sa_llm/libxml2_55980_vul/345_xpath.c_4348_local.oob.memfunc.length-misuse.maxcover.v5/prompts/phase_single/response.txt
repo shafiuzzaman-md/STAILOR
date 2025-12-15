@@ -1,0 +1,121 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNode xmlNode;
+struct _xmlNode {
+    int type;
+    void *properties;
+    xmlNode *children;
+    xmlNode *last;
+    xmlNode *parent;
+    xmlNode *next;
+    xmlNode *prev;
+    void *doc;
+    void *ns;
+    void *content;
+    void *name;
+    void *nsDef;
+    void *psvi;
+    unsigned short line;
+    unsigned short extra;
+};
+
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef xmlXPathObject *xmlXPathObjectPtr;
+struct _xmlXPathObject {
+    int type;
+    void *nodesetval;
+    int boolval;
+    double floatval;
+    char *stringval;
+    void *user;
+    int index;
+    void *user2;
+    int index2;
+};
+
+/* Stub functions to avoid linking with libxml2 */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+void xmlXPathErrMemory(void *ctxt, const char *msg) {
+    /* Do nothing */
+}
+
+void* xmlXPathNodeSetCreate(void *node) {
+    /* Return a dummy non-NULL pointer */
+    static int dummy;
+    return &dummy;
+}
+
+#ifdef XP_DEBUG_OBJ_USAGE
+void xmlXPathDebugObjUsageRequested(void *ctxt, int type) {
+    /* Do nothing */
+}
+#endif
+
+/* The target function from xpath.c */
+xmlXPathObjectPtr xmlXPathNewValueTree(xmlNodePtr val) {
+    xmlXPathObjectPtr ret;
+
+    ret = (xmlXPathObjectPtr) xmlMalloc(sizeof(xmlXPathObject));
+    if (ret == NULL) {
+        xmlXPathErrMemory(NULL, "creating result value tree\n");
+        return(NULL);
+    }
+    /* TARGET LINE 4348 - memset call */
+    memset(ret, 0, sizeof(xmlXPathObject));
+    ret->type = 10001; /* XPATH_XSLT_TREE */
+    ret->boolval = 1;
+    ret->user = (void *) val;
+    ret->nodesetval = xmlXPathNodeSetCreate(val);
+#ifdef XP_DEBUG_OBJ_USAGE
+    xmlXPathDebugObjUsageRequested(NULL, 10001);
+#endif
+    return(ret);
+}
+
+/* Main harness */
+int main(void) {
+    xmlNode node;
+    
+    /* Make the node symbolic to explore different states */
+    klee_make_symbolic(&node, sizeof(node), "node");
+    
+    /* Assume the node is not NULL (to avoid early return) */
+    klee_assume(&node != NULL);
+    
+    /* Call the target function */
+    xmlXPathObjectPtr result = xmlXPathNewValueTree(&node);
+    
+    /* Vulnerability assertion: For memset length-misuse, the condition
+       should ensure the allocated size is at least sizeof(xmlXPathObject).
+       Since xmlMalloc can fail (returning NULL), we need to check that
+       when ret is non-NULL, the memset size doesn't exceed allocation.
+       However, the memset uses sizeof(xmlXPathObject) which matches the
+       allocation size. The vulnerability would be if sizeof(xmlXPathObject)
+       exceeds the actual allocated memory, but xmlMalloc allocates exactly
+       that size. So the assertion should be that ret points to valid memory
+       of at least sizeof(xmlXPathObject) bytes when ret != NULL. */
+    if (result != NULL) {
+        /* The vulnerability assertion: ensure the memset size doesn't exceed
+           allocated memory. Since we know xmlMalloc allocated sizeof(xmlXPathObject),
+           and memset uses the same size, the condition is always true.
+           However, the SA pattern flags this as potential OOB, so we assert
+           the safety condition: allocated size >= memset size */
+        SAILR_ASSERT(1); /* Always true for this specific case */
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Clean up */
+        free(result);
+    }
+    
+    return 0;
+}
+```

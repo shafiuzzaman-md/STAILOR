@@ -1,0 +1,101 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal declarations from libxml2 needed to compile the target function */
+typedef struct _xmlDict xmlDict;
+typedef xmlDict *xmlDictPtr;
+
+typedef struct _xmlDictEntry xmlDictEntry;
+typedef xmlDictEntry *xmlDictEntryPtr;
+
+struct _xmlDictEntry {
+    struct _xmlDictEntry *next;
+    const xmlChar *name;
+    int len;
+    unsigned int okey;
+};
+
+/* Stub for xmlStrlen */
+static int xmlStrlen(const xmlChar *str) {
+    if (!str) return 0;
+    return strlen((const char *)str);
+}
+
+/* Stub for xmlStrdup */
+static xmlChar *xmlStrdup(const xmlChar *cur) {
+    if (!cur) return NULL;
+    return (xmlChar *)strdup((const char *)cur);
+}
+
+/* Target function from dict.c - simplified to reach line 1089 */
+static const xmlChar *xmlDictLookup(xmlDictPtr dict, const xmlChar *name, int len) {
+    xmlDictEntryPtr tmp;
+    unsigned int skey;
+    int l;
+    
+    if ((dict == NULL) || (name == NULL)) return(NULL);
+    
+    if (len < 0) l = xmlStrlen(name);
+    else l = len;
+    
+    /* Simplified: assume we have an entry to compare against */
+    tmp = (xmlDictEntryPtr)malloc(sizeof(struct _xmlDictEntry));
+    if (!tmp) return NULL;
+    
+    /* Make symbolic inputs for the comparison */
+    klee_make_symbolic(&tmp->okey, sizeof(tmp->okey), "tmp_okey");
+    klee_make_symbolic(&tmp->len, sizeof(tmp->len), "tmp_len");
+    klee_make_symbolic(&skey, sizeof(skey), "skey");
+    
+    /* Assume conditions to reach the vulnerable memcmp line */
+    klee_assume(tmp->okey == skey);
+    klee_assume(tmp->len == l);
+    
+    /* Allocate and initialize tmp->name */
+    tmp->name = (const xmlChar *)malloc(l + 1);
+    if (!tmp->name) {
+        free(tmp);
+        return NULL;
+    }
+    klee_make_symbolic((void *)tmp->name, l, "tmp_name");
+    ((char *)tmp->name)[l] = '\0';
+    
+    /* Vulnerability assertion: ensure l doesn't exceed allocated buffer sizes */
+    SAILR_ASSERT(l <= tmp->len && l <= len);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* The actual memcmp call from line 1089 */
+    if (!memcmp(tmp->name, name, l))
+        return tmp->name;
+    
+    free((void *)tmp->name);
+    free(tmp);
+    return NULL;
+}
+
+int main(void) {
+    xmlDictPtr dict = (xmlDictPtr)malloc(sizeof(xmlDict));
+    xmlChar *name;
+    int len;
+    
+    /* Make symbolic inputs */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    name = (xmlChar *)malloc(256);
+    klee_make_symbolic(name, 256, "name");
+    
+    /* Assume reasonable constraints */
+    klee_assume(len >= 0 && len < 256);
+    klee_assume(len != -1);  /* Ensure we don't trigger xmlStrlen path */
+    
+    /* Call the target function */
+    xmlDictLookup(dict, name, len);
+    
+    free(name);
+    free(dict);
+    return 0;
+}
+```

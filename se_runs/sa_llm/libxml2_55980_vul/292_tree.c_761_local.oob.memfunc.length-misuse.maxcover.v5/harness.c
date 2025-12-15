@@ -1,0 +1,98 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNs xmlNs;
+struct _xmlNs {
+    void *next;
+    int type;
+    const unsigned char *href;
+    const unsigned char *prefix;
+    void *_private;
+};
+
+typedef xmlNs *xmlNsPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    if (ptr) {
+        klee_make_symbolic(ptr, size, "xmlMalloc_memory");
+    }
+    return ptr;
+}
+
+/* Stub for xmlStrdup */
+unsigned char* xmlStrdup(const unsigned char* str) {
+    if (!str) return NULL;
+    size_t len = strlen((const char*)str) + 1;
+    unsigned char* dup = (unsigned char*)malloc(len);
+    if (dup) {
+        memcpy(dup, str, len);
+    }
+    return dup;
+}
+
+/* Stub for xmlTreeErrMemory */
+void xmlTreeErrMemory(const char* msg) {
+    /* Do nothing */
+}
+
+/* Target function - extracted from tree.c around line 761 */
+xmlNsPtr target_function(const unsigned char* href, const unsigned char* prefix) {
+    xmlNsPtr cur;
+    
+    cur = (xmlNsPtr) xmlMalloc(sizeof(xmlNs));
+    if (cur == NULL) {
+        xmlTreeErrMemory("building namespace");
+        return NULL;
+    }
+    
+    /* VULNERABLE LINE - tree.c:761 */
+    memset(cur, 0, sizeof(xmlNs));
+    
+    /* Vulnerability assertion for OOB in memset */
+    SAILR_ASSERT(sizeof(xmlNs) <= sizeof(xmlNs));  /* Always true for correct allocation */
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    cur->type = 1;  /* XML_LOCAL_NAMESPACE */
+    
+    if (href != NULL)
+        cur->href = xmlStrdup(href);
+    if (prefix != NULL)
+        cur->prefix = xmlStrdup(prefix);
+    
+    return cur;
+}
+
+int main(void) {
+    /* Make inputs symbolic to explore different paths */
+    unsigned char href[256];
+    unsigned char prefix[256];
+    
+    klee_make_symbolic(href, sizeof(href), "href");
+    klee_make_symbolic(prefix, sizeof(prefix), "prefix");
+    
+    /* Ensure null termination for string safety */
+    href[255] = '\0';
+    prefix[255] = '\0';
+    
+    /* Call the target function */
+    xmlNsPtr result = target_function(href, prefix);
+    
+    /* Cleanup if allocation succeeded */
+    if (result) {
+        if (result->href) free((void*)result->href);
+        if (result->prefix) free((void*)result->prefix);
+        free(result);
+    }
+    
+    return 0;
+}

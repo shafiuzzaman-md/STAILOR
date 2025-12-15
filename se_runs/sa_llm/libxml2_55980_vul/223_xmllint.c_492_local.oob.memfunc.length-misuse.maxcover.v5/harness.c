@@ -1,0 +1,75 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <string.h>
+#include <stdlib.h>
+#include "klee/klee.h"
+
+/* Declarations for functions we need to call */
+typedef unsigned char xmlChar;
+#define BAD_CAST (xmlChar *)
+
+/* Stub for xmlEncodeEntitiesReentrant - returns symbolic result */
+void* xmlEncodeEntitiesReentrant(void* doc, xmlChar* buffer) {
+    /* Return symbolic pointer that could be NULL or valid */
+    void* result;
+    klee_make_symbolic(&result, sizeof(result), "xml_encode_result");
+    klee_assume(result == NULL || result != NULL); /* Allow both possibilities */
+    return result;
+}
+
+/* Stub for xmlGenericError - does nothing */
+void xmlGenericError(void* ctx, const char* msg, ...) {
+    /* No-op */
+}
+
+/* Stub for xmlFree */
+void xmlFree(void* ptr) {
+    /* No-op */
+}
+
+/* Global buffer from xmllint.c - size unknown from snippet, but we can infer */
+/* From memset(&buffer[sizeof(buffer)-4], 0, 4), buffer must be at least 4 bytes */
+/* Let's assume a reasonable size for the buffer */
+#define BUFFER_SIZE 1024
+static char buffer[BUFFER_SIZE];
+
+/* The target function from xmllint.c line 484 */
+void xmlHTMLEncodeSend(void) {
+    char *result;
+
+    /*
+     * xmlEncodeEntitiesReentrant assumes valid UTF-8, but the buffer might
+     * end with a truncated UTF-8 sequence. This is a hack to at least avoid
+     * an out-of-bounds read.
+     */
+    /* TARGET LINE 492: memset(&buffer[sizeof(buffer)-4], 0, 4); */
+    
+    /* VULNERABILITY ASSERTION: For memset, we need to ensure the write is within bounds */
+    /* The write is to buffer[sizeof(buffer)-4] through buffer[sizeof(buffer)-1] */
+    /* So we need to assert that sizeof(buffer) >= 4 */
+    SAILR_ASSERT(sizeof(buffer) >= 4);
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(&buffer[sizeof(buffer)-4], 0, 4);
+    result = (char *) xmlEncodeEntitiesReentrant(NULL, BAD_CAST buffer);
+    if (result) {
+        xmlGenericError(NULL, "%s", result);
+        xmlFree(result);
+    }
+    buffer[0] = 0;
+}
+
+/* Entry point for KLEE */
+int main(void) {
+    /* Make buffer contents symbolic to explore different paths */
+    klee_make_symbolic(buffer, sizeof(buffer), "buffer_contents");
+    
+    /* Call the target function */
+    xmlHTMLEncodeSend();
+    
+    return 0;
+}

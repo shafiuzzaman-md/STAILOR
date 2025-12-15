@@ -1,0 +1,12 @@
+array maxLength[4] : w32 -> w8 = symbolic
+array nbchar[4] : w32 -> w8 = symbolic
+array state_val[4] : w32 -> w8 = symbolic
+(query [(Eq 6
+             (ReadLSB w32 0 state_val))
+         (Sle 0
+              N0:(ReadLSB w32 0 nbchar))
+         (Slt N0 100)
+         (Sle 0
+              N1:(ReadLSB w32 0 maxLength))
+         (Slt N1 1000)]
+        false)

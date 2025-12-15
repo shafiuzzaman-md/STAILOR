@@ -1,0 +1,13 @@
+array buffer_size[8] : w32 -> w8 = symbolic
+array checkIndex[4] : w32 -> w8 = symbolic
+array cur_offset[8] : w32 -> w8 = symbolic
+(query [(Ult N0:(ReadLSB w64 0 cur_offset)
+              1)
+         (Sle 0
+              N1:(ReadLSB w32 0 checkIndex))
+         (Slt N1
+              N2:(ReadLSB w32 0 buffer_size))
+         (Eq 1
+             (ReadLSB w64 0 buffer_size))
+         (Ule (Add w64 133816540725248 N0) 133816540725249)]
+        false)

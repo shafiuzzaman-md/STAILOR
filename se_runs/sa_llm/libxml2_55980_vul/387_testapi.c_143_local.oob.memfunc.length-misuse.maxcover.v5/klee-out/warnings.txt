@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to variable: chartab
+KLEE: WARNING: undefined reference to variable: inttab
+KLEE: WARNING: undefined reference to variable: longtab
+KLEE: WARNING: undefined reference to function: strncpy
+KLEE: ERROR: Unable to load symbol(chartab) while initializing globals

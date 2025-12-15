@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/356_xpath.c_3251_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 84
+assembly.ll line: 189
+State: 22
+Stack: 
+	#000000189 in xmlXPathStringEvalNumber(132809261842432, 132807114358784, symbolic) at se_runs/sa_llm/libxml2_55980_vul/356_xpath.c_3251_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:84
+	#100000056 in main() at se_runs/sa_llm/libxml2_55980_vul/356_xpath.c_3251_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32

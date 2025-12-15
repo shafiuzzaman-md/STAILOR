@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/227_xmlsave.c_298_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 39
+assembly.ll line: 70
+State: 1
+Stack: 
+	#000000070 in xmlCtxtIndent(135279662858240) at se_runs/sa_llm/libxml2_55980_vul/227_xmlsave.c_298_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:39
+	#100000244 in main() at se_runs/sa_llm/libxml2_55980_vul/227_xmlsave.c_298_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:84

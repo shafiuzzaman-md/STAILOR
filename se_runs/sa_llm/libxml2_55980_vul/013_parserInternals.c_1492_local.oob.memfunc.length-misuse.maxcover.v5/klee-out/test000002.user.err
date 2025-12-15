@@ -1,0 +1,8 @@
+Error: invalid klee_assume call (provably false)
+File: se_runs/sa_llm/libxml2_55980_vul/013_parserInternals.c_1492_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 51
+assembly.ll line: 41
+State: 14
+Stack: 
+	#000000041 in xmlInitParserCtxt(132857351634944) at se_runs/sa_llm/libxml2_55980_vul/013_parserInternals.c_1492_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:51
+	#100000081 in main() at se_runs/sa_llm/libxml2_55980_vul/013_parserInternals.c_1492_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:77

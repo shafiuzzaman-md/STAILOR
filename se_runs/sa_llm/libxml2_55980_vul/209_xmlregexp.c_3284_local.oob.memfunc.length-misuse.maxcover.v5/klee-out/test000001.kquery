@@ -1,0 +1,21 @@
+array exec_index[4] : w32 -> w8 = symbolic
+array exec_state[8] : w32 -> w8 = symbolic
+array exec_status[4] : w32 -> w8 = symbolic
+array inputString[2] : w32 -> w8 = symbolic
+array nbCounters[4] : w32 -> w8 = symbolic
+(query [(Slt 0
+              N0:(ReadLSB w32 0 nbCounters))
+         (Eq 0
+             (ReadLSB w32 0 exec_status))
+         (Eq false
+             (Eq 0
+                 (ReadLSB w64 0 exec_state)))
+         (Eq 0
+             (ReadLSB w32 0 exec_index))
+         (Eq false
+             (Eq 0 (Read w8 0 inputString)))
+         (Eq false
+             (Eq 4
+                 N1:(Mul w64 4 (SExt w64 N0))))
+         (Eq false (Ult 2147483648 N1))]
+        false)

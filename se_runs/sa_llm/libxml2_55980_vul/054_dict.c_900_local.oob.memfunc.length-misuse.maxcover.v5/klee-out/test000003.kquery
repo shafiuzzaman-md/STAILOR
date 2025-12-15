@@ -1,0 +1,12 @@
+array dict_size[4] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+(query [(Ult 0
+              N0:(ReadLSB w32 0 dict_size))
+         (Ult N0 100)
+         (Sle 0
+              N1:(ReadLSB w32 0 len))
+         (Slt N1 256)
+         (Eq false
+             (Eq 96
+                 (Mul w64 32 (ZExt w64 N0))))]
+        false)

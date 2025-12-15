@@ -1,0 +1,16 @@
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x7c9535e00000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x7c92b5e00000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x7b92b5e00000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x7b72b5e00000 size=128 GiB)
+KLEE: ERROR: se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36: memory error: invalid pointer: free
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36: free of alloca
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:36: free of global
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:37: memory error: double free
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: se_runs/sa_llm/libxml2_55980_vul/137_xmlsave.c_2536_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:110: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+KLEE: NOTE: now ignoring this error at this location

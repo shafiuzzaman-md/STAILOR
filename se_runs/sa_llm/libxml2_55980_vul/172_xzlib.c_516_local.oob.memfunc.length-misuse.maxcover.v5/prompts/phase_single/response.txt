@@ -1,0 +1,105 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to compile the target function */
+typedef struct {
+    unsigned char *next_in;
+    unsigned int avail_in;
+} z_stream;
+
+typedef struct {
+    unsigned char *out;
+    unsigned char *next;
+    unsigned int have;
+    unsigned int pos;
+    unsigned int raw;
+    int how;
+    int direct;
+} gz_state;
+
+#define COPY 1
+
+/* Target function signature from xzlib.c */
+int gz_uncompress(gz_state *state, z_stream *strm);
+
+int main(void) {
+    /* Allocate and initialize state structure */
+    gz_state *state = (gz_state *)malloc(sizeof(gz_state));
+    if (!state) return 1;
+    
+    /* Allocate and initialize stream structure */
+    z_stream *strm = (z_stream *)malloc(sizeof(z_stream));
+    if (!strm) {
+        free(state);
+        return 1;
+    }
+    
+    /* Symbolic variables for buffer sizes and offsets */
+    unsigned int out_buf_size;
+    unsigned int have;
+    unsigned int avail_in;
+    
+    klee_make_symbolic(&out_buf_size, sizeof(out_buf_size), "out_buf_size");
+    klee_make_symbolic(&have, sizeof(have), "have");
+    klee_make_symbolic(&avail_in, sizeof(avail_in), "avail_in");
+    
+    /* Assume reasonable bounds to avoid overflow in allocation */
+    klee_assume(out_buf_size > 0 && out_buf_size <= 1024 * 1024);  /* 1MB max */
+    klee_assume(have <= out_buf_size);  /* can't have more than buffer size */
+    klee_assume(avail_in <= 1024 * 1024);  /* 1MB max input */
+    
+    /* Allocate output buffer */
+    state->out = (unsigned char *)malloc(out_buf_size);
+    if (!state->out) {
+        free(strm);
+        free(state);
+        return 1;
+    }
+    
+    /* Set state fields */
+    state->next = state->out;
+    state->have = have;
+    state->pos = 0;
+    state->raw = 0;
+    state->how = 0;
+    state->direct = 0;
+    
+    /* Allocate input buffer if needed */
+    if (avail_in > 0) {
+        strm->next_in = (unsigned char *)malloc(avail_in);
+        if (!strm->next_in) {
+            free(state->out);
+            free(strm);
+            free(state);
+            return 1;
+        }
+        /* Make input buffer symbolic */
+        klee_make_symbolic(strm->next_in, avail_in, "next_in");
+    } else {
+        strm->next_in = NULL;
+    }
+    
+    strm->avail_in = avail_in;
+    
+    /* Vulnerability assertion: check that memcpy won't overflow output buffer */
+    /* The memcpy at line 516 copies strm->avail_in bytes to state->next + state->have */
+    /* We need: state->have + strm->avail_in <= out_buf_size */
+    SAILR_ASSERT(state->have + strm->avail_in <= out_buf_size);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Call the target function */
+    int result = gz_uncompress(state, strm);
+    
+    /* Cleanup */
+    if (strm->next_in) free(strm->next_in);
+    free(state->out);
+    free(strm);
+    free(state);
+    
+    return result;
+}
+```

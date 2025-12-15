@@ -1,0 +1,7 @@
+array num_threads[4] : w32 -> w8 = symbolic
+(query [(Ult 0
+              N0:(ReadLSB w32 0 num_threads))
+         (Ule N0 100)
+         (Eq 128
+             (Mul w64 8 (ZExt w64 N0)))]
+        false)

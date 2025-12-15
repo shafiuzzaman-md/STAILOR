@@ -1,0 +1,8 @@
+KLEE: WARNING: undefined reference to function: __ctype_b_loc
+KLEE: WARNING: undefined reference to function: getenv
+KLEE: WARNING: undefined reference to function: setenv
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING ONCE: calling external: setenv(138759244873728, 137582960705536, 1) at se_runs/sa_llm/libxml2_55980_vul/156_nanohttp.c_1325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:62 45
+KLEE: WARNING ONCE: calling external: getenv(138759244873728) at se_runs/sa_llm/libxml2_55980_vul/156_nanohttp.c_1325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 11
+KLEE: WARNING ONCE: calling external: strlen(100405257333881) at se_runs/sa_llm/libxml2_55980_vul/156_nanohttp.c_1325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28 26
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.

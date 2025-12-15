@@ -1,0 +1,15 @@
+Error: memory error: out of bound pointer
+File: runtime/Freestanding/memmove.c
+Line: 21
+assembly.ll line: 307
+State: 32
+Stack: 
+	#000000307 in memmove(symbolic, symbolic, symbolic) at runtime/Freestanding/memmove.c:21
+	#100000096 in target_function(121921140162560, symbolic) at se_runs/sa_llm/libxml2_55980_vul/046_buf.c_721_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:45
+	#200000252 in main() at se_runs/sa_llm/libxml2_55980_vul/046_buf.c_721_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:96
+Info: 
+	address: (ReadLSB w64 0 buf)
+	example: 18446744073709551615
+	range: [2, 18446744073709551615]
+	next: object at 121892149133312 of size 4
+		MO47[4] allocated at target_function():  %3 = alloca i32, align 4

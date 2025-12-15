@@ -1,0 +1,18 @@
+array sax_ptr[8] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 0 sax_ptr)))
+         (Eq false
+             (Ult (Add w64 18446620353827438592 N0) 1))
+         (Eq false
+             (Ult (Add w64 18446620347384987648 N0) 5))
+         (Eq false
+             (Ult (Add w64 18446620345237504000 N0) 5))
+         (Eq false
+             (Ult (Add w64 18446620343090020352 N0) 5))
+         (Eq false
+             (Ult (Add w64 18446620328057634816 N0) 21))
+         (Ult (Add w64 18446619713877311488 N0) 257)
+         (Eq false
+             (Ult (Add w64 18446619713877311492 N0) 260))]
+        false)

@@ -1,0 +1,101 @@
+```c
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <klee/klee.h>
+
+#define XML_NANO_HTTP_CHUNK 4096
+
+typedef struct _xmlNanoHTTPCtxt {
+    int fd;
+    char *in;
+    char *inptr;
+    char *content;
+    char *inrptr;
+    int last;
+} xmlNanoHTTPCtxt;
+
+static int xmlNanoHTTPRead(xmlNanoHTTPCtxt *ctxt) {
+    int d_inptr, d_content, d_inrptr;
+    char *tmp_ptr;
+    
+    klee_make_symbolic(&d_inptr, sizeof(d_inptr), "d_inptr");
+    klee_make_symbolic(&d_content, sizeof(d_content), "d_content");
+    klee_make_symbolic(&d_inrptr, sizeof(d_inrptr), "d_inrptr");
+    
+    if (ctxt->in != NULL) {
+        tmp_ptr = ctxt->in;
+        ctxt->in = (char*)malloc(XML_NANO_HTTP_CHUNK);
+        if (ctxt->in == NULL) {
+            free(tmp_ptr);
+            ctxt->last = -1;
+            return (-1);
+        }
+        ctxt->inptr = ctxt->in + d_inptr;
+        ctxt->content = ctxt->in + d_content;
+        ctxt->inrptr = ctxt->in + d_inrptr;
+    }
+    
+    int recv_result;
+    klee_make_symbolic(&recv_result, sizeof(recv_result), "recv_result");
+    
+    ctxt->last = recv_result;
+    
+    if (ctxt->last > 0) {
+        ctxt->inptr += ctxt->last;
+        return (ctxt->last);
+    }
+    if (ctxt->last == 0) {
+        return (0);
+    }
+    if (ctxt->last == -1) {
+        return (-1);
+    }
+    
+    return (-1);
+}
+
+int main(void) {
+    xmlNanoHTTPCtxt ctxt;
+    
+    klee_make_symbolic(&ctxt.fd, sizeof(ctxt.fd), "ctxt_fd");
+    klee_assume(ctxt.fd >= 0);
+    
+    ctxt.in = (char*)malloc(XML_NANO_HTTP_CHUNK);
+    klee_assume(ctxt.in != NULL);
+    
+    klee_make_symbolic(&ctxt.last, sizeof(ctxt.last), "ctxt_last");
+    
+    int d_inptr, d_content, d_inrptr;
+    klee_make_symbolic(&d_inptr, sizeof(d_inptr), "d_inptr");
+    klee_make_symbolic(&d_content, sizeof(d_content), "d_content");
+    klee_make_symbolic(&d_inrptr, sizeof(d_inrptr), "d_inrptr");
+    
+    klee_assume(d_inptr >= 0 && d_inptr < XML_NANO_HTTP_CHUNK);
+    klee_assume(d_content >= 0 && d_content < XML_NANO_HTTP_CHUNK);
+    klee_assume(d_inrptr >= 0 && d_inrptr < XML_NANO_HTTP_CHUNK);
+    
+    ctxt.inptr = ctxt.in + d_inptr;
+    ctxt.content = ctxt.in + d_content;
+    ctxt.inrptr = ctxt.in + d_inrptr;
+    
+    int recv_result;
+    klee_make_symbolic(&recv_result, sizeof(recv_result), "recv_result");
+    
+    ctxt.last = recv_result;
+    
+    if (ctxt.last > 0) {
+        int remaining_buffer = XML_NANO_HTTP_CHUNK - d_inptr;
+        
+        SAILR_ASSERT(ctxt.last <= remaining_buffer);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        ctxt.inptr += ctxt.last;
+    }
+    
+    free(ctxt.in);
+    return 0;
+}
+```

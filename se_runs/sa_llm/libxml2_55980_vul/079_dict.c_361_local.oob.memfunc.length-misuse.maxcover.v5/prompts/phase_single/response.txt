@@ -1,0 +1,113 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal declarations from libxml2 to make the harness compile */
+typedef struct _xmlDict xmlDict;
+typedef xmlDict *xmlDictPtr;
+
+typedef struct _xmlDictStrings xmlDictStrings;
+struct _xmlDictStrings {
+    xmlDictStrings *next;
+    char *free;
+    char *end;
+    int size;
+    int nbStrings;
+    char array[1];
+};
+
+/* Stub for xmlDictCreate */
+xmlDictPtr xmlDictCreate(void) {
+    xmlDictPtr dict = (xmlDictPtr)malloc(sizeof(xmlDict));
+    if (!dict) return NULL;
+    /* Initialize minimal state */
+    return dict;
+}
+
+/* Stub for xmlDictLookup */
+const char* xmlDictLookup(xmlDictPtr dict, const char *name, int len) {
+    /* This is a simplified version that will call xmlDictAddString */
+    return NULL;
+}
+
+/* Target function from dict.c - simplified to reach line 361 */
+static const char *
+xmlDictAddString(xmlDictPtr dict, int namelen, const char *name, 
+                 int plen, const char *prefix) {
+    xmlDictStrings *pool;
+    char *ret;
+    
+    /* Allocate a pool structure with enough space */
+    int total_needed = sizeof(xmlDictStrings) + plen + namelen + 3; /* +3 for ':' and null terminators */
+    pool = (xmlDictStrings*)malloc(total_needed);
+    if (!pool) return NULL;
+    
+    pool->free = pool->array;
+    pool->end = pool->array + (total_needed - sizeof(xmlDictStrings) - 1);
+    pool->size = total_needed - sizeof(xmlDictStrings);
+    pool->nbStrings = 0;
+    pool->next = NULL;
+    
+    /* This simulates reaching the found_pool label at line 356 */
+    ret = pool->free;
+    memcpy(pool->free, prefix, plen);
+    pool->free += plen;
+    *(pool->free++) = ':';
+    
+    /* VULNERABILITY ASSERTION: Check if namelen exceeds available space */
+    /* Available space = pool->end - pool->free + 1 (for null terminator) */
+    int available = pool->end - pool->free + 1;
+    SAILR_ASSERT(namelen <= available);
+    
+    /* REACHABILITY ASSERTION */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* This line (361) would be reached if assertions pass */
+    memcpy(pool->free, name, namelen);
+    pool->free += namelen;
+    *(pool->free++) = 0;
+    pool->nbStrings++;
+    
+    return ret;
+}
+
+int main(void) {
+    xmlDictPtr dict;
+    const char *name;
+    const char *prefix;
+    int namelen, plen;
+    
+    /* Create dictionary */
+    dict = xmlDictCreate();
+    if (!dict) return 0;
+    
+    /* Make inputs symbolic */
+    name = malloc(256);
+    prefix = malloc(256);
+    klee_make_symbolic((void*)name, 256, "name");
+    klee_make_symbolic((void*)prefix, 256, "prefix");
+    
+    /* Symbolic lengths with reasonable bounds */
+    klee_make_symbolic(&namelen, sizeof(namelen), "namelen");
+    klee_make_symbolic(&plen, sizeof(plen), "plen");
+    
+    /* Assume reasonable bounds for lengths */
+    klee_assume(namelen >= 0 && namelen < 256);
+    klee_assume(plen >= 0 && plen < 256);
+    
+    /* Ensure null-terminated strings for safety */
+    ((char*)name)[255] = '\0';
+    ((char*)prefix)[255] = '\0';
+    
+    /* Call the target function */
+    xmlDictAddString(dict, namelen, name, plen, prefix);
+    
+    /* Cleanup */
+    free((void*)name);
+    free((void*)prefix);
+    free(dict);
+    
+    return 0;
+}
+```

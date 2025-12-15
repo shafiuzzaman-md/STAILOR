@@ -1,0 +1,11 @@
+array ctxt[16] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+array xmlIsNameChar_result[4] : w32 -> w8 = symbolic
+(query [(Eq false
+             (Eq 4294967295
+                 (ReadLSB w32 0 ctxt)))
+         (Eq 0
+             (ReadLSB w32 0 len))
+         (Eq 0
+             (ReadLSB w32 0 xmlIsNameChar_result))]
+        false)

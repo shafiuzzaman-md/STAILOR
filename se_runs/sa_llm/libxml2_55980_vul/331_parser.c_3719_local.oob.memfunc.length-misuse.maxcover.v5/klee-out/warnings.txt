@@ -1,0 +1,3 @@
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING: killing 314 states (over memory cap: 2257MB)
+KLEE: WARNING ONCE: skipping fork (memory cap exceeded)

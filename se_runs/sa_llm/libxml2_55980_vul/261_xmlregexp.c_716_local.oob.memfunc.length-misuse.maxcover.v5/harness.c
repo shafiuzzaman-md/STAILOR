@@ -1,0 +1,86 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for functions we need from libxml2 */
+typedef struct _xmlRegParserCtxt xmlRegParserCtxt;
+typedef xmlRegParserCtxt *xmlRegParserCtxtPtr;
+typedef unsigned char xmlChar;
+
+/* Stub implementations of libxml2 functions needed to reach target */
+void *xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    return ptr;
+}
+
+xmlChar *xmlStrdup(const xmlChar *cur) {
+    if (cur == NULL) return NULL;
+    size_t len = strlen((const char *)cur) + 1;
+    xmlChar *dup = (xmlChar *)malloc(len);
+    if (dup) {
+        memcpy(dup, cur, len);
+    }
+    return dup;
+}
+
+/* The target function from xmlregexp.c */
+static xmlRegParserCtxtPtr
+xmlRegNewParserCtxt(const xmlChar *string) {
+    xmlRegParserCtxtPtr ret;
+
+    ret = (xmlRegParserCtxtPtr) xmlMalloc(sizeof(xmlRegParserCtxt));
+    if (ret == NULL)
+        return(NULL);
+    
+    /* TARGET LINE 716 - memset call */
+    memset(ret, 0, sizeof(xmlRegParserCtxt));
+    
+    /* Vulnerability assertion: ensure the size argument to memset is safe */
+    /* For memset, the vulnerability condition is that sizeof(xmlRegParserCtxt) 
+       should not exceed the allocated size. Since xmlMalloc allocates exactly 
+       sizeof(xmlRegParserCtxt), the condition is that the allocation succeeded
+       (ret != NULL) which we already checked. However, the SA pattern is about
+       length misuse, so we assert that the size is within bounds of the allocation.
+       Since we know the exact allocation size equals the memset size, we assert
+       that the pointer is valid (non-null) and the size is positive. */
+    SAILR_ASSERT(ret != NULL && sizeof(xmlRegParserCtxt) > 0);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    if (string != NULL)
+        ret->string = xmlStrdup(string);
+    ret->cur = ret->string;
+    ret->neg = 0;
+    ret->negs = 0;
+    ret->error = 0;
+    ret->determinist = -1;
+    return(ret);
+}
+
+/* Entry point */
+int main(void) {
+    /* Make the input string symbolic to explore different paths */
+    xmlChar input_string[256];
+    klee_make_symbolic(input_string, sizeof(input_string), "input_string");
+    
+    /* Ensure it's null-terminated for safety */
+    input_string[255] = '\0';
+    
+    /* Call the target function */
+    xmlRegParserCtxtPtr result = xmlRegNewParserCtxt(input_string);
+    
+    /* Clean up if allocation succeeded */
+    if (result != NULL) {
+        if (result->string != NULL) {
+            free(result->string);
+        }
+        free(result);
+    }
+    
+    return 0;
+}

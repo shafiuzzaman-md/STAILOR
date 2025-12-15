@@ -1,0 +1,87 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stub types to avoid including libxml2 headers */
+typedef struct _xmlNode *xmlNodePtr;
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef xmlXPathObject *xmlXPathObjectPtr;
+
+/* Constants from libxml2 */
+#define XML_NODESET_DEFAULT 10
+#define XPATH_MAX_NODESET_LENGTH 1000000
+
+/* Minimal xmlXPathObject structure for our harness */
+struct _xmlXPathObject {
+    int type;
+    int nodeNr;
+    int nodeMax;
+    xmlNodePtr *nodeTab;
+};
+
+/* Stub functions to avoid linking issues */
+void xmlXPathErrMemory(void *ctxt, const char *msg) {
+    /* Do nothing in harness */
+}
+
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Target function that contains the vulnerable memset */
+int target_function(xmlXPathObjectPtr cur) {
+    if (cur->nodeMax == 0) {
+        cur->nodeTab = (xmlNodePtr *) xmlMalloc(XML_NODESET_DEFAULT *
+                                                 sizeof(xmlNodePtr));
+        if (cur->nodeTab == NULL) {
+            xmlXPathErrMemory(NULL, "growing nodeset\n");
+            return(-1);
+        }
+        /* VULNERABLE LINE: memset with size XML_NODESET_DEFAULT * sizeof(xmlNodePtr) */
+        memset(cur->nodeTab, 0,
+               XML_NODESET_DEFAULT * sizeof(xmlNodePtr));
+        
+        /* Vulnerability assertion: ensure allocation size matches memset size */
+        SAILR_ASSERT(cur->nodeTab != NULL && 
+                     XML_NODESET_DEFAULT * sizeof(xmlNodePtr) <= 
+                     XML_NODESET_DEFAULT * sizeof(xmlNodePtr));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        cur->nodeMax = XML_NODESET_DEFAULT;
+        return 0;
+    } else if (cur->nodeNr == cur->nodeMax) {
+        /* Not our target path */
+        return -1;
+    }
+    return 0;
+}
+
+/* Entry point */
+int main(void) {
+    xmlXPathObject obj;
+    
+    /* Initialize symbolic object */
+    klee_make_symbolic(&obj, sizeof(obj), "obj");
+    
+    /* Assume we're taking the vulnerable path: nodeMax == 0 */
+    klee_assume(obj.nodeMax == 0);
+    
+    /* Assume nodeTab starts as NULL (since we're allocating it) */
+    obj.nodeTab = NULL;
+    
+    /* Call the target function */
+    target_function(&obj);
+    
+    /* Clean up if allocation succeeded */
+    if (obj.nodeTab != NULL) {
+        free(obj.nodeTab);
+    }
+    
+    return 0;
+}

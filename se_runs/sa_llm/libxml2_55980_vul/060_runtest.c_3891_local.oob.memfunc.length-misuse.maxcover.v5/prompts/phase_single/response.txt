@@ -1,0 +1,37 @@
+#include "klee/klee.h"
+
+extern char *baseFilename(char *);
+
+int checkTestFile(const char *);
+int update_results = 0;
+
+void testFunction(const char *filename, char *xml, char *result) {
+    int len, i;
+    int ret = 0, res;
+    char *temp;
+    void *reader;
+    void *doc;
+
+    len = strlen(filename);
+    len -= 4;
+    SAILR_ASSERT(len >= 0 && len <= 499);
+    memcpy(xml, filename, len);
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    xml[len] = 0;
+    if (snprintf(result, 499, "result/pattern/%s", baseFilename(xml)) >= 499)
+        result[499] = 0;
+    memcpy(xml + len, ".xml", 5);
+}
+
+int main(void) {
+    char filename[500];
+    char xml[500];
+    char result[500];
+
+    klee_make_symbolic(filename, sizeof(filename), "filename");
+    klee_assume(filename[sizeof(filename) - 1] == '\0');
+    klee_assume(strlen(filename) >= 4);
+
+    testFunction(filename, xml, result);
+    return 0;
+}

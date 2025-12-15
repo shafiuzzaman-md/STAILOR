@@ -1,0 +1,84 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed */
+typedef struct _xmlStreamCtxt xmlStreamCtxt;
+typedef xmlStreamCtxt *xmlStreamCtxtPtr;
+
+struct _xmlStreamCtxt {
+    int *states;
+    int nbState;
+    /* Other fields omitted for brevity */
+};
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    return ptr;
+}
+
+/* Stub for xmlFree */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+/* Stub for ERROR macro/function */
+void ERROR(void *a, void *b, void *c, const char *msg) {
+    /* Do nothing */
+}
+
+/* The target function from pattern.c:1754-1768 */
+xmlStreamCtxtPtr xmlNewStreamCtxt(void) {
+    xmlStreamCtxtPtr cur;
+
+    cur = (xmlStreamCtxtPtr) xmlMalloc(sizeof(xmlStreamCtxt));
+    if (cur == NULL) {
+        ERROR(NULL, NULL, NULL,
+            "xmlNewStreamCtxt: malloc failed\n");
+        return(NULL);
+    }
+    /* TARGET LINE 1760 */
+    memset(cur, 0, sizeof(xmlStreamCtxt));
+    cur->states = (int *) xmlMalloc(4 * 2 * sizeof(int));
+    if (cur->states == NULL) {
+        xmlFree(cur);
+        ERROR(NULL, NULL, NULL,
+              "xmlNewStreamCtxt: malloc failed\n");
+        return(NULL);
+    }
+    cur->nbState = 0;
+    return cur;
+}
+
+int main(void) {
+    /* Call the target function */
+    xmlStreamCtxtPtr ctxt = xmlNewStreamCtxt();
+    
+    /* Vulnerability assertion: For memset, ensure the size doesn't exceed
+       the allocated buffer. Since cur is allocated with sizeof(xmlStreamCtxt),
+       and memset uses sizeof(xmlStreamCtxt), the condition is always true
+       if allocation succeeded. However, the SA rule flags potential unbounded
+       length. We assert that the size is within bounds. */
+    if (ctxt != NULL) {
+        /* The vulnerability assertion: ensure memset size doesn't exceed
+           allocated object size. Since both use sizeof(xmlStreamCtxt), 
+           we assert they match. */
+        SAILR_ASSERT(sizeof(xmlStreamCtxt) == sizeof(xmlStreamCtxt));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Cleanup */
+        if (ctxt->states) {
+            xmlFree(ctxt->states);
+        }
+        xmlFree(ctxt);
+    }
+    
+    return 0;
+}

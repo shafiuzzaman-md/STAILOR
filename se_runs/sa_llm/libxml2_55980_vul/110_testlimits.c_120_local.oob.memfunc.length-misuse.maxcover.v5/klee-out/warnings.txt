@@ -1,0 +1,5 @@
+KLEE: WARNING: undefined reference to function: strcmp
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING: undefined reference to function: strncmp
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: strncmp(131925236776960, 133111117512704, 5) at se_runs/sa_llm/libxml2_55980_vul/110_testlimits.c_120_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:21 27

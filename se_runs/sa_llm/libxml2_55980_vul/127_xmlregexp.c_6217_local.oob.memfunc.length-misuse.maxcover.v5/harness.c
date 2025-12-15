@@ -1,0 +1,106 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef unsigned char xmlChar;
+typedef struct _xmlRegAtom xmlRegAtom;
+struct _xmlRegAtom {
+    xmlChar* valuep;
+    void* data;
+    int quant;
+    int min;
+    int max;
+};
+
+/* Stub for xmlMallocAtomic */
+void* xmlMallocAtomic(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for xmlRegFreeAtom */
+void xmlRegFreeAtom(xmlRegAtom* atom) {
+    if (atom) {
+        free(atom->valuep);
+        free(atom);
+    }
+}
+
+/* Simulated function that reaches the target line */
+xmlRegAtom* simulate_target_function(const xmlChar* token, int lenp, 
+                                     const xmlChar* token2, int lenn,
+                                     void* data, int min, int max) {
+    xmlRegAtom* atom = (xmlRegAtom*)malloc(sizeof(xmlRegAtom));
+    if (!atom) return NULL;
+    
+    atom->valuep = NULL;
+    
+    /* Allocate buffer with size lenn + lenp + 2 */
+    xmlChar* str = (xmlChar*)xmlMallocAtomic(lenn + lenp + 2);
+    if (str == NULL) {
+        xmlRegFreeAtom(atom);
+        return NULL;
+    }
+    
+    /* Copy first token */
+    memcpy(&str[0], token, lenp);
+    str[lenp] = '|';
+    
+    /* TARGET LINE: memcpy(&str[lenp + 1], token2, lenn); */
+    /* Vulnerability assertion: ensure lenn doesn't exceed allocated space */
+    SAILR_ASSERT(lenn <= (lenn + lenp + 2 - (lenp + 1)));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memcpy(&str[lenp + 1], token2, lenn);
+    str[lenn + lenp + 1] = 0;
+    
+    atom->valuep = str;
+    atom->data = data;
+    atom->quant = 1; /* XML_REGEXP_QUANT_ONCEONLY */
+    atom->min = min;
+    atom->max = max;
+    
+    return atom;
+}
+
+int main(void) {
+    /* Symbolic inputs */
+    int lenp, lenn;
+    xmlChar token[256];
+    xmlChar token2[256];
+    void* data;
+    int min, max;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&lenp, sizeof(lenp), "lenp");
+    klee_make_symbolic(&lenn, sizeof(lenn), "lenn");
+    klee_make_symbolic(token, sizeof(token), "token");
+    klee_make_symbolic(token2, sizeof(token2), "token2");
+    klee_make_symbolic(&data, sizeof(data), "data");
+    klee_make_symbolic(&min, sizeof(min), "min");
+    klee_make_symbolic(&max, sizeof(max), "max");
+    
+    /* Assume reasonable bounds for lengths to avoid trivial failures */
+    klee_assume(lenp >= 0 && lenp < 256);
+    klee_assume(lenn >= 0 && lenn < 256);
+    
+    /* Ensure token and token2 have enough data for the memcpy calls */
+    klee_assume(lenp <= 256);
+    klee_assume(lenn <= 256);
+    
+    /* Call the function that reaches the target line */
+    xmlRegAtom* result = simulate_target_function(token, lenp, token2, lenn, data, min, max);
+    
+    /* Clean up if allocation succeeded */
+    if (result) {
+        xmlRegFreeAtom(result);
+    }
+    
+    return 0;
+}

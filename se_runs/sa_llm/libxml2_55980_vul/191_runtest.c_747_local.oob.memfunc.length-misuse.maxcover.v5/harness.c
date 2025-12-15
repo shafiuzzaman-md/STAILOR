@@ -1,0 +1,103 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <klee/klee.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+/* Stub for stat function to avoid external dependencies */
+int __wrap_stat(const char *pathname, struct stat *statbuf) {
+    /* Make the statbuf fields symbolic to control execution */
+    klee_make_symbolic(statbuf, sizeof(struct stat), "statbuf");
+    
+    /* Assume st_size is non-negative and reasonable for allocation */
+    klee_assume(statbuf->st_size >= 0);
+    klee_assume(statbuf->st_size < 1024 * 1024); /* Reasonable upper bound */
+    
+    /* Return success to continue execution */
+    return 0;
+}
+
+/* Stub for open function */
+int __wrap_open(const char *pathname, int flags) {
+    int fd;
+    klee_make_symbolic(&fd, sizeof(fd), "fd");
+    
+    /* Assume fd is either valid (>= 0) or invalid (< 0) */
+    klee_assume(fd >= -1 && fd < 100);
+    
+    return fd;
+}
+
+/* Stub for read function */
+ssize_t __wrap_read(int fd, void *buf, size_t count) {
+    ssize_t res;
+    klee_make_symbolic(&res, sizeof(res), "read_res");
+    
+    /* read can return -1 on error, 0 on EOF, or positive bytes read */
+    klee_assume(res >= -1);
+    klee_assume(res <= (ssize_t)count);
+    
+    return res;
+}
+
+/* Stub for close function */
+int __wrap_close(int fd) {
+    return 0;
+}
+
+/* Target function from runtest.c - simplified version */
+static int target_function(const char *filename) {
+    struct stat info;
+    char *base;
+    int fd;
+    ssize_t res;
+    size_t siz = 0;
+    
+    if (stat(filename, &info) < 0)
+        return -1;
+    
+    base = malloc(info.st_size + 1);
+    if (base == NULL)
+        return -1;
+    
+    if ((fd = open(filename, O_RDONLY)) < 0) {
+        free(base);
+        return -1;
+    }
+    
+    /* TARGET LINE 747 - vulnerable read call */
+    while ((res = read(fd, &base[siz], info.st_size - siz)) > 0) {
+        siz += res;
+    }
+    
+    close(fd);
+    
+    /* Vulnerability assertion: ensure we don't read more than allocated */
+    SAILR_ASSERT(siz <= info.st_size);
+    
+    /* Reachability assertion */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    free(base);
+    return 0;
+}
+
+int main(void) {
+    char filename[256];
+    
+    /* Make filename symbolic */
+    klee_make_symbolic(filename, sizeof(filename), "filename");
+    
+    /* Assume filename is null-terminated */
+    klee_assume(filename[255] == '\0');
+    
+    /* Call the target function to reach line 747 */
+    target_function(filename);
+    
+    return 0;
+}

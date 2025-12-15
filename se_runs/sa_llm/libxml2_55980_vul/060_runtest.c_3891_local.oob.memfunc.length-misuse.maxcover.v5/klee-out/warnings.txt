@@ -1,0 +1,4 @@
+KLEE: WARNING: undefined reference to function: baseFilename
+KLEE: WARNING: undefined reference to function: snprintf
+KLEE: WARNING: undefined reference to function: strlen
+KLEE: WARNING ONCE: calling external: strlen(127278184923136) at se_runs/sa_llm/libxml2_55980_vul/060_runtest.c_3891_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:37 34

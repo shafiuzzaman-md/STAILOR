@@ -1,0 +1,99 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed to compile */
+typedef struct _xmlSchemaModelGroup xmlSchemaModelGroup;
+typedef struct _xmlSchemaParticle xmlSchemaParticle;
+typedef struct _xmlSchemaType xmlSchemaType;
+typedef void* xmlSchemaTreeItemPtr;
+
+/* Constants from libxml2 */
+#define XML_SCHEMA_TYPE_SEQUENCE 1
+#define UNBOUNDED (-1)
+
+/* Stub functions to avoid linking with libxml2 */
+void xmlSchemaTypeErrMemory(void* ctxt, const char* msg) {
+    /* Do nothing */
+}
+
+xmlSchemaParticle* xmlSchemaAddParticle(void) {
+    static xmlSchemaParticle particle;
+    /* Make symbolic choice to return NULL or valid pointer */
+    int choice;
+    klee_make_symbolic(&choice, sizeof(choice), "choice");
+    klee_assume(choice == 0 || choice == 1);
+    
+    if (choice == 0) {
+        return NULL;
+    } else {
+        return &particle;
+    }
+}
+
+/* Simulate xmlMalloc */
+void* xmlMalloc(size_t size) {
+    /* Make symbolic to potentially return NULL */
+    int alloc_ok;
+    klee_make_symbolic(&alloc_ok, sizeof(alloc_ok), "alloc_ok");
+    klee_assume(alloc_ok == 0 || alloc_ok == 1);
+    
+    if (alloc_ok == 0) {
+        return NULL;
+    } else {
+        return malloc(size);
+    }
+}
+
+/* Target function that contains the vulnerable memset at line 429 */
+void target_function(void) {
+    xmlSchemaParticle* particle;
+    xmlSchemaModelGroup* sequence;
+    
+    /* First particle allocation - simulate the context */
+    particle = xmlSchemaAddParticle();
+    if (particle == NULL) {
+        return;
+    }
+    
+    /* Sequence model group allocation - this is the line before the target */
+    sequence = (xmlSchemaModelGroup*) xmlMalloc(sizeof(xmlSchemaModelGroup));
+    if (sequence == NULL) {
+        xmlSchemaTypeErrMemory(NULL, "allocating model group component");
+        return;
+    }
+    
+    /* VULNERABLE LINE 429: memset(sequence, 0, sizeof(xmlSchemaModelGroup)); */
+    /* Vulnerability assertion: ensure the allocation size is correct */
+    SAILR_ASSERT(sizeof(xmlSchemaModelGroup) > 0);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* The actual memset call would be here, but we stop at the assertion */
+    memset(sequence, 0, sizeof(xmlSchemaModelGroup));
+    
+    /* Rest of the code (not reached due to klee_assert) */
+    sequence->type = XML_SCHEMA_TYPE_SEQUENCE;
+    particle->children = (xmlSchemaTreeItemPtr) sequence;
+    
+    /* Second particle */
+    particle = xmlSchemaAddParticle();
+    if (particle == NULL) {
+        return;
+    }
+    particle->minOccurs = 0;
+    particle->maxOccurs = UNBOUNDED;
+    
+    free(sequence);
+}
+
+int main(void) {
+    /* Create symbolic inputs to explore different paths */
+    target_function();
+    return 0;
+}

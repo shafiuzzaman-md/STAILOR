@@ -1,0 +1,8 @@
+Error: invalid klee_assume call (provably false)
+File: se_runs/sa_llm/libxml2_55980_vul/139_xmlregexp.c_6062_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 56
+assembly.ll line: 101
+State: 2
+Stack: 
+	#000000101 in xmlRegNewAtom(symbolic, symbolic) at se_runs/sa_llm/libxml2_55980_vul/139_xmlregexp.c_6062_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:56
+	#100000266 in main() at se_runs/sa_llm/libxml2_55980_vul/139_xmlregexp.c_6062_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:120

@@ -1,0 +1,31 @@
+array obj_ptr[8] : w32 -> w8 = symbolic
+array tmpset_ptr[8] : w32 -> w8 = symbolic
+(query [(Eq 0
+             (ReadLSB w64 0 tmpset_ptr))
+         (Eq false
+             (Ult (Add w64 18446617457132044288
+                           N0:(ReadLSB w64 0 obj_ptr))
+                  4))
+         (Eq false
+             (Ult (Add w64 18446617454984560640 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446617450152722432 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446617449615851520 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446617448542109696 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446617447468367872 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446617446394626048 N0) 8))
+         (Eq false
+             (Ult (Add w64 18446617445320884224 N0) 8))
+         (Ult (Add w64 18446617444247142400 N0) 8)
+         (Ult (Add w64 18446617444247142401 N0) 8)
+         (Ult (Add w64 18446617444247142402 N0) 8)
+         (Ult (Add w64 18446617444247142403 N0) 8)
+         (Ult (Add w64 18446617444247142404 N0) 8)
+         (Ult (Add w64 18446617444247142405 N0) 8)
+         (Ult (Add w64 18446617444247142406 N0) 8)
+         (Ult (Add w64 18446617444247142407 N0) 8)]
+        false)

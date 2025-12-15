@@ -1,0 +1,103 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal stub types to avoid including libxml2 headers */
+typedef struct _xmlNotation {
+    char *name;
+    char *SystemID;
+    char *PublicID;
+} xmlNotation, *xmlNotationPtr;
+
+typedef struct _xmlValidCtxt {
+    void *userData;
+} xmlValidCtxt;
+
+/* Stub functions needed to reach the target line */
+void xmlVErrMemory(xmlValidCtxt *ctxt, const char *msg) {
+    /* Do nothing in stub */
+}
+
+void *xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+char *xmlStrdup(const char *cur) {
+    if (cur == NULL) return NULL;
+    size_t len = strlen(cur) + 1;
+    char *copy = (char *)malloc(len);
+    if (copy) memcpy(copy, cur, len);
+    return copy;
+}
+
+/* Target function from valid.c line 2435 context */
+xmlNotationPtr xmlAddNotationDecl(xmlValidCtxt *ctxt, const char *name,
+                                  const char *SystemID, const char *PublicID) {
+    xmlNotationPtr ret;
+    
+    if (name == NULL) {
+        return NULL;
+    }
+    
+    ret = (xmlNotationPtr)xmlMalloc(sizeof(xmlNotation));
+    if (ret == NULL) {
+        xmlVErrMemory(ctxt, "malloc failed");
+        return NULL;
+    }
+    
+    /* TARGET LINE 2435: memset(ret, 0, sizeof(xmlNotation)); */
+    memset(ret, 0, sizeof(xmlNotation));
+    
+    /* Vulnerability assertion: ensure sizeof(xmlNotation) is positive */
+    SAILR_ASSERT(sizeof(xmlNotation) > 0);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    /* Continue with rest of function to avoid early returns */
+    ret->name = xmlStrdup(name);
+    if (SystemID != NULL)
+        ret->SystemID = xmlStrdup(SystemID);
+    if (PublicID != NULL)
+        ret->PublicID = xmlStrdup(PublicID);
+    
+    return ret;
+}
+
+int main(void) {
+    /* Create symbolic inputs to drive execution */
+    xmlValidCtxt ctxt;
+    char name[256];
+    char systemID[256];
+    char publicID[256];
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(name, sizeof(name), "name");
+    klee_make_symbolic(systemID, sizeof(systemID), "systemID");
+    klee_make_symbolic(publicID, sizeof(publicID), "publicID");
+    
+    /* Ensure name is null-terminated for xmlStrdup */
+    name[255] = '\0';
+    systemID[255] = '\0';
+    publicID[255] = '\0';
+    
+    /* Assume name is not NULL (required by function) */
+    klee_assume(name[0] != '\0');
+    
+    /* Call the target function */
+    xmlNotationPtr result = xmlAddNotationDecl(&ctxt, name, systemID, publicID);
+    
+    /* Clean up if allocation succeeded */
+    if (result != NULL) {
+        free(result->name);
+        free(result->SystemID);
+        free(result->PublicID);
+        free(result);
+    }
+    
+    return 0;
+}

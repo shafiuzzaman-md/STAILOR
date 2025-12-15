@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/108_runtest.c_3305_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 28
+assembly.ll line: 117
+State: 2
+Stack: 
+	#000000117 in uripRead(136261243240448, 136259095756800, symbolic) at se_runs/sa_llm/libxml2_55980_vul/108_runtest.c_3305_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28
+	#100000045 in main() at se_runs/sa_llm/libxml2_55980_vul/108_runtest.c_3305_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57

@@ -10,9 +10,9 @@ chmod +x sa_llm/run_sa_llm_batch.sh
 export DEEPSEEK_API_KEY="sk-..."   # must be your full key
 
 PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
-  --project-name libxml2_62911_vul \
-  --src-root     dataset/libxml2_62911_vul \
-  --spec-dir     specs/libxml2_62911_vul \
+  --project-name libxml2_55980_vul \
+  --src-root     dataset/libxml2_55980_vul \
+  --spec-dir     specs/libxml2_55980_vul \
   --out-root     se_runs \
   --clang        clang-14 \
   --klee         klee \
@@ -21,7 +21,7 @@ PYTHONPATH=. sa_llm/run_sa_llm_batch.sh \
   --jobs         1
 
 python3 sa_llm/aggregate_sa_llm_results.py \
-  --mode-root se_runs/sa_llm/libxml2_62911_vul \
+  --mode-root se_runs/sa_llm/libxml2_55980_vul \
   --llm-usage-log llm_usage.tsv
 
 ```

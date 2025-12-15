@@ -1,0 +1,8 @@
+Error: invalid klee_assume call (provably false)
+File: se_runs/sa_llm/libxml2_55980_vul/224_HTMLparser.c_2226_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 47
+assembly.ll line: 106
+State: 7
+Stack: 
+	#000000106 in htmlEncodeEntities(126110884954112, 126057197862912, 126108737470464, 126061492830208, 0, 126056124121088) at se_runs/sa_llm/libxml2_55980_vul/224_HTMLparser.c_2226_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:47
+	#100000205 in main() at se_runs/sa_llm/libxml2_55980_vul/224_HTMLparser.c_2226_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:83

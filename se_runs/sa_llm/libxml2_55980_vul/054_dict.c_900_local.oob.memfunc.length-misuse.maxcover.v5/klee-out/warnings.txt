@@ -1,0 +1,5 @@
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING: killing 12 states (over memory cap: 2220MB)
+KLEE: WARNING: killing 16 states (over memory cap: 2354MB)
+KLEE: WARNING: killing 21 states (over memory cap: 2636MB)
+KLEE: WARNING: killing 18 states (over memory cap: 2808MB)

@@ -1,0 +1,127 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal types needed from libxml2 */
+typedef struct {
+    const char *name;
+    const char *alias;
+} xmlCharEncodingAlias;
+
+/* Global variables from encoding.c that we need to model */
+xmlCharEncodingAlias *xmlCharEncodingAliases = NULL;
+int xmlCharEncodingAliasesNb = 0;
+
+/* Function prototype from encoding.c that we need to call */
+int xmlDelEncodingAlias(const char *alias);
+
+/* Stub for xmlFree to avoid linking issues */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+/* Main harness */
+int main(void) {
+    int i;
+    char alias[256];
+    
+    /* Make alias symbolic */
+    klee_make_symbolic(alias, sizeof(alias), "alias");
+    /* Ensure it's null-terminated */
+    klee_assume(alias[255] == '\0');
+    
+    /* Symbolically choose array size (1-10 elements) */
+    int array_size;
+    klee_make_symbolic(&array_size, sizeof(array_size), "array_size");
+    klee_assume(array_size >= 1 && array_size <= 10);
+    
+    /* Allocate and initialize the global array */
+    xmlCharEncodingAliases = (xmlCharEncodingAlias*)malloc(array_size * sizeof(xmlCharEncodingAlias));
+    xmlCharEncodingAliasesNb = array_size;
+    
+    /* Initialize array elements symbolically */
+    for (i = 0; i < array_size; i++) {
+        char *name_buf = (char*)malloc(256);
+        char *alias_buf = (char*)malloc(256);
+        
+        klee_make_symbolic(name_buf, 256, "name_buf");
+        klee_make_symbolic(alias_buf, 256, "alias_buf");
+        
+        /* Ensure null termination */
+        klee_assume(name_buf[255] == '\0');
+        klee_assume(alias_buf[255] == '\0');
+        
+        xmlCharEncodingAliases[i].name = name_buf;
+        xmlCharEncodingAliases[i].alias = alias_buf;
+    }
+    
+    /* Set up one element to match our alias (to reach the target code) */
+    int match_idx;
+    klee_make_symbolic(&match_idx, sizeof(match_idx), "match_idx");
+    klee_assume(match_idx >= 0 && match_idx < array_size);
+    
+    /* Copy our alias to the matching element */
+    strncpy((char*)xmlCharEncodingAliases[match_idx].alias, alias, 255);
+    ((char*)xmlCharEncodingAliases[match_idx].alias)[255] = '\0';
+    
+    /* Call the target function */
+    int result = xmlDelEncodingAlias(alias);
+    
+    /* Vulnerability assertion: check that memmove length calculation is safe */
+    /* The vulnerable memmove is: memmove(&xmlCharEncodingAliases[i], &xmlCharEncodingAliases[i + 1],
+     *                                    sizeof(xmlCharEncodingAlias) * (xmlCharEncodingAliasesNb - i));
+     * After xmlCharEncodingAliasesNb--, the new count is (array_size - 1).
+     * The length calculation (xmlCharEncodingAliasesNb - i) must be >= 0.
+     * Also, accessing xmlCharEncodingAliases[i + 1] requires i + 1 < original array_size.
+     */
+    if (result == 0) {
+        /* We reached the memmove line at encoding.c:1151 */
+        /* Check that the memmove arguments are safe:
+         * 1. i must be < original array_size (since we accessed xmlCharEncodingAliases[i] earlier)
+         * 2. After decrement, xmlCharEncodingAliasesNb = array_size - 1
+         * 3. The count (xmlCharEncodingAliasesNb - i) must be >= 0
+         * 4. The source pointer &xmlCharEncodingAliases[i + 1] must be within bounds
+         */
+        int after_decrement = array_size - 1;
+        int count = after_decrement - match_idx;
+        
+        /* Vulnerability assertion: the memmove operation should be safe */
+        SAILR_ASSERT(match_idx < array_size && 
+                     match_idx + 1 < array_size && 
+                     count >= 0 && 
+                     count <= (array_size - match_idx - 1));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    /* Cleanup */
+    for (i = 0; i < array_size; i++) {
+        free((void*)xmlCharEncodingAliases[i].name);
+        free((void*)xmlCharEncodingAliases[i].alias);
+    }
+    free(xmlCharEncodingAliases);
+    
+    return 0;
+}
+
+/* Implementation of xmlDelEncodingAlias from encoding.c (simplified) */
+int xmlDelEncodingAlias(const char *alias) {
+    int i;
+    
+    for (i = 0; i < xmlCharEncodingAliasesNb; i++) {
+        if (!strcmp(xmlCharEncodingAliases[i].alias, alias)) {
+            xmlFree((char *) xmlCharEncodingAliases[i].name);
+            xmlFree((char *) xmlCharEncodingAliases[i].alias);
+            xmlCharEncodingAliasesNb--;
+            memmove(&xmlCharEncodingAliases[i], &xmlCharEncodingAliases[i + 1],
+                    sizeof(xmlCharEncodingAlias) * (xmlCharEncodingAliasesNb - i));
+            return 0;
+        }
+    }
+    return -1;
+}

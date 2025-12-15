@@ -1,0 +1,29 @@
+{
+  "spec_id": "029_c14n.c_662_local.oob.memfunc.length-misuse.maxcover.v5",
+  "src_file": "/home/shafi/workspace/SAILR/dataset/55980/libxml2_55980_vul/c14n.c",
+  "target_line": 662,
+  "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5",
+  "assert_expr": null,
+  "harness_asserts": {
+    "vuln_asserts": [
+      {
+        "line": 1,
+        "text": "#ifndef SAILR_ASSERT"
+      },
+      {
+        "line": 2,
+        "text": "#define SAILR_ASSERT(cond) klee_assert((cond) && \"SAILR_VULN_ASSERT\")"
+      },
+      {
+        "line": 62,
+        "text": "SAILR_ASSERT(sizeof(xmlNs) == sizeof(xmlNs) && \"Size matches object\");"
+      }
+    ],
+    "reach_asserts": [
+      {
+        "line": 65,
+        "text": "klee_assert(0 && \"SAILR_REACH_ASSERT\");"
+      }
+    ]
+  }
+}

@@ -1,0 +1,100 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the target function */
+typedef struct _xmlNode xmlNode;
+typedef xmlNode *xmlNodePtr;
+typedef struct _xmlNs xmlNs;
+typedef xmlNs *xmlNsPtr;
+typedef struct _xmlNodeSet xmlNodeSet;
+typedef xmlNodeSet *xmlNodeSetPtr;
+
+/* XML node types */
+#define XML_NAMESPACE_DECL 18
+#define XML_ATTRIBUTE_NODE 2
+
+/* Simplified struct definitions */
+struct _xmlNode {
+    int type;
+    void *parent;
+};
+
+struct _xmlNs {
+    void *next;
+};
+
+struct _xmlNodeSet {
+    int nodeNr;
+    xmlNodePtr *nodeTab;
+};
+
+/* Stub for xmlXPathNodeSetContains */
+int xmlXPathNodeSetContains(xmlNodeSetPtr nodes, xmlNodePtr node) {
+    /* Return symbolic value to explore both branches */
+    int result;
+    klee_make_symbolic(&result, sizeof(result), "nodeset_contains_result");
+    klee_assume(result == 0 || result == 1);
+    return result;
+}
+
+/* Target function from c14n.c */
+int xmlC14NIsNodeInNodeset(void *user_data, xmlNodePtr node, xmlNodePtr parent) {
+    xmlNodeSetPtr nodes = (xmlNodeSetPtr) user_data;
+    if((nodes != NULL) && (node != NULL)) {
+        if(node->type != XML_NAMESPACE_DECL) {
+            return(xmlXPathNodeSetContains(nodes, node));
+        } else {
+            xmlNs ns;
+
+            /* TARGET LINE 261 - memcpy(&ns, node, sizeof(ns)); */
+            /* Vulnerability assertion: ensure node points to at least sizeof(xmlNs) bytes */
+            SAILR_ASSERT(node != NULL);
+            
+            /* Reachability marker */
+            klee_assert(0 && "SAILR_REACH_ASSERT");
+            
+            memcpy(&ns, node, sizeof(ns));
+
+            /* this is a libxml hack! check xpath.c for details */
+            if((parent != NULL) && (parent->type == XML_ATTRIBUTE_NODE)) {
+                ns.next = (xmlNsPtr)parent->parent;
+            } else {
+                ns.next = (xmlNsPtr)parent;
+            }
+            return 0; /* Simplified return */
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    /* Symbolic inputs for the function */
+    xmlNodeSet nodes;
+    xmlNode node;
+    xmlNode parent;
+    
+    /* Initialize node set */
+    nodes.nodeNr = 1;
+    nodes.nodeTab = &(&node);
+    
+    /* Make node type symbolic to control branch */
+    klee_make_symbolic(&node.type, sizeof(node.type), "node_type");
+    klee_assume(node.type == XML_NAMESPACE_DECL); /* Force the else branch */
+    
+    /* Ensure node is not NULL (checked in function) */
+    node.parent = NULL;
+    
+    /* Make parent symbolic */
+    klee_make_symbolic(&parent.type, sizeof(parent.type), "parent_type");
+    parent.parent = NULL;
+    
+    /* Call the target function */
+    xmlC14NIsNodeInNodeset(&nodes, &node, &parent);
+    
+    return 0;
+}

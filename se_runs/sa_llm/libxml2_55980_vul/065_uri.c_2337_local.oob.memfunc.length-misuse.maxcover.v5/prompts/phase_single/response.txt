@@ -1,0 +1,140 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal declarations from libxml2 uri.h needed for the target function */
+typedef struct _xmlURI xmlURI;
+struct _xmlURI {
+    char *scheme;
+    char *opaque;
+    char *authority;
+    char *server;
+    char *user;
+    int port;
+    char *path;
+    char *query;
+    char *fragment;
+    int  cleanup;
+    char *query_raw;
+};
+
+/* Stub for xmlURIEscapeStr */
+char* xmlURIEscapeStr(const char *str, const char *list) {
+    (void)list;
+    size_t len = strlen(str);
+    char *escaped = malloc(len + 1);
+    if (escaped) {
+        memcpy(escaped, str, len + 1);
+    }
+    return escaped;
+}
+
+/* Stub for xmlFreeURI */
+void xmlFreeURI(xmlURI *uri) {
+    if (uri) {
+        free(uri->scheme);
+        free(uri->opaque);
+        free(uri->authority);
+        free(uri->server);
+        free(uri->user);
+        free(uri->path);
+        free(uri->query);
+        free(uri->fragment);
+        free(uri->query_raw);
+        free(uri);
+    }
+}
+
+/* Target function: xmlURIUnescapeString (simplified to reach line 2337) */
+char* xmlURIUnescapeString(const char *str, int len, char *target) {
+    char *ret, *out;
+    const char *in;
+    
+    if (str == NULL) return NULL;
+    if (len <= 0) len = strlen(str);
+    if (target == NULL) {
+        ret = malloc(len + 1);
+        if (ret == NULL) return NULL;
+    } else {
+        ret = target;
+    }
+    
+    out = ret;
+    in = str;
+    
+    /* Simplified unescape loop - just copy for reachability */
+    while ((*in != 0) && ((in - str) < len)) {
+        *out++ = *in++;
+    }
+    *out = 0;
+    
+    return ret;
+}
+
+/* Function that contains the vulnerable code (simplified from uri.c) */
+static char* vulnerable_function(char *val, const char *uptr, int len) {
+    char *vptr = val;
+    
+    if (uptr != NULL) {
+        if ((vptr > val) && (len > 0) &&
+            (uptr[0] == '/') && (vptr[-1] == '/')) {
+            memcpy(vptr, uptr + 1, len - 1);
+            vptr[len - 2] = 0;
+        } else {
+            /* TARGET LINE 2337 */
+            memcpy(vptr, uptr, len);
+            vptr[len - 1] = 0;
+            
+            /* VULNERABILITY ASSERTION: ensure len doesn't exceed destination buffer */
+            SAILR_ASSERT(len <= (int)strlen(val) + 1);
+            
+            /* REACHABILITY ASSERTION */
+            klee_assert(0 && "SAILR_REACH_ASSERT");
+        }
+    } else {
+        vptr[len - 1] = 0;
+    }
+    
+    return val;
+}
+
+/* Entry point that calls the vulnerable code path */
+int main(void) {
+    char buffer[256];
+    char *uptr;
+    int len;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(buffer, sizeof(buffer), "buffer");
+    klee_make_symbolic(&len, sizeof(len), "len");
+    
+    /* Ensure buffer is null-terminated for strlen to work safely */
+    buffer[255] = '\0';
+    
+    /* Create a symbolic string for uptr */
+    uptr = malloc(256);
+    klee_make_symbolic(uptr, 256, "uptr");
+    uptr[255] = '\0';
+    
+    /* Constrain inputs to reach the vulnerable path */
+    klee_assume(len > 0);
+    klee_assume(len < 256);  /* Reasonable bound for exploration */
+    klee_assume(uptr != NULL);
+    
+    /* Ensure vptr > val condition is false to take the else branch */
+    /* In the actual code, vptr = val initially, so vptr > val is false */
+    /* This ensures we take the else branch at line 2336 */
+    
+    /* Also ensure uptr[0] != '/' OR vptr[-1] != '/' to avoid the first branch */
+    /* Since vptr = val, vptr[-1] is out of bounds if val is start of buffer */
+    /* So we assume uptr[0] != '/' to take the else branch */
+    klee_assume(uptr[0] != '/');
+    
+    /* Call the vulnerable function */
+    vulnerable_function(buffer, uptr, len);
+    
+    free(uptr);
+    return 0;
+}
+```

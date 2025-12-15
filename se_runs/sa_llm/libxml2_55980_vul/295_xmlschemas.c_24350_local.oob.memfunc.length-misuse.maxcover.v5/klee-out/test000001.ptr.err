@@ -1,0 +1,13 @@
+Error: memory error: invalid pointer: free
+File: se_runs/sa_llm/libxml2_55980_vul/295_xmlschemas.c_24350_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 83
+assembly.ll line: 215
+State: 17
+Stack: 
+	#000000215 in main() at se_runs/sa_llm/libxml2_55980_vul/295_xmlschemas.c_24350_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:83
+Info: 
+	address: (ReadLSB w64 0 vctxt)
+	example: 255
+	range: [1, 18446744073709551615]
+	next: object at 136975961030656 of size 4
+		MO26[4] allocated at main():  %1 = alloca i32, align 4

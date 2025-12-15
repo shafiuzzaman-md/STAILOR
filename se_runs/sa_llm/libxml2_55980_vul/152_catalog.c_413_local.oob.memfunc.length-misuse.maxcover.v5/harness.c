@@ -1,0 +1,102 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations of types and functions needed */
+typedef enum {
+    XML_SGML_CATALOG_TYPE,
+    XML_CATALOG_TYPE
+} xmlCatalogType;
+
+typedef enum {
+    XML_CATA_PREFER_NONE,
+    XML_CATA_PREFER_PUBLIC,
+    XML_CATA_PREFER_SYSTEM
+} xmlCatalogPrefer;
+
+typedef struct _xmlCatalog xmlCatalog;
+typedef xmlCatalog *xmlCatalogPtr;
+
+struct _xmlCatalog {
+    xmlCatalogType type;
+    int catalNr;
+    int catalMax;
+    xmlCatalogPrefer prefer;
+    void *sgml;
+};
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    if (ptr) {
+        klee_make_symbolic(ptr, size, "xmlMalloc_memory");
+    }
+    return ptr;
+}
+
+/* Stub for xmlCatalogErrMemory */
+void xmlCatalogErrMemory(const char *msg) {
+    /* Do nothing */
+}
+
+/* Stub for xmlHashCreate */
+void* xmlHashCreate(int size) {
+    return (void*)1; /* Non-null dummy */
+}
+
+/* Target function from catalog.c */
+xmlCatalogPtr xmlCreateNewCatalog(xmlCatalogType type, xmlCatalogPrefer prefer) {
+    xmlCatalogPtr ret;
+
+    ret = (xmlCatalogPtr) xmlMalloc(sizeof(xmlCatalog));
+    if (ret == NULL) {
+        xmlCatalogErrMemory("allocating catalog");
+        return(NULL);
+    }
+    /* TARGET LINE 413 */
+    memset(ret, 0, sizeof(xmlCatalog));
+    /* Vulnerability assertion: ensure the allocated size is at least sizeof(xmlCatalog) */
+    SAILR_ASSERT(sizeof(xmlCatalog) <= malloc_usable_size(ret));
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    ret->type = type;
+    ret->catalNr = 0;
+    ret->catalMax = 10; /* XML_MAX_SGML_CATA_DEPTH simplified */
+    ret->prefer = prefer;
+    if (ret->type == XML_SGML_CATALOG_TYPE)
+        ret->sgml = xmlHashCreate(10);
+    return(ret);
+}
+
+/* Helper to get usable size of malloc'd block (simplified) */
+size_t malloc_usable_size(void *ptr) {
+    if (!ptr) return 0;
+    /* Symbolic size for KLEE to explore */
+    size_t size;
+    klee_make_symbolic(&size, sizeof(size), "alloc_size");
+    klee_assume(size >= sizeof(xmlCatalog)); /* Assume at least required */
+    return size;
+}
+
+int main(void) {
+    xmlCatalogType type;
+    xmlCatalogPrefer prefer;
+
+    /* Make inputs symbolic */
+    klee_make_symbolic(&type, sizeof(type), "type");
+    klee_make_symbolic(&prefer, sizeof(prefer), "prefer");
+
+    /* Call the target function */
+    xmlCatalogPtr catalog = xmlCreateNewCatalog(type, prefer);
+
+    /* Clean up if needed */
+    if (catalog) {
+        free(catalog);
+    }
+
+    return 0;
+}

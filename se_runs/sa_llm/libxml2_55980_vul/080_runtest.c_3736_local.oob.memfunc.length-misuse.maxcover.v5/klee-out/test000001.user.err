@@ -1,0 +1,7 @@
+Error: invalid klee_assume call (provably false)
+File: se_runs/sa_llm/libxml2_55980_vul/080_runtest.c_3736_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 38
+assembly.ll line: 65
+State: 1
+Stack: 
+	#000000065 in main() at se_runs/sa_llm/libxml2_55980_vul/080_runtest.c_3736_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:38

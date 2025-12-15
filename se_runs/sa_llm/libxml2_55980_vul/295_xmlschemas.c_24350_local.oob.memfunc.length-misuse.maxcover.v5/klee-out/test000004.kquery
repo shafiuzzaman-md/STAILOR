@@ -1,0 +1,34 @@
+array vctxt[16] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 12 vctxt))
+         (Slt N0 1000)
+         (Eq false
+             (Eq 0
+                 N1:(ReadLSB w64 0 vctxt)))
+         (Sle 0
+              N2:(ReadLSB w32 8 vctxt))
+         (Slt N2 1000)
+         (Sle N2 N0)
+         (Eq 0
+             (Mul w64 8
+                      (SExt w64 (Mul w32 2 N2))))
+         (Eq false (Eq 136973813547008 N1))
+         (Eq false (Eq 136975961030656 N1))
+         (Eq false (Eq 136981329739776 N1))
+         (Eq false (Eq 136982403481600 N1))
+         (Eq false (Eq 136984550965248 N1))
+         (Eq false (Eq 136986698448896 N1))
+         (Eq false (Eq 136993140899840 N1))
+         (Eq false (Eq 138202778173440 N1))
+         (Eq false (Eq 138204858548224 N1))
+         (Eq false (Eq 138205663854592 N1))
+         (Eq false (Eq 138205932290048 N1))
+         (Eq false (Eq 138207006031872 N1))
+         (Eq false (Eq 138221538973632 N1))
+         (Eq false (Eq 138221538975168 N1))
+         (Eq false (Eq 138221538977728 N1))
+         (Eq false (Eq 138221544011472 N1))
+         (Eq false (Eq 138221544011480 N1))
+         (Eq false (Eq 138221544011488 N1))
+         (Eq false (Eq 138221544011496 N1))]
+        false)

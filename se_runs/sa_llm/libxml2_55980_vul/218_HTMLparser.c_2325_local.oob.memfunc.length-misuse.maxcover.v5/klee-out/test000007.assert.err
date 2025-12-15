@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
+File: se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
+Line: 76
+assembly.ll line: 158
+State: 29
+Stack: 
+	#000000158 in xmlStringDecodeEntities(0, 130488209506304, 129846111895552, 130471029637120, 129850406862848, 0, 0, 0, 0) at se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:76
+	#100000262 in main() at se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:121

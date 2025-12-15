@@ -1,0 +1,79 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for libxml2 types and functions needed */
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef xmlXPathObject *xmlXPathObjectPtr;
+
+/* Minimal stub of xmlXPathObject to satisfy the harness */
+struct _xmlXPathObject {
+    int type;           /* XPATH_BOOLEAN, etc. */
+    int boolval;        /* boolean value */
+    /* Other fields omitted for brevity */
+};
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void *ptr = malloc(size);
+    /* Let KLEE control whether allocation succeeds */
+    klee_make_symbolic(&ptr, sizeof(ptr), "malloc_ptr");
+    return ptr;
+}
+
+/* Stub for xmlXPathErrMemory (does nothing in harness) */
+void xmlXPathErrMemory(void *ctxt, const char *msg) {
+    /* No-op */
+}
+
+/* The target function from xpath.c:5236 */
+xmlXPathObjectPtr xmlXPathNewBoolean(int val) {
+    xmlXPathObjectPtr ret;
+
+    ret = (xmlXPathObjectPtr) xmlMalloc(sizeof(xmlXPathObject));
+    if (ret == NULL) {
+        xmlXPathErrMemory(NULL, "creating boolean object\n");
+        return(NULL);
+    }
+    /* TARGET LINE 5244: memset(ret, 0, sizeof(xmlXPathObject)); */
+    memset(ret, 0, sizeof(xmlXPathObject));
+    
+    /* Vulnerability assertion: ensure the allocated size is at least 
+       the size being zeroed. For OOB length-misuse, the condition is
+       that the allocated memory region is sufficient for the memset. */
+    SAILR_ASSERT(sizeof(xmlXPathObject) <= malloc_usable_size(ret));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    ret->type = 1; /* XPATH_BOOLEAN */
+    ret->boolval = (val != 0);
+    return(ret);
+}
+
+/* Helper to approximate malloc_usable_size (simplified for KLEE) */
+size_t malloc_usable_size(void *ptr) {
+    size_t size;
+    klee_make_symbolic(&size, sizeof(size), "usable_size");
+    /* Assume size is non-negative */
+    klee_assume(size >= 0);
+    return size;
+}
+
+int main(void) {
+    int val;
+    xmlXPathObjectPtr obj;
+    
+    /* Make the integer parameter symbolic */
+    klee_make_symbolic(&val, sizeof(val), "val");
+    
+    /* Call the target function */
+    obj = xmlXPathNewBoolean(val);
+    
+    /* Free if allocated to avoid leak reports */
+    if (obj) free(obj);
+    
+    return 0;
+}
+```

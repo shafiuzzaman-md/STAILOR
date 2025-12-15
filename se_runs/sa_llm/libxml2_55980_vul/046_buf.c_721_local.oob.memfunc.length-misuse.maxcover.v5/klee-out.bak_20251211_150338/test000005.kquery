@@ -1,0 +1,86 @@
+array buf[32] : w32 -> w8 = symbolic
+array const_arr22[8] : w32 -> w8 = [0 0 0 0 0 0 0 0]
+array const_arr27[4] : w32 -> w8 = [0 0 0 0]
+array newSize[4] : w32 -> w8 = symbolic
+(query [(Eq 2
+             (ReadLSB w32 24 buf))
+         (Eq false
+             (Eq 0
+                 N0:(ReadLSB w64 8 buf)))
+         (Eq false
+             (Eq 0
+                 N1:(ReadLSB w64 0 buf)))
+         (Ule N0 N1)
+         (Ult (ReadLSB w32 0 newSize)
+              N2:(Extract w32 0 (Sub w64 N1 N0)))
+         (Ult 0
+              N3:(ReadLSB w32 20 buf))
+         (Eq false
+             (Ult (Add w64 18446620932760815896 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446620932760815904 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446620932760815912 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446620932760815920 N1) 4))
+         (Eq false
+             (Ult (Add w64 18446620932761245760 N1) 768))
+         (Eq false
+             (Ult (Add w64 18446620932761248320 N1) 1536))
+         (Eq false
+             (Ult (Add w64 18446620932761249856 N1) 1536))
+         (Eq false
+             (Ult (Add w64 18446620947294191616 N1) 101))
+         (Eq false
+             (Ult (Add w64 18446620948367933440 N1) 61))
+         (Eq false
+             (Ult (Add w64 18446620948636368896 N1) 44))
+         (Eq false
+             (Ult (Add w64 18446620949441675264 N1) 18))
+         (Eq false
+             (Ult (Add w64 18446620949710110720 N1) 26))
+         (Eq false
+             (Ult (Add w64 18446620950515417088 N1) 15))
+         (Eq false
+             (Ult (Add w64 18446620951253614592 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446620952662900736 N1) 4))
+         (Eq false
+             (Ult (Add w64 18446622152569389056 N1) 32))
+         (Eq false
+             (Ult (Add w64 18446622166528032768 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446622167601774592 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446622168675516416 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446622169749258240 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446622170823000064 N1) 8))
+         (Eq false
+             (Ult (Add w64 18446622171896741888 N1) 8))
+         (Ult N4:(Add w64 18446622172970483712 N1) 8)
+         (Eq false
+             (Ult (Add w64 18446622181560418304 N0) 4))
+         (Eq false
+             (Ult (Add w64 18446622180486676480 N0) 4))
+         (Ult N5:(Add w64 18446622179412934656 N0) 4)
+         (Eq 1
+             (ReadLSB w32 16 buf))
+         (Eq false
+             (Ule 1
+                  (Add w32 (ReadLSB w32 0 U0:[(Extract w32 0 N5)=(Read w8 (Extract w32 0 N4)
+                                                                          [7=N6:(Read w8 15 buf),
+                                                                           6=N7:(Read w8 14 buf),
+                                                                           5=N8:(Read w8 13 buf),
+                                                                           4=N9:(Read w8 12 buf),
+                                                                           3=N10:(Read w8 11 buf),
+                                                                           2=N11:(Read w8 10 buf),
+                                                                           1=N12:(Read w8 9 buf),
+                                                                           0=N13:(Read w8 8 buf)] @ const_arr22),
+                                              3=(Extract w8 24 N2),
+                                              2=(Extract w8 16 N2),
+                                              1=(Extract w8 8 N2),
+                                              0=(Extract w8 0 N2)] @ const_arr27)
+                           N3)))]
+        false)

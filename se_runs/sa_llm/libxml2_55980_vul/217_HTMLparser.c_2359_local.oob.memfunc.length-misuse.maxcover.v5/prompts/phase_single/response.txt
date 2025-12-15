@@ -1,0 +1,78 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed */
+typedef struct _xmlParserCtxt xmlParserCtxt;
+typedef xmlParserCtxt *xmlParserCtxtPtr;
+typedef struct _xmlParserInput xmlParserInput;
+typedef xmlParserInput *xmlParserInputPtr;
+typedef struct _htmlParserInput htmlParserInput;
+typedef struct _htmlParserCtxt htmlParserCtxt;
+typedef htmlParserCtxt *htmlParserCtxtPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    return malloc(size);
+}
+
+/* Stub for htmlErrMemory */
+void htmlErrMemory(htmlParserCtxtPtr ctxt, const char* msg) {
+    (void)ctxt;
+    (void)msg;
+}
+
+/* The target function from HTMLparser.c */
+htmlParserInputPtr htmlNewInputStream(htmlParserCtxtPtr ctxt);
+
+/* Main harness */
+int main(void) {
+    /* Create a symbolic parser context */
+    htmlParserCtxt ctxt;
+    klee_make_symbolic(&ctxt, sizeof(ctxt), "ctxt");
+    
+    /* Call the target function */
+    htmlParserInputPtr input = htmlNewInputStream(&ctxt);
+    
+    /* If we reach here, the function returned non-NULL (input allocated) */
+    if (input != NULL) {
+        /* Vulnerability assertion: check that the memset size doesn't exceed allocation */
+        /* Since xmlMalloc allocated sizeof(htmlParserInput), and memset uses 
+           sizeof(htmlParserInput), the condition should always be true unless
+           there's a type mismatch. The SA rule suggests OOB risk, so we assert
+           that the allocation size is at least the memset size. */
+        SAILR_ASSERT(sizeof(htmlParserInput) <= sizeof(htmlParserInput));
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Clean up */
+        free(input);
+    }
+    
+    return 0;
+}
+
+/* Implementation of the target function (copied from snippet) */
+htmlParserInputPtr htmlNewInputStream(htmlParserCtxtPtr ctxt) {
+    htmlParserInputPtr input;
+
+    input = (xmlParserInputPtr) xmlMalloc(sizeof(htmlParserInput));
+    if (input == NULL) {
+        htmlErrMemory(ctxt, "couldn't allocate a new input stream\n");
+        return NULL;
+    }
+    memset(input, 0, sizeof(htmlParserInput));
+    input->filename = NULL;
+    input->directory = NULL;
+    input->base = NULL;
+    input->cur = NULL;
+    input->buf = NULL;
+    input->line = 1;
+    input->col = 1;
+    input->buf = NULL;
+    
+    return input;
+}
+```

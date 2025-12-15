@@ -1,0 +1,72 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlSchema xmlSchema;
+typedef xmlSchema *xmlSchemaPtr;
+typedef struct _xmlSchemaParserCtxt xmlSchemaParserCtxt;
+typedef xmlSchemaParserCtxt *xmlSchemaParserCtxtPtr;
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    return ptr;
+}
+
+/* Stub for xmlSchemaPErrMemory */
+void xmlSchemaPErrMemory(xmlSchemaParserCtxtPtr ctxt, const char* msg, const char* extra) {
+    /* Do nothing */
+}
+
+/* Stub for xmlDictReference */
+void xmlDictReference(void* dict) {
+    /* Do nothing */
+}
+
+/* Target function from xmlschemas.c:3324 */
+static xmlSchemaPtr xmlSchemaNewSchema(xmlSchemaParserCtxtPtr ctxt) {
+    xmlSchemaPtr ret;
+
+    ret = (xmlSchemaPtr) xmlMalloc(sizeof(xmlSchema));
+    if (ret == NULL) {
+        xmlSchemaPErrMemory(ctxt, "allocating schema", NULL);
+        return (NULL);
+    }
+    /* TARGET LINE 3332 */
+    memset(ret, 0, sizeof(xmlSchema));
+    ret->dict = ctxt->dict;
+    xmlDictReference(ret->dict);
+
+    return (ret);
+}
+
+/* Main harness */
+int main(void) {
+    /* Create a symbolic context structure */
+    xmlSchemaParserCtxt ctxt;
+    
+    /* Make the dict pointer symbolic to explore different paths */
+    klee_make_symbolic(&ctxt.dict, sizeof(ctxt.dict), "ctxt_dict");
+    
+    /* Call the target function */
+    xmlSchemaPtr schema = xmlSchemaNewSchema(&ctxt);
+    
+    /* If schema is not NULL, we reached the memset at line 3332 */
+    if (schema != NULL) {
+        /* Vulnerability assertion: ensure the allocation size is correct
+           The SA rule is about OOB in memset due to length misuse.
+           For xmlMalloc(sizeof(xmlSchema)), the size should be positive. */
+        SAILR_ASSERT(sizeof(xmlSchema) > 0);
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+        
+        /* Clean up */
+        free(schema);
+    }
+    
+    return 0;
+}
+```

@@ -1,0 +1,127 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal definitions to compile the target function */
+typedef struct _xmlBuffer xmlBuffer;
+struct _xmlBuffer {
+    char *content;
+    unsigned int use;
+    unsigned int size;
+};
+
+typedef enum {
+    XML_ERR_NO_MEMORY = -1
+} xmlError;
+
+/* Stub for xmlBufferResize */
+int xmlBufferResize(xmlBuffer *buf, unsigned int size) {
+    if (size == 0) return 0;
+    char *new_content = malloc(size);
+    if (!new_content) return 0;
+    if (buf->content && buf->use > 0) {
+        unsigned int copy_len = buf->use < size ? buf->use : size;
+        memcpy(new_content, buf->content, copy_len);
+        free(buf->content);
+    }
+    buf->content = new_content;
+    buf->size = size;
+    return 1;
+}
+
+/* Stub for xmlTreeErrMemory */
+void xmlTreeErrMemory(const char *msg) {
+    /* Do nothing */
+}
+
+/* Target function from tree.c:7708 */
+int xmlBufferAdd(xmlBuffer *buf, const char *str, int len) {
+    unsigned int needSize;
+    
+    if (buf == NULL || str == NULL) return -1;
+    if (len < 0) return -1;
+    if (len == 0) return 0;
+    
+    if (buf->size - buf->use < (unsigned int)len + 1) {
+        needSize = buf->use + len + 1;
+        if (!xmlBufferResize(buf, needSize)) {
+            xmlTreeErrMemory("growing buffer");
+            return XML_ERR_NO_MEMORY;
+        }
+    }
+    
+    /* TARGET LINE 7708 */
+    memmove(&buf->content[len], &buf->content[0], buf->use);
+    memmove(&buf->content[0], str, len);
+    buf->use += len;
+    buf->content[buf->use] = 0;
+    return 0;
+}
+
+int main(void) {
+    xmlBuffer buf;
+    char *str;
+    int len;
+    
+    /* Initialize buffer symbolically */
+    buf.content = NULL;
+    buf.use = 0;
+    buf.size = 0;
+    
+    /* Make inputs symbolic */
+    klee_make_symbolic(&len, sizeof(len), "len");
+    klee_make_symbolic(&buf.use, sizeof(buf.use), "buf_use");
+    
+    /* Assume reasonable bounds to avoid overflow in needSize calculation */
+    klee_assume(len >= 0 && len < 1024);
+    klee_assume(buf.use >= 0 && buf.use < 1024);
+    
+    /* Allocate initial buffer content */
+    unsigned int initial_size = buf.use + len + 1;
+    if (initial_size > 0) {
+        buf.content = malloc(initial_size);
+        if (!buf.content) return 0;
+        buf.size = initial_size;
+        
+        /* Initialize buffer content symbolically */
+        klee_make_symbolic(buf.content, buf.size, "buf_content");
+        
+        /* Ensure null-terminated for safety */
+        if (buf.use < buf.size) {
+            buf.content[buf.use] = 0;
+        }
+    }
+    
+    /* Allocate and initialize str symbolically */
+    str = malloc(len + 1);
+    if (!str) {
+        if (buf.content) free(buf.content);
+        return 0;
+    }
+    klee_make_symbolic(str, len + 1, "str");
+    if (len > 0) {
+        str[len] = 0; /* Ensure null termination */
+    }
+    
+    /* Call the target function */
+    int result = xmlBufferAdd(&buf, str, len);
+    
+    /* Vulnerability assertion: ensure memmove doesn't go out of bounds */
+    /* The vulnerable memmove at line 7708 copies buf->use bytes starting 
+       from buf->content[0] to buf->content[len]. We need to ensure that
+       len + buf->use <= buf->size to avoid writing beyond allocated buffer. */
+    if (result == 0) {
+        SAILR_ASSERT(len + buf.use <= buf.size);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    /* Cleanup */
+    if (buf.content) free(buf.content);
+    if (str) free(str);
+    
+    return 0;
+}

@@ -1,0 +1,68 @@
+```c
+#include <string.h>
+#include <stdlib.h>
+#include "klee/klee.h"
+
+/* Global variables from testlimits.c */
+static char crazy[1024];
+static int crazy_indx;
+static char *current;
+static int instate;
+static int rlen;
+
+/* Function prototypes from testlimits.c */
+static void *crazyOpen(const char *URI);
+static void reset_timout(void);
+
+/* Stub for reset_timout - not in path but needed to avoid linker errors */
+static void reset_timout(void) {
+    /* Empty stub */
+}
+
+/* The actual function we're testing */
+static void *crazyOpen(const char *URI) {
+    if ((URI == NULL) || (strncmp(URI, "crazy:", 6)))
+        return(NULL);
+
+    if (crazy_indx > strlen(crazy))
+        return(NULL);
+    reset_timout();
+    rlen = crazy_indx;
+    current = &crazy[0];
+    instate = 0;
+    
+    /* Vulnerability assertion: strncmp should not read beyond URI length */
+    /* URI must be at least 6 chars long for strncmp(URI, "crazy:", 6) */
+    SAILR_ASSERT(strlen(URI) >= 6);
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    return (void*)1; /* Non-NULL return to indicate success */
+}
+
+int main(void) {
+    /* Make URI symbolic */
+    char URI[256];
+    klee_make_symbolic(URI, sizeof(URI), "URI");
+    
+    /* Ensure URI is null-terminated */
+    URI[255] = '\0';
+    
+    /* Initialize crazy buffer */
+    klee_make_symbolic(crazy, sizeof(crazy), "crazy");
+    crazy[sizeof(crazy)-1] = '\0';
+    
+    /* Make crazy_indx symbolic */
+    klee_make_symbolic(&crazy_indx, sizeof(crazy_indx), "crazy_indx");
+    
+    /* Constrain crazy_indx to reasonable bounds */
+    klee_assume(crazy_indx >= 0);
+    klee_assume(crazy_indx < 1024);
+    
+    /* Call the target function */
+    crazyOpen(URI);
+    
+    return 0;
+}
+```

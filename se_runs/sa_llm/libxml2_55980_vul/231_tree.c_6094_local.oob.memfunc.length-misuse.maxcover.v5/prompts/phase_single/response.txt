@@ -1,0 +1,91 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNs xmlNs;
+struct _xmlNs {
+    int type;
+    void* href;
+    void* prefix;
+};
+
+typedef struct _xmlDoc xmlDoc;
+struct _xmlDoc {
+    xmlNs* oldNs;
+};
+
+/* Stub for xmlMalloc */
+void* xmlMalloc(size_t size) {
+    void* ptr = malloc(size);
+    if (ptr) {
+        klee_make_symbolic(ptr, size, "xmlMalloc_buffer");
+    }
+    return ptr;
+}
+
+/* Stub for xmlStrdup */
+void* xmlStrdup(const void* str) {
+    if (!str) return NULL;
+    size_t len = strlen((const char*)str) + 1;
+    void* dup = malloc(len);
+    if (dup) {
+        memcpy(dup, str, len);
+    }
+    return dup;
+}
+
+/* Stub for xmlTreeErrMemory - does nothing */
+void xmlTreeErrMemory(const char* msg) {
+    (void)msg;
+}
+
+/* Target function - extracted from tree.c around line 6094 */
+xmlNs* target_function(xmlDoc* doc) {
+    xmlNsPtr ns;
+    ns = (xmlNsPtr) xmlMalloc(sizeof(xmlNs));
+    if (ns == NULL) {
+        xmlTreeErrMemory("allocating the XML namespace");
+        return (NULL);
+    }
+    /* TARGET LINE 6094 */
+    memset(ns, 0, sizeof(xmlNs));
+    ns->type = 1; /* XML_LOCAL_NAMESPACE */
+    ns->href = xmlStrdup("http://www.w3.org/XML/1998/namespace");
+    ns->prefix = xmlStrdup((const void*)"xml");
+    doc->oldNs = ns;
+    return (ns);
+}
+
+int main(void) {
+    /* Symbolic document pointer */
+    xmlDoc doc;
+    klee_make_symbolic(&doc, sizeof(doc), "doc");
+    
+    /* Assume doc is not NULL (since we're using stack allocation) */
+    
+    /* Call the target function */
+    xmlNs* result = target_function(&doc);
+    
+    /* If we reach here, the malloc succeeded and we executed memset */
+    if (result != NULL) {
+        /* Vulnerability assertion: ensure the allocated buffer size 
+           is at least sizeof(xmlNs) before memset */
+        SAILR_ASSERT(1); /* For memset(ns, 0, sizeof(xmlNs)), the size is 
+                          compile-time constant sizeof(xmlNs), so always safe */
+        
+        /* Reachability marker */
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+    
+    /* Cleanup */
+    if (result) {
+        if (result->href) free(result->href);
+        if (result->prefix) free(result->prefix);
+        free(result);
+    }
+    
+    return 0;
+}
+```

@@ -1,0 +1,23 @@
+#include "klee/klee.h"
+#include <string.h>
+
+static int hugeMatch(const char * URI) {
+    if ((URI != NULL) && (!strncmp(URI, "huge:", 4)))
+        return(1);
+    return(0);
+}
+
+int main(void) {
+    char URI[10];
+    klee_make_symbolic(URI, sizeof(URI), "URI");
+    klee_assume(URI[9] == '\0');
+
+    int result = hugeMatch(URI);
+
+    if (URI != NULL && strncmp(URI, "huge:", 4) == 0) {
+        SAILR_ASSERT(strlen(URI) >= 4);
+        klee_assert(0 && "SAILR_REACH_ASSERT");
+    }
+
+    return 0;
+}

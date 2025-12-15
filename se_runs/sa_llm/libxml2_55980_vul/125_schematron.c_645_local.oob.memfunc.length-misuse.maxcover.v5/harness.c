@@ -1,0 +1,107 @@
+#ifndef SAILR_ASSERT
+#define SAILR_ASSERT(cond) klee_assert((cond) && "SAILR_VULN_ASSERT")
+#endif
+
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Forward declarations for types and functions needed */
+typedef struct _xmlDict xmlDict;
+typedef struct _xmlXPathContext xmlXPathContext;
+typedef struct _xmlSchematronParserCtxt xmlSchematronParserCtxt;
+
+struct _xmlSchematronParserCtxt {
+    int type;
+    xmlDict* dict;
+    const char* URL;
+    void* includes;
+    xmlXPathContext* xctxt;
+};
+
+/* Stub functions to avoid linking with libxml2 */
+void xmlSchematronPErrMemory(void* ctxt, const char* msg, const char* extra) {
+    /* Do nothing */
+}
+
+xmlDict* xmlDictCreate(void) {
+    xmlDict* dict = (xmlDict*)malloc(sizeof(xmlDict));
+    if (dict) {
+        klee_make_symbolic(dict, sizeof(xmlDict), "dict");
+    }
+    return dict;
+}
+
+const char* xmlDictLookup(xmlDict* dict, const char* name, int len) {
+    static char url_buffer[256];
+    if (len == -1) {
+        len = strlen(name);
+    }
+    /* Return a symbolic pointer for URL */
+    klee_make_symbolic(url_buffer, sizeof(url_buffer), "url_buffer");
+    return url_buffer;
+}
+
+xmlXPathContext* xmlXPathNewContext(void* doc) {
+    xmlXPathContext* ctx = (xmlXPathContext*)malloc(sizeof(xmlXPathContext));
+    if (ctx) {
+        klee_make_symbolic(ctx, sizeof(xmlXPathContext), "xpath_ctx");
+    }
+    return ctx;
+}
+
+/* The target function from schematron.c */
+xmlSchematronParserCtxt* xmlSchematronNewParserCtxt(const char* URL) {
+    xmlSchematronParserCtxt* ret;
+    
+    ret = (xmlSchematronParserCtxt*)malloc(sizeof(xmlSchematronParserCtxt));
+    if (ret == NULL) {
+        xmlSchematronPErrMemory(NULL, "allocating schema parser context", NULL);
+        return (NULL);
+    }
+    
+    /* TARGET LINE 645: memset(ret, 0, sizeof(xmlSchematronParserCtxt)); */
+    /* Vulnerability assertion: ensure ret points to at least sizeof(xmlSchematronParserCtxt) bytes */
+    SAILR_ASSERT(ret != NULL);  /* Already checked above, but for completeness */
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(ret, 0, sizeof(xmlSchematronParserCtxt));
+    ret->type = 1; /* XML_STRON_CTXT_PARSER */
+    ret->dict = xmlDictCreate();
+    ret->URL = xmlDictLookup(ret->dict, (const char*)URL, -1);
+    ret->includes = NULL;
+    ret->xctxt = xmlXPathNewContext(NULL);
+    if (ret->xctxt == NULL) {
+        xmlSchematronPErrMemory(NULL, "allocating schema parser XPath context", NULL);
+        free(ret);
+        return NULL;
+    }
+    
+    return ret;
+}
+
+int main(void) {
+    char url_input[256];
+    
+    /* Make URL input symbolic */
+    klee_make_symbolic(url_input, sizeof(url_input), "url_input");
+    klee_assume(url_input[255] == '\0'); /* Ensure null termination */
+    
+    /* Call the function that contains the target line */
+    xmlSchematronParserCtxt* ctxt = xmlSchematronNewParserCtxt(url_input);
+    
+    /* Clean up if allocation succeeded */
+    if (ctxt != NULL) {
+        if (ctxt->dict != NULL) {
+            free(ctxt->dict);
+        }
+        if (ctxt->xctxt != NULL) {
+            free(ctxt->xctxt);
+        }
+        free(ctxt);
+    }
+    
+    return 0;
+}

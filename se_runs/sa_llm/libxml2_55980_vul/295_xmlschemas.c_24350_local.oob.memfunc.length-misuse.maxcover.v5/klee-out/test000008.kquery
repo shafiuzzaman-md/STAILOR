@@ -1,0 +1,16 @@
+array vctxt[16] : w32 -> w8 = symbolic
+(query [(Sle 0
+              N0:(ReadLSB w32 12 vctxt))
+         (Slt N0 1000)
+         (Sle 0
+              N1:(ReadLSB w32 8 vctxt))
+         (Slt N1 1000)
+         (Sle N1 N0)
+         (Eq false
+             (Eq 0
+                 N2:(Mul w64 8
+                             (SExt w64 (Mul w32 2 N1)))))
+         (Eq 136973813547008
+             (ReadLSB w64 0 vctxt))
+         (Eq false (Eq 16 N2))]
+        false)

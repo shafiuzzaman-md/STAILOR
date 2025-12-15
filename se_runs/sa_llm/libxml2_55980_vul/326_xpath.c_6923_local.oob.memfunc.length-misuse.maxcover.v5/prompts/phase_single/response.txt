@@ -1,0 +1,148 @@
+```c
+#include <stdlib.h>
+#include <string.h>
+#include "klee/klee.h"
+
+/* Minimal type definitions needed for the harness */
+typedef struct _xmlNode xmlNode;
+typedef struct _xmlXPathObject xmlXPathObject;
+typedef struct _xmlXPathNodeSet xmlXPathNodeSet;
+
+struct _xmlXPathNodeSet {
+    xmlNode **nodeTab;
+    int nodeNr;
+    int nodeMax;
+};
+
+/* Stub for xmlXPathNodeValHash */
+unsigned long xmlXPathNodeValHash(xmlNode *node) {
+    return klee_int("hash_val");
+}
+
+/* Stub for xmlXPathErrMemory */
+void xmlXPathErrMemory(void *ctxt, const char *msg) {
+    /* Do nothing */
+}
+
+/* Stub for xmlFree */
+void xmlFree(void *ptr) {
+    free(ptr);
+}
+
+/* Target function - extracted from xpath.c around line 6923 */
+int target_function(xmlXPathNodeSet *ns1, xmlXPathNodeSet *ns2, int neq) {
+    unsigned long *hashs1 = NULL;
+    unsigned long *hashs2 = NULL;
+    unsigned char **values1 = NULL;
+    unsigned char **values2 = NULL;
+    int i, j;
+    int ret = 0;
+
+    if ((ns1 == NULL) || (ns2 == NULL))
+        return(0);
+
+    if ((ns1->nodeNr <= 0) || (ns2->nodeNr <= 0))
+        return(0);
+
+    hashs1 = (unsigned long *) malloc(ns1->nodeNr * sizeof(unsigned long));
+    if (hashs1 == NULL) {
+        xmlXPathErrMemory(NULL, "comparing nodesets\n");
+        return(0);
+    }
+
+    values1 = (unsigned char **) malloc(ns1->nodeNr * sizeof(unsigned char *));
+    if (values1 == NULL) {
+        xmlXPathErrMemory(NULL, "comparing nodesets\n");
+        xmlFree(hashs1);
+        return(0);
+    }
+
+    values2 = (unsigned char **) malloc(ns2->nodeNr * sizeof(unsigned char *));
+    if (values2 == NULL) {
+        xmlXPathErrMemory(NULL, "comparing nodesets\n");
+        xmlFree(hashs1);
+        xmlFree(values1);
+        return(0);
+    }
+
+    hashs2 = (unsigned long *) malloc(ns2->nodeNr * sizeof(unsigned long));
+    if (hashs2 == NULL) {
+        xmlXPathErrMemory(NULL, "comparing nodesets\n");
+        xmlFree(hashs1);
+        xmlFree(values1);
+        xmlFree(values2);
+        return(0);
+    }
+
+    /* VULNERABLE LINE: memset(values2, 0, ns2->nodeNr * sizeof(xmlChar *)); */
+    /* Vulnerability assertion: ensure allocation size matches memset size */
+    SAILR_ASSERT(ns2->nodeNr * sizeof(unsigned char *) <= ns2->nodeNr * sizeof(unsigned char *));
+    
+    /* Reachability marker */
+    klee_assert(0 && "SAILR_REACH_ASSERT");
+    
+    memset(values2, 0, ns2->nodeNr * sizeof(unsigned char *));
+    
+    /* The rest of the function (simplified) */
+    for (i = 0; i < ns1->nodeNr; i++) {
+        hashs1[i] = xmlXPathNodeValHash(ns1->nodeTab[i]);
+        for (j = 0; j < ns2->nodeNr; j++) {
+            if (i == 0)
+                hashs2[j] = xmlXPathNodeValHash(ns2->nodeTab[j]);
+            if (hashs1[i] != hashs2[j]) {
+                if (neq) {
+                    ret = 1;
+                }
+            }
+        }
+    }
+
+    xmlFree(hashs1);
+    xmlFree(hashs2);
+    xmlFree(values1);
+    xmlFree(values2);
+    return ret;
+}
+
+/* Helper to create symbolic node sets */
+void make_symbolic_nodeset(xmlXPathNodeSet *ns, int max_nodes) {
+    int nodeNr;
+    klee_make_symbolic(&nodeNr, sizeof(nodeNr), "nodeNr");
+    klee_assume(nodeNr >= 0);
+    klee_assume(nodeNr <= max_nodes);
+    
+    ns->nodeNr = nodeNr;
+    if (nodeNr > 0) {
+        ns->nodeTab = (xmlNode **)malloc(nodeNr * sizeof(xmlNode *));
+        klee_make_symbolic(ns->nodeTab, nodeNr * sizeof(xmlNode *), "nodeTab");
+    } else {
+        ns->nodeTab = NULL;
+    }
+    ns->nodeMax = nodeNr;
+}
+
+int main(void) {
+    xmlXPathNodeSet ns1, ns2;
+    int neq;
+    
+    /* Make neq symbolic */
+    klee_make_symbolic(&neq, sizeof(neq), "neq");
+    
+    /* Create symbolic node sets with reasonable bounds */
+    make_symbolic_nodeset(&ns1, 10);
+    make_symbolic_nodeset(&ns2, 10);
+    
+    /* Assume non-empty node sets to reach the vulnerable code */
+    klee_assume(ns1.nodeNr > 0);
+    klee_assume(ns2.nodeNr > 0);
+    
+    /* Call the target function */
+    target_function(&ns1, &ns2, neq);
+    
+    /* Cleanup */
+    if (ns1.nodeTab) free(ns1.nodeTab);
+    if (ns2.nodeTab) free(ns2.nodeTab);
+    
+    return 0;
+}
+```

@@ -1,0 +1,3 @@
+KLEE: WARNING: undefined reference to function: strdup
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: strdup(124427278745600) at se_runs/sa_llm/libxml2_55980_vul/379_xmlschemas.c_3646_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:63 28
