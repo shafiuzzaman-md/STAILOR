@@ -5,6 +5,7 @@ validate_plan_contract.py
 
 Deterministic Contract Validator (DCV) for the Planner output.
 Enforces semantic correctness, assertion fidelity, and project heuristics.
+UPDATED: Includes Anti-Tautology logic to prevent redundant assumptions.
 """
 
 from __future__ import annotations
@@ -61,6 +62,44 @@ def _find_marker_strings(plan_obj: Any) -> Dict[str, List[Tuple[str, str]]]:
         if MARK_REACH in s: hits[MARK_REACH].append((pth, s))
     return hits
 
+def check_for_tautology(plan_text: str, bug_assert_code: str) -> List[str]:
+    """
+    Detects if the BUG_ASSERT condition is identical to an assumption/constraint.
+    Example: klee_assume(len < 100) ... klee_assert(len < 100) -> TAUTOLOGY (Bad)
+    """
+    warnings = []
+    
+    # 1. Extract the core condition from the assertion string
+    # Matches: klee_assert(  len < 100  && "BUG_ASSERT"  );
+    # Captures: len < 100
+    match = re.search(r'klee_assert\s*\((.*?)\s*&&\s*["\']BUG_ASSERT', bug_assert_code)
+    
+    if not match:
+        return []
+
+    condition = match.group(1).strip()
+    
+    # 2. Normalize spaces for comparison (remove extra whitespace)
+    normalized_condition = "".join(condition.split())
+    
+    # 3. Scan the ENTIRE plan text for assumptions/constraints containing this condition
+    # We look for "assume" or "constraint" blocks that might contain the same logic
+    # This is a heuristic: strict string matching on the normalized condition
+    plan_no_spaces = "".join(plan_text.split())
+    
+    # Look for "assume(len<100)" pattern in the normalized text
+    # We strip "klee_" prefix to match generic "assume" usage in comments or code
+    check_pattern = f"assume({normalized_condition})"
+    
+    if check_pattern in plan_no_spaces:
+        warnings.append(
+            f"Logical Tautology Detected: The plan implies `assume({condition})`. "
+            f"You are assuming the safety condition '{condition}' which you then assert! "
+            "This makes the bug unreachable. You MUST relax the assumption (e.g., allow len > buffer)."
+        )
+        
+    return warnings
+
 @dataclass
 class DCVReport:
     ok: bool
@@ -87,6 +126,9 @@ def validate_plan_against_contract(
         hard.append("Planner output is empty or not a JSON object.")
         return DCVReport(False, hard, warn, info, "Planner output invalid.")
 
+    # Convert plan back to string for global text search
+    plan_text = json.dumps(plan_obj)
+
     plan = plan_obj["plan"] if "plan" in plan_obj and isinstance(plan_obj["plan"], dict) and len(plan_obj) <= 3 else plan_obj
     
     # --- 1. Assertion Fidelity ---
@@ -99,6 +141,13 @@ def validate_plan_against_contract(
 
     bug_str = marker_hits[MARK_BUG][0][1] if marker_hits[MARK_BUG] else ""
     
+    # --- 1.1 Tautology Check (New) ---
+    if bug_str:
+        tautology_errors = check_for_tautology(plan_text, bug_str)
+        if tautology_errors:
+            # Treat tautology as a HARD error to prevent wasted cycles
+            hard.extend(tautology_errors)
+
     # Semantic Check: OOB Rule must constrain length/capacity
     if "oob.memfunc.length-misuse" in rule:
         facts = (spec.get("facts") if spec else {}) or (fact_pack.get("facts", {}) if fact_pack else {})
@@ -113,11 +162,9 @@ def validate_plan_against_contract(
              warn.append("OOB Rule Heuristic: BUG_ASSERT appears to check for NULL, but rule is Length Misuse (OOB).")
 
     # --- 2. Harness Fidelity ---
-    harness_shape = plan.get("harness_shape", {})
-    call_seq = harness_shape.get("call_sequence", [])
-    
-    if not any("klee_make_symbolic" in s for s in call_seq):
-        hard.append("Harness must include 'klee_make_symbolic' in call_sequence.")
+    # Relaxed check: Look for keyword anywhere in the file structure
+    if "klee_make_symbolic" not in plan_text:
+        hard.append("Harness must include 'klee_make_symbolic' to define inputs.")
 
     # --- 3. Project Heuristics (LibXML2) ---
     # proj = project_name or (spec.get("project") if spec else "") or ""

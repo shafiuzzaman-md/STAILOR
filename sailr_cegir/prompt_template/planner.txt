@@ -177,3 +177,9 @@ Before issuing "final_plan", verify:
 1. Did I define the symbolic inputs? (Action: Add "klee_make_symbolic" to call_sequence)
 2. Did I find the ACTUAL struct definition? (Action: If "typedef X Y", find struct X)
 3. Did I initialize the dictionary? (Action: If target uses "dict->...", call a setup function)
+
+7) NO SAFETY RAILS ON INPUTS
+- Do NOT constrain symbolic inputs to be "safe" relative to the bug.
+- If the bug is an overflow at size 100, do NOT assume `len < 100`.
+- Instead, assume `len < 1000` (allow it to be larger than the buffer).
+- The goal is to finding a *crashing* input, not a valid one.

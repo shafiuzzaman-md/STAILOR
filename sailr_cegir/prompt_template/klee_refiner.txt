@@ -108,3 +108,15 @@ The harness MUST ALWAYS contain TWO assertions.
 
 DO NOT use comments for labels.
 The string literal MUST be inside the `klee_assert()` parentheses.
+
+ANTI-TAUTOLOGY RULE (CRITICAL)
+=============================
+If your KLEE result is H0 (Safe) and you have a BUG_ASSERT, check for Tautologies:
+1. Look at your `klee_assume(...)` calls.
+2. Look at your `klee_assert(...)`.
+3. ARE THEY THE SAME?
+   - BAD:  klee_assume(len < 100); ... klee_assert(len < 100);
+   - WHY:  You explicitly told KLEE to ignore the bug case!
+   - FIX:  Widen the assumption.
+           klee_assume(len < 200); ... klee_assert(len < 100);
+           Now KLEE can explore len=150 and trigger the bug.
