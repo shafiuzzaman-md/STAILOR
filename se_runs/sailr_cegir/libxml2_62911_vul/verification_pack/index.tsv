@@ -1,0 +1,2 @@
+spec_stem	class	completed_paths	time_sec	klee_status	bug_assert_hit	reach_assert_hit	num_vuln_assert	num_reach_assert	pack_dir
+164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	H2	0	0.070000	assertion_bug	1	0	1	0	164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5

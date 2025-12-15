@@ -1,0 +1,10 @@
+array entry[16] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+array name[1024] : w32 -> w8 = symbolic
+(query [(Eq 0 (Read w8 1023 name))
+         (Sle 0
+              N0:(ReadLSB w32 0 len))
+         (Slt N0 1024)
+         (Eq 0
+             (ReadLSB w64 0 entry))]
+        false)

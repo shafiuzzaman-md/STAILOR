@@ -1,0 +1,4 @@
+Error: ASSERTION FAIL: len < strlen((const char*)entry->name) && "BUG_ASSERT: OOB access on entry->name[len]"
+Stack: 
+	#000000172 in xmlDictFindEntry(134597213945856, 0, 134612246331392, symbolic, symbolic, 134559632982016)
+	#100000081 in main()

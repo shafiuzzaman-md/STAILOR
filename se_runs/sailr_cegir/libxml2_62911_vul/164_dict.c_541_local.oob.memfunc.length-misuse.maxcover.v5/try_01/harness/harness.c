@@ -1,8 +1,9 @@
 #include <klee/klee.h>
-#include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <stddef.h>
+#include <string.h>
 #include <assert.h>
+#include <stddef.h>
 
 typedef unsigned char xmlChar;
 
@@ -26,14 +27,45 @@ typedef struct _xmlDict xmlDict;
 
 #define ATTRIBUTE_NO_SANITIZE_INTEGER
 
-static int xmlStrQEqual(const xmlChar *pref, const xmlChar *name, const xmlChar *str) {
-    int ret;
-    klee_make_symbolic(&ret, sizeof(ret), "xmlStrQEqual_ret");
-    klee_assume(ret == 0 || ret == 1);
-    return ret;
+static int xmlStrEqual(const xmlChar *str1, const xmlChar *str2) {
+    if (str1 == str2) return 1;
+    if (str1 == NULL || str2 == NULL) return 0;
+    do {
+        if (*str1++ != *str2) return 0;
+    } while (*str2++);
+    return 1;
 }
 
-ATTRIBUTE_NO_SANITIZE_INTEGER
+static int xmlStrQEqual(const xmlChar *pref, const xmlChar *name, const xmlChar *str) {
+    if (pref == NULL) return(xmlStrEqual(name, str));
+    if (name == NULL) return(0);
+    if (str == NULL) return(0);
+    do {
+        if (*pref++ != *str) return(0);
+    } while ((*str++) && (*pref));
+    if (*str++ != ':') return(0);
+    do {
+        if (*name++ != *str) return(0);
+    } while (*str++);
+    return(1);
+}
+
+void *xmlMalloc(size_t size) { return malloc(size); }
+void xmlFree(void *ptr) { free(ptr); }
+void xmlMutexLock(void *mutex) {}
+void xmlMutexUnlock(void *mutex) {}
+void xmlInitParser(void) {}
+unsigned xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen, size_t *plen) {
+    *plen = 0;
+    if (data) while (data[*plen] && *plen < maxLen) (*plen)++;
+    return 0xdeadbeef;
+}
+unsigned xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *name, size_t *pplen, size_t *plen) {
+    *pplen = 0;
+    *plen = 0;
+    return 0xdeadbeef;
+}
+
 static xmlDictEntry *
 xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,
                  const xmlChar *name, int len, unsigned hashValue,
@@ -48,14 +80,12 @@ xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,
 
     if (entry->hashValue != 0) {
         displ = 0;
-
         do {
             if (entry->hashValue == hashValue) {
                 if (prefix == NULL) {
-                    klee_assert(len < strlen((const char*)entry->name) && "BUG_ASSERT: OOB access on entry->name[len]");
+                    klee_assert(len < strlen(entry->name) && "BUG_ASSERT");
                     klee_assert(0 && "REACH_ASSERT");
-                    if ((memcmp(entry->name, name, len) == 0) &&
-                        (entry->name[len] == 0)) {
+                    if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {
                         found = 1;
                         break;
                     }
@@ -66,16 +96,13 @@ xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,
                     }
                 }
             }
-
             displ++;
             pos++;
             entry++;
             if ((pos & mask) == 0)
                 entry = dict->table;
-        } while ((entry->hashValue != 0) &&
-                 (((pos - entry->hashValue) & mask) >= displ));
+        } while ((entry->hashValue != 0) && (((pos - entry->hashValue) & mask) >= displ));
     }
-
     *pfound = found;
     return(entry);
 }
@@ -83,29 +110,32 @@ xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,
 int main(void) {
     xmlDict dict;
     xmlDictEntry *table;
-    xmlChar entry_name_buf[1024];
-    xmlChar name_buf[1024];
+    xmlDictEntry entry;
+    xmlChar name_buf[100];
+    xmlChar entry_name_buf[50];
     int len;
     unsigned hashValue;
     int found;
-    size_t dict_size = 8;
+
+    memset(&dict, 0, sizeof(dict));
+    dict.size = 1;
+    table = (xmlDictEntry *)xmlMalloc(sizeof(xmlDictEntry));
+    memset(table, 0, sizeof(xmlDictEntry));
+    dict.table = table;
 
     klee_make_symbolic(&len, sizeof(len), "len");
     klee_assume(len >= 0);
-    klee_assume(len <= 1000);
-    klee_make_symbolic(entry_name_buf, sizeof(entry_name_buf), "entry_name_buf");
-    klee_assume(entry_name_buf[0] != 0);
+    klee_assume(len < 1000);
     klee_make_symbolic(name_buf, sizeof(name_buf), "name_buf");
+    name_buf[99] = 0;
+    klee_make_symbolic(entry_name_buf, sizeof(entry_name_buf), "entry_name_buf");
+    entry_name_buf[49] = 0;
     klee_make_symbolic(&hashValue, sizeof(hashValue), "hashValue");
 
-    table = (xmlDictEntry*)calloc(dict_size, sizeof(xmlDictEntry));
-    table[0].hashValue = hashValue;
-    table[0].name = entry_name_buf;
-
-    dict.size = dict_size;
-    dict.table = table;
+    entry.hashValue = hashValue;
+    entry.name = entry_name_buf;
+    table[0] = entry;
 
     xmlDictFindEntry(&dict, NULL, name_buf, len, hashValue, &found);
-    free(table);
     return 0;
 }
