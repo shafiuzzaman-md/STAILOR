@@ -120,10 +120,10 @@ def validate_plan_against_contract(
         hard.append("Harness must include 'klee_make_symbolic' in call_sequence.")
 
     # --- 3. Project Heuristics (LibXML2) ---
-    proj = project_name or (spec.get("project") if spec else "") or ""
-    if "libxml2" in proj.lower() and "dict.c" in (spec.get("file") or ""):
-        if not any("memset" in s and "dict" in s for s in call_seq):
-             warn.append("LibXML2 Heuristic: Dictionary functions usually require explicit struct initialization (memset).")
+    # proj = project_name or (spec.get("project") if spec else "") or ""
+    # if "libxml2" in proj.lower() and "dict.c" in (spec.get("file") or ""):
+    #     if not any("memset" in s and "dict" in s for s in call_seq):
+    #          warn.append("LibXML2 Heuristic: Dictionary functions usually require explicit struct initialization (memset).")
 
     ok = len(hard) == 0
     feedback = ""

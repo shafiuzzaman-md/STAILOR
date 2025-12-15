@@ -71,7 +71,7 @@ TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_single.sh \
   62911/libxml2_62911_vul \
   local.oob.memfunc.length-misuse \
-  specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
+  specs
 ```
 Key Variables:
 - MAX_A: Max compilation attempts by the Builder (per plan).
@@ -85,8 +85,10 @@ To isolate and debug a specific vulnerability spec:
 ```
 SA_OUT_DIR=sa_outputs \
 DATASET_ROOT=dataset \
-CLANG_FLAGS="-I/usr/include/libxml2" \
-MAX_A=25 MAX_B=20 TIMEOUT=600 \
+CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
+MAX_A=25 \
+MAX_B=20 \
+TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_single.sh \
   62911/libxml2_62911_vul \
   local.oob.memfunc.length-misuse \
@@ -112,7 +114,7 @@ python3 sailr_cegir/collect_vulnerabilities.py \
 ```
 python3 sailr_cegir/collect_verification_pack.py \
   --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
-  --out-dir verification_pack_libxml2
+  --out-dir verification_pack
 ```
 
 ### Output Structure
