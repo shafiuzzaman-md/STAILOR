@@ -1,0 +1,152 @@
+{
+  "assertions": [
+    {
+      "derived_condition": "len < entry_name_capacity",
+      "final_klee_assert_string": "klee_assert(len < entry_name_capacity && \"BUG_ASSERT\");",
+      "id": "BUG_ASSERT",
+      "kind": "bug",
+      "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+      "rationale": "Safety precondition for OOB access: entry->name[len] must be within allocated buffer. entry_name_capacity is the size of the buffer allocated for entry->name (e.g., 256)."
+    },
+    {
+      "final_klee_assert_string": "klee_assert(0 && \"REACH_ASSERT\");",
+      "id": "REACH_ASSERT",
+      "kind": "reach",
+      "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+      "rationale": "Marker for reaching target line."
+    }
+  ],
+  "budget": {
+    "max_builder_iters": 8,
+    "max_klee_runs": 12
+  },
+  "embedding_plan": {
+    "avoid": [
+      "Do not include duplicate function bodies",
+      "Do not include any natural-language prose in harness.c",
+      "Prefer stubs for non-critical helpers to keep file small"
+    ],
+    "must_embed_functions": [
+      {
+        "from_file": "dict.c",
+        "name": "xmlDictFindEntry",
+        "notes": "copy exact body once",
+        "why_needed": "It is the target function containing the vulnerable statement. We need its exact body to analyze the OOB condition."
+      }
+    ],
+    "must_embed_types_macros": [
+      {
+        "from_file": "include/libxml/xmlstring.h",
+        "name": "xmlChar",
+        "notes": "typedef unsigned char xmlChar;",
+        "why_needed": "Used as a type for name and entry->name."
+      },
+      {
+        "from_file": "include/private/dict.h",
+        "name": "xmlHashedString",
+        "notes": "typedef struct { unsigned hashValue; const xmlChar *name; } xmlHashedString;",
+        "why_needed": "xmlDictEntry is typedef'd to xmlHashedString. It's the struct of entry->name and entry->hashValue."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "struct _xmlDict",
+        "notes": "struct _xmlDict { int ref_counter; xmlDictEntry *table; size_t size; unsigned int nbElems; xmlDictStringsPtr strings; struct _xmlDict *subdict; unsigned seed; size_t limit; };",
+        "why_needed": "The dict parameter points to this struct. We need its layout to initialize dict->table and dict->size."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "xmlDictEntry",
+        "notes": "typedef xmlHashedString xmlDictEntry;",
+        "why_needed": "typedef xmlHashedString xmlDictEntry; used for entry pointer."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "ATTRIBUTE_NO_SANITIZE_INTEGER",
+        "notes": "#define ATTRIBUTE_NO_SANITIZE_INTEGER",
+        "why_needed": "Macro that appears before xmlDictFindEntry; we can define it as empty to avoid compilation errors."
+      }
+    ],
+    "stub_instead_of_embed": [
+      {
+        "name": "xmlStrQEqual",
+        "signature": "int xmlStrQEqual(const xmlChar *pref, const xmlChar *name, const xmlChar *str)",
+        "strategy": "Return a symbolic value (e.g., 0) because the vulnerable path requires prefix == NULL, so this function is not called.",
+        "why_safe": "The vulnerable statement is inside the prefix == NULL branch; xmlStrQEqual is only called when prefix != NULL, so stubbing does not affect reachability."
+      },
+      {
+        "name": "memcmp",
+        "signature": "int memcmp(const void *s1, const void *s2, size_t n)",
+        "strategy": "Use the standard library memcmp; we can include <string.h>.",
+        "why_safe": "Standard library function; we rely on the system's implementation."
+      }
+    ]
+  },
+  "harness_shape": {
+    "call_sequence": [
+      "Define structs and typedefs",
+      "Define stub for xmlStrQEqual",
+      "Embed xmlDictFindEntry body",
+      "In main: allocate and initialize a dict struct with table pointer",
+      "Allocate and initialize an xmlDictEntry (entry) with hashValue = hashValue and name pointing to symbolic buffer",
+      "Set dict->table to point to entry, dict->size = 1 (so mask = 0, pos = 0)",
+      "Set entry->hashValue = hashValue (to match)",
+      "Make symbolic buffers for entry->name and name, and symbolic len, hashValue",
+      "Call xmlDictFindEntry with dict, NULL prefix, name, len, hashValue, &found",
+      "Place assertions immediately before the vulnerable statement inside xmlDictFindEntry (we will modify the embedded function to include them)"
+    ],
+    "needs_main": true,
+    "notes": "Minimal setup to reach target: we need dict->size > 0 and entry->hashValue != 0 to enter the loop, and entry->hashValue == hashValue and prefix == NULL to reach the vulnerable memcmp. We'll set dict->size = 1, entry->hashValue = hashValue, prefix = NULL."
+  },
+  "symbolic_inputs": [
+    {
+      "c_type": "int",
+      "constraints": [
+        "len >= 0"
+      ],
+      "name": "len",
+      "rationale": "len is the third argument to memcmp and used as index in entry->name[len]. It must be non-negative to avoid trivial OOB. The OOB risk is that len may exceed the allocated size of entry->name.",
+      "size": 0,
+      "symbolic": true
+    },
+    {
+      "c_type": "xmlChar[]",
+      "constraints": [],
+      "name": "entry_name_buf",
+      "rationale": "entry->name points to a buffer. We need to allocate a concrete buffer and make its contents symbolic to allow memcmp to succeed or fail arbitrarily. Size 256 is arbitrary but sufficient.",
+      "size": 256,
+      "symbolic": true
+    },
+    {
+      "c_type": "xmlChar[]",
+      "constraints": [],
+      "name": "name_buf",
+      "rationale": "name parameter points to a buffer; we need symbolic contents for memcmp.",
+      "size": 256,
+      "symbolic": true
+    },
+    {
+      "c_type": "unsigned",
+      "constraints": [],
+      "name": "hashValue",
+      "rationale": "hashValue is compared with entry->hashValue; we need it to match to enter the vulnerable branch.",
+      "size": 0,
+      "symbolic": true
+    },
+    {
+      "c_type": "unsigned",
+      "constraints": [
+        "entry_hashValue == hashValue"
+      ],
+      "name": "entry_hashValue",
+      "rationale": "We will set entry->hashValue to hashValue to ensure the condition entry->hashValue == hashValue is true.",
+      "size": 0,
+      "symbolic": false
+    }
+  ],
+  "target_function": {
+    "file": "dict.c",
+    "name": "xmlDictFindEntry",
+    "rationale": "This is the function that directly contains the vulnerable statement at line 541. The target line is inside the loop within xmlDictFindEntry.",
+    "signature": "static xmlDictEntry *xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, const xmlChar *name, int len, unsigned hashValue, int *pfound)"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "note": "planner_max_iters_exceeded",
+  "plan_raw": {
+    "action": "shell",
+    "commands": [
+      "grep -n 'xmlChar' dict.c | head -5",
+      "grep -B5 -A10 'xmlHashedString' dict.c",
+      "sed -n '1,100p' dict.c | grep -n 'typedef'",
+      "grep -n '^typedef.*xmlChar' dict.c"
+    ],
+    "reason": "Need exact definitions for xmlChar (likely unsigned char) and xmlHashedString struct to understand entry->name field type and layout. Also need to see any typedefs for xmlChar in the file to embed correctly."
+  }
+}

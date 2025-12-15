@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,100p' dict.c | grep -n 'typedef'",
+  "reason": "Need to see typedefs for xmlDictEntry and xmlHashedString to define them correctly in harness.c."
+}

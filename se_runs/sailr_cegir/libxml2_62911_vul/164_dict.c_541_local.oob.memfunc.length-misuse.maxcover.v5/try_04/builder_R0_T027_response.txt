@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '516,600p' dict.c",
+  "reason": "Need the complete function body of xmlDictFindEntry to copy it exactly. The previous snippet is truncated; we need the rest of the function to ensure we have the full logic."
+}

@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlHashedString' dict.c -B 30 | head -40",
+  "reason": "Need to see the definition of xmlHashedString struct (likely earlier in dict.c) to include in harness. The previous grep output shows typedef xmlHashedString xmlDictEntry; but not the struct definition. We need the exact struct fields to define it correctly."
+}

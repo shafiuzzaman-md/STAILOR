@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,50p' include/libxml/xmlstring.h",
+  "reason": "Need to retrieve the exact definition of xmlChar and possibly other macros used in xmlStrEqual."
+}

@@ -1,0 +1,11 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlStrQEqual\" . -r --include=\"*.c\" --include=\"*.h\" | head -5",
+    "grep -n \"xmlMalloc\" dict.c -B 2 -A 2 | head -20",
+    "grep -n \"MAX_HASH_SIZE\" dict.c -B 2 -A 2",
+    "grep -n \"MIN_HASH_SIZE\" dict.c -B 2 -A 2",
+    "grep -n \"MAX_FILL_DENOM\" dict.c -B 2 -A 2"
+  ],
+  "reason": "Need to understand xmlStrQEqual (maybe external), memory allocation functions, and constants to embed or stub. This will help decide what to embed vs stub for standalone harness."
+}

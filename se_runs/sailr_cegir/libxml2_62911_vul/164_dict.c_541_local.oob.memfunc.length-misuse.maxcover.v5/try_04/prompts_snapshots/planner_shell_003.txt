@@ -1,0 +1,17 @@
+# planner shell iter 3 (batch), reason='Need exact definition of xmlHashedString to understand entry->name layout (critical for OOB). Also need xmlChar type definition (likely in tree.h or similar).'
+$ grep -n '^typedef struct _xmlHashedString' dict.c
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---
+$ sed -n '/^typedef struct _xmlHashedString/,/^}/p' dict.c
+[error] absolute paths not allowed: /^typedef struct _xmlHashedString/,/^}/p
+---
+$ grep -n 'xmlChar' tree.h | head -2
+[error] piping not allowed
+---
+$ grep -n 'typedef.*xmlChar' tree.h | head -2
+[error] piping not allowed
+---

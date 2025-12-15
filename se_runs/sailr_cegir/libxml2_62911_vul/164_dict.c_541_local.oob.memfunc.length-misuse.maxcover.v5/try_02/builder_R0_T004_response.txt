@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '530,550p' dict.c",
+  "reason": "Need to see the exact lines around the target line 541 to ensure we copy the exact function body and place assertions correctly."
+}

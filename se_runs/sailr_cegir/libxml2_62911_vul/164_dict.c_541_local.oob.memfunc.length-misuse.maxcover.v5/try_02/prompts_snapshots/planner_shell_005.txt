@@ -1,0 +1,21 @@
+# planner shell iter 5 (batch), reason='Need exact definitions of xmlChar and xmlHashedString to understand types for entry->name and the struct layout. This is critical for embedding types and for the BUG_ASSERT condition.'
+$ grep -n '^typedef.*xmlChar' dict.c
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---
+$ grep -n 'struct _xmlHashedString' dict.c -A 5
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---
+$ grep -n 'xmlHashedString' dict.c -B 2 -A 2 | head -20
+[error] piping not allowed
+---
+$ sed -n '1,30p' dict.c | grep -n 'xmlChar' -B 2 -A 2
+[error] piping not allowed
+---

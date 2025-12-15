@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '30,100p' dict.c",
+  "reason": "Need to see more of dict.c to get the full xmlDictFindEntry function body (the snippet cuts off). Also need to see the definition of xmlHashedString and xmlDictEntry."
+}

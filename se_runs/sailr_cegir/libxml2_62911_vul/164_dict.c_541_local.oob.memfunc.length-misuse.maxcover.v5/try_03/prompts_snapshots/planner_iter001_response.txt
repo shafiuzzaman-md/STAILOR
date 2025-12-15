@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n '^typedef.*xmlChar' dict.c",
+    "grep -B10 -A10 'struct _xmlDictEntry' dict.c",
+    "grep -n 'xmlHashedString' dict.c",
+    "sed -n '1,100p' dict.c | grep -n 'xmlChar'"
+  ],
+  "reason": "Need to find xmlChar definition (likely from libxml headers) and the exact layout of xmlDictEntry (which is typedef'd to xmlHashedString). Also need to see if xmlHashedString is defined in dict.c."
+}

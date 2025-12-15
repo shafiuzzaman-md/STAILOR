@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "cat dict.c | head -n 600 | tail -n 200",
+  "reason": "Need to retrieve the exact body of xmlDictFindEntry (target function) and surrounding context to copy it precisely into harness.c."
+}

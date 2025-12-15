@@ -1,0 +1,231 @@
+# planner shell iter 2 (batch), reason='Need xmlChar definition (likely from libxml headers), xmlHashedString struct definition, and the xmlDictLookup function to understand how it calls xmlDictFindEntry (the target function). This will help decide entrypoint and required embeddings.'
+$ sed -n '1,30p' dict.c
+[rc=0]
+STDOUT:
+/*
+ * dict.c: dictionary of reusable strings, just used to avoid allocation
+ *         and freeing operations.
+ *
+ * Copyright (C) 2003-2012 Daniel Veillard.
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS AND
+ * CONTRIBUTORS ACCEPT NO RESPONSIBILITY IN ANY CONCEIVABLE MANNER.
+ *
+ * Author: daniel@veillard.com
+ */
+
+#define IN_LIBXML
+#include "libxml.h"
+
+#include <limits.h>
+#include <string.h>
+#include <time.h>
+
+#include "private/dict.h"
+#include "private/threads.h"
+
+#include <libxml/parser.h>
+#include <libxml/dict.h>
+
+STDERR:
+
+---
+$ grep -n 'xmlHashedString' dict.c
+[rc=0]
+STDOUT:
+54:typedef xmlHashedString xmlDictEntry;
+812:xmlHashedString
+815:    xmlHashedString ret;
+
+STDERR:
+
+---
+$ sed -n '646,792p' dict.c
+[rc=0]
+STDOUT:
+xmlDictLookupInternal(xmlDictPtr dict, const xmlChar *prefix,
+                      const xmlChar *name, int maybeLen, int update) {
+    xmlDictEntry *entry = NULL;
+    const xmlChar *ret;
+    unsigned hashValue;
+    size_t maxLen, len, plen, klen;
+    int found = 0;
+
+    if ((dict == NULL) || (name == NULL))
+	return(NULL);
+
+    maxLen = (maybeLen < 0) ? SIZE_MAX : (size_t) maybeLen;
+
+    if (prefix == NULL) {
+        hashValue = xmlDictHashName(dict->seed, name, maxLen, &len);
+        if (len > INT_MAX)
+            return(NULL);
+        klen = len;
+    } else {
+        hashValue = xmlDictHashQName(dict->seed, prefix, name, &plen, &len);
+        if ((len > INT_MAX) || (plen >= INT_MAX - len))
+            return(NULL);
+        klen = plen + 1 + len;
+    }
+
+    if ((dict->limit > 0) && (klen >= dict->limit))
+        return(NULL);
+
+    /*
+     * Check for an existing entry
+     */
+    if (dict->size > 0)
+        entry = xmlDictFindEntry(dict, prefix, name, klen, hashValue, &found);
+    if (found)
+        return(entry);
+
+    if (dict->subdict != NULL) {
+        xmlDictEntry *subEntry;
+        unsigned subHashValue;
+
+        if (prefix == NULL)
+            subHashValue = xmlDictHashName(dict->subdict->seed, name, len,
+                                           &len);
+        else
+            subHashValue = xmlDictHashQName(dict->subdict->seed, prefix, name,
+                                            &plen, &len);
+        subEntry = xmlDictFindEntry(dict->subdict, prefix, name, klen,
+                                    subHashValue, &found);
+        if (found)
+            return(subEntry);
+    }
+
+    if (!update)
+        return(NULL);
+
+    if (prefix == NULL)
+        ret = xmlDictAddString(dict, name, len);
+    else
+        ret = xmlDictAddQString(dict, prefix, plen, name, len);
+    if (ret == NULL)
+        return(NULL);
+
+    /*
+     * Grow the hash table if needed
+     */
+    if (dict->nbElems + 1 > dict->size / MAX_FILL_DENOM * MAX_FILL_NUM) {
+        unsigned newSize, mask, displ, pos;
+
+        if (dict->size == 0) {
+            newSize = MIN_HASH_SIZE;
+        } else {
+            if (dict->size >= MAX_HASH_SIZE)
+                return(NULL);
+            newSize = dict->size * 2;
+        }
+        if (xmlDictGrow(dict, newSize) != 0)
+            return(NULL);
+
+        /*
+         * Find new entry
+         */
+        mask = dict->size - 1;
+        displ = 0;
+        pos = hashValue & mask;
+        entry = &dict->table[pos];
+
+        while ((entry->hashValue != 0) &&
+               ((pos - entry->hashValue) & mask) >= displ) {
+            displ++;
+            pos++;
+            entry++;
+            if ((pos & mask) == 0)
+                entry = dict->table;
+        }
+    }
+
+    /*
+     * Shift the remainder of the probe sequence to the right
+     */
+    if (entry->hashValue != 0) {
+        const xmlDictEntry *end = &dict->table[dict->size];
+        const xmlDictEntry *cur = entry;
+
+        do {
+            cur++;
+            if (cur >= end)
+                cur = dict->table;
+        } while (cur->hashValue != 0);
+
+        if (cur < entry) {
+            /*
+             * If we traversed the end of the buffer, handle the part
+             * at the start of the buffer.
+             */
+            memmove(&dict->table[1], dict->table,
+                    (char *) cur - (char *) dict->table);
+            cur = end - 1;
+            dict->table[0] = *cur;
+        }
+
+        memmove(&entry[1], entry, (char *) cur - (char *) entry);
+    }
+
+    /*
+     * Populate entry
+     */
+    entry->hashValue = hashValue;
+    entry->name = ret;
+
+    dict->nbElems++;
+
+    return(entry);
+}
+
+/**
+ * xmlDictLookup:
+ * @dict: dictionary
+ * @name: string key
+ * @len: length of the key, if -1 it is recomputed
+ *
+ * Lookup a string and add it to the dictionary if it wasn't found.
+ *
+ * Returns the interned copy of the string or NULL if a memory allocation
+ * failed.
+ */
+const xmlChar *
+xmlDictLookup(xmlDictPtr dict, const xmlChar *name, int len) {
+
+STDERR:
+
+---
+$ sed -n '792,813p' dict.c
+[rc=0]
+STDOUT:
+xmlDictLookup(xmlDictPtr dict, const xmlChar *name, int len) {
+    const xmlDictEntry *entry;
+
+    entry = xmlDictLookupInternal(dict, NULL, name, len, 1);
+    if (entry == NULL)
+        return(NULL);
+    return(entry->name);
+}
+
+/**
+ * xmlDictLookupHashed:
+ * @dict: dictionary
+ * @name: string key
+ * @len: length of the key, if -1 it is recomputed
+ *
+ * Lookup a dictionary entry and add the string to the dictionary if
+ * it wasn't found.
+ *
+ * Returns the dictionary entry.
+ */
+xmlHashedString
+xmlDictLookupHashed(xmlDictPtr dict, const xmlChar *name, int len) {
+
+STDERR:
+
+---

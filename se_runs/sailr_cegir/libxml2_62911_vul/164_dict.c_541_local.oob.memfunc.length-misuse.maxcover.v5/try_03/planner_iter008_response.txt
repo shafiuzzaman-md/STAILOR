@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlHashedString\" ./include/private/dict.h -B 5 -A 5",
+    "grep -n \"xmlDictEntry\" dict.c -B 2 -A 2",
+    "grep -n \"xmlDictLookupInternal\" dict.c -B 2 -A 10 | head -30",
+    "grep -n \"xmlDictComputeHash\" dict.c -B 2 -A 10"
+  ],
+  "reason": "Need exact struct definitions for xmlHashedString and xmlDictEntry, and to understand the call chain from xmlDictLookup to xmlDictFindEntry. Also need to see xmlDictComputeHash to understand hash generation."
+}

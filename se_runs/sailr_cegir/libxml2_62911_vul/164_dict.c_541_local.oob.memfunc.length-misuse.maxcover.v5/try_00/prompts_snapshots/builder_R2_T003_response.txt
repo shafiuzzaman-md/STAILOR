@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlChar' dict.c",
+  "reason": "Need to find the definition of xmlChar type to include correct headers or define it."
+}

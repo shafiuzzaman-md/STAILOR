@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'xmlChar' dict.c | head -5",
+    "grep -B5 -A10 'struct _xmlHashedString' dict.c",
+    "grep -n '^typedef.*xmlChar' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/include/libxml/*.h 2>/dev/null | head -5",
+    "sed -n '812,830p' dict.c"
+  ],
+  "reason": "Need to resolve xmlChar type (likely unsigned char) and xmlHashedString struct layout (since xmlDictEntry is a typedef to it). Also need to see the xmlHashedString definition to understand entry->name and entry->hashValue fields."
+}

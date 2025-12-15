@@ -1,0 +1,34 @@
+{
+  "hard_errors": [
+    "Missing REACH_ASSERT in planner plan (required)."
+  ],
+  "info": {
+    "compile_command_mentions_libxml2": true,
+    "embed_files_count": 0,
+    "enclosing_function_at_target": null,
+    "has_target_fact": true,
+    "has_target_finding": true,
+    "marker_hits": {
+      "BUG_ASSERT": [
+        "plan_raw.reason"
+      ],
+      "REACH_ASSERT": []
+    },
+    "planned_entrypoint": null,
+    "planned_target_function": null,
+    "project": "62911/libxml2_62911_vul",
+    "target": {
+      "file": "dict.c",
+      "line": 541,
+      "rule_id": "local.oob.memfunc.length-misuse.maxcover.v5"
+    }
+  },
+  "ok": false,
+  "suggested_feedback": "DCV HARD FAILURES (must fix):\n- Missing REACH_ASSERT in planner plan (required).\n\nDCV WARNINGS (recommended improvements):\n- Could not parse BUG_ASSERT(...) expression; please ensure standard form BUG_ASSERT(expr).\n- Planner did not specify an entrypoint; Builder may infer one opportunistically (can hurt reachability).\n- Plan does not specify any embedding set; Builder may over/under include dependencies.\n- Rule heuristic: memfunc length-misuse usually needs constraints on length/count and buffer bounds; ensure plan encodes these.\n\nAction: revise the plan to address hard failures first; then improve warnings while keeping the plan minimal.",
+  "warnings": [
+    "Could not parse BUG_ASSERT(...) expression; please ensure standard form BUG_ASSERT(expr).",
+    "Planner did not specify an entrypoint; Builder may infer one opportunistically (can hurt reachability).",
+    "Plan does not specify any embedding set; Builder may over/under include dependencies.",
+    "Rule heuristic: memfunc length-misuse usually needs constraints on length/count and buffer bounds; ensure plan encodes these."
+  ]
+}

@@ -1,0 +1,38 @@
+# planner shell iter 3 (batch), reason='Need to find includes, xmlChar type, struct definitions (maybe from includes), and the body of xmlStrQEqual to decide embedding vs stubbing.'
+$ grep -n '^#include' dict.c
+[rc=0]
+STDOUT:
+20:#include "libxml.h"
+22:#include <limits.h>
+23:#include <string.h>
+24:#include <time.h>
+26:#include "private/dict.h"
+27:#include "private/threads.h"
+29:#include <libxml/parser.h>
+30:#include <libxml/dict.h>
+31:#include <libxml/xmlmemory.h>
+32:#include <libxml/xmlstring.h>
+
+STDERR:
+
+---
+$ grep -n 'xmlChar' dict.c | head -5
+[error] piping not allowed
+---
+$ grep -n 'struct xmlDict' dict.c
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---
+$ grep -n 'struct xmlDictEntry' dict.c
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---
+$ sed -n '/^xmlStrQEqual/,/^}/p' dict.c
+[error] absolute paths not allowed: /^xmlStrQEqual/,/^}/p
+---

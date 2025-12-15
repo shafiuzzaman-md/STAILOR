@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,200p' dict.c",
+  "reason": "Need to retrieve the exact definition of struct _xmlDict and the body of xmlDictFindEntry from dict.c to embed correctly."
+}

@@ -1,0 +1,10 @@
+array hash[4] : w32 -> w8 = symbolic
+array len[4] : w32 -> w8 = symbolic
+array ret[4] : w32 -> w8 = symbolic
+(query [(Eq 5
+             (ReadLSB w32 0 len))
+         (Eq 12345
+             (ReadLSB w32 0 hash))
+         (Eq 1
+             (ReadLSB w32 0 ret))]
+        false)

@@ -1,0 +1,12 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"struct xmlDictEntry\" dict.c",
+    "grep -n \"struct xmlDict\" dict.c",
+    "grep -n \"typedef.*xmlDict\" dict.c",
+    "grep -n \"typedef.*xmlDictEntry\" dict.c",
+    "grep -n \"xmlChar\" dict.c | head -5",
+    "find . -name \"*.h\" -exec grep -l \"xmlDict\" {} \\; | head -10"
+  ],
+  "reason": "Need to locate struct definitions for xmlDictEntry and xmlDict, and understand xmlChar type, to embed them in the harness."
+}

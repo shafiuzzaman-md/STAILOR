@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlDictFindEntry' dict.c -A 100 | head -200",
+  "reason": "We need to see the exact function definition around line 541 to understand the context and ensure our harness matches the actual code. The previous shell output was truncated; we need to see the full function to correctly place assertions and understand the bug condition."
+}

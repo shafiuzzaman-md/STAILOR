@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,100p' dict.c",
+  "reason": "Need to see the beginning of dict.c to find struct definitions, typedefs, and macros like ATTRIBUTE_NO_SANITIZE_INTEGER."
+}

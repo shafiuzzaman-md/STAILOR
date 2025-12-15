@@ -1,0 +1,11 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 5 -B 5",
+    "grep -n 'xmlMutex' include/libxml/threads.h 2>/dev/null || echo 'threads.h not found'",
+    "grep -n 'typedef.*xmlMutex' include/libxml/threads.h 2>/dev/null || echo 'no typedef'",
+    "grep -n 'struct _xmlDict' dict.c -A 15 | head -30",
+    "grep -n 'xmlDictLookup' dict.c | head -5"
+  ],
+  "reason": "Need to understand xmlStrQEqual signature for stub, xmlMutex type for static variable, full struct _xmlDict layout, and entrypoint xmlDictLookup (spec mentions entrypoint xmlDictLookup)."
+}

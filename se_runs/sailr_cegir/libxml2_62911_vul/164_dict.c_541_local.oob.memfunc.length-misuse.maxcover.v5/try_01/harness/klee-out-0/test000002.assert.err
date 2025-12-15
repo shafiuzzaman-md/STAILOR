@@ -1,0 +1,8 @@
+Error: ASSERTION FAIL: 0 && "REACH_ASSERT"
+File: se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_01/harness/harness.c
+Line: 41
+assembly.ll line: 5022
+State: 1
+Stack: 
+	#000005022 in xmlDictLookupInternal(0, 126139364278272, symbolic, symbolic) at se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_01/harness/harness.c:41
+	#100004956 in main() at se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_01/harness/harness.c:70

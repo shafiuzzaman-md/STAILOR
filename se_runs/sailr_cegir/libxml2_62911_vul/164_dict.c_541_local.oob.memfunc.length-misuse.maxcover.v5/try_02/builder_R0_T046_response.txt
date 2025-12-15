@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlStrEqual' xmlstring.c | head -5",
+  "reason": "Need to locate the exact line numbers for xmlStrEqual to copy its body."
+}

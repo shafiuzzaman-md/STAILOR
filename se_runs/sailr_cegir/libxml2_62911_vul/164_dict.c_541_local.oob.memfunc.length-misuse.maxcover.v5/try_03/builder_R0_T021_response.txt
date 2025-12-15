@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n '^#define' dict.c | head -20",
+  "reason": "Need to see macro definitions in dict.c, especially ATTRIBUTE_NO_SANITIZE_INTEGER, MAX_HASH_SIZE, etc., to embed them correctly."
+}

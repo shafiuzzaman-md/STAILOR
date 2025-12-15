@@ -1,0 +1,168 @@
+{
+  "assertions": [
+    {
+      "derived_condition": "len < entry_name_capacity",
+      "final_klee_assert_string": "klee_assert(len < 1000 && \"BUG_ASSERT: OOB access on entry->name[len]\");",
+      "id": "BUG_ASSERT",
+      "kind": "bug",
+      "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+      "rationale": "Safety precondition for OOB access: entry->name[len] must be within allocated buffer."
+    },
+    {
+      "final_klee_assert_string": "klee_assert(0 && \"REACH_ASSERT\");",
+      "id": "REACH_ASSERT",
+      "kind": "reach",
+      "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+      "rationale": "Marker for reaching target line."
+    }
+  ],
+  "budget": {
+    "max_builder_iters": 8,
+    "max_klee_runs": 12
+  },
+  "embedding_plan": {
+    "avoid": [
+      "Do not include duplicate function bodies",
+      "Do not include any natural-language prose in harness.c",
+      "Prefer stubs for non-critical helpers to keep file small"
+    ],
+    "must_embed_functions": [
+      {
+        "from_file": "dict.c",
+        "name": "xmlDictFindEntry",
+        "notes": "copy exact body once",
+        "why_needed": "Contains the target line; we need its exact body to analyze the vulnerability."
+      }
+    ],
+    "must_embed_types_macros": [
+      {
+        "from_file": "./include/private/dict.h",
+        "name": "xmlHashedString",
+        "notes": "typedef struct { unsigned hashValue; const xmlChar *name; } xmlHashedString;",
+        "why_needed": "xmlDictEntry is typedef'd to xmlHashedString; we need the struct layout for entry->name and entry->hashValue."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "struct _xmlDict",
+        "notes": "struct _xmlDict { int ref_counter; xmlDictEntry *table; size_t size; unsigned int nbElems; xmlDictStringsPtr strings; struct _xmlDict *subdict; unsigned seed; size_t limit; };",
+        "why_needed": "The dict parameter points to this struct; we need its layout to initialize dict->table, dict->size, etc."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "xmlChar",
+        "notes": "typedef unsigned char xmlChar;",
+        "why_needed": "Used throughout; likely typedef'd to unsigned char. We'll define it as unsigned char."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "xmlDictEntry",
+        "notes": "typedef xmlHashedString xmlDictEntry;",
+        "why_needed": "typedef xmlHashedString xmlDictEntry; we need this alias."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "ATTRIBUTE_NO_SANITIZE_INTEGER",
+        "notes": "#define ATTRIBUTE_NO_SANITIZE_INTEGER",
+        "why_needed": "Macro used before xmlDictFindEntry; we can define as empty."
+      }
+    ],
+    "stub_instead_of_embed": [
+      {
+        "name": "xmlStrQEqual",
+        "signature": "int xmlStrQEqual(const xmlChar *prefix, const xmlChar *name1, const xmlChar *name2)",
+        "strategy": "Return 0 (false) to avoid exploring the prefix != NULL branch, focusing on the vulnerable path.",
+        "why_safe": "The target line is in the prefix == NULL branch; stubbing this function prevents needing its implementation."
+      },
+      {
+        "name": "xmlMalloc",
+        "signature": "void *xmlMalloc(size_t size)",
+        "strategy": "Return malloc(size).",
+        "why_safe": "Simple allocator; we need to allocate dict and table."
+      },
+      {
+        "name": "xmlFree",
+        "signature": "void xmlFree(void *ptr)",
+        "strategy": "Call free(ptr).",
+        "why_safe": "Simple deallocator."
+      },
+      {
+        "name": "xmlInitParser",
+        "signature": "void xmlInitParser(void)",
+        "strategy": "Empty function.",
+        "why_safe": "Initialization not needed for path."
+      },
+      {
+        "name": "xmlInitMutex",
+        "signature": "void xmlInitMutex(void *mutex)",
+        "strategy": "Empty function.",
+        "why_safe": "Mutex not needed for single-threaded harness."
+      },
+      {
+        "name": "xmlCleanupMutex",
+        "signature": "void xmlCleanupMutex(void *mutex)",
+        "strategy": "Empty function.",
+        "why_safe": "Mutex not needed."
+      },
+      {
+        "name": "xmlMutexLock",
+        "signature": "void xmlMutexLock(void *mutex)",
+        "strategy": "Empty function.",
+        "why_safe": "Mutex not needed."
+      },
+      {
+        "name": "xmlMutexUnlock",
+        "signature": "void xmlMutexUnlock(void *mutex)",
+        "why_safe": "Mutex not needed."
+      }
+    ]
+  },
+  "harness_shape": {
+    "call_sequence": [
+      "Setup memory and structs (e.g., malloc dict, allocate table, initialize dict->size, dict->table)",
+      "Initialize entry->name to point to entry_name_buf, set entry->hashValue to hashValue",
+      "klee_make_symbolic for inputs (len, name_buf, entry_name_buf)",
+      "BUG_ASSERT: klee_assert(len < 1000 && \"BUG_ASSERT: OOB access on entry->name[len]\");",
+      "Call target function xmlDictFindEntry with dict, NULL prefix, name_buf, len, hashValue, &found",
+      "REACH_ASSERT: klee_assert(0 && \"REACH_ASSERT\");"
+    ],
+    "needs_main": true,
+    "notes": "Minimal setup: create a dict with size=2 (so mask=1), table with one entry, set entry->hashValue = hashValue to enter the loop, and ensure prefix == NULL."
+  },
+  "symbolic_inputs": [
+    {
+      "c_type": "int",
+      "constraints": [
+        "len >= 0",
+        "len < 1000"
+      ],
+      "name": "len",
+      "rationale": "Length parameter passed to memcmp; must be non-negative and bounded to avoid excessive exploration.",
+      "size": 0,
+      "symbolic": true
+    },
+    {
+      "c_type": "xmlChar[]",
+      "constraints": [
+        "name_buf[len] == 0"
+      ],
+      "name": "name_buf",
+      "rationale": "The 'name' pointer (const xmlChar*) points to this buffer; we need to ensure it's null-terminated at index len to satisfy entry->name[len] == 0 condition.",
+      "size": 1000,
+      "symbolic": true
+    },
+    {
+      "c_type": "xmlChar[]",
+      "constraints": [],
+      "name": "entry_name_buf",
+      "rationale": "entry->name points to this buffer; we need to control its content for memcmp and the null byte at index len.",
+      "size": 1000,
+      "symbolic": true
+    }
+  ],
+  "target_function": {
+    "file": "dict.c",
+    "name": "xmlDictFindEntry",
+    "rationale": "The target line 541 is inside xmlDictFindEntry. This is the function that contains the vulnerable memcmp and OOB access.",
+    "signature": "static xmlDictEntry *xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, const xmlChar *name, int len, unsigned hashValue, int *pfound)"
+  }
+}

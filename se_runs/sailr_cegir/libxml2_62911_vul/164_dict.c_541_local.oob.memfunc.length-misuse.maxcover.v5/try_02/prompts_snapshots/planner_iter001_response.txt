@@ -1,0 +1,11 @@
+{
+  "action": "shell",
+  "commands": [
+    "sed -n '43,70p' dict.c",
+    "sed -n '45,58p' dict.c",
+    "sed -n '54,58p' dict.c",
+    "grep -n 'xmlChar' dict.c | head -5",
+    "grep -n '^xmlDictLookup' dict.c"
+  ],
+  "reason": "Need exact struct definitions for xmlDict and xmlDictEntry to understand member types (especially entry->name, dict->table, dict->size). Also need xmlChar definition. Also need to verify the entrypoint function xmlDictLookup (mentioned in spec) to see if it calls xmlDictFindEntry."
+}

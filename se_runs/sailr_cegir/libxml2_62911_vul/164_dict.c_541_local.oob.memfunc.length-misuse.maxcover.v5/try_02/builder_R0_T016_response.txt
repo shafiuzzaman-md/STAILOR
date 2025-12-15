@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,30p' xmlstring.c",
+  "reason": "Need to see the beginning of xmlstring.c to find xmlStrEqual function definition and any necessary includes/typedefs."
+}

@@ -1,0 +1,4 @@
+# refiner shell
+$ grep -n 'xmlDictFindEntry' dict.c -A 100
+RC=0
+STDOUT_LEN=7353 STDERR_LEN=0

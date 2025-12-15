@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1",
+  "reason": "Need to see if ATTRIBUTE_NO_SANITIZE_INTEGER is defined elsewhere (maybe in a header). If not defined, we can define it as empty."
+}

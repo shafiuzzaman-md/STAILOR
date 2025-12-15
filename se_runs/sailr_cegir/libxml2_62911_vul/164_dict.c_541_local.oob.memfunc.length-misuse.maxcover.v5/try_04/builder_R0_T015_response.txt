@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,30p' dict.c",
+  "reason": "Need to see the beginning of dict.c to find any necessary includes, macro definitions (like ATTRIBUTE_NO_SANITIZE_INTEGER), and typedefs (like xmlDictEntry)."
+}

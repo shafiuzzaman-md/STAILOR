@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '59,80p' dict.c",
+  "reason": "Need the full struct _xmlDict definition to know all fields used by xmlDictFindEntry (especially table, size). The previous snippet was truncated."
+}

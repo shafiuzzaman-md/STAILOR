@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'xmlStrQEqual' dict.c",
+    "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1",
+    "sed -n '40,80p' dict.c",
+    "grep -n 'xmlHashedString' dict.c"
+  ],
+  "reason": "We need to confirm the exact definitions of xmlStrQEqual, ATTRIBUTE_NO_SANITIZE_INTEGER, xmlHashedString, and the struct _xmlDict to ensure we have all necessary types and macros for the harness. The target line is inside xmlDictFindEntry, which uses these. We must embed or stub accordingly."
+}

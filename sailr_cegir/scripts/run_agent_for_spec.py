@@ -4,24 +4,15 @@
 run_agent_for_spec.py
 
 Agentic SAILR-CEGIR driver for a *single* spec.
-
-Features in this version:
-  1. Smart Builder:
-     - Phase A (Builder) can use "action": "shell" to debug compilation errors
-       (e.g., missing headers) before emitting code.
-     - "Pressure" mechanism: if the builder spends too many turns only doing
-       shell exploration, the prompt explicitly forces it to emit a harness.
-  2. Backtracking:
-     - If Phase A fails to produce a compilable harness after N tries,
-       the agent loops back to Phase 0 (Planner) with the compilation error
-       logs, asking for a revised strategy.
-  3. KLEE Assertion Differentiation:
-     - The KLEE runner differentiates BUG_ASSERT vs REACH_ASSERT vs other
-       assertions for finer-grained H2 classification.
-  4. KLEE Refiner Safety:
-     - Phase B (KLEE refiner) has a hard limit on interaction steps and a
-       "pressure" mechanism that nudges the LLM to actually run KLEE or finish,
-       so we do not get stuck forever in shell/refine_build_only loops.
+WIRED FOR STATIC ANALYSIS: Automatically consumes fact_pack.json, findings.json, and compile_commands.json.
+PATCHED: Includes automated header injection to prevent trivial compilation failures.
+UPDATED: 
+  - Robust pipe handling (allows shell=True).
+  - Increased Planner iterations (15).
+  - Added [DEBUG] logs for Builder/Refiner transitions.
+  - Added 'execution.log' to capture all console output.
+  - Removed error truncation for full build failure logs.
+  - Added HISTORY TRUNCATION to prevent LLM 413 "Request Entity Too Large" errors.
 """
 
 from __future__ import annotations
@@ -35,938 +26,541 @@ import subprocess
 import sys
 import textwrap
 import time
+import fcntl
 from pathlib import Path
 from typing import Dict, Any, Tuple, List
 
-# --------------------------------------------------------------------------------------
-# Paths / imports
-# --------------------------------------------------------------------------------------
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PROMPT_ROOT = REPO_ROOT / "prompts" / "sailr_cegir"
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(SCRIPT_DIR))
+
 try:
     from llm_utils import llm_chat
-except Exception as e:  # pragma: no cover
+except Exception as e:
     print(f"[!] Failed to import llm_utils.llm_chat: {e}", file=sys.stderr)
     sys.exit(1)
 
+try:
+    import make_prompt
+except ImportError as e:
+    print(f"[!] Failed to import make_prompt: {e}", file=sys.stderr)
+    sys.exit(1)
 
-# --------------------------------------------------------------------------------------
-# Basic utilities
-# --------------------------------------------------------------------------------------
+# ---------------- LOGGING UTILS ----------------
+
+class Tee:
+    """Writes to both stdout/stderr and a log file."""
+    def __init__(self, original_stream, log_file):
+        self.original_stream = original_stream
+        self.log_file = log_file
+
+    def write(self, message):
+        self.original_stream.write(message)
+        self.log_file.write(message)
+        self.flush()
+
+    def flush(self):
+        self.original_stream.flush()
+        self.log_file.flush()
+
+def setup_logging(run_dir: Path):
+    """Redirects sys.stdout and sys.stderr to execution.log."""
+    log_path = run_dir / "execution.log"
+    # Open in 'a' (append) or 'w' (write). 'w' cleans up old runs.
+    f = open(log_path, 'w', encoding='utf-8')
+    
+    # Redirect
+    sys.stdout = Tee(sys.stdout, f)
+    sys.stderr = Tee(sys.stderr, f)
+    
+    print(f"[i] Logging all output to: {log_path}")
+
+# ---------------- BASIC UTILS ----------------
+
 def normalize_flag_list(flags) -> list[str]:
-    """
-    Normalize flag arguments that may come from argparse with nargs="*"
-    but were passed as a single quoted string.
-    """
-    if not flags:
-        return []
-
+    if not flags: return []
     if isinstance(flags, list) and len(flags) == 1:
         s = flags[0]
-        if isinstance(s, str) and " " in s:
-            return shlex.split(s)
-
-    if isinstance(flags, str):
-        return shlex.split(flags)
-
+        if isinstance(s, str) and " " in s: return shlex.split(s)
+    if isinstance(flags, str): return shlex.split(flags)
     return list(flags)
 
-
-def load_prompt(name: str) -> str:
-    """Load a prompt file from prompts/sailr_cegir/."""
-    p = PROMPT_ROOT / name
-    if not p.exists():
-        raise FileNotFoundError(f"Prompt file not found: {p}")
-    return p.read_text(encoding="utf-8")
-
-
-def run_cmd(
-    cmd: list[str],
-    cwd: Path | None = None,
-    timeout: int | None = None,
-) -> Tuple[int, str, str, float]:
-    """Run a subprocess and capture (returncode, stdout, stderr, elapsed_seconds)."""
+def run_cmd(cmd: list[str] | str, cwd: Path | None = None, timeout: int | None = None, use_shell: bool = False) -> Tuple[int, str, str, float]:
+    """
+    Runs a command. Supports shell=True for complex agent commands (pipes).
+    """
     start = time.monotonic()
     try:
+        if use_shell and isinstance(cmd, list):
+            cmd_str = " ".join(shlex.quote(x) for x in cmd)
+        else:
+            cmd_str = cmd 
+
         proc = subprocess.run(
-            cmd,
+            cmd_str if use_shell else cmd, 
             cwd=str(cwd) if cwd else None,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=timeout,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, timeout=timeout,
+            shell=use_shell
         )
         elapsed = time.monotonic() - start
         return proc.returncode, proc.stdout, proc.stderr, elapsed
-
     except subprocess.TimeoutExpired as e:
         elapsed = time.monotonic() - start
-
-        def _to_str(x):
-            if x is None:
-                return ""
-            if isinstance(x, str):
-                return x
-            try:
-                return x.decode("utf-8", errors="ignore")
-            except Exception:
-                return ""
-
-        stdout = _to_str(e.stdout)
+        def _to_str(x): return x if isinstance(x, str) else (x.decode('utf-8', 'ignore') if x else "")
         stderr = _to_str(e.stderr) + f"\n[SAILR_TIMEOUT] subprocess timed out after {timeout} seconds."
-        return 124, stdout, stderr, elapsed
-
+        return 124, _to_str(e.stdout), stderr, elapsed
 
 def ensure_dir(p: Path) -> Path:
     p.mkdir(parents=True, exist_ok=True)
     return p
 
-
 def read_json(path: Path) -> Any:
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
+    try:
+        with path.open("r", encoding="utf-8") as f: return json.load(f)
+    except Exception as e:
+        print(f"[!] Error reading JSON {path}: {e}", file=sys.stderr)
+        return None
 
 def write_json(path: Path, obj: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
         json.dump(obj, f, indent=2, sort_keys=True)
 
-
 def extract_json_block(text: str) -> str:
-    """
-    Heuristic: if LLM wrapped JSON in ```json ... ``` fences, extract inner part.
-    """
-    fence_match = re.search(
-        r"```(?:json)?(.*?)```", text, flags=re.DOTALL | re.IGNORECASE
-    )
-    if fence_match:
-        return fence_match.group(1).strip()
+    fence_match = re.search(r"```(?:json)?(.*?)```", text, flags=re.DOTALL | re.IGNORECASE)
+    if fence_match: return fence_match.group(1).strip()
     return text.strip()
 
-
-def call_llm_json(
-    system_prompt: str,
-    user_prompt: str,
-    out_dir: Path,
-    tag: str,
-) -> Dict[str, Any]:
-    """
-    Call LLM with given system+user prompts and expect JSON output.
-    """
+def call_llm_json(system_prompt: str, user_prompt: str, out_dir: Path, tag: str) -> Dict[str, Any]:
     ensure_dir(out_dir)
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-
-    (out_dir / f"{tag}_messages.json").write_text(
-        json.dumps(messages, indent=2), encoding="utf-8"
-    )
-
+    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    (out_dir / f"{tag}_messages.json").write_text(json.dumps(messages, indent=2), encoding="utf-8")
+    
     raw = llm_chat(messages)
+    
+    if isinstance(raw, (dict, list)):
+        (out_dir / f"{tag}_response.txt").write_text(json.dumps(raw, indent=2), encoding="utf-8")
+        return raw if isinstance(raw, dict) else {"_llm_list": raw}
+
     (out_dir / f"{tag}_response.txt").write_text(str(raw), encoding="utf-8")
-
     text = extract_json_block(str(raw)).strip()
+    if not text: return {"_llm_error": "empty response"}
+    if not text.lstrip().startswith("{"):
+        m = re.search(r"(\{.*\})", text, flags=re.DOTALL)
+        if m: text = m.group(1)
+    try: return json.loads(text)
+    except Exception as e: return {"_llm_error": f"json_parse_failed: {e}"}
 
-    if not text:
-        err_msg = f"Empty LLM response for {tag}"
-        (out_dir / f"{tag}_parse_error.txt").write_text(err_msg, encoding="utf-8")
-        return {"_llm_error": err_msg}
+# ---------------- SECURITY & LOOKUP UTILS ----------------
 
+ALLOWED_SHELL_TOOLS = {"rg", "grep", "ls", "find", "sed", "cat", "head", "tail"}
+
+def sanitize_shell_command(cmd: str) -> List[str]:
+    """
+    Validates command safety. Returns argv list.
+    Allows pipes ('|') and semicolons (';'), but blocks dangerous metachars like '&', '`'.
+    """
+    for ch in ["&", "`"]:
+        if ch in cmd: raise ValueError(f"disallowed metacharacter: {ch}")
+    if "$(" in cmd or "${" in cmd: raise ValueError("command substitution not allowed")
+    
+    argv = shlex.split(cmd)
+    if not argv: raise ValueError("empty command")
+    
+    # Check start token
+    first_word = argv[0]
+    tool = Path(first_word).name
+    if tool not in ALLOWED_SHELL_TOOLS:
+        raise ValueError(f"tool {first_word!r} not allowed")
+        
+    return argv
+
+def inject_standard_headers(hsrc: str) -> str:
+    headers_map = {
+        "<limits.h>": ["INT_MAX", "INT_MIN", "UINT_MAX"],
+        "<assert.h>": ["assert(", "__assert_fail", "klee_assert"],
+        "<stdint.h>": ["uint8_t", "int32_t", "uint32_t", "uint64_t", "int64_t", "uintptr_t"],
+        "<stdlib.h>": ["malloc", "free", "calloc", "realloc", "exit", "abort", "strtoul"],
+        "<string.h>": ["memcpy", "memset", "strcpy", "strlen", "memcmp", "strcat", "strdup"],
+        "<stdio.h>":  ["printf", "fprintf", "sprintf", "snprintf", "stderr", "stdout"],
+        "<stdbool.h>": ["bool", "true", "false"],
+        "<stddef.h>": ["NULL", "size_t", "ptrdiff_t", "offsetof"],
+    }
+    lines = hsrc.splitlines()
+    existing_includes = set()
+    for line in lines:
+        m = re.match(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', line)
+        if m: existing_includes.add(m.group(1))
+    
+    injections = []
+    for header, keywords in headers_map.items():
+        if header.strip("<>") not in existing_includes:
+            if any(kw in hsrc for kw in keywords):
+                injections.append(f"#include {header}")
+    
+    if not injections: return hsrc
+    last_include_idx = -1
+    for i, line in enumerate(lines):
+        if line.strip().startswith("#include"): last_include_idx = i
+    insert_pos = last_include_idx + 1 if last_include_idx != -1 else 0
+    return "\n".join(lines[:insert_pos] + injections + lines[insert_pos:])
+
+def looks_like_c(code: str) -> bool:
+    if not code or len(code) < 50: return False
+    bad = ("copy ", "insert ", "the exact", "example", "should check", "immediately before", "please ")
+    if any(b in code.lstrip()[:250].lower() for b in bad): return False
+    return any(tok in code for tok in ["#include", "int ", "void ", "typedef", "struct", "klee_make_symbolic", "{", ";"])
+
+def extract_c_code(text: str) -> str | None:
+    m = re.search(r"```c(.*?)```", text, flags=re.DOTALL | re.IGNORECASE)
+    if m and looks_like_c(m.group(1).strip()): return m.group(1).strip()
+    m = re.search(r"```(.*?)```", text, flags=re.DOTALL)
+    if m and looks_like_c(m.group(1).strip()): return m.group(1).strip()
+    return text.strip() if looks_like_c(text.strip()) else None
+
+def reject_non_code(hsrc: str) -> str | None:
+    if re.search(r"^\s*(Copy|Insert|Example|Please|The exact|We need to)\b", hsrc, re.MULTILINE | re.IGNORECASE):
+        return "harness begins with natural language instructions"
+    if not any(k in hsrc for k in ("#include", "klee_make_symbolic", "klee_assert", "main(", "{")):
+        return "missing C structure markers"
+    return None
+
+def extract_function_body_at(file_path: Path, line_num: int) -> str:
     try:
-        data = json.loads(text)
-        return data
-    except Exception as e:
-        err_msg = f"Failed to parse JSON from LLM response for {tag}: {e}"
-        (out_dir / f"{tag}_parse_error.txt").write_text(
-            err_msg + "\n\n" + text, encoding="utf-8"
-        )
-        return {"_llm_error": err_msg}
+        txt = file_path.read_text(encoding="utf-8", errors="ignore")
+        lines = txt.splitlines()
+        idx = line_num - 1
+        if idx < 0 or idx >= len(lines): return f"[error] line {line_num} out of bounds"
+        func_start = max(0, idx - 50)
+        for i in range(idx, max(-1, idx - 200), -1):
+            line = lines[i].strip()
+            if re.match(r'^[a-zA-Z_].*\(.*', line) and not line.endswith(';'):
+                func_start = i
+                break
+        return "\n".join(lines[max(0, func_start):min(len(lines), idx + 100)])
+    except Exception as e: return f"[error reading file] {e}"
 
-
-# --------------------------------------------------------------------------------------
-# Source discovery / context building
-# --------------------------------------------------------------------------------------
+def perform_smart_lookup(src_root: Path, symbols: List[str]) -> str:
+    results = []
+    for sym in symbols:
+        if not re.match(r'^[a-zA-Z_]\w*$', sym): continue
+        cmd = ["rg", "-n", "--no-heading", f'\\b{sym}\\s*\\(', "."]
+        rc, out, _, _ = run_cmd(cmd, cwd=src_root, timeout=5)
+        if rc == 0 and out.strip():
+            matches = out.strip().splitlines()[:2]
+            found_any = False
+            for m in matches:
+                parts = m.split(":", 2)
+                if len(parts) >= 2:
+                    try:
+                        fpath = src_root / parts[0].replace("./", "")
+                        body = extract_function_body_at(fpath, int(parts[1]))
+                        results.append(f"== DEFINITION: {sym} ==\nFile: {parts[0]}:{parts[1]}\nContent:\n{body}\n")
+                        found_any = True
+                    except: continue
+            if not found_any: results.append(f"Symbol '{sym}': matches found but extraction failed.")
+        else: results.append(f"Symbol '{sym}': Definition not found.")
+    return "\n".join(results)
 
 def find_source_file(src_root: Path, vul_file: str) -> Path:
-    """
-    Try to locate the source file for vul_file under src_root.
-    """
     direct = src_root / vul_file
-    if direct.exists():
-        return direct
-
+    if direct.exists(): return direct
     matches = list(src_root.rglob(vul_file))
-    if not matches:
-        raise FileNotFoundError(f"{vul_file} not found under {src_root}")
-    matches.sort(key=lambda p: len(str(p)))
-    return matches[0]
+    if not matches: raise FileNotFoundError(f"{vul_file} not found under {src_root}")
+    return sorted(matches, key=lambda p: len(str(p)))[0]
 
+def ccdb_flags(cc_entry: Dict[str, Any] | None) -> List[str]:
+    if not cc_entry: return []
+    cmd = cc_entry.get("command")
+    argv = shlex.split(cmd) if cmd else cc_entry.get("arguments", [])
+    out = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-I", "-isystem", "-D", "-U") and i + 1 < len(argv):
+            out.extend([a, argv[i + 1]])
+            i += 2
+        elif any(a.startswith(p) for p in ("-I", "-isystem", "-D", "-U")):
+            out.append(a)
+            i += 1
+        else: i += 1
+    return out
 
-def build_context(
-    sa_out_dir: Path,
-    src_root: Path,
-    spec_path: Path,
-    vul_file: str,
-    vul_line: int,
-    ctx_dir: Path,
-) -> Dict[str, Any]:
-    """
-    Construct a compact context package for the LLM.
-    """
+# ---------------- CONTEXT & DCV ----------------
+
+def extract_vulnerable_statement_text(lines: List[str], start_line_num: int) -> str:
+    idx = start_line_num - 1
+    if idx < 0 or idx >= len(lines): return f"[error] line {start_line_num} out of bounds"
+    i = idx
+    while i >= 0:
+        if lines[i].strip().startswith(("if", "while", "for")):
+            idx = i
+            break
+        i -= 1
+    stmt = []
+    for j in range(0, 10):
+        if idx + j >= len(lines): break
+        line = lines[idx + j].strip()
+        if not line or line.startswith(("/", "*")): continue
+        stmt.append(line)
+        if line.endswith(("{", ";")): break
+    return " ".join(stmt)
+
+def run_dcv(plan_path: Path, ctx: Dict, args: argparse.Namespace) -> Tuple[bool, str]:
+    dcv_script = SCRIPT_DIR / "validate_plan_contract.py"
+    if not dcv_script.exists(): return True, "" 
+
+    cmd = [sys.executable, str(dcv_script), "--plan", str(plan_path), 
+           "--spec", ctx["spec_path"], "--rule-id", args.rule_id, 
+           "--project-name", args.project_id]
+    
+    if ctx.get("fact_pack_path"): cmd.extend(["--fact-pack", ctx["fact_pack_path"]])
+    
+    rc, out, err, _ = run_cmd(cmd)
+    if rc != 0:
+        return False, f"STDOUT:\n{out}\nSTDERR:\n{err}"
+    return True, ""
+
+def build_context(sa_out_dir: Path, src_root: Path, spec_path: Path, vul_file: str, vul_line: int, ctx_dir: Path) -> Dict[str, Any]:
     ensure_dir(ctx_dir)
-
     spec = read_json(spec_path)
     (ctx_dir / "spec.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
 
-    fact_pack_path = sa_out_dir / "fact_pack.json"
-    ccdb_path = sa_out_dir / "compile_commands.json"
-
     src_file = find_source_file(src_root, vul_file)
-    full_src_text = src_file.read_text(encoding="utf-8", errors="ignore")
-    (ctx_dir / "vul_file_full.c").write_text(full_src_text, encoding="utf-8")
-
-    max_chars = 20000
-    truncated_src = full_src_text[:max_chars]
-
-    lines = full_src_text.splitlines()
+    full_src = src_file.read_text(encoding="utf-8", errors="ignore")
+    lines = full_src.splitlines()
+    
     idx = max(0, vul_line - 1)
-    window = 25
-    start = max(0, idx - window)
-    end = min(len(lines), idx + window + 1)
-    snippet_lines = lines[start:end]
-
-    snippet_text = "\n".join(
-        f"{i+1:5d}: {lines[i]}" for i in range(start, end)
-    )
-
-    (ctx_dir / "vul_snippet.c").write_text("\n".join(snippet_lines), encoding="utf-8")
-    (ctx_dir / "vul_snippet_annotated.txt").write_text(snippet_text, encoding="utf-8")
-
-    func_body = None
-    func_start = None
-    brace_depth = 0
-    for i, line in enumerate(lines):
-        if "{" in line:
-            brace_depth += line.count("{")
-            if brace_depth == 1 and func_start is None:
-                # FIX: Capture the 3 lines BEFORE the brace to get the function signature/name
-                sig_start = max(0, i - 3)
-                func_start = sig_start
-        if "}" in line:
-            brace_depth -= line.count("}")
-            if brace_depth == 0 and func_start is not None:
-                func_end = i
-                if func_start <= idx <= func_end:
-                    func_body = "\n".join(lines[func_start:func_end + 1])
-                    break
-                func_start = None
-
-    if func_body is None:
-        func_body = "\n".join(snippet_lines)
-
-    (ctx_dir / "enclosing_function.c").write_text(func_body, encoding="utf-8")
-
+    snippet_lines = lines[max(0, idx - 25):min(len(lines), idx + 26)]
+    snippet_text = "\n".join(f"{i+1+max(0, idx-25):5d}: {ln}" for i, ln in enumerate(snippet_lines))
+    vul_stmt = extract_vulnerable_statement_text(lines, vul_line)
+    
+    func_body = "\n".join(snippet_lines)
+    
     cc_entry = None
+    ccdb_path = sa_out_dir / "compile_commands.json"
     if ccdb_path.exists():
         try:
             ccdb = read_json(ccdb_path)
+            target_abs = src_file.resolve()
             for entry in ccdb:
-                if Path(entry.get("file", "")).name == src_file.name:
+                if Path(entry.get("directory", "."), entry.get("file", "")).resolve() == target_abs:
                     cc_entry = entry
                     break
-        except Exception:
-            cc_entry = None
+        except: pass
 
     ctx = {
         "spec_path": str(spec_path),
         "spec": spec,
         "vul_file": vul_file,
-        "vul_file_path": str(src_file),
         "vul_line": vul_line,
         "snippet": snippet_text,
-        "enclosing_function": func_body,
-        "vul_file_truncated": truncated_src,
-        "fact_pack_path": str(fact_pack_path),
+        "vul_statement_text": vul_stmt,
+        "fact_pack_path": str(sa_out_dir / "fact_pack.json"),
         "compile_commands_entry": cc_entry,
+        "enclosing_function": func_body
     }
     write_json(ctx_dir / "context.json", ctx)
     return ctx
 
-
-# --------------------------------------------------------------------------------------
-# Shell command sanitization for interactive phases
-# --------------------------------------------------------------------------------------
-
-ALLOWED_SHELL_TOOLS = {
-    "rg", "grep", "ls", "find", "sed", "cat", "head", "tail",
-}
-
-
-def sanitize_shell_command(cmd: str) -> List[str]:
-    """
-    Conservative sanitizer for planner / builder / refiner shell commands.
-    """
-    dangerous = [";", "&", "|", ">", "<", "`", "$"]
-    if any(ch in cmd for ch in dangerous):
-        raise ValueError(f"disallowed metacharacters in command: {cmd!r}")
-
-    argv = shlex.split(cmd)
-    if not argv:
-        raise ValueError("empty command")
-
-    tool = argv[0]
-    if tool not in ALLOWED_SHELL_TOOLS:
-        raise ValueError(
-            f"tool {tool!r} not allowed; allowed tools: {sorted(ALLOWED_SHELL_TOOLS)}"
-        )
-
-    return argv
-
-
-# --------------------------------------------------------------------------------------
-# clang / KLEE helpers
-# --------------------------------------------------------------------------------------
-
-def write_harness(harness_dir: Path, name: str, src: str) -> Path:
-    harness_dir = ensure_dir(harness_dir)
-    path = harness_dir / name
-    path.write_text(src, encoding="utf-8")
-    return path
-
-
-def compile_harness(
-    harness_c: Path,
-    harness_bc: Path,
-    clang: str,
-    clang_flags: List[str],
-    log_dir: Path,
-) -> Tuple[bool, str]:
-    """
-    Compile harness.c → harness.bc via clang.
-    Return (success, stderr_text).
-    """
-    ensure_dir(log_dir)
-    cmd = [clang]
-
-    if clang_flags:
-        cmd += clang_flags
-
-    cmd += [
-        "-I.", "-g", "-O0",
-        "-D_FORTIFY_SOURCE=0",
-        "-emit-llvm", "-c",
-        str(harness_c),
-        "-o", str(harness_bc),
-    ]
-
-    rc, out, err, _ = run_cmd(cmd)
-    (log_dir / "clang_last.stdout.txt").write_text(out, encoding="utf-8")
-    (log_dir / "clang_last.stderr.txt").write_text(err, encoding="utf-8")
-    (log_dir / "clang_last.cmd.txt").write_text(" ".join(cmd), encoding="utf-8")
-    return rc == 0, err
-
-
-def run_klee(
-    harness_bc: Path,
-    klee: str,
-    klee_flags: List[str],
-    timeout: int,
-    log_dir: Path,
-    iter_idx: int,
-) -> Dict[str, Any]:
-    """
-    Run KLEE on harness.bc with provided flags, capture logs, and parse basic stats.
-
-    Differentiates between BUG_ASSERT and REACH_ASSERT hits.
-    """
-    ensure_dir(log_dir)
-    cmd = [klee]
-
-    if klee_flags:
-        cmd += klee_flags
-
-    cmd.append(str(harness_bc))
-
-    rc, out, err, elapsed = run_cmd(cmd, timeout=timeout)
-
-    (log_dir / f"klee_iter{iter_idx:03d}.stdout.txt").write_text(out, encoding="utf-8")
-    (log_dir / f"klee_iter{iter_idx:03d}.stderr.txt").write_text(err, encoding="utf-8")
-    (log_dir / f"klee_iter{iter_idx:03d}.cmd.txt").write_text(" ".join(cmd), encoding="utf-8")
-
-    log = out + "\n" + err
-
-    # Differentiate between the two assertions based on string markers
-    bug_hit = "BUG_ASSERT" in log
-    reach_hit = "REACH_ASSERT" in log
-
-    # Generic assertion check (for other klee_asserts/internal asserts)
-    generic_assert_hit = bool(re.search(r"ASSERT(ION)? FAIL|klee_assert", log))
-
-    timeout_hit = (
-        "max-time exceeded" in log
-        or "[SAILR_TIMEOUT]" in log
-        or "Timed out after" in log
-    )
-    completed_paths = 0
-
-    for line in log.splitlines():
-        m = re.search(r"completed paths\s*=\s*(\d+)", line)
-        if m:
-            completed_paths = int(m.group(1))
-
-    if bug_hit:
-        status = "assertion_bug"   # Vulnerability confirmed (Full H2)
-        assertion_count = 1
-    elif reach_hit:
-        status = "assertion_reach" # Target reached, but safe (Partial H2)
-        assertion_count = 1
-    elif generic_assert_hit:
-        status = "assertion_other" # An unknown klee_assert or internal failure
-        assertion_count = 1
-    elif timeout_hit:
-        status = "timeout"
-        assertion_count = 0
-    elif rc == 0:
-        status = "ok"
-        assertion_count = 0
-    else:
-        status = "error"
-        assertion_count = 0
-
-    return {
-        "rc": rc,
-        "elapsed": elapsed,
-        "stdout": out,
-        "stderr": err,
-        "status": status,
-        "completed_paths": completed_paths,
-        "assertion_count": assertion_count,
-        "timeout_hit": timeout_hit,
-        "bug_assert_hit": bug_hit,
-        "reach_assert_hit": reach_hit,
-        "iterations": iter_idx,
-    }
-
-
-# --------------------------------------------------------------------------------------
-# Phase 0: Interactive Planner
-# --------------------------------------------------------------------------------------
+# ---------------- AGENTS ----------------
 
 def interactive_planner(
-    ctx: Dict[str, Any],
-    args: argparse.Namespace,
-    planner_prompt: str,
-    prompts_dir: Path,
-    src_root: Path,
-    max_iters: int = 6,
-    feedback_error: str | None = None,  # receives feedback from failed builder
+    ctx: Dict[str, Any], args: argparse.Namespace, planner_prompt: str, prompts_dir: Path, src_root: Path, max_iters: int, feedback_error: str | None
 ) -> Dict[str, Any]:
-    """
-    Interactive planner. Can accept feedback from a failed builder run
-    to propose a NEW plan (replanning/backtracking).
-    """
-    history_chunks: List[str] = []
-    last_raw_resp: Dict[str, Any] | None = None
-
-    # If this is a replan, inject the error into history immediately
+    history = []
     if feedback_error:
-        history_chunks.append(
-            f"SYSTEM: Previous Plan Failed.\n"
-            f"The Builder could not compile the harness based on your previous plan.\n"
-            f"Builder Error Log:\n{feedback_error}\n\n"
-            f"Please propose a NEW plan/entrypoint that avoids these issues."
-        )
+        history.append(f"SYSTEM: Previous Plan Failed.\nError:\n{feedback_error}\n\nPlease propose a NEW plan.")
+    else:
+        history.append("STRATEGY: Analyze spec -> Use 'shell' to find function body -> 'final_plan'.")
+
+    # Limit history size to prevent 413 Errors
+    MAX_OUT_LEN = 3000
 
     for i in range(max_iters):
-        history_text = (
-            "\n\n".join(history_chunks)
-            if history_chunks else "(no prior shell explorations)"
-        )
-
-        user_msg = textwrap.dedent(
-            f"""
-            Static-analysis spec (JSON):
-            {json.dumps(ctx["spec"], indent=2)}
-
-            Vulnerable target:
-              - Project ID : {args.project_id}
-              - Rule ID    : {args.rule_id}
-              - Target     : {args.target_vul}
-
-            Code snippet around the vulnerable line {args.vul_line} in {args.vul_file}:
-            ----------------- SNIPPET START -----------------
-            {ctx["snippet"]}
-            ------------------ SNIPPET END ------------------
-
-            Enclosing function (best-effort):
-            ----------------- FUNCTION START ----------------
-            {ctx["enclosing_function"]}
-            ------------------ FUNCTION END -----------------
-
-            Truncated full source file {ctx.get("vul_file_path", "")}:
-            ----------------- FILE START ----------------
-            {ctx.get("vul_file_truncated", "")}
-            ------------------ FILE END -----------------
-
-            Previous shell explorations / Feedback:
-            ----------------- HISTORY START ---------------
-            {history_text}
-            ------------------ HISTORY END ----------------
-
-            Protocol:
-
-            - To request more information via shell, respond with JSON:
-              {{
-                  "action": "shell",
-                  "command": "<shell command to run from project root>",
-                  "reason": "<why this helps you understand the vulnerability>"
-              }}
-
-            - When you are ready to propose the final harness plan, respond with:
-              {{
-                  "action": "final_plan",
-                  "plan": {{ ... }}
-              }}
-
-            Allowed tools: rg, grep, ls, find, sed, cat, head, tail.
-            """
-        )
-
-        resp = call_llm_json(
-            system_prompt=planner_prompt,
-            user_prompt=user_msg,
-            out_dir=prompts_dir,
-            tag=f"planner_iter{i:03d}",
-        )
-        last_raw_resp = resp
+        print(f"\n  --- [Planner Turn {i+1}/{max_iters}] ---")
+        
+        hist_txt = "\n\n".join(history)
+        user_msg = f"""Static Spec: {json.dumps(ctx['spec'], indent=2)}\nSnippet:\n{ctx['snippet']}\nHistory:\n{hist_txt}"""
+        
+        try:
+            resp = call_llm_json(planner_prompt, user_msg, prompts_dir, f"planner_iter{i:03d}")
+        except Exception as e:
+            print(f"  [!] LLM Call Failed: {e}")
+            return {"plan_error": f"LLM API Error: {e}"}
 
         action = resp.get("action")
+        reason = resp.get("reason", "No reasoning provided")
+
+        print(f"  [>] Action: {action}")
+        print(f"  [?] Reason: {reason}")
+
         if action == "shell":
-            cmd_str = resp.get("command", "")
-            reason = resp.get("reason", "")
-
-            shell_log_header = f"# planner shell iter {i}, cmd={cmd_str!r}, reason={reason!r}"
-            try:
-                argv = sanitize_shell_command(cmd_str)
-                rc, out, err, _ = run_cmd(argv, cwd=src_root)
-                chunk = (
-                    f"{shell_log_header}\n"
-                    f"$ {cmd_str}\n"
-                    f"[rc={rc}]\n"
-                    f"STDOUT:\n{out}\n"
-                    f"STDERR:\n{err}\n"
-                )
-            except Exception as e:
-                chunk = (
-                    f"{shell_log_header}\n"
-                    f"$ {cmd_str}\n"
-                    f"[error] {e}\n"
-                )
-
-            history_chunks.append(chunk)
-            (prompts_dir / f"planner_shell_{i:03d}.txt").write_text(
-                chunk, encoding="utf-8"
-            )
-            continue
-
+            log = ""
+            for cmd in resp.get("commands", []):
+                print(f"  [$] Executing: {cmd}")
+                try:
+                    # FIX: Allow pipes by passing use_shell=True
+                    safe_cmd_argv = sanitize_shell_command(cmd)
+                    rc, out, err, _ = run_cmd(safe_cmd_argv, cwd=src_root, use_shell=True)
+                    
+                    # Print summary of output to console
+                    out_s = out.strip().replace('\n', ' ')
+                    out_s = (out_s[:150] + '...') if len(out_s) > 150 else out_s
+                    print(f"      -> RC={rc} | STDOUT: {out_s}")
+                    
+                    # --- TRUNCATION FOR HISTORY ---
+                    # To prevent 413, limit what we store in the prompt
+                    out_trunc = out if len(out) < MAX_OUT_LEN else out[:MAX_OUT_LEN] + f"\n... [TRUNCATED {len(out)-MAX_OUT_LEN} chars] ..."
+                    err_trunc = err if len(err) < MAX_OUT_LEN else err[:MAX_OUT_LEN] + f"\n... [TRUNCATED {len(err)-MAX_OUT_LEN} chars] ..."
+                    
+                    log += f"$ {cmd}\nRC={rc}\nSTDOUT:\n{out_trunc}\nSTDERR:\n{err_trunc}\n"
+                except ValueError as e:
+                    print(f"  [!] Planner Shell Security Error: {e}")
+                    log += f"$ {cmd}\n[SECURITY ERROR] {e}\n"
+                except Exception as e:
+                    print(f"  [!] Planner Shell Exec Error: {e}")
+                    log += f"$ {cmd}\n[EXEC ERROR] {e}\n"
+            history.append(log)
+        elif action == "lookup_symbols":
+            syms = resp.get("symbols", [])
+            print(f"  [s] Looking up: {syms}")
+            res = perform_smart_lookup(src_root, syms)
+            if len(res) > MAX_OUT_LEN:
+                res = res[:MAX_OUT_LEN] + "\n... [TRUNCATED] ..."
+            history.append(f"LOOKUP RESULTS:\n{res}")
         elif action == "final_plan":
-            plan = resp.get("plan")
-            if isinstance(plan, dict):
-                return plan
-            else:
-                return {"plan_raw": resp}
-
+            print("  [=] Planner produced final plan.")
+            return resp.get("plan", {})
         else:
-            # Fallback if LLM forgets protocol but returns JSON
-            return resp
+            return {"plan_error": f"Planner output invalid action: {action}"}
+            
+    return {"plan_error": "Planner max iterations exceeded"}
 
-    if last_raw_resp is not None:
-        return {"plan_raw": last_raw_resp, "note": "planner_max_iters_exceeded"}
-
-    return {"plan_error": "planner_failed_without_response"}
-
-
-# --------------------------------------------------------------------------------------
-# Phase A: Smart Interactive Builder
-# --------------------------------------------------------------------------------------
 def interactive_builder(
-    plan: Dict[str, Any],
-    ctx: Dict[str, Any],
-    args: argparse.Namespace,
-    builder_prompt: str,
-    prompts_dir: Path,
-    src_root: Path,
-    harness_dir: Path,
-    logs_dir: Path,
-    max_iters: int,
-    replan_idx: int,
-) -> Tuple[bool, str, str]:
-    """
-    Phase A loop with 'Reactive' Shell Budget.
-    - Discovery Phase: Strict shell limit (4 turns) to force early coding.
-    - Repair Phase: Resets shell budget to allow debugging of compile errors.
-    """
+    plan: Dict, ctx: Dict, args: argparse.Namespace, builder_prompt: str, prompts_dir: Path, src_root: Path, harness_dir: Path, logs_dir: Path, max_iters: int, replan_idx: int, project_bc: Path | None
+) -> Tuple[bool, str, str, int, int]:
     harness_src = ""
-    last_clang_err = ""
-    history_chunks: List[str] = []
+    last_err = ""
+    history = []
+    MAX_OUT_LEN = 3000
     
-    compilation_attempts = 0
-    total_turns = 0
-    MAX_TOTAL_TURNS = max_iters * 3
-    
-    # REACTIVE BUDGET STATE
-    has_attempted_compile = False
-    consecutive_shell_count = 0
-    
-    # Strict limit for initial discovery; relaxed for debugging
-    DISCOVERY_SHELL_LIMIT = 4 
-    DEBUG_SHELL_LIMIT = 3 # Consecutive limit during repair to prevent infinite loops
-
-    while compilation_attempts < max_iters and total_turns < MAX_TOTAL_TURNS:
-        tag = f"builder_R{replan_idx}_T{total_turns:03d}"
-        print(f"[A] Builder (R{replan_idx}) turn {total_turns} (Compile Attempt {compilation_attempts + 1}/{max_iters})...")
+    for i in range(max_iters * 2):
+        print(f"\n  --- [Builder Turn {i+1}/{max_iters*2}] ---")
+        user_msg = f"""Plan: {json.dumps(plan, indent=2)}\nCurrent Harness: {harness_src}\nLast Clang Error: {last_err}\nHistory:\n{chr(10).join(history[-5:])}"""
         
-        history_text = "\n\n".join(history_chunks) if history_chunks else "(no shell usage yet)"
-        
-        # --- REACTIVE PRESSURE MECHANISM ---
-        pressure_msg = ""
-        
-        if not has_attempted_compile:
-            # Phase 1: Discovery - Apply strict pressure early
-            if consecutive_shell_count >= DISCOVERY_SHELL_LIMIT:
-                pressure_msg = (
-                    f"\nSYSTEM WARNING: You have used {consecutive_shell_count} shell commands for exploration.\n"
-                    "You have enough context. You MUST output a harness ('action': 'harness') NOW.\n"
-                    "Do not worry about perfection; compilation errors will guide your fixes."
-                )
-        else:
-            # Phase 2: Repair - Allow debugging but prevent infinite shell loops
-            if consecutive_shell_count >= DEBUG_SHELL_LIMIT:
-                pressure_msg = (
-                    f"\nSYSTEM WARNING: You have used {consecutive_shell_count} consecutive shell commands to debug.\n"
-                    "You MUST attempt a code fix ('action': 'harness') now based on your findings."
-                )
+        try:
+            resp = call_llm_json(builder_prompt, user_msg, prompts_dir, f"builder_R{replan_idx}_T{i:03d}")
+        except Exception as e:
+            print(f"  [!] LLM Call Failed: {e}")
+            return False, harness_src, f"LLM Crash: {e}", i, i
 
-        user_msg = textwrap.dedent(f"""
-            Plan: {json.dumps(plan, indent=2)}
-            Current Harness: {harness_src if harness_src else "(none)"}
-            Last Clang Error: {last_clang_err if last_clang_err else "(none)"}
-            History: {history_text}
-            {pressure_msg}
-        """)
-
-        resp = call_llm_json(builder_prompt, user_msg, prompts_dir, tag)
         action = resp.get("action")
-        total_turns += 1
-
-        # Implicit harness check
-        if not action:
-            maybe_harness = resp.get("harness_c") or resp.get("harness")
-            if isinstance(maybe_harness, str) and len(maybe_harness) > 50:
-                action = "harness"
-                resp["harness_c"] = maybe_harness
-
-        # 1. Handle Shell
-        if action == "shell":
-            consecutive_shell_count += 1
-            cmd = resp.get("command", "")
-            try:
-                argv = sanitize_shell_command(cmd)
-                rc, out, err, _ = run_cmd(argv, cwd=src_root)
-                chunk = f"SHELL $ {cmd}\nRC={rc}\nSTDOUT:\n{out}\nSTDERR:\n{err}"
-            except Exception as e: chunk = f"SHELL $ {cmd}\nERROR: {e}"
-            history_chunks.append(chunk)
-            continue
-
-        # 2. Handle Harness
-        new_harness = resp.get("harness_c")
-        if new_harness and isinstance(new_harness, str):
-            harness_src = new_harness
-            
-            # --- SYNTAX LINTER (Enforces correct Assertions) ---
-            missing_patterns = []
-            if '&& "BUG_ASSERT"' not in harness_src: missing_patterns.append('Missing syntax: klee_assert(cond && "BUG_ASSERT")')
-            if '0 && "REACH_ASSERT"' not in harness_src: missing_patterns.append('Missing syntax: klee_assert(0 && "REACH_ASSERT")')
-            
-            if missing_patterns:
-                err_msg = f"SYSTEM ERROR: Assertion syntax invalid. {'; '.join(missing_patterns)}"
-                history_chunks.append(err_msg)
-                # Does NOT count as a compile attempt, just a rejection
-                continue 
-            # ---------------------------------------------------
-
-            # Successful harness generation step
-            has_attempted_compile = True
-            consecutive_shell_count = 0 # Reset shell counter because we acted
-            compilation_attempts += 1
-            
-            write_harness(harness_dir, f"harness_R{replan_idx}_C{compilation_attempts:03d}.c", harness_src)
-            write_harness(harness_dir, "harness.c", harness_src)
-            
-            ok, err = compile_harness(
-                harness_dir / "harness.c", harness_dir / "harness.bc",
-                args.clang, args.clang_flags, logs_dir
-            )
-
-            if ok:
-                print(f"[A] clang build succeeded at attempt {compilation_attempts}")
-                return True, harness_src, ""
-            else:
-                print(f"[A] clang build FAILED at attempt {compilation_attempts}")
-                last_clang_err = err
-                continue
+        print(f"  [>] Action: {action}")
         
-        history_chunks.append("SYSTEM: Invalid response. Use 'shell' or 'harness'.")
+        if action == "shell":
+            cmd = resp.get("command")
+            if cmd:
+                print(f"  [$] Executing: {cmd}")
+                try:
+                    safe_cmd_argv = sanitize_shell_command(cmd)
+                    rc, out, err, _ = run_cmd(safe_cmd_argv, cwd=src_root, use_shell=True)
+                    print(f"      -> RC={rc}")
+                    
+                    # --- TRUNCATION ---
+                    out_trunc = out if len(out) < MAX_OUT_LEN else out[:MAX_OUT_LEN] + "\n...[TRUNCATED]..."
+                    err_trunc = err if len(err) < MAX_OUT_LEN else err[:MAX_OUT_LEN] + "\n...[TRUNCATED]..."
+                    history.append(f"$ {cmd}\nSTDOUT:\n{out_trunc}\nSTDERR:\n{err_trunc}")
+                except ValueError as e:
+                    print(f"  [!] Security Error: {e}")
+                    history.append(f"$ {cmd}\n[SECURITY ERROR] {e}")
+        elif action == "harness":
+            raw = resp.get("harness_c", "")
+            hsrc = extract_c_code(raw)
+            if not hsrc or reject_non_code(hsrc):
+                print("  [!] Invalid C code received")
+                history.append("SYSTEM: Output invalid C code. Return ONLY C code.")
+                continue
+            
+            print("  [i] Harness received. Attempting compile...")
+            harness_src = inject_standard_headers(hsrc)
+            hpath = harness_dir / "harness.c"
+            hpath.write_text(harness_src, encoding="utf-8")
+            
+            bc_path = harness_dir / "harness.bc"
+            cmd = [args.clang] + args.clang_flags + ["-emit-llvm", "-c", str(hpath), "-o", str(bc_path)]
+            rc, out, err, _ = run_cmd(cmd, cwd=src_root)
+            
+            if rc == 0:
+                print("  [+] Compilation Success!")
+                return True, harness_src, "", i, i
+            
+            print(f"  [-] Compilation Failed: {err[:200]}...")
+            last_err = err
+            history.append(f"SYSTEM: Clang Failed:\n{err}")
+    
+    return False, harness_src, last_err, max_iters, max_iters * 2
 
-    return False, harness_src, last_clang_err
-# --------------------------------------------------------------------------------------
-# Phase B micro-agent: interactive KLEE refiner
-# --------------------------------------------------------------------------------------
+def run_klee(harness_bc: Path, klee: str, flags: List[str], timeout: int, log_dir: Path, idx: int) -> Dict:
+    ensure_dir(log_dir)
+    cmd = [klee] + flags + [str(harness_bc)]
+    rc, out, err, t = run_cmd(cmd, timeout=timeout)
+    (log_dir / f"klee_{idx}.log").write_text(f"CMD: {' '.join(cmd)}\n\nSTDOUT:\n{out}\n\nSTDERR:\n{err}")
+    
+    bug = "BUG_ASSERT" in (out + err)
+    reach = "REACH_ASSERT" in (out + err)
+    status = "assertion_bug" if bug else ("assertion_reach" if reach else ("timeout" if "Timed out" in err else "ok"))
+    return {"status": status, "bug_assert_hit": bug, "reach_assert_hit": reach, "elapsed": t}
 
 def interactive_klee_refiner(
-    ctx: Dict[str, Any],
-    args: argparse.Namespace,
-    plan: Dict[str, Any],
-    klee_refiner_prompt: str,
-    prompts_dir: Path,
-    src_root: Path,
-    harness_dir: Path,
-    logs_dir: Path,
-    harness_src_initial: str,
-    initial_klee_stats: Dict[str, Any] | None,
-    initial_klee_runs_used: int,
-    max_klee_runs: int,
-) -> Tuple[str, Dict[str, Any] | None, str]:
-    """
-    Micro-agent loop for Phase B.
-
-    Adds:
-      - Hard cap on total refiner steps (so we do not loop forever).
-      - Pressure message to push the LLM toward refine_and_run_klee/final.
-    """
-    history_chunks: List[str] = []
-    harness_src = harness_src_initial
-    harness_bc = harness_dir / "harness.bc"
-    klee_runs_used = initial_klee_runs_used
-    last_klee_stats = initial_klee_stats
-    last_clang_err: str | None = None
-
-    MAX_STEPS = max_klee_runs * 2  # safety cap on interactions
-
-    def record_history(chunk: str, key: str, idx: int):
-        history_chunks.append(chunk)
-        (prompts_dir / f"{key}_{idx:03d}.txt").write_text(chunk, encoding="utf-8")
-
-    def run_clang(hsrc: str) -> Tuple[bool, str]:
-        hsnap = write_harness(harness_dir, "harness_step.c", hsrc)
-        ok, err = compile_harness(
-            harness_c=hsnap,
-            harness_bc=harness_bc,
-            clang=args.clang,
-            clang_flags=args.clang_flags,
-            log_dir=logs_dir,
-        )
-        write_harness(harness_dir, "harness.c", hsrc)
-        return ok, err
-
-    def run_klee_probe() -> Dict[str, Any]:
-        nonlocal klee_runs_used, last_klee_stats
-        klee_runs_used += 1
-        stats = run_klee(
-            harness_bc=harness_bc,
-            klee=args.klee,
-            klee_flags=args.klee_flags,
-            timeout=args.timeout,
-            log_dir=logs_dir,
-            iter_idx=klee_runs_used,
-        )
-        last_klee_stats = stats
-        return stats
-
-    def build_history_text() -> str:
-        return "\n\n".join(history_chunks) if history_chunks else "(no prior shell explorations in KLEE refiner)"
-
-    def make_user_msg(step_idx: int) -> str:
-        # Trigger pressure after 5 non-KLEE steps regardless of total budget
-        pressure_msg = ""
-        if step_idx > 5:
-            pressure_msg = (
-                "\nSYSTEM WARNING: You have spent many refiner steps without running KLEE.\n"
-                "You MUST either:\n"
-                "  - use 'action': 'refine_and_run_klee' to run KLEE with a refined harness, or\n"
-                "  - use 'action': 'final' if you believe the harness is ready.\n"
-                "Do NOT keep issuing only 'shell' or 'refine_build_only' actions.\n"
-            )
-
-        return textwrap.dedent(
-            f"""
-            Project ID    : {args.project_id}
-            Target vul    : {args.target_vul}
-
-            Current plan JSON:
-            {json.dumps(plan, indent=2)}
-
-            Current harness.c:
-            ------------------ HARNESS START ------------------
-            {harness_src}
-            ------------------- HARNESS END -------------------
-
-            Most recent KLEE stats:
-            {json.dumps(last_klee_stats, indent=2) if last_klee_stats else "(no KLEE stats yet)"}
-
-            Most recent clang error (if any):
-            {last_clang_err if last_clang_err else "(none)"}
-
-            Previous KLEE refiner shell explorations:
-            ----------------- HISTORY START ---------------
-            {build_history_text()}
-            ------------------ HISTORY END ----------------
-
-            Valid actions:
-              1) Shell:
-                 {{ "action": "shell", "command": "...", "reason": "..." }}
-
-              2) Build only:
-                 {{ "action": "refine_build_only", "harness_c": "..." }}
-
-              3) Build & KLEE (preferred when ready to test a change):
-                 {{ "action": "refine_and_run_klee", "harness_c": "..." }}
-
-              4) Final (if you are done refining):
-                 {{ "action": "final" }}
-
-            {pressure_msg}
-            """
-        )
-
-    system_prompt = klee_refiner_prompt
-
-    step_idx = 0
-    while True:
-        # Global termination conditions
-        if klee_runs_used >= max_klee_runs or step_idx >= MAX_STEPS:
-            # Decide final class based on last_klee_stats
-            if last_klee_stats:
-                if str(last_klee_stats.get("status", "")).startswith("assertion"):
-                    return "H2", last_klee_stats, harness_src
-                if last_klee_stats.get("status") == "ok":
-                    # Baseline + any refiner KLEE runs found no assertion
-                    return "H0", last_klee_stats, harness_src
-                return "H1", last_klee_stats, harness_src
-            return "E", None, harness_src
-
-        print(
-            f"[B] KLEE refiner step {step_idx} "
-            f"(klee_runs_used={klee_runs_used}/{max_klee_runs}, "
-            f"last_status={last_klee_stats['status'] if last_klee_stats else 'none'})"
-        )
-
-        user_msg = make_user_msg(step_idx)
-        resp = call_llm_json(
-            system_prompt=system_prompt,
-            user_prompt=user_msg,
-            out_dir=prompts_dir,
-            tag=f"klee_refiner_step{step_idx:03d}",
-        )
-
-        # This one-liner prints the Agent's thought process immediately
-        r_act = resp.get("action", "UNKNOWN")
-        r_reason = resp.get("reason", "")
-        # Truncate reason to 80 chars to keep it readable
-        print(f"    > AGENT: {r_act} | Reason: {r_reason[:80]}...")
-        # ---------------------------
-        step_idx += 1
-
+    ctx: Dict, args: argparse.Namespace, plan: Dict, refiner_prompt: str, prompts_dir: Path, src_root: Path, harness_dir: Path, logs_dir: Path, harness_src: str, initial_stats: Dict, runs_used: int, max_runs: int, project_bc: Path
+) -> Tuple[str, Dict, str]:
+    harness = harness_src
+    stats = initial_stats
+    runs = runs_used
+    
+    while runs < max_runs:
+        print(f"\n  --- [Refiner Run {runs}/{max_runs}] ---")
+        user_msg = f"Harness:\n{harness}\nKLEE Stats: {json.dumps(stats, indent=2)}\nGoal: Reach BUG_ASSERT."
+        resp = call_llm_json(refiner_prompt, user_msg, prompts_dir, f"refiner_run{runs:02d}")
         action = resp.get("action")
+        print(f"  [>] Action: {action}")
+        
+        if action == "final": return ("H2" if stats.get("bug_assert_hit") else "H0"), stats, harness
+        
+        if action in ("refine_build_only", "refine_and_run_klee"):
+            new_src = extract_c_code(resp.get("harness_c", ""))
+            if new_src:
+                harness = inject_standard_headers(new_src)
+                (harness_dir/"harness.c").write_text(harness, encoding="utf-8")
+                
+                cmd = [args.clang] + args.clang_flags + ["-emit-llvm", "-c", str(harness_dir/"harness.c"), "-o", str(harness_dir/"harness.bc")]
+                rc, _, err, _ = run_cmd(cmd, cwd=src_root)
+                if rc != 0: 
+                    print(f"  [-] Refinement Compile Failed: {err[:100]}...")
+                    continue 
+                
+                if action == "refine_and_run_klee":
+                    runs += 1
+                    print("  [i] Running KLEE...")
+                    stats = run_klee(harness_dir/"harness.bc", args.klee, args.klee_flags, args.timeout, logs_dir, runs)
+                    if stats.get("bug_assert_hit"): return "H2", stats, harness
+        
         if action == "shell":
-            cmd_str = resp.get("command", "")
-            reason = resp.get("reason", "")
-            header = f"# klee_refiner shell step {step_idx}, cmd={cmd_str!r}, reason={reason!r}"
-            try:
-                argv = sanitize_shell_command(cmd_str)
-                rc, out, err, _ = run_cmd(argv, cwd=src_root)
-                chunk = (
-                    f"{header}\n"
-                    f"$ {cmd_str}\n"
-                    f"[rc={rc}]\n"
-                    f"STDOUT:\n{out}\n"
-                    f"STDERR:\n{err}\n"
-                )
-            except Exception as e:
-                chunk = (
-                    f"{header}\n"
-                    f"$ {cmd_str}\n"
-                    f"[error] {e}\n"
-                )
-            record_history(chunk, "klee_refiner_shell", step_idx)
-            continue
+            cmd = resp.get("command")
+            if cmd:
+                try:
+                    # FIX: Allow pipes here too
+                    safe_cmd_argv = sanitize_shell_command(cmd)
+                    run_cmd(safe_cmd_argv, cwd=src_root, use_shell=True)
+                except: pass
+    
+    return ("H2" if stats.get("bug_assert_hit") else "H1"), stats, harness
 
-        if action == "refine_build_only":
-            harness_c = resp.get("harness_c") or resp.get("harness")
-            if not isinstance(harness_c, str) or not harness_c.strip():
-                return "E", last_klee_stats, harness_src
-            harness_src = harness_c
-            ok, err = run_clang(harness_src)
-            last_clang_err = None if ok else err
-            continue
-
-        if action == "refine_and_run_klee":
-            harness_c = resp.get("harness_c") or resp.get("harness")
-            if not isinstance(harness_c, str) or not harness_c.strip():
-                return "E", last_klee_stats, harness_src
-            harness_src = harness_c
-            ok, err = run_clang(harness_src)
-            last_clang_err = None if ok else err
-            if not ok:
-                # Compilation failed, loop back with error context
-                continue
-
-            stats = run_klee_probe()
-
-            if str(stats.get("status", "")).startswith("assertion"):
-                return "H2", stats, harness_src
-            if stats.get("status") == "ok":
-                # No assertion but KLEE ran; we can keep refining or eventually converge to H0
-                continue
-            # Any non-OK, non-assertion status treated as H1 (refiner can still try more steps)
-            continue
-
-        if action == "final":
-            if last_klee_stats:
-                if str(last_klee_stats.get("status", "")).startswith("assertion"):
-                    return "H2", last_klee_stats, harness_src
-                if last_klee_stats.get("status") == "ok":
-                    return "H0", last_klee_stats, harness_src
-                return "H1", last_klee_stats, harness_src
-            return "E", None, harness_src
-
-        # Legacy handling if no action matches but harness_c exists
-        harness_c = resp.get("harness_c") or resp.get("harness")
-        if isinstance(harness_c, str) and harness_c.strip():
-            harness_src = harness_c
-            ok, err = run_clang(harness_src)
-            last_clang_err = None if ok else err
-            if not ok:
-                continue
-            stats = run_klee_probe()
-            if str(stats.get("status", "")).startswith("assertion"):
-                return "H2", stats, harness_src
-            if stats.get("status") == "ok":
-                continue
-            continue
-
-        # If we get here, the response is malformed. Count as error and exit.
-        return "E", last_klee_stats, harness_src
-
-
-# --------------------------------------------------------------------------------------
-# Main agent logic (Backtracking / Replanning)
-# --------------------------------------------------------------------------------------
+# ---------------- MAIN ----------------
 
 def main():
     ap = argparse.ArgumentParser()
@@ -982,26 +576,14 @@ def main():
     ap.add_argument("--target-vul", required=True)
     ap.add_argument("--llm-model", required=True)
     ap.add_argument("--llm-api-base", required=True)
-
     ap.add_argument("--clang", default="clang-14")
-    ap.add_argument(
-        "--clang-flags",
-        dest="clang_flags",
-        nargs="*",
-        default=[],
-        help="Extra flags to pass to clang",
-    )
+    ap.add_argument("--clang-flags", dest="clang_flags", nargs="*", default=[])
     ap.add_argument("--klee", default="klee")
-    ap.add_argument(
-        "--klee-flags",
-        dest="klee_flags",
-        nargs="*",
-        default=[],
-        help="Extra flags to pass to KLEE",
-    )
-
+    ap.add_argument("--klee-flags", dest="klee_flags", nargs="*", default=[])
+    ap.add_argument("--project-bc", default=None)
     ap.add_argument("--max-a", type=int, default=8)
     ap.add_argument("--max-b", type=int, default=12)
+    ap.add_argument("--max-cycles", type=int, default=5)
     ap.add_argument("--timeout", type=int, default=120)
     ap.add_argument("--run-dir", required=True)
     ap.add_argument("--summary-tsv", default=None)
@@ -1009,243 +591,139 @@ def main():
 
     args.clang_flags = normalize_flag_list(args.clang_flags)
     args.klee_flags = normalize_flag_list(args.klee_flags)
-
     os.environ["LLM_MODEL"] = args.llm_model
     os.environ["LLM_API_BASE"] = args.llm_api_base.rstrip("/")
 
-    run_dir = Path(args.run_dir)
+    run_dir = Path(args.run_dir).resolve()
+    sa_out_dir = Path(args.sa_out_dir).resolve()
+    src_root = Path(args.src_root).resolve()
+    
     ctx_dir = ensure_dir(run_dir / "ctx")
     prompts_dir = ensure_dir(run_dir / "prompts")
-    harness_dir = ensure_dir(run_dir / "harness")
-    logs_dir = ensure_dir(run_dir / "logs")
 
-    sa_out_dir = Path(args.sa_out_dir)
-    src_root = Path(args.src_root)
-    spec_path = Path(args.spec)
+    # --- SETUP LOGGING ---
+    setup_logging(run_dir)
 
     print("[i] Building context...")
-    ctx = build_context(
-        sa_out_dir=sa_out_dir,
-        src_root=src_root,
-        spec_path=spec_path,
-        vul_file=args.vul_file,
-        vul_line=args.vul_line,
-        ctx_dir=ctx_dir,
+    ctx = build_context(sa_out_dir, src_root, Path(args.spec), args.vul_file, args.vul_line, ctx_dir)
+    
+    args.clang_flags = list(dict.fromkeys(ccdb_flags(ctx.get("compile_commands_entry")) + args.clang_flags))
+
+    prompts_map = make_prompt.generate_prompts(
+        args.vul_file, args.vul_line, args.rule_id, ctx.get("vul_statement_text", ""), prompts_dir
     )
+    
+    planner_prompt = prompts_map["planner"]
+    builder_prompt = prompts_map["builder"]
+    refiner_prompt = prompts_map["refiner"]
 
-    planner_prompt = load_prompt("planner.txt")
-    builder_prompt = load_prompt("builder.txt")
-    klee_refiner_prompt = load_prompt("klee_refiner.txt")
+    overall_status = "E"
+    klee_final = None
+    harness_final = ""
+    cycle_feedback = None
 
-    # --- OUTER REPLANNING LOOP ---
-    MAX_REPLANS = 3
-    final_status = "E"
-    harness_src = ""
-    klee_final: Dict[str, Any] | None = None
-
-    planner_feedback = None  # Stores error from previous builder run if any
-    plan: Dict[str, Any] = {}
-    plan_budget: Dict[str, Any] = {}
-    build_iters = 0
-    last_clang_err = ""
-
-    for r_idx in range(MAX_REPLANS):
-        if r_idx > 0:
-            print(f"\n[=] REPLAN ATTEMPT {r_idx+1}/{MAX_REPLANS} (Backtracking)")
-        else:
-            print("[i] LLM Phase 0 – interactive planner")
-
-        # 1. Planner
-        plan = interactive_planner(
-            ctx=ctx,
-            args=args,
-            planner_prompt=planner_prompt,
-            prompts_dir=prompts_dir,
-            src_root=src_root,
-            max_iters=6,
-            feedback_error=planner_feedback,
-        )
-        write_json(run_dir / f"plan_R{r_idx}.json", plan)
-
-        if "plan_error" in plan or ("plan_raw" not in plan and "entrypoint" not in plan.get("plan", plan)):
-            if "plan_error" in plan:
-                print("[!] Planner failed to produce plan.")
-                break
-
-        # Extract budget from plan
-        if isinstance(plan, dict):
-            plan_budget = (
-                plan.get("budget")
-                or (plan.get("plan", {}) or {}).get("budget", {})
-                or {}
-            )
-
-        def _as_int(val, default):
-            try:
-                return int(val)
-            except Exception:
-                return default
-
-        max_a_effective = _as_int(plan_budget.get("max_builder_iters", args.max_a), args.max_a)
-        max_a_effective = max(1, min(args.max_a, max_a_effective))
-
-        # 2. Smart Builder
-        build_success, harness_src, build_err = interactive_builder(
-            plan=plan,
-            ctx=ctx,
-            args=args,
-            builder_prompt=builder_prompt,
-            prompts_dir=prompts_dir,
-            src_root=src_root,
-            harness_dir=harness_dir,
-            logs_dir=logs_dir,
-            max_iters=max_a_effective,
-            replan_idx=r_idx,
-        )
-
-        build_iters += max_a_effective  # approximate tracking
-        last_clang_err = build_err
-
-        if build_success:
-            print("[+] Builder Success! Moving to KLEE Phase.")
-            final_status = "H0"  # It compiled, so it's at least H0-compatible
+    for cycle_idx in range(args.max_cycles):
+        print(f"\n[=] CYCLE {cycle_idx+1}/{args.max_cycles}")
+        attempt_dir = ensure_dir(run_dir / f"try_{cycle_idx:02d}")
+        harness_dir = ensure_dir(attempt_dir / "harness")
+        logs_dir = ensure_dir(attempt_dir / "logs")
+        
+        plan = {}
+        # --- PLANNER LOOP ---
+        for r_idx in range(3):
+            print(f"[i] Planner (replan={r_idx})")
+            # --- MAX ITERATIONS: 15 ---
+            raw_plan = interactive_planner(ctx, args, planner_prompt, attempt_dir, src_root, 15, cycle_feedback)
+            
+            if "plan_error" in raw_plan:
+                cycle_feedback = raw_plan["plan_error"]
+                print(f"[-] Planner failed: {cycle_feedback}")
+                continue
+            
+            plan_path = attempt_dir / f"plan_R{r_idx}.json"
+            write_json(plan_path, raw_plan)
+            
+            dcv_ok, dcv_err = run_dcv(plan_path, ctx, args)
+            if not dcv_ok:
+                print(f"[!] DCV Rejected Plan: {dcv_err[:200]}...")
+                cycle_feedback = f"DCV Plan Validation Failed:\n{dcv_err}"
+                continue
+            
+            plan = raw_plan
+            print("[+] Plan Accepted by DCV.")
+            cycle_feedback = None
             break
-        else:
-            print(f"[-] Builder Failed in R{r_idx}. Preparing feedback for Planner...")
-            planner_feedback = (
-                f"Builder failed to compile plan from Attempt {r_idx}.\n"
-                f"Last Clang Error:\n{build_err}"
-            )
-            # Continue loop to replan
+        
+        if not plan:
+            print("[-] Planner failed to produce valid plan after retries.")
+            break
 
-    # 3. KLEE Phase (Only if build success)
-    if final_status != "E":
-        def _as_int(val, default):
-            try:
-                return int(val)
-            except Exception:
-                return default
-
-        max_b_effective = _as_int(plan_budget.get("max_klee_runs", args.max_b), args.max_b)
-        max_b_effective = max(1, min(args.max_b, max_b_effective))
-
-        harness_bc = harness_dir / "harness.bc"
-
-        print("[B] Baseline KLEE run (B000)...")
-        baseline_stats = run_klee(
-            harness_bc=harness_bc,
-            klee=args.klee,
-            klee_flags=args.klee_flags,
-            timeout=args.timeout,
-            log_dir=logs_dir,
-            iter_idx=0,
+        # --- BUILDER LOOP ---
+        print("\n[DEBUG] Starting Builder...")
+        build_success, h_src, b_err, _, _ = interactive_builder(
+            plan, ctx, args, builder_prompt, attempt_dir, src_root, harness_dir, logs_dir, args.max_a, 0, Path(args.project_bc) if args.project_bc else None
         )
+        
+        if not build_success:
+            error_msg = b_err if b_err else "<No compilation error captured (Builder may have timed out)>"
+            # --- REMOVED TRUNCATION FOR FULL ERROR LOG ---
+            print(f"[DEBUG] Builder FAILED. Error:\n{error_msg}")
+            cycle_feedback = f"Builder failed to compile:\n{error_msg}"
+            continue
+        
+        print("[DEBUG] Builder SUCCEEDED. Harness compiled.")
 
-        # H2 classification now differentiates between assertion types
-        if baseline_stats["status"] == "assertion_bug":
-            print("[B] Baseline KLEE triggered BUG_ASSERT. Class = H2 (Bug Found).")
-            final_status = "H2"
-            klee_final = baseline_stats
-        elif baseline_stats["status"] == "assertion_reach":
-            print("[B] Baseline KLEE triggered REACH_ASSERT. Class = H2 (Reached Target).")
-            final_status = "H2"
-            klee_final = baseline_stats
-        elif baseline_stats["status"] == "assertion_other":
-            print("[B] Baseline KLEE triggered unknown assertion. Class = H2.")
-            final_status = "H2"
-            klee_final = baseline_stats
-        else:
-            print(
-                "[B] Baseline KLEE status="
-                f"{baseline_stats['status']}, entering interactive KLEE refiner..."
-            )
-            final_status, klee_final, harness_src = interactive_klee_refiner(
-                ctx=ctx,
-                args=args,
-                plan=plan,
-                klee_refiner_prompt=klee_refiner_prompt,
-                prompts_dir=prompts_dir,
-                src_root=src_root,
-                harness_dir=harness_dir,
-                logs_dir=logs_dir,
-                harness_src_initial=harness_src,
-                initial_klee_stats=baseline_stats,
-                initial_klee_runs_used=1,  # we already used one KLEE run (baseline)
-                max_klee_runs=max_b_effective,
-            )
+        # --- BASELINE KLEE ---
+        print("[B] Baseline KLEE Run...")
+        stats = run_klee(harness_dir/"harness.bc", args.klee, args.klee_flags, args.timeout, logs_dir, 0)
+        print(f"[DEBUG] Baseline Result: {stats['status']} (Bug Hit: {stats['bug_assert_hit']})")
+        
+        if stats["bug_assert_hit"]:
+            print("[DEBUG] BUG FOUND in Baseline!")
+            overall_status = "H2"
+            klee_final = stats
+            harness_final = h_src
+            break
+            
+        # --- REFINER LOOP ---
+        print("[B] Entering Refiner...")
+        status, stats, h_final = interactive_klee_refiner(
+            ctx, args, plan, refiner_prompt, attempt_dir, src_root, harness_dir, logs_dir, h_src, stats, 1, args.max_b, Path(args.project_bc) if args.project_bc else None
+        )
+        
+        print(f"[DEBUG] Refiner Finished. Status: {status}")
+        
+        overall_status = status
+        klee_final = stats
+        harness_final = h_final
+        
+        if overall_status == "H2":
+            print("[DEBUG] BUG FOUND in Refiner!")
+            break
+            
+        cycle_feedback = f"Refiner finished with {overall_status}. Bug assert not hit."
+        print(f"[DEBUG] Cycle failed. Feedback for next cycle: {cycle_feedback}")
 
-            # Print specific H2 status from refiner for clarity
-            if final_status == "H2" and klee_final:
-                if klee_final.get("status") == "assertion_bug":
-                    print("[B] Refiner KLEE triggered BUG_ASSERT. Class = H2 (Bug Found).")
-                elif klee_final.get("status") == "assertion_reach":
-                    print("[B] Refiner KLEE triggered REACH_ASSERT. Class = H2 (Reached Target).")
-                elif klee_final.get("status") == "assertion_other":
-                    print("[B] Refiner KLEE triggered unknown assertion. Class = H2.")
-
-    # 4. Final Metadata & Reporting
-    if klee_final is None:
-        klee_final = {
-            "ran": False,
-            "iterations": 0,
-            "status": "not_run",
-            "assertion_count": 0,
-            "timeout": False,
-            "completed_paths": 0,
-            "time_sec": 0.0,
-            "bug_assert_hit": False,
-            "reach_assert_hit": False,
-        }
-    else:
-        klee_final = {
-            "ran": True,
-            "iterations": klee_final.get("iterations", 0),
-            "status": klee_final.get("status"),
-            "assertion_count": klee_final.get("assertion_count", 0),
-            "timeout": klee_final.get("timeout_hit", False),
-            "completed_paths": klee_final.get("completed_paths", 0),
-            "time_sec": klee_final.get("elapsed", 0.0),
-            "bug_assert_hit": klee_final.get("bug_assert_hit", False),
-            "reach_assert_hit": klee_final.get("reach_assert_hit", False),
-        }
-
+    if not klee_final: klee_final = {"status": "not_run", "bug_assert_hit": False}
+    
     meta = {
-        "spec": str(spec_path),
+        "spec": str(args.spec),
         "spec_stem": args.spec_stem,
-        "target_vul": args.target_vul,
-        "class": final_status,
-        "build": {
-            "clang_ok": (final_status != "E"),
-            "iterations": build_iters,
-            "last_error": last_clang_err,
-        },
-        "klee": klee_final,
-        "budget": {
-            "planner_raw": plan_budget,
-            "effective": {
-                # These might vary per replan, but recording last is sufficient
-                "max_builder_iters": args.max_a,
-                "max_klee_runs": args.max_b,
-            },
-        },
+        "class": overall_status,
+        "klee": klee_final
     }
-
     write_json(run_dir / "run_meta.json", meta)
-
+    
+    if harness_final:
+        (run_dir / "harness_final.c").write_text(harness_final, encoding="utf-8")
+        
     if args.summary_tsv:
-        summary_path = Path(args.summary_tsv)
-        header_needed = not summary_path.exists()
-        with summary_path.open("a", encoding="utf-8") as f:
-            if header_needed:
-                f.write("spec_stem\tclass\tcompleted_paths\ttime_sec\n")
-            f.write(
-                f"{args.spec_stem}\t{final_status}\t"
-                f"{klee_final.get('completed_paths', 0)}\t"
-                f"{klee_final.get('time_sec', 0.0):.3f}\n"
-            )
+        with open(args.summary_tsv, "a") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            f.write(f"{args.spec_stem}\t{overall_status}\t{klee_final.get('status')}\t{klee_final.get('elapsed', 0.0):.2f}\n")
+            fcntl.flock(f, fcntl.LOCK_UN)
 
-    print(f"[✓] SAILR-CEGIR run complete for {args.spec_stem} (class={final_status}).")
-
+    print(f"[✓] Finished {args.spec_stem}: {overall_status}")
 
 if __name__ == "__main__":
     main()

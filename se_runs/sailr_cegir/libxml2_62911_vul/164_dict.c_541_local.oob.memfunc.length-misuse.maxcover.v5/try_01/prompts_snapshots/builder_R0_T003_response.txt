@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'struct _xmlDict' dict.c",
+  "reason": "Need to find the definition of xmlDict (struct _xmlDict) to define xmlDictPtr correctly and fix the type errors in the harness."
+}

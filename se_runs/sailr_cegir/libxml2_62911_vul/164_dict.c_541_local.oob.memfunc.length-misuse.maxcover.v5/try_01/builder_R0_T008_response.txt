@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,30p' include/libxml/xmlstring.h",
+  "reason": "Need to confirm xmlChar typedef and any related macros to ensure correct type definitions in harness."
+}

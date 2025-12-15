@@ -1,0 +1,21 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'struct xmlHashedString' dict.c",
+    "grep -n 'typedef.*xmlHashedString' dict.c",
+    "grep -n 'xmlHashedString' dict.c -B 5 -A 5",
+    "grep -n 'xmlStrQEqual' dict.c -B 2 -A 2",
+    "grep -n 'xmlDictHashName' dict.c -B 2 -A 20 | head -30",
+    "grep -n 'xmlDictHashQName' dict.c -B 2 -A 20 | head -30",
+    "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -B 1 -A 1 | head -5",
+    "grep -n '#define.*HASH_INIT' dict.c",
+    "grep -n '#define.*HASH_UPDATE' dict.c",
+    "grep -n '#define.*HASH_FINISH' dict.c",
+    "grep -n '#define.*HASH_ROL' dict.c",
+    "grep -n '#define.*ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c",
+    "grep -n 'struct _xmlDict' dict.c -B 2 -A 30",
+    "grep -n 'struct _xmlDictStrings' dict.c -B 2 -A 10",
+    "grep -n 'xmlDictFindEntry' dict.c -B 5 -A 50"
+  ],
+  "reason": "Need to gather exact definitions of structs, macros, and functions to embed in the harness. Specifically: xmlHashedString (likely defined in a header), xmlDict, xmlDictEntry, xmlDictFindEntry, xmlDictHashName, xmlDictHashQName, and hash macros. Also need to understand the target function's dependencies for stubbing or embedding."
+}

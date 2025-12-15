@@ -1,0 +1,9 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'struct _xmlDict' dict.c -A 20",
+    "grep -n 'xmlStrQEqual' dict.c | head -5",
+    "grep -n 'xmlStrQEqual' include/libxml/xmlstring.h"
+  ],
+  "reason": "Need the exact layout of struct _xmlDict to initialize dict->table and size. Also need to understand xmlStrQEqual to decide whether to embed or stub."
+}

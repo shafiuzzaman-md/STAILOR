@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlHashedString' ./include/private/dict.h",
+  "reason": "Need exact definition of xmlHashedString (xmlDictEntry) to define struct layout for entry->name and entry->hashValue."
+}

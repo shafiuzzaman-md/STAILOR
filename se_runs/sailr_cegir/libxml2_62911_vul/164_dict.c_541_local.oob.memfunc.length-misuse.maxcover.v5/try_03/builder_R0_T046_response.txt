@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1",
+  "reason": "Need to see the exact line where ATTRIBUTE_NO_SANITIZE_INTEGER is defined or used to understand its macro definition."
+}

@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "cat ./include/private/dict.h",
+  "reason": "Need the exact definition of xmlHashedString to embed in harness.c."
+}

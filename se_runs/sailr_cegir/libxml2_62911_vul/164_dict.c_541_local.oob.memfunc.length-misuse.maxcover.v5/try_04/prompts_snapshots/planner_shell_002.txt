@@ -1,0 +1,54 @@
+# planner shell iter 2 (batch), reason='Need exact definitions of xmlChar, xmlHashedString, and xmlDictEntry to understand the data structures used at line 541 (entry->name). This is critical for embedding types and designing assertions.'
+$ grep -n 'xmlChar' dict.c
+[rc=0]
+STDOUT:
+47:    xmlChar *free;
+48:    xmlChar *end;
+51:    xmlChar array[1];
+133:static const xmlChar *
+134:xmlDictAddString(xmlDictPtr dict, const xmlChar *name, unsigned int namelen) {
+136:    const xmlChar *ret;
+191:static const xmlChar *
+192:xmlDictAddQString(xmlDictPtr dict, const xmlChar *prefix, unsigned int plen,
+193:                 const xmlChar *name, unsigned int namelen)
+196:    const xmlChar *ret;
+364:xmlDictOwns(xmlDictPtr dict, const xmlChar *str) {
+452:xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen,
+471:xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *name,
+496:xmlDictComputeHash(const xmlDict *dict, const xmlChar *string) {
+516:xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,
+517:                 const xmlChar *name, int len, unsigned hashValue,
+646:xmlDictLookupInternal(xmlDictPtr dict, const xmlChar *prefix,
+647:                      const xmlChar *name, int maybeLen, int update) {
+649:    const xmlChar *ret;
+791:const xmlChar *
+792:xmlDictLookup(xmlDictPtr dict, const xmlChar *name, int len) {
+813:xmlDictLookupHashed(xmlDictPtr dict, const xmlChar *name, int len) {
+839:const xmlChar *
+840:xmlDictExists(xmlDictPtr dict, const xmlChar *name, int len) {
+861:const xmlChar *
+862:xmlDictQLookup(xmlDictPtr dict, const xmlChar *prefix, const xmlChar *name) {
+
+STDERR:
+
+---
+$ grep -n 'xmlHashedString' dict.c
+[rc=0]
+STDOUT:
+54:typedef xmlHashedString xmlDictEntry;
+812:xmlHashedString
+815:    xmlHashedString ret;
+
+STDERR:
+
+---
+$ sed -n '/^typedef struct _xmlHashedString/,/^}/p' dict.c
+[error] absolute paths not allowed: /^typedef struct _xmlHashedString/,/^}/p
+---
+$ grep -n '^struct _xmlDictEntry' dict.c
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---

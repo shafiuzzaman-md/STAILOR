@@ -1,0 +1,7 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c"
+  ],
+  "reason": "Need to see if ATTRIBUTE_NO_SANITIZE_INTEGER is a macro that expands to something (like __attribute__). This may affect function signatures in the harness."
+}

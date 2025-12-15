@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlDictFindEntry' dict.c -A 100 | head -150",
+  "reason": "We need to see the exact function definition of xmlDictFindEntry to understand the control flow and locate the vulnerable line 541. The current harness has a custom version that may not match the actual code. We must examine the real function to correctly place assertions and model the bug."
+}

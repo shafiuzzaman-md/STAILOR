@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'struct _xmlHashedString' dict.c",
+    "sed -n '/struct _xmlHashedString/,/^};/p' dict.c",
+    "grep -n 'xmlStrQEqual' *.c | head -1",
+    "grep -n '^typedef.*xmlChar' libxml/xmlstring.h"
+  ],
+  "reason": "Need exact struct definition of xmlHashedString (since xmlDictEntry is typedef'd to it) to embed in harness. Need location of xmlStrQEqual to decide whether to embed or stub. Need xmlChar typedef for standalone compilation."
+}

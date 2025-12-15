@@ -1,0 +1,42 @@
+# planner shell iter 4 (batch), reason="Need exact struct definitions for xmlHashedString (since xmlDictEntry is typedef'd to it) and xmlChar to embed in harness. Also need location of xmlStrQEqual to decide whether to embed or stub."
+$ grep -n 'struct _xmlHashedString' dict.c
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---
+$ grep -B5 -A15 'typedef.*xmlHashedString' dict.c
+[rc=0]
+STDOUT:
+    size_t size;
+    size_t nbStrings;
+    xmlChar array[1];
+};
+
+typedef xmlHashedString xmlDictEntry;
+
+/*
+ * The entire dictionary
+ */
+struct _xmlDict {
+    int ref_counter;
+
+    xmlDictEntry *table;
+    size_t size;
+    unsigned int nbElems;
+    xmlDictStringsPtr strings;
+
+    struct _xmlDict *subdict;
+    /* used for randomization */
+    unsigned seed;
+
+STDERR:
+
+---
+$ grep -n 'xmlStrQEqual' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.c
+[error] absolute paths not allowed: /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.c
+---
+$ grep -n '^typedef.*xmlChar' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/libxml/xmlstring.h
+[error] absolute paths not allowed: /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/libxml/xmlstring.h
+---

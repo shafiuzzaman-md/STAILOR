@@ -1,0 +1,9 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2",
+    "grep -n 'struct _xmlMutex' include/libxml/threads.h -A 5",
+    "sed -n '645,778p' dict.c"
+  ],
+  "reason": "Need to see the full xmlStrQEqual prototype, xmlMutex definition, and the full xmlDictLookupInternal function to understand dependencies for embedding/stubbing."
+}

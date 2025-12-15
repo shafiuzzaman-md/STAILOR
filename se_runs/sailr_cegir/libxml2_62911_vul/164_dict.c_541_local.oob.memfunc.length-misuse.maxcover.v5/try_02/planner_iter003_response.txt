@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"struct _xmlHashedString\" dict.c",
+    "grep -n \"xmlHashedString\" dict.c | grep -v typedef | head -5",
+    "grep -r \"struct _xmlHashedString\" .",
+    "grep -r \"xmlHashedString\" . | grep -v typedef | head -5"
+  ],
+  "reason": "We need the exact definition of xmlHashedString to understand the layout of xmlDictEntry (which is a typedef of xmlHashedString). This is critical for initializing entry->name and entry->hashValue, and for understanding the buffer capacity for entry->name to derive the OOB assertion."
+}

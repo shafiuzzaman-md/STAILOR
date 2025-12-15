@@ -1,0 +1,9 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -r \"struct xmlHashedString\" .",
+    "grep -r \"typedef.*xmlHashedString\" .",
+    "find . -name \"*.h\" -exec grep -l \"xmlHashedString\" {} \\;"
+  ],
+  "reason": "Need to find the definition of xmlHashedString (which xmlDictEntry is typedef'd to) to understand the struct layout, especially entry->name and its length capacity."
+}

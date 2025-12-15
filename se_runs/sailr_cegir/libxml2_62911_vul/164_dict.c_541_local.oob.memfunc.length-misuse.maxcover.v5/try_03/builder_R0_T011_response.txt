@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,100p' dict.c",
+  "reason": "Need to see the beginning of dict.c to get macro definitions (MAX_FILL_NUM, MAX_FILL_DENOM, MIN_HASH_SIZE, MAX_HASH_SIZE) and the struct _xmlDict definition."
+}

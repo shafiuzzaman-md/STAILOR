@@ -1,0 +1,9 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"struct _xmlDict\" dict.c",
+    "grep -n \"xmlDict\" include/libxml/dict.h",
+    "cat include/libxml/dict.h | head -100"
+  ],
+  "reason": "Need to find the definition of xmlDict struct to understand its layout (size, table). Also need to see if xmlDict is defined in public header."
+}

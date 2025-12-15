@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,60p' include/private/dict.h",
+  "reason": "Need to see the full definition of xmlHashedString and any macros that might be used (like HASH_ROL). Also need to confirm the exact struct layout and any preceding macros."
+}

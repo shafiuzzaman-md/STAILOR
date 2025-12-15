@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlStrQEqual' xmlstring.c | head -20",
+  "reason": "Need to see the full body of xmlStrQEqual to embed it correctly."
+}

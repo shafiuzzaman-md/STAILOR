@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "commands": ["rg -n '^xmlDictFindEntry' dict.c", "sed -n '516,565p' dict.c", "grep -n 'typedef.*xmlDict' dict.c", "grep -n 'struct _xmlDictEntry' dict.c", "grep -n 'struct _xmlDict' dict.c"],
+  "reason": "Need the exact function signature and body of xmlDictFindEntry (the function containing line 541), plus the struct definitions for xmlDict and xmlDictEntry to understand entry->name and dict->table."
+}

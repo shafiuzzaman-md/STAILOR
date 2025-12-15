@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlStrEqual\" ./xmlstring.c -B 5 -A 30",
+    "grep -n \"xmlMalloc\" ./include/libxml/xmlmemory.h -A 5 | head -30",
+    "grep -n \"xmlDictHashName\" dict.c -B 5 -A 20",
+    "grep -n \"xmlDictHashQName\" dict.c -B 5 -A 20"
+  ],
+  "reason": "Need to understand xmlStrEqual (used by xmlStrQEqual), xmlMalloc signature for stubs, and hash functions used in xmlDictLookupInternal to decide what to embed/stub."
+}

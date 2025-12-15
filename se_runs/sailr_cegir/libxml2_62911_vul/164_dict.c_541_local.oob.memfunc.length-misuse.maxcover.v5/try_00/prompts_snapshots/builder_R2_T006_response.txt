@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '516,600p' dict.c",
+  "reason": "Need to see the full xmlDictFindEntry function body to copy it exactly for the harness, including the vulnerable line 541 and surrounding context."
+}

@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlStrQEqual\" . -r --include=\"*.c\" --include=\"*.h\" | head -n 5",
+    "grep -n \"xmlMutex\" include/libxml/*.h 2>/dev/null | head -n 5",
+    "grep -n \"ATTRIBUTE_NO_SANITIZE_INTEGER\" include/libxml/*.h 2>/dev/null | head -n 5",
+    "grep -n \"xmlChar\" include/libxml/*.h 2>/dev/null | head -n 5"
+  ],
+  "reason": "Need to understand xmlStrQEqual (used in target function), xmlMutex (used in dict.c), ATTRIBUTE_NO_SANITIZE_INTEGER macro, and xmlChar type to embed necessary definitions in harness."
+}

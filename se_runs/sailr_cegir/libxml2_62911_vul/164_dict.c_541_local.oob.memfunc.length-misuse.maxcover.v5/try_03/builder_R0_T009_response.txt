@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '45,55p' ./include/private/dict.h",
+  "reason": "Need to see the exact definition of xmlHashedString (struct layout) to define xmlDictEntry correctly."
+}

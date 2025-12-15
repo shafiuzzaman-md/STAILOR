@@ -1,0 +1,11 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n '^typedef.*xmlChar' dict.c",
+    "grep -n 'xmlHashedString' dict.c -A 2 -B 2",
+    "sed -n '54,58p' dict.c",
+    "sed -n '43,70p' dict.c",
+    "sed -n '516,565p' dict.c"
+  ],
+  "reason": "Need exact definitions of xmlChar, xmlHashedString, xmlDict, and xmlDictEntry to understand types for the target line. Also need the full xmlDictFindEntry function to embed."
+}

@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1",
+  "reason": "Need to see the exact definition or usage of ATTRIBUTE_NO_SANITIZE_INTEGER to determine if it's a macro defined elsewhere. The grep output shows it's used as a function attribute but not defined in dict.c. We need to find where it's defined, likely in a header file."
+}

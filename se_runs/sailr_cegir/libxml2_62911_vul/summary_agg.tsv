@@ -1,0 +1,2 @@
+MODE	PROJECT	attempt	E	H0	H1	H2	Vul	VulnAsserts	ReachSpecs	ReachAsserts	VulOnlySpecs	ReachOnlySpecs	VulAndReachSpecs	FP	time(s)	prompt_tokens	completion_tokens	total_tokens	timeouts	timed_specs	AvgVulnPerPos	AvgReachPerPos
+sailr_cegir	libxml2_62911_vul	7	5	0	0	2	7	7	7	7	0	0	7	0	5.4030000000000005	0	0	0	0	2	1.0	1.0

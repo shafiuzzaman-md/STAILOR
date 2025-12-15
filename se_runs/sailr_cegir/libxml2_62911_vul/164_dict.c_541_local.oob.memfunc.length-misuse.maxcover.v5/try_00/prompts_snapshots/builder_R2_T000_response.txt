@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n '^typedef.*xmlChar' dict.c",
+  "reason": "Need exact xmlChar definition to ensure correct type in harness."
+}

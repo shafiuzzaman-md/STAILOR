@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,200p' dict.c",
+  "reason": "Need to see more of dict.c to locate the exact definition of struct _xmlDict and macros like MAX_HASH_SIZE, MIN_HASH_SIZE, MAX_FILL_DENOM, MAX_FILL_NUM, and the function xmlDictFindEntry body."
+}

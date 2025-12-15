@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n '^struct _xmlHashedString' dict.c -A 10",
+  "reason": "Need the exact struct definition of xmlHashedString (which is typedef'd to xmlDictEntry) to know its fields, especially 'name' and 'hashValue', for correct type definitions in harness."
+}

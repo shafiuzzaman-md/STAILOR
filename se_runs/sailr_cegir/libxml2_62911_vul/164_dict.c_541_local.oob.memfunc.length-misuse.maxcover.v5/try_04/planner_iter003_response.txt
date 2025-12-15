@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "sed -n '59,70p' dict.c",
+    "sed -n '45,52p' dict.c",
+    "sed -n '54,55p' dict.c",
+    "grep -n '#define.*ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -1"
+  ],
+  "reason": "Need exact struct definitions for _xmlDict and _xmlDictStrings, plus xmlDictEntry typedef and macro definitions to embed in harness."
+}

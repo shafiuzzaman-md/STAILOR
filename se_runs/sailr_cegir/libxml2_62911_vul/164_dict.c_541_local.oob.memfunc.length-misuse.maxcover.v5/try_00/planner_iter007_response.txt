@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlStrQEqual\" dict.c -B 5 -A 10",
+    "grep -n \"xmlStrQEqual\" include/libxml/*.h",
+    "grep -n \"xmlStrQEqual\" include/*.h",
+    "grep -r \"xmlStrQEqual\" . --include=\"*.h\""
+  ],
+  "reason": "Need to find the definition of xmlStrQEqual to understand its signature and decide whether to embed or stub. Also need to see if there are any other dependencies for the target function xmlDictFindEntry."
+}

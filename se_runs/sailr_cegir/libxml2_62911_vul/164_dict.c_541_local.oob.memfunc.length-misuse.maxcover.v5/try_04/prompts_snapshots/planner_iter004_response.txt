@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n '^typedef struct _xmlHashedString' dict.c",
+    "sed -n '/^typedef struct _xmlHashedString/,/^}/p' dict.c",
+    "grep -n '^typedef.*xmlChar' tree.h",
+    "grep -n '^typedef.*xmlChar' dict.h"
+  ],
+  "reason": "Need exact definition of xmlHashedString (which is xmlDictEntry) to understand entry->name layout for OOB analysis. Also need xmlChar type definition (likely unsigned char) to embed in harness."
+}

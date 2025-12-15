@@ -1,0 +1,31 @@
+# planner shell iter 3 (batch), reason="Need includes to understand dependencies, xmlHashedString struct definition (since xmlDictEntry is typedef'd to it), xmlStrQEqual location to possibly embed, and xmlChar definition from headers for standalone harness."
+$ grep -n '^#include' dict.c
+[rc=0]
+STDOUT:
+20:#include "libxml.h"
+22:#include <limits.h>
+23:#include <string.h>
+24:#include <time.h>
+26:#include "private/dict.h"
+27:#include "private/threads.h"
+29:#include <libxml/parser.h>
+30:#include <libxml/dict.h>
+31:#include <libxml/xmlmemory.h>
+32:#include <libxml/xmlstring.h>
+
+STDERR:
+
+---
+$ grep -B10 -A10 'struct _xmlHashedString' dict.c
+[rc=1]
+STDOUT:
+
+STDERR:
+
+---
+$ grep -n 'xmlStrQEqual' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.c | head -1
+[error] piping not allowed
+---
+$ grep -n '^typedef.*xmlChar' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.h | head -1
+[error] piping not allowed
+---

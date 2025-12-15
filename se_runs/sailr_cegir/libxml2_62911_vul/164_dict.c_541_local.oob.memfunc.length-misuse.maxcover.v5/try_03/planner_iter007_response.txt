@@ -1,0 +1,9 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlStrQEqual\" ./xmlstring.c -B 5 -A 30",
+    "grep -n \"xmlMalloc\" ./include/libxml/xmlmemory.h -B 2 -A 2",
+    "grep -n \"xmlChar\" ./include/libxml/xmlstring.h -B 2 -A 2 | head -20"
+  ],
+  "reason": "Need to see the exact body of xmlStrQEqual to decide whether to embed or stub. Also need to understand xmlMalloc and xmlChar types for the harness."
+}

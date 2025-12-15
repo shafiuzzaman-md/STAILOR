@@ -1,0 +1,168 @@
+{
+  "action": "final_plan",
+  "plan": {
+    "target_function": {
+      "name": "xmlDictFindEntry",
+      "file": "dict.c",
+      "signature": "static xmlDictEntry * xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, const xmlChar *name, int len, unsigned hashValue, int *pfound)",
+      "rationale": "The target line 541 is inside xmlDictFindEntry. This function is called by xmlDictLookupInternal, which is the entrypoint from the spec. To reach the vulnerable memcmp, we must call xmlDictFindEntry with appropriate parameters."
+    },
+    "embedding_plan": {
+      "must_embed_functions": [
+        {
+          "name": "xmlDictFindEntry",
+          "from_file": "dict.c",
+          "why_needed": "Contains the target line; we need its exact body to analyze the vulnerability.",
+          "notes": "copy exact body once"
+        },
+        {
+          "name": "xmlStrQEqual",
+          "from_file": "xmlstring.c",
+          "why_needed": "Called in the else branch of the target function; needed to avoid linking errors and ensure path feasibility.",
+          "notes": "copy exact body once"
+        },
+        {
+          "name": "xmlStrEqual",
+          "from_file": "xmlstring.c",
+          "why_needed": "xmlStrQEqual calls xmlStrEqual when pref is NULL; we need its definition.",
+          "notes": "copy exact body once"
+        }
+      ],
+      "must_embed_types_macros": [
+        {
+          "name": "xmlHashedString",
+          "from_file": "./include/private/dict.h",
+          "why_needed": "xmlDictEntry is typedef'd to xmlHashedString; we need the struct layout for entry->name and entry->hashValue.",
+          "notes": "typedef struct { unsigned hashValue; const xmlChar *name; } xmlHashedString;"
+        },
+        {
+          "name": "struct _xmlDict",
+          "from_file": "dict.c",
+          "why_needed": "The dict parameter points to this struct; we need its layout to initialize dict->table, dict->size, etc.",
+          "notes": "struct _xmlDict { int ref_counter; xmlDictEntry *table; size_t size; unsigned int nbElems; xmlDictStringsPtr strings; struct _xmlDict *subdict; unsigned seed; size_t limit; };"
+        },
+        {
+          "name": "xmlChar",
+          "from_file": "./include/libxml/xmlstring.h",
+          "why_needed": "Used throughout as unsigned char.",
+          "notes": "typedef unsigned char xmlChar;"
+        },
+        {
+          "name": "MAX_HASH_SIZE, MIN_HASH_SIZE, MAX_FILL_DENOM, MAX_FILL_NUM",
+          "from_file": "dict.c",
+          "why_needed": "Macros used in xmlDictFindEntry and related functions.",
+          "notes": "#define MAX_FILL_NUM 7, #define MAX_FILL_DENOM 8, #define MIN_HASH_SIZE 8, #define MAX_HASH_SIZE (1u << 31)"
+        },
+        {
+          "name": "ATTRIBUTE_NO_SANITIZE_INTEGER",
+          "from_file": "dict.c",
+          "why_needed": "Function attribute used on xmlDictFindEntry; we can define as empty.",
+          "notes": "#define ATTRIBUTE_NO_SANITIZE_INTEGER"
+        }
+      ],
+      "stub_instead_of_embed": [
+        {
+          "name": "xmlMalloc",
+          "signature": "void *xmlMalloc(size_t size)",
+          "strategy": "Return malloc(size) for simplicity; we just need non-NULL pointers for dict->table.",
+          "why_safe": "Allocation details don't affect the OOB condition; we can control returned memory."
+        },
+        {
+          "name": "xmlDictHashName",
+          "signature": "static unsigned xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen, size_t *plen)",
+          "strategy": "Stub that sets *plen to strlen(data) and returns a symbolic hashValue.",
+          "why_safe": "We can directly control hashValue passed to xmlDictFindEntry; we don't need real hash."
+        },
+        {
+          "name": "xmlDictHashQName",
+          "signature": "static unsigned xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *name, size_t *pplen, size_t *plen)",
+          "strategy": "Similar stub; we won't use prefix path (prefix == NULL) in our harness.",
+          "why_safe": "We will set prefix = NULL to avoid this branch."
+        },
+        {
+          "name": "xmlDictAddString",
+          "signature": "static const xmlChar *xmlDictAddString(xmlDictPtr dict, const xmlChar *name, unsigned int namelen)",
+          "strategy": "Return a pointer to a static buffer containing the name.",
+          "why_safe": "We won't trigger update path (update=0) in our harness; we only need lookup."
+        },
+        {
+          "name": "xmlDictGrow",
+          "signature": "static int xmlDictGrow(xmlDictPtr dict, unsigned size)",
+          "strategy": "Do nothing, return 0.",
+          "why_safe": "We will ensure dict->size > 0 and not trigger growth."
+        }
+      ],
+      "avoid": [
+        "Do not include duplicate function bodies",
+        "Do not include any natural-language prose in harness.c",
+        "Prefer stubs for non-critical helpers to keep file small"
+      ]
+    },
+    "symbolic_inputs": [
+      {
+        "name": "len",
+        "c_type": "int",
+        "size": 0,
+        "symbolic": true,
+        "constraints": ["len >= 0", "len < 100"],
+        "rationale": "Length parameter passed to xmlDictFindEntry; must be non-negative and bounded to avoid infinite loops."
+      },
+      {
+        "name": "hashValue",
+        "c_type": "unsigned",
+        "size": 0,
+        "symbolic": true,
+        "constraints": ["hashValue > 0"],
+        "rationale": "Hash value used to match entry->hashValue; must be non-zero to enter the loop."
+      },
+      {
+        "name": "name_buf",
+        "c_type": "xmlChar[]",
+        "size": 100,
+        "symbolic": true,
+        "constraints": ["name_buf[len] == 0"],
+        "rationale": "The name string must be at least len+1 bytes with null terminator at index len to satisfy entry->name[len] == 0."
+      },
+      {
+        "name": "entry_name_buf",
+        "c_type": "xmlChar[]",
+        "size": 100,
+        "symbolic": true,
+        "constraints": [],
+        "rationale": "entry->name points to this buffer; we need to control its content for memcmp."
+      }
+    ],
+    "assertions": [
+      {
+        "kind": "bug",
+        "id": "BUG_ASSERT",
+        "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+        "derived_condition": "len < strlen(entry->name)",
+        "final_klee_assert_string": "klee_assert(len < strlen(entry->name) && \"BUG_ASSERT\");",
+        "rationale": "Safety precondition for OOB access: entry->name[len] reads one byte past the memcmp length; we must ensure entry->name is at least len+1 bytes long (i.e., null terminator exists at index len). Since entry->name is a null-terminated string, strlen(entry->name) gives its length. The condition ensures we don't read out-of-bounds."
+      },
+      {
+        "kind": "reach",
+        "id": "REACH_ASSERT",
+        "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+        "final_klee_assert_string": "klee_assert(0 && \"REACH_ASSERT\");",
+        "rationale": "Marker for reaching target line."
+      }
+    ],
+    "harness_shape": {
+      "needs_main": true,
+      "call_sequence": [
+        "Setup memory and structs: allocate dict, dict->table, initialize dict->size = 8, dict->seed = 0, dict->table[0].hashValue = hashValue, dict->table[0].name = entry_name_buf",
+        "klee_make_symbolic for inputs: len, hashValue, name_buf, entry_name_buf",
+        "Impose constraints: len >= 0 && len < 100, hashValue > 0, name_buf[len] == 0",
+        "Call target function: xmlDictFindEntry(dict, NULL, name_buf, len, hashValue, &found)",
+        "BUG_ASSERT placed immediately before vulnerable statement"
+      ],
+      "notes": "Minimal setup to reach target: we need dict->size > 0, entry->hashValue == hashValue, prefix == NULL, and entry->name and name buffers with symbolic content. We'll set up a single entry in the hash table."
+    },
+    "budget": {
+      "max_builder_iters": 8,
+      "max_klee_runs": 12
+    }
+  }
+}

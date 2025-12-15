@@ -1,0 +1,8 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'xmlHashedString' ./include/private/dict.h",
+    "sed -n '45,55p' ./include/private/dict.h"
+  ],
+  "reason": "Need the exact definition of xmlHashedString to understand the layout of xmlDictEntry (which is a typedef of xmlHashedString). This is critical for the target line where we access entry->name[len]."
+}

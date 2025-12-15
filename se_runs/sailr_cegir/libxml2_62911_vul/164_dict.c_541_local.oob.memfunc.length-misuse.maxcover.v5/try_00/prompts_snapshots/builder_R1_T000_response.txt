@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n '^typedef.*xmlChar' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.h",
+  "reason": "Need xmlChar typedef to define the type used in the vulnerable function."
+}

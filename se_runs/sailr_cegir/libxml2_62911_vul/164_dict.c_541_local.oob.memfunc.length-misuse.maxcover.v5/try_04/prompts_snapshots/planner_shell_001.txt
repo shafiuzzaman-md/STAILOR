@@ -1,0 +1,13 @@
+# planner shell iter 1 (batch), reason="Need xmlChar type definition (likely in a header). Need xmlDictEntry structure (it's a typedef of xmlHashedString). Need xmlHashedString definition to understand entry->name layout."
+$ grep -n 'typedef.*xmlChar' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.h | head -5
+[error] piping not allowed
+---
+$ grep -B5 -A5 'struct _xmlDictEntry' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c
+[error] absolute paths not allowed: /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c
+---
+$ grep -n 'xmlHashedString' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c
+[error] absolute paths not allowed: /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c
+---
+$ sed -n '/^typedef struct _xmlHashedString/,/^}/p' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/dict.c
+[error] absolute paths not allowed: /^typedef struct _xmlHashedString/,/^}/p
+---

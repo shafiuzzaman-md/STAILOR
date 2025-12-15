@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n '^typedef.*xmlDictPtr' dict.c",
+  "reason": "Need to find the exact typedef for xmlDictPtr to fix unknown type error."
+}

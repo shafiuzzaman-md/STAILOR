@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n '^#include' dict.c",
+    "grep -B10 -A10 'struct _xmlHashedString' dict.c",
+    "grep -n 'xmlStrQEqual' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.c | head -1",
+    "grep -n '^typedef.*xmlChar' /mnt/WorkDrive/SAILR/dataset/62911/libxml2_62911_vul/*.h | head -1"
+  ],
+  "reason": "Need includes to understand dependencies, xmlHashedString struct definition (since xmlDictEntry is typedef'd to it), xmlStrQEqual location to possibly embed, and xmlChar definition from headers for standalone harness."
+}

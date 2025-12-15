@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '530,600p' dict.c",
+  "reason": "Need to see the full xmlDictFindEntry function body, especially around line 541 where the target vulnerable statement is located."
+}

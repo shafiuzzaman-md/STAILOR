@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlStrEqual' xmlstring.c | head -5",
+  "reason": "Need to locate the exact definition of xmlStrEqual to embed its body in harness.c."
+}

@@ -1,0 +1,11 @@
+{
+  "class": "H2",
+  "klee": {
+    "bug_assert_hit": true,
+    "elapsed": 2.2857275620044675,
+    "reach_assert_hit": true,
+    "status": "assertion_bug"
+  },
+  "spec": "specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json",
+  "spec_stem": "164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5"
+}

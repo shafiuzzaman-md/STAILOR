@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '59,70p' dict.c",
+  "reason": "Need the exact struct _xmlDict definition lines 59-70 as referenced in the plan, to ensure we have the correct member types (e.g., size_t size, xmlDictEntry *table)."
+}

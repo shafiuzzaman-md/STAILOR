@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'xmlDictPtr' dict.c",
+  "reason": "Need to find the definition of xmlDictPtr to fix unknown type error."
+}

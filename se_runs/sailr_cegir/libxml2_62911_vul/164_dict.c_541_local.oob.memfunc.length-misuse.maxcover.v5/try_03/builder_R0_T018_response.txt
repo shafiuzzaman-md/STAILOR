@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -A 5 -B 5",
+  "reason": "Need to see the exact macro definition and surrounding context to properly define it in harness.c"
+}

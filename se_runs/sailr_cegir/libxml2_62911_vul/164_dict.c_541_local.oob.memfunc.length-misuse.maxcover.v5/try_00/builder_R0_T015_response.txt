@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'static xmlDictEntry \\*xmlDictFindEntry' dict.c -A 200",
+  "reason": "Need to retrieve the exact body of the target function xmlDictFindEntry to embed it in the harness."
+}

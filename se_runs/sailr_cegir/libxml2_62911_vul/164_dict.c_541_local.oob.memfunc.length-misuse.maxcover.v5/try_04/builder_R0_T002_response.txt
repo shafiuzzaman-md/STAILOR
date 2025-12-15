@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '540,545p' dict.c",
+  "reason": "Need to see the exact vulnerable line and surrounding context to ensure correct placement of assertions."
+}

@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "grep -n 'typedef.*xmlHashedString' dict.c",
+  "reason": "Need to find the exact typedef for xmlDictEntry to ensure correct struct definition."
+}

@@ -1,0 +1,7 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlStrQEqual\" ./xmlstring.c -B 5 -A 20"
+  ],
+  "reason": "Need the exact body of xmlStrQEqual to embed or stub, as it's called in the target function (xmlDictFindEntry)."
+}

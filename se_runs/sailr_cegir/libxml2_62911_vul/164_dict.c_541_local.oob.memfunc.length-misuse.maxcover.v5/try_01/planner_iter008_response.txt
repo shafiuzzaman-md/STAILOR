@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2",
+    "grep -n 'xmlMutex' include/libxml/threads.h -A 2 -B 2",
+    "grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -B 2 -A 2 | head -20",
+    "sed -n '781,800p' dict.c"
+  ],
+  "reason": "Need to understand xmlStrQEqual prototype, xmlMutex definition, ATTRIBUTE_NO_SANITIZE_INTEGER macro, and xmlDictLookup signature to plan embedding/stubbing."
+}

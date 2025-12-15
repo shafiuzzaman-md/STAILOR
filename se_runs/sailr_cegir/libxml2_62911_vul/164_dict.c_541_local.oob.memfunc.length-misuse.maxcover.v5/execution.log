@@ -1,0 +1,921 @@
+[i] Logging all output to: /media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/execution.log
+[i] Building context...
+
+[=] CYCLE 1/5
+[i] Planner (replan=0)
+
+  --- [Planner Turn 1/15] ---
+  [>] Action: shell
+  [?] Reason: Confirm the exact function signature and body of xmlDictFindEntry, which contains the target line 541.
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c
+      -> RC=0 | STDOUT: 502: * xmlDictFindEntry: 516:xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, 678:        entry = xmlDictFindEntry(dict, prefix, name, kle...
+  [$] Executing: sed -n '516,565p' dict.c
+      -> RC=0 | STDOUT: xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,                  const xmlChar *name, int len, unsigned hashValue,                  int *...
+
+  --- [Planner Turn 2/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the definitions of xmlDict and xmlDictEntry structs to understand the data layout for the target line (entry->name[len]). Also need to see if there are any macros or typedefs in the file header.
+  [$] Executing: grep -n "struct xmlDict" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct xmlDictEntry" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "typedef.*xmlDict" dict.c
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44:typedef xmlDictStrings *xmlDictStringsPtr; 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: grep -n "typedef.*xmlDictEntry" dict.c
+      -> RC=0 | STDOUT: 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: head -20 dict.c
+      -> RC=0 | STDOUT: /*  * dict.c: dictionary of reusable strings, just used to avoid allocation  *         and freeing operations.  *  * Copyright (C) 2003-2012 Daniel Ve...
+
+  --- [Planner Turn 3/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the definition of xmlHashedString (which xmlDictEntry is typedef'd to) to understand the struct layout, especially entry->name and its length capacity.
+  [$] Executing: grep -r "struct xmlHashedString" .
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -r "typedef.*xmlHashedString" .
+      -> RC=0 | STDOUT: ./dict.c:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: find . -name "*.h" -exec grep -l "xmlHashedString" {} \;
+      -> RC=0 | STDOUT: ./include/private/dict.h
+
+  --- [Planner Turn 4/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the exact struct definitions for xmlDict and xmlHashedString, and confirm the function signature and any macros used.
+  [$] Executing: cat ./include/private/dict.h
+      -> RC=0 | STDOUT: #ifndef XML_DICT_H_PRIVATE__ #define XML_DICT_H_PRIVATE__  #include <libxml/dict.h>  /*  * Values are ANDed with 0xFFFFFFFF to support platforms where...
+  [$] Executing: grep -n "struct xmlDict" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct xmlDict" include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-497-    size_t len; dict.c-498-    return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); dict.c-499-} dict.c-500- dict.c-501-/** dict.c:...
+
+  --- [Planner Turn 5/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the definition of xmlDict struct to understand its layout (size, table). Also need to see if xmlDict is defined in public header.
+  [$] Executing: grep -n "struct _xmlDict" dict.c
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 45:struct _xmlDictStrings { 59:struct _xmlDict { 67:    struct _xmlDict *subdict;
+  [$] Executing: grep -n "xmlDict" include/libxml/dict.h
+      -> RC=0 | STDOUT: 25:typedef struct _xmlDict xmlDict; 26:typedef xmlDict *xmlDictPtr; 37:XMLPUBFUN xmlDictPtr 38:			xmlDictCreate	(void); 40:			xmlDictSetLimit	(xmlDict...
+  [$] Executing: cat include/libxml/dict.h | head -100
+      -> RC=1 | STDOUT: 
+
+  --- [Planner Turn 6/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definitions for xmlDict and xmlDictStrings, and to see if xmlDictHashName/xmlDictHashQName are used in the target function (they are not, but they are called by xmlDictLookup which calls xmlDictFindEntry). We need to understand the data layout to set up symbolic inputs correctly.
+  [$] Executing: grep -n "struct _xmlDict" dict.c -A 20
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44-typedef xmlDictStrings *xmlDictStringsPtr; 45:struct _xmlDictStrings { 46-    xmlDictStringsPtr n...
+  [$] Executing: grep -n "struct _xmlDictStrings" dict.c -A 10
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44-typedef xmlDictStrings *xmlDictStringsPtr; 45:struct _xmlDictStrings { 46-    xmlDictStringsPtr n...
+  [$] Executing: grep -n "xmlDictHashName" dict.c | head -2
+      -> RC=2 | STDOUT: dict.c-450-ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-451-static unsigned dict.c:452:xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen, dict...
+  [$] Executing: grep -n "xmlDictHashQName" dict.c | head -2
+      -> RC=2 | STDOUT: dict.c-469-ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-470-static unsigned dict.c:471:xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *n...
+
+  --- [Planner Turn 7/15] ---
+  [>] Action: shell
+  [?] Reason: Need to see the bodies of xmlDictHashName and xmlDictHashQName because they are called by xmlDictLookup (the entrypoint) and affect the hashValue and len parameters passed to xmlDictFindEntry. Also need xmlStrQEqual because it's used in the else branch of the target function. These functions must be embedded or stubbed to reach the target line.
+  [$] Executing: grep -n "xmlDictHashName" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:452:xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen, dict.c-453-                size_t *plen) { dict.c-454-    unsigned h1, h...
+  [$] Executing: grep -n "xmlDictHashQName" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:471:xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *name, dict.c-472-                 size_t *pplen, size_t *plen) { dict...
+  [$] Executing: grep -n "xmlStrQEqual" dict.c -B 5 -A 10
+      -> RC=0 | STDOUT: 542-                        (entry->name[len] == 0)) { 543-                        found = 1; 544-                        break; 545-                 ...
+
+  --- [Planner Turn 8/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the definition of xmlStrQEqual to understand its signature and decide whether to embed or stub. Also need to see if there are any other dependencies for the target function xmlDictFindEntry.
+  [$] Executing: grep -n "xmlStrQEqual" dict.c -B 5 -A 10
+      -> RC=0 | STDOUT: 542-                        (entry->name[len] == 0)) { 543-                        found = 1; 544-                        break; 545-                 ...
+  [$] Executing: grep -n "xmlStrQEqual" include/libxml/*.h
+      -> RC=2 | STDOUT: 
+  [$] Executing: grep -n "xmlStrQEqual" include/*.h
+      -> RC=2 | STDOUT: 
+  [$] Executing: grep -r "xmlStrQEqual" . --include="*.h"
+      -> RC=0 | STDOUT: ./include/libxml/xmlstring.h:                xmlStrQEqual             (const xmlChar *pref,
+
+  --- [Planner Turn 9/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual prototype for stub, and macro definitions used in the target function (MAX_HASH_SIZE, MAX_FILL_DENOM, MAX_FILL_NUM). Also need to see if ATTRIBUTE_NO_SANITIZE_INTEGER is a macro that must be defined.
+  [$] Executing: grep -n "xmlStrQEqual" ./include/libxml/xmlstring.h -B 2 -A 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: grep -n "MAX_HASH_SIZE" dict.c
+      -> RC=0 | STDOUT: 41:#define MAX_HASH_SIZE (1u << 31) 466:    return(h2 | MAX_HASH_SIZE); 492:    return(h2 | MAX_HASH_SIZE); 717:            if (dict->size >= MAX_HASH...
+  [$] Executing: grep -n "MAX_FILL_DENOM" dict.c
+      -> RC=0 | STDOUT: 39:#define MAX_FILL_DENOM 8 711:    if (dict->nbElems + 1 > dict->size / MAX_FILL_DENOM * MAX_FILL_NUM) {
+  [$] Executing: grep -n "MAX_FILL_NUM" dict.c
+      -> RC=0 | STDOUT: 38:#define MAX_FILL_NUM 7 711:    if (dict->nbElems + 1 > dict->size / MAX_FILL_DENOM * MAX_FILL_NUM) {
+  [$] Executing: grep -n "ATTRIBUTE_NO_SANITIZE_INTEGER" dict.c -B 2 -A 2 | head -20
+      -> RC=2 | STDOUT: dict.c-448- *****************************************************************/ dict.c-449- dict.c:450:ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-451-static ...
+
+  --- [Planner Turn 10/15] ---
+  [>] Action: final_plan
+  [?] Reason: No reasoning provided
+  [=] Planner produced final plan.
+[+] Plan Accepted by DCV.
+
+[DEBUG] Starting Builder...
+
+  --- [Builder Turn 1/50] ---
+  [>] Action: shell
+  [$] Executing: cat dict.c | head -n 600 | tail -n 200
+      -> RC=1
+
+  --- [Builder Turn 2/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 100 | head -n 150
+      -> RC=2
+
+  --- [Builder Turn 3/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c
+      -> RC=1
+
+  --- [Builder Turn 4/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c
+      -> RC=1
+
+  --- [Builder Turn 5/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c
+      -> RC=1
+
+  --- [Builder Turn 6/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c
+      -> RC=1
+
+  --- [Builder Turn 7/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200 | head -n 250
+      -> RC=2
+
+  --- [Builder Turn 8/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 9/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 10/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 11/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 12/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 13/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 14/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 15/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200 | head -n 250
+      -> RC=2
+
+  --- [Builder Turn 16/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 17/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 18/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 19/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 20/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 21/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 22/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 23/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 24/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 25/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 26/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200 | head -n 250
+      -> RC=2
+
+  --- [Builder Turn 27/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 28/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 29/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 30/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 31/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 32/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 33/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 34/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200 | head -n 250
+      -> RC=2
+
+  --- [Builder Turn 35/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 36/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 37/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 38/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 39/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 40/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 41/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 42/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 43/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 44/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200 | head -n 250
+      -> RC=2
+
+  --- [Builder Turn 45/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 46/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 47/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 48/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 49/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200
+      -> RC=1
+
+  --- [Builder Turn 50/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'static xmlDictEntry \*xmlDictFindEntry' dict.c -A 200 | head -n 250
+      -> RC=2
+[DEBUG] Builder FAILED. Error:
+<No compilation error captured (Builder may have timed out)>
+
+[=] CYCLE 2/5
+[i] Planner (replan=0)
+
+  --- [Planner Turn 1/15] ---
+  [>] Action: shell
+  [?] Reason: Need to locate struct definitions for xmlDictEntry and xmlDict, and understand xmlChar type. The target line uses entry->name and entry->hashValue, so we need the exact struct layout. Also need to find header files for typedefs.
+  [$] Executing: grep -n "struct xmlDictEntry" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct xmlDict" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "typedef.*xmlDict" dict.c
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44:typedef xmlDictStrings *xmlDictStringsPtr; 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: grep -n "typedef.*xmlDictEntry" dict.c
+      -> RC=0 | STDOUT: 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: grep -n "xmlChar" dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-42- dict.c-43-typedef struct _xmlDictStrings xmlDictStrings; dict.c-44-typedef xmlDictStrings *xmlDictStringsPtr; dict.c-45-struct _xmlDictStri...
+  [$] Executing: find . -name "*.h" -exec grep -l "xmlDict" {} \; | head -10
+      -> RC=1 | STDOUT: 
+
+  --- [Planner Turn 2/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the definition of xmlHashedString (since xmlDictEntry is a typedef for it) and locate dict.h for struct definitions. Also get initial lines of dict.c to see includes.
+  [$] Executing: grep -r "struct xmlHashedString" .
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -r "typedef.*xmlHashedString" .
+      -> RC=0 | STDOUT: ./dict.c:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: find . -name "dict.h"
+      -> RC=0 | STDOUT: ./include/private/dict.h ./include/libxml/dict.h
+  [$] Executing: cat dict.c | head -100
+      -> RC=1 | STDOUT: 
+
+  --- [Planner Turn 3/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the exact struct definitions for xmlHashedString and xmlDict to understand the layout of entry->name and dict->table. The target line uses entry->name[len] and entry->hashValue. The typedef in dict.c says xmlDictEntry is xmlHashedString, but we need the struct definition. Also need to understand xmlDict to initialize dict->table and dict->size.
+  [$] Executing: grep -n "struct xmlHashedString" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct xmlHashedString" ./include/libxml/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h
+      -> RC=0 | STDOUT: 51:} xmlHashedString; 60:xmlHashedString
+  [$] Executing: grep -n "xmlHashedString" ./include/libxml/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct _xmlDict" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct _xmlDict" ./include/libxml/dict.h
+      -> RC=0 | STDOUT: 25:typedef struct _xmlDict xmlDict;
+  [$] Executing: grep -n "xmlDictPtr" ./include/private/dict.h | head -5
+      -> RC=2 | STDOUT: ./include/private/dict.h-56-xmlCleanupDictInternal(void); ./include/private/dict.h-57- ./include/private/dict.h-58-unsigned ./include/private/dict.h-5...
+  [$] Executing: grep -n "xmlDictPtr" ./include/libxml/dict.h | head -5
+      -> RC=2 | STDOUT: ./include/libxml/dict.h-21- ./include/libxml/dict.h-22-/* ./include/libxml/dict.h-23- * The dictionary. ./include/libxml/dict.h-24- */ ./include/libxm...
+
+  --- [Planner Turn 4/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the exact struct definitions for xmlHashedString and xmlDict to understand the layout of entry->name and dict->table. Also need to see xmlChar definition (likely unsigned char).
+  [$] Executing: grep -n "struct xmlHashedString" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct _xmlDict" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlDictEntry" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlChar" ./include/private/dict.h | head -5
+      -> RC=2 | STDOUT: ./include/private/dict.h-45-        h2 &= 0xFFFFFFFF; \ ./include/private/dict.h-46-    } while (0) ./include/private/dict.h-47- ./include/private/dic...
+
+  --- [Planner Turn 5/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the exact struct definitions for xmlDict and xmlHashedString (which is typedef'd to xmlDictEntry). Also need to see the full xmlHashedString struct definition from the private header to understand the layout (hashValue, name).
+  [$] Executing: grep -n "struct _xmlDict" dict.c
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 45:struct _xmlDictStrings { 59:struct _xmlDict { 67:    struct _xmlDict *subdict;
+  [$] Executing: grep -n "xmlDictEntry" dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-49-    size_t size; dict.c-50-    size_t nbStrings; dict.c-51-    xmlChar array[1]; dict.c-52-}; dict.c-53- dict.c:54:typedef xmlHashedString x...
+  [$] Executing: grep -n "xmlHashedString" dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-49-    size_t size; dict.c-50-    size_t nbStrings; dict.c-51-    xmlChar array[1]; dict.c-52-}; dict.c-53- dict.c:54:typedef xmlHashedString x...
+  [$] Executing: cat ./include/private/dict.h | head -70
+      -> RC=1 | STDOUT: 
+
+  --- [Planner Turn 6/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find exact struct definitions for xmlDict and xmlHashedString, and confirm the target function signature and location.
+  [$] Executing: grep -n "struct _xmlDict" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h
+      -> RC=0 | STDOUT: 51:} xmlHashedString; 60:xmlHashedString
+  [$] Executing: grep -n "xmlChar" ./include/private/dict.h | head -n 10
+      -> RC=2 | STDOUT: ./include/private/dict.h:50:    const xmlChar *name; ./include/private/dict.h:59:xmlDictComputeHash(const xmlDict *dict, const xmlChar *string); ./inc...
+  [$] Executing: grep -n "xmlDictEntry" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c | head -n 5
+      -> RC=2 | STDOUT: dict.c:502: * xmlDictFindEntry: dict.c:516:xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, dict.c:678:        entry = xmlDictFindEntry(di...
+
+  --- [Planner Turn 7/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find exact struct definitions for xmlHashedString and xmlDict to embed in harness. Also need to see if xmlDictEntry is defined in private header.
+  [$] Executing: grep -n "struct _xmlDict" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h -A 5 -B 5
+      -> RC=0 | STDOUT: 46-    } while (0) 47- 48-typedef struct { 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void 54-xmlI...
+  [$] Executing: grep -n "xmlDictEntry" ./include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlChar" ./include/private/dict.h | grep -v "grep" | head -n 10
+      -> RC=2 | STDOUT: ./include/private/dict.h:1:#ifndef XML_DICT_H_PRIVATE__ ./include/private/dict.h:2:#define XML_DICT_H_PRIVATE__ ./include/private/dict.h:3: ./include/...
+
+  --- [Planner Turn 8/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definitions for xmlDict and xmlHashedString, and the full signature of xmlDictFindEntry to understand the target function and its dependencies.
+  [$] Executing: grep -n "struct _xmlDict" dict.c -A 20
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44-typedef xmlDictStrings *xmlDictStringsPtr; 45:struct _xmlDictStrings { 46-    xmlDictStringsPtr n...
+  [$] Executing: grep -n "xmlChar" ./include/private/dict.h | grep -v "grep" | head -n 5
+      -> RC=2 | STDOUT: ./include/private/dict.h:1:#ifndef XML_DICT_H_PRIVATE__ ./include/private/dict.h:2:#define XML_DICT_H_PRIVATE__ ./include/private/dict.h:3: ./include/...
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c -B 5 -A 5
+      -> RC=0 | STDOUT: 497-    size_t len; 498-    return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); 499-} 500- 501-/** 502: * xmlDictFindEntry: 503- * @dict: dic...
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h -B 2 -A 2
+      -> RC=0 | STDOUT: 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void -- 58-unsigned 59-xmlDictComputeHash(const xmlDict...
+
+  --- [Planner Turn 9/15] ---
+  [>] Action: shell
+  [?] Reason: Need to see the exact struct definitions for xmlHashedString and xmlDict, and the full xmlDictFindEntry function to understand the data layout and the vulnerable line context.
+  [$] Executing: grep -n "xmlChar" ./include/private/dict.h | head -n 10
+      -> RC=2 | STDOUT: ./include/private/dict.h:50:    const xmlChar *name; ./include/private/dict.h:59:xmlDictComputeHash(const xmlDict *dict, const xmlChar *string); ./inc...
+  [$] Executing: grep -n "struct _xmlDict" dict.c -A 30
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44-typedef xmlDictStrings *xmlDictStringsPtr; 45:struct _xmlDictStrings { 46-    xmlDictStringsPtr n...
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:502: * xmlDictFindEntry: dict.c-503- * @dict: dict dict.c-504- * @prefix: optional QName prefix dict.c-505- * @name: string dict.c-506- * @len:...
+
+  --- [Planner Turn 10/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definitions for xmlHashedString (xmlDictEntry) and _xmlDict to embed in harness. Also need full function body of xmlDictFindEntry to embed.
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h -B 5 -A 5
+      -> RC=0 | STDOUT: 46-    } while (0) 47- 48-typedef struct { 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void 54-xmlI...
+  [$] Executing: grep -n "xmlChar" ./include/private/dict.h | grep -v "grep" | head -n 5
+      -> RC=2 | STDOUT: ./include/private/dict.h:1:#ifndef XML_DICT_H_PRIVATE__ ./include/private/dict.h:2:#define XML_DICT_H_PRIVATE__ ./include/private/dict.h:3: ./include/...
+  [$] Executing: grep -n "struct _xmlDict" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:43:typedef struct _xmlDictStrings xmlDictStrings; dict.c-44-typedef xmlDictStrings *xmlDictStringsPtr; dict.c:45:struct _xmlDictStrings { dict....
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:502: * xmlDictFindEntry: dict.c-503- * @dict: dict dict.c-504- * @prefix: optional QName prefix dict.c-505- * @name: string dict.c-506- * @len:...
+
+  --- [Planner Turn 11/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definitions for xmlHashedString (which is xmlDictEntry) and _xmlDict to embed in harness. Also need full function body of xmlDictFindEntry to embed.
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h -B 2 -A 2
+      -> RC=0 | STDOUT: 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void -- 58-unsigned 59-xmlDictComputeHash(const xmlDict...
+  [$] Executing: grep -n "struct _xmlDict" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:43:typedef struct _xmlDictStrings xmlDictStrings; dict.c-44-typedef xmlDictStrings *xmlDictStringsPtr; dict.c:45:struct _xmlDictStrings { dict....
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:502: * xmlDictFindEntry: dict.c-503- * @dict: dict dict.c-504- * @prefix: optional QName prefix dict.c-505- * @name: string dict.c-506- * @len:...
+
+  --- [Planner Turn 12/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definitions for xmlHashedString (which is xmlDictEntry) and _xmlDict to embed in harness. Also need full function body of xmlDictFindEntry to embed.
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h -B 5 -A 5
+      -> RC=0 | STDOUT: 46-    } while (0) 47- 48-typedef struct { 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void 54-xmlI...
+  [$] Executing: grep -n "struct _xmlDict" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:43:typedef struct _xmlDictStrings xmlDictStrings; dict.c-44-typedef xmlDictStrings *xmlDictStringsPtr; dict.c:45:struct _xmlDictStrings { dict....
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c -A 30 | head -40
+      -> RC=2 | STDOUT: dict.c:502: * xmlDictFindEntry: dict.c-503- * @dict: dict dict.c-504- * @prefix: optional QName prefix dict.c-505- * @name: string dict.c-506- * @len:...
+
+  --- [Planner Turn 13/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definitions for xmlHashedString (xmlDictEntry) and _xmlDict to embed in harness. Also need full body of xmlDictFindEntry (target function) to understand its dependencies and embed it.
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h -B 10 -A 10
+      -> RC=0 | STDOUT: 41-        h1 += HASH_ROL(h2, 14); \ 42-        h2 ^= h1; h2 += HASH_ROR(h1, 6); \ 43-        h1 ^= h2; h1 += HASH_ROL(h2, 5); \ 44-        h2 ^= h1; ...
+  [$] Executing: grep -n "struct _xmlDict" dict.c -B 5 -A 30
+      -> RC=0 | STDOUT: 38-#define MAX_FILL_NUM 7 39-#define MAX_FILL_DENOM 8 40-#define MIN_HASH_SIZE 8 41-#define MAX_HASH_SIZE (1u << 31) 42- 43:typedef struct _xmlDictStr...
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c -B 5 -A 50 | head -80
+      -> RC=2 | STDOUT: dict.c-497-    size_t len; dict.c-498-    return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); dict.c-499-} dict.c-500- dict.c-501-/** dict.c:...
+
+  --- [Planner Turn 14/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definitions for xmlHashedString (xmlDictEntry) and _xmlDict to embed in harness. Also need full function body of xmlDictFindEntry (target function) to embed.
+  [$] Executing: grep -n "xmlHashedString" ./include/private/dict.h -B 2 -A 2
+      -> RC=0 | STDOUT: 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void -- 58-unsigned 59-xmlDictComputeHash(const xmlDict...
+  [$] Executing: grep -n "struct _xmlDict" dict.c -B 5 -A 30
+      -> RC=0 | STDOUT: 38-#define MAX_FILL_NUM 7 39-#define MAX_FILL_DENOM 8 40-#define MIN_HASH_SIZE 8 41-#define MAX_HASH_SIZE (1u << 31) 42- 43:typedef struct _xmlDictStr...
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c -B 5 -A 50 | head -80
+      -> RC=2 | STDOUT: dict.c-497-    size_t len; dict.c-498-    return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); dict.c-499-} dict.c-500- dict.c-501-/** dict.c:...
+
+  --- [Planner Turn 15/15] ---
+  [>] Action: shell
+  [?] Reason: Need to confirm exact struct definitions for xmlHashedString (xmlDictEntry) and xmlDict, and the full function body of xmlDictFindEntry to understand the vulnerable line context and required types.
+  [$] Executing: grep -n 'xmlChar' ./include/private/dict.h | grep -v 'grep' | head -n 5
+      -> RC=2 | STDOUT: ./include/private/dict.h:1:#ifndef XML_DICT_H_PRIVATE__ ./include/private/dict.h:2:#define XML_DICT_H_PRIVATE__ ./include/private/dict.h:3: ./include/...
+  [$] Executing: grep -n 'xmlHashedString' ./include/private/dict.h -B 2 -A 2
+      -> RC=0 | STDOUT: 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void -- 58-unsigned 59-xmlDictComputeHash(const xmlDict...
+  [$] Executing: grep -n 'struct _xmlDict' dict.c -B 5 -A 30
+      -> RC=0 | STDOUT: 38-#define MAX_FILL_NUM 7 39-#define MAX_FILL_DENOM 8 40-#define MIN_HASH_SIZE 8 41-#define MAX_HASH_SIZE (1u << 31) 42- 43:typedef struct _xmlDictStr...
+  [$] Executing: grep -n 'xmlDictFindEntry' dict.c -B 5 -A 50 | head -80
+      -> RC=2 | STDOUT: dict.c-497-    size_t len; dict.c-498-    return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); dict.c-499-} dict.c-500- dict.c-501-/** dict.c:...
+[-] Planner failed: Planner max iterations exceeded
+[i] Planner (replan=1)
+
+  --- [Planner Turn 1/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the exact struct definitions for xmlDictEntry and xmlDict to understand the layout of entry->name and dict->table. The target line uses entry->name[len], so we need to know the capacity of entry->name. Also need to understand dict->size and dict->table.
+  [$] Executing: grep -n "struct xmlDictEntry" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct xmlDict" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "typedef.*xmlDict" dict.c
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44:typedef xmlDictStrings *xmlDictStringsPtr; 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: grep -n "typedef.*xmlDictEntry" dict.c
+      -> RC=0 | STDOUT: 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: grep -r "struct xmlDictEntry" .
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -r "struct xmlDict" .
+      -> RC=1 | STDOUT: 
+
+  --- [Planner Turn 2/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find struct definitions for xmlDict and xmlHashedString, and locate the xmlDictLookup function to understand the entrypoint and data structures.
+  [$] Executing: grep -r "struct _xmlDict" .
+      -> RC=0 | STDOUT: ./dict.c:typedef struct _xmlDictStrings xmlDictStrings; ./dict.c:struct _xmlDictStrings { ./dict.c:struct _xmlDict { ./dict.c:    struct _xmlDict *sub...
+  [$] Executing: grep -r "xmlHashedString" .
+      -> RC=0 | STDOUT: ./dict.c:typedef xmlHashedString xmlDictEntry; ./dict.c:xmlHashedString ./dict.c:    xmlHashedString ret; ./include/private/dict.h:} xmlHashedString; ...
+  [$] Executing: grep -n "xmlDictLookup" dict.c
+      -> RC=0 | STDOUT: 635: * xmlDictLookupInternal: 646:xmlDictLookupInternal(xmlDictPtr dict, const xmlChar *prefix, 781: * xmlDictLookup: 792:xmlDictLookup(xmlDictPtr dic...
+  [$] Executing: head -n 100 dict.c | cat
+      -> RC=1 | STDOUT: ==> dict.c <== /*  * dict.c: dictionary of reusable strings, just used to avoid allocation  *         and freeing operations.  *  * Copyright (C) 2003...
+
+  --- [Planner Turn 3/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact definition of xmlHashedString to understand entry->name layout, and confirm full function signature of xmlDictFindEntry.
+  [$] Executing: grep -n "struct xmlHashedString" include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: cat include/private/dict.h
+      -> RC=0 | STDOUT: #ifndef XML_DICT_H_PRIVATE__ #define XML_DICT_H_PRIVATE__  #include <libxml/dict.h>  /*  * Values are ANDed with 0xFFFFFFFF to support platforms where...
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c | head -n 5
+      -> RC=2 | STDOUT: dict.c:502: * xmlDictFindEntry: dict.c:516:xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, dict.c:678:        entry = xmlDictFindEntry(di...
+  [$] Executing: sed -n '516,565p' dict.c
+      -> RC=0 | STDOUT: xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,                  const xmlChar *name, int len, unsigned hashValue,                  int *...
+
+  --- [Planner Turn 4/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual (used in else branch) and xmlDictComputeHash (likely used by caller). Also need to see xmlChar definition (likely typedef).
+  [$] Executing: grep -n 'xmlStrQEqual' dict.c
+      -> RC=0 | STDOUT: 547:                    if (xmlStrQEqual(prefix, name, entry->name)) {
+  [$] Executing: grep -n 'xmlDictComputeHash' dict.c
+      -> RC=0 | STDOUT: 496:xmlDictComputeHash(const xmlDict *dict, const xmlChar *string) {
+  [$] Executing: sed -n '1,100p' dict.c | grep -n 'xmlChar'
+      -> RC=2 | STDOUT: /*  * dict.c: dictionary of reusable strings, just used to avoid allocation  *         and freeing operations.  *  * Copyright (C) 2003-2012 Daniel Ve...
+
+  --- [Planner Turn 5/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual signature and xmlChar type to stub it. Also need to see if xmlChar is defined (likely unsigned char).
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h
+      -> RC=0 | STDOUT: 81:                xmlStrQEqual             (const xmlChar *pref,
+  [$] Executing: grep -n 'xmlChar' include/libxml/xmlstring.h | head -n 5
+      -> RC=2 | STDOUT: include/libxml/xmlstring.h:22: * xmlChar: include/libxml/xmlstring.h:26: * to xmlChar * (possibly making serialization back impossible). include/libxm...
+  [$] Executing: cat include/libxml/xmlstring.h | head -n 50
+      -> RC=1 | STDOUT: 1	/*      2	 * Summary: set of routines to process strings      3	 * Description: type and interfaces needed for the internal string handling      4	 ...
+
+  --- [Planner Turn 6/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual signature and body, xmlDictComputeHash body, and xmlDictLookupInternal to see how it calls xmlDictFindEntry. This is essential for embedding or stubbing functions that are on the path to the target line.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h
+      -> RC=0 | STDOUT: 81:                xmlStrQEqual             (const xmlChar *pref,
+  [$] Executing: sed -n '/xmlStrQEqual/,/^[^ ]/p' include/libxml/xmlstring.h | head -n 10
+      -> RC=2 | STDOUT: xmlStrQEqual             (const xmlChar *pref,                                          const xmlChar *name,                                          ...
+  [$] Executing: grep -n 'xmlDictComputeHash' dict.c
+      -> RC=0 | STDOUT: 496:xmlDictComputeHash(const xmlDict *dict, const xmlChar *string) {
+  [$] Executing: sed -n '496,502p' dict.c
+      -> RC=0 | STDOUT: xmlDictComputeHash(const xmlDict *dict, const xmlChar *string) {     size_t len;     return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); }  /...
+  [$] Executing: grep -n 'xmlDictLookupInternal' dict.c
+      -> RC=0 | STDOUT: 635: * xmlDictLookupInternal: 646:xmlDictLookupInternal(xmlDictPtr dict, const xmlChar *prefix, 795:    entry = xmlDictLookupInternal(dict, NULL, name...
+  [$] Executing: sed -n '635,680p' dict.c
+      -> RC=0 | STDOUT: * xmlDictLookupInternal:  * @dict: dict  * @prefix: optional QName prefix  * @name: string  * @maybeLen: length of string or -1 if unknown  * @update:...
+
+  --- [Planner Turn 7/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand hash functions and xmlStrQEqual signature to decide what to embed/stub. Also need xmlChar definition for standalone harness.
+  [$] Executing: grep -n 'xmlDictHashName' dict.c
+      -> RC=0 | STDOUT: 452:xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen, 498:    return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); 660:      ...
+  [$] Executing: grep -n 'xmlDictHashQName' dict.c
+      -> RC=0 | STDOUT: 471:xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *name, 665:        hashValue = xmlDictHashQName(dict->seed, prefix, name, &pl...
+  [$] Executing: sed -n '1,50p' dict.c | grep -n 'xmlChar'
+      -> RC=2 | STDOUT: /*  * dict.c: dictionary of reusable strings, just used to avoid allocation  *         and freeing operations.  *  * Copyright (C) 2003-2012 Daniel Ve...
+  [$] Executing: cat include/libxml/xmlstring.h | grep -A 3 'xmlStrQEqual'
+      -> RC=1 | STDOUT: /*$  * Summary: set of routines to process strings$  * Description: type and interfaces needed for the internal string handling$  *              of th...
+
+  --- [Planner Turn 8/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact prototype of xmlStrQEqual to stub it, and bodies of hash functions to embed them (they are used to compute hashValue). Also need to understand xmlDictHashName and xmlDictHashQName to see if they affect feasibility.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 3
+      -> RC=0 | STDOUT: 81:                xmlStrQEqual             (const xmlChar *pref, 82-                                         const xmlChar *name, 83-                ...
+  [$] Executing: sed -n '452,470p' dict.c
+      -> RC=0 | STDOUT: xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen,                 size_t *plen) {     unsigned h1, h2;     size_t i;      HASH_INIT(h...
+  [$] Executing: sed -n '471,495p' dict.c
+      -> RC=0 | STDOUT: xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *name,                  size_t *pplen, size_t *plen) {     unsigned h1, h2;     s...
+  [$] Executing: grep -n 'xmlDictHashName' dict.c -A 20 | head -n 30
+      -> RC=2 | STDOUT: dict.c:452:xmlDictHashName(unsigned seed, const xmlChar* data, size_t maxLen, dict.c-453-                size_t *plen) { dict.c-454-    unsigned h1, h...
+  [$] Executing: grep -n 'xmlDictHashQName' dict.c -A 20 | head -n 30
+      -> RC=2 | STDOUT: dict.c:471:xmlDictHashQName(unsigned seed, const xmlChar *prefix, const xmlChar *name, dict.c-472-                 size_t *pplen, size_t *plen) { dict...
+
+  --- [Planner Turn 9/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand the functions called by xmlDictLookupInternal (xmlDictAddString, xmlDictAddQString, xmlDictGrow) to decide whether to embed or stub. Also need to confirm xmlChar definition for standalone harness.
+  [$] Executing: grep -n 'xmlDictAddString' dict.c
+      -> RC=0 | STDOUT: 124: * xmlDictAddString: 134:xmlDictAddString(xmlDictPtr dict, const xmlChar *name, unsigned int namelen) { 702:        ret = xmlDictAddString(dict, n...
+  [$] Executing: grep -n 'xmlDictAddQString' dict.c
+      -> RC=0 | STDOUT: 180: * xmlDictAddQString: 192:xmlDictAddQString(xmlDictPtr dict, const xmlChar *prefix, unsigned int plen, 704:        ret = xmlDictAddQString(dict, p...
+  [$] Executing: grep -n 'xmlDictGrow' dict.c
+      -> RC=0 | STDOUT: 568: * xmlDictGrow: 577:xmlDictGrow(xmlDictPtr dict, unsigned size) { 721:        if (xmlDictGrow(dict, newSize) != 0)
+  [$] Executing: grep -n 'xmlDictEntry' dict.c | head -n 5
+      -> RC=2 | STDOUT: dict.c:54:typedef xmlHashedString xmlDictEntry; dict.c:62:    xmlDictEntry *table; dict.c:515:static xmlDictEntry * dict.c:519:    xmlDictEntry *entry...
+  [$] Executing: sed -n '1,100p' dict.c | grep -n 'xmlChar'
+      -> RC=2 | STDOUT: /*  * dict.c: dictionary of reusable strings, just used to avoid allocation  *         and freeing operations.  *  * Copyright (C) 2003-2012 Daniel Ve...
+
+  --- [Planner Turn 10/15] ---
+  [>] Action: shell
+  [?] Reason: Need to see the bodies of xmlDictAddString, xmlDictAddQString, and xmlDictGrow to decide whether to embed or stub them. Also need to understand how strings are stored to model entry->name length.
+  [$] Executing: sed -n '124,180p' dict.c
+      -> RC=0 | STDOUT: * xmlDictAddString:  * @dict: the dictionary  * @name: the name of the userdata  * @len: the length of the name  *  * Add the string to the array[s]  ...
+  [$] Executing: sed -n '180,240p' dict.c
+      -> RC=0 | STDOUT: * xmlDictAddQString:  * @dict: the dictionary  * @prefix: the prefix of the userdata  * @plen: the prefix length  * @name: the name of the userdata  *...
+  [$] Executing: sed -n '568,620p' dict.c
+      -> RC=0 | STDOUT: * xmlDictGrow:  * @dict: dictionary  * @size: new size of the dictionary  *  * Resize the dictionary hash table.  *  * Returns 0 in case of success, -...
+  [$] Executing: grep -n 'xmlDictAddString' dict.c -A 30 | head -n 40
+      -> RC=2 | STDOUT: dict.c:124: * xmlDictAddString: dict.c-125- * @dict: the dictionary dict.c-126- * @name: the name of the userdata dict.c-127- * @len: the length of th...
+  [$] Executing: grep -n 'xmlDictAddQString' dict.c -A 30 | head -n 40
+      -> RC=2 | STDOUT: dict.c:180: * xmlDictAddQString: dict.c-181- * @dict: the dictionary dict.c-182- * @prefix: the prefix of the userdata dict.c-183- * @plen: the prefix...
+
+  --- [Planner Turn 11/15] ---
+  [>] Action: None
+  [?] Reason: No reasoning provided
+[-] Planner failed: Planner output invalid action: None
+[i] Planner (replan=2)
+
+  --- [Planner Turn 1/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find struct definitions for xmlDictEntry and xmlDict, and understand xmlChar type. Also locate header files for broader context.
+  [$] Executing: grep -n "struct xmlDictEntry" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "struct xmlDict" dict.c
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "typedef.*xmlDict" dict.c
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44:typedef xmlDictStrings *xmlDictStringsPtr; 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: grep -n "typedef.*xmlDictEntry" dict.c
+      -> RC=0 | STDOUT: 54:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: grep -n "xmlChar" dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-42- dict.c-43-typedef struct _xmlDictStrings xmlDictStrings; dict.c-44-typedef xmlDictStrings *xmlDictStringsPtr; dict.c-45-struct _xmlDictStri...
+  [$] Executing: find . -name "*.h" -exec grep -l "xmlDict" {} \; | head -10
+      -> RC=1 | STDOUT: 
+
+  --- [Planner Turn 2/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the definition of xmlHashedString (since xmlDictEntry is a typedef for it) and locate dict.h for struct definitions. Also get the beginning of dict.c to see includes and macros.
+  [$] Executing: grep -r "struct xmlHashedString" .
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -r "typedef.*xmlHashedString" .
+      -> RC=0 | STDOUT: ./dict.c:typedef xmlHashedString xmlDictEntry;
+  [$] Executing: find . -name "dict.h"
+      -> RC=0 | STDOUT: ./include/private/dict.h ./include/libxml/dict.h
+  [$] Executing: cat dict.c | head -100
+      -> RC=1 | STDOUT: 
+
+  --- [Planner Turn 3/15] ---
+  [>] Action: shell
+  [?] Reason: Need to see the beginning of dict.c for includes and macros, find the definition of xmlHashedString, understand xmlChar type, and confirm the target function signature.
+  [$] Executing: head -n 100 dict.c
+      -> RC=0 | STDOUT: /*  * dict.c: dictionary of reusable strings, just used to avoid allocation  *         and freeing operations.  *  * Copyright (C) 2003-2012 Daniel Ve...
+  [$] Executing: grep -n "struct xmlHashedString" include/private/dict.h include/libxml/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlChar" include/libxml/xmlstring.h
+      -> RC=0 | STDOUT: 22: * xmlChar: 26: * to xmlChar * (possibly making serialization back impossible). 28:typedef unsigned char xmlChar; 33: * Macro to cast a string to a...
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-497-    size_t len; dict.c-498-    return(xmlDictHashName(dict->seed, string, SIZE_MAX, &len)); dict.c-499-} dict.c-500- dict.c-501-/** dict.c:...
+
+  --- [Planner Turn 4/15] ---
+  [>] Action: shell
+  [?] Reason: Need to find the definition of xmlHashedString (since xmlDictEntry is a typedef of it) and confirm the exact line number of xmlDictFindEntry to embed its full body.
+  [$] Executing: grep -n "struct xmlHashedString" include/private/dict.h
+      -> RC=1 | STDOUT: 
+  [$] Executing: grep -n "xmlHashedString" include/private/dict.h
+      -> RC=0 | STDOUT: 51:} xmlHashedString; 60:xmlHashedString
+  [$] Executing: cat include/private/dict.h
+      -> RC=0 | STDOUT: #ifndef XML_DICT_H_PRIVATE__ #define XML_DICT_H_PRIVATE__  #include <libxml/dict.h>  /*  * Values are ANDed with 0xFFFFFFFF to support platforms where...
+  [$] Executing: grep -n "xmlDictFindEntry" dict.c | sed -n '1p'
+      -> RC=2 | STDOUT: dict.c:502: * xmlDictFindEntry: dict.c:516:xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, dict.c:678:        entry = xmlDictFindEntry(di...
+
+  --- [Planner Turn 5/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact function body of xmlDictFindEntry, struct _xmlDict definition, and xmlDictEntry typedef details to understand the data structures and embed them.
+  [$] Executing: grep -n 'xmlDictFindEntry' dict.c | head -1
+      -> RC=2 | STDOUT: dict.c-501-/** dict.c:502: * xmlDictFindEntry: dict.c-503- * @dict: dict -- dict.c-515-static xmlDictEntry * dict.c:516:xmlDictFindEntry(const xmlDict...
+  [$] Executing: sed -n '516,565p' dict.c
+      -> RC=0 | STDOUT: xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,                  const xmlChar *name, int len, unsigned hashValue,                  int *...
+  [$] Executing: grep -n 'struct _xmlDict' dict.c
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 45:struct _xmlDictStrings { 59:struct _xmlDict { 67:    struct _xmlDict *subdict;
+  [$] Executing: grep -n 'xmlDictEntry' dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-49-    size_t size; dict.c-50-    size_t nbStrings; dict.c-51-    xmlChar array[1]; dict.c-52-}; dict.c-53- dict.c:54:typedef xmlHashedString x...
+
+  --- [Planner Turn 6/15] ---
+  [>] Action: shell
+  [?] Reason: Need the exact layout of struct _xmlDict to initialize dict->table and size. Also need to understand xmlStrQEqual to decide whether to embed or stub.
+  [$] Executing: grep -n 'struct _xmlDict' dict.c -A 20
+      -> RC=0 | STDOUT: 43:typedef struct _xmlDictStrings xmlDictStrings; 44-typedef xmlDictStrings *xmlDictStringsPtr; 45:struct _xmlDictStrings { 46-    xmlDictStringsPtr n...
+  [$] Executing: grep -n 'xmlStrQEqual' dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-542-                        (entry->name[len] == 0)) { dict.c-543-                        found = 1; dict.c-544-                        break; ...
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h
+      -> RC=0 | STDOUT: 81:                xmlStrQEqual             (const xmlChar *pref,
+
+  --- [Planner Turn 7/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual prototype for stub, and see if xmlMutex functions are used in target function (they are not, but need to know if we need to stub them). Also check macro definition for ATTRIBUTE_NO_SANITIZE_INTEGER.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 2 -B 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: grep -n 'xmlMutex' dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-73- dict.c-74-/* dict.c-75- * A mutex for modifying the reference counter for shared dict.c-76- * dictionaries. dict.c-77- */ dict.c:78:static ...
+  [$] Executing: grep -n 'xmlInitMutex' dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-93- * dict.c-94- * Initialize mutex. dict.c-95- */ dict.c-96-void dict.c-97-xmlInitDictInternal(void) { dict.c:98:    xmlInitMutex(&xmlDictMute...
+  [$] Executing: grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -2
+      -> RC=2 | STDOUT: dict.c-448- *****************************************************************/ dict.c-449- dict.c:450:ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-451-static ...
+
+  --- [Planner Turn 8/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual signature for stub, xmlMutex type for static variable, full struct _xmlDict layout, and entrypoint xmlDictLookup (spec mentions entrypoint xmlDictLookup).
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 5 -B 5
+      -> RC=0 | STDOUT: 76-                                         int len); 77-XMLPUBFUN int 78-                xmlStrEqual              (const xmlChar *str1, 79-          ...
+  [$] Executing: grep -n 'xmlMutex' include/libxml/threads.h 2>/dev/null || echo 'threads.h not found'
+      -> RC=2 | STDOUT: include/libxml/threads.h:21: * xmlMutex are a simple mutual exception locks. include/libxml/threads.h:23:typedef struct _xmlMutex xmlMutex; include/li...
+  [$] Executing: grep -n 'typedef.*xmlMutex' include/libxml/threads.h 2>/dev/null || echo 'no typedef'
+      -> RC=2 | STDOUT: include/libxml/threads.h:23:typedef struct _xmlMutex xmlMutex; include/libxml/threads.h:24:typedef xmlMutex *xmlMutexPtr;
+  [$] Executing: grep -n 'struct _xmlDict' dict.c -A 15 | head -30
+      -> RC=2 | STDOUT: dict.c:43:typedef struct _xmlDictStrings xmlDictStrings; dict.c-44-typedef xmlDictStrings *xmlDictStringsPtr; dict.c:45:struct _xmlDictStrings { dict....
+  [$] Executing: grep -n 'xmlDictLookup' dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-630- dict.c-631-    return(0); dict.c-632-} dict.c-633- dict.c-634-/** dict.c:635: * xmlDictLookupInternal: dict.c-636- * @dict: dict dict.c-63...
+
+  --- [Planner Turn 9/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual prototype, xmlMutex definition, ATTRIBUTE_NO_SANITIZE_INTEGER macro, and xmlDictLookup signature to plan embedding/stubbing.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: grep -n 'xmlMutex' include/libxml/threads.h -A 2 -B 2
+      -> RC=0 | STDOUT: 19- 20-/* 21: * xmlMutex are a simple mutual exception locks. 22- */ 23:typedef struct _xmlMutex xmlMutex; 24:typedef xmlMutex *xmlMutexPtr; 25- 26-/*...
+  [$] Executing: grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -B 2 -A 2 | head -20
+      -> RC=2 | STDOUT: dict.c-448- *****************************************************************/ dict.c-449- dict.c:450:ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-451-static ...
+  [$] Executing: sed -n '781,800p' dict.c
+      -> RC=0 | STDOUT: * xmlDictLookup:  * @dict: dictionary  * @name: string key  * @len: length of the key, if -1 it is recomputed  *  * Lookup a string and add it to the ...
+
+  --- [Planner Turn 10/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact definitions for xmlStrQEqual (used in target function), xmlMutex (used in dict.c), and ATTRIBUTE_NO_SANITIZE_INTEGER macro to embed in harness.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: grep -n 'struct _xmlMutex' include/libxml/threads.h -A 5
+      -> RC=0 | STDOUT: 23:typedef struct _xmlMutex xmlMutex; 24-typedef xmlMutex *xmlMutexPtr; 25- 26-/* 27- * xmlRMutex are reentrant mutual exception locks. 28- */
+  [$] Executing: grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -B 2 -A 2 | head -30
+      -> RC=2 | STDOUT: dict.c-448- *****************************************************************/ dict.c-449- dict.c:450:ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-451-static ...
+
+  --- [Planner Turn 11/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual prototype, xmlMutex definition, and ATTRIBUTE_NO_SANITIZE_INTEGER macro to decide what to embed/stub.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: grep -n 'struct _xmlMutex' include/libxml/threads.h -A 5
+      -> RC=0 | STDOUT: 23:typedef struct _xmlMutex xmlMutex; 24-typedef xmlMutex *xmlMutexPtr; 25- 26-/* 27- * xmlRMutex are reentrant mutual exception locks. 28- */
+  [$] Executing: grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -B 2 -A 2 | head -30
+      -> RC=2 | STDOUT: dict.c-448- *****************************************************************/ dict.c-449- dict.c:450:ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-451-static ...
+
+  --- [Planner Turn 12/15] ---
+  [>] Action: shell
+  [?] Reason: Need to understand xmlStrQEqual prototype, xmlMutex definition, and ATTRIBUTE_NO_SANITIZE_INTEGER macro to decide on stubs/embeds.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: grep -n 'struct _xmlMutex' include/libxml/threads.h -A 5
+      -> RC=0 | STDOUT: 23:typedef struct _xmlMutex xmlMutex; 24-typedef xmlMutex *xmlMutexPtr; 25- 26-/* 27- * xmlRMutex are reentrant mutual exception locks. 28- */
+  [$] Executing: grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c -B 2 -A 2 | head -30
+      -> RC=2 | STDOUT: dict.c-448- *****************************************************************/ dict.c-449- dict.c:450:ATTRIBUTE_NO_SANITIZE_INTEGER dict.c-451-static ...
+
+  --- [Planner Turn 13/15] ---
+  [>] Action: shell
+  [?] Reason: Need exact struct definition of xmlHashedString, prototype of xmlStrQEqual, full body of xmlDictFindEntry, and the body of xmlDictLookupInternal to understand the call chain and data flow.
+  [$] Executing: grep -n 'xmlHashedString' include/private/dict.h -A 5 -B 5
+      -> RC=0 | STDOUT: 46-    } while (0) 47- 48-typedef struct { 49-    unsigned hashValue; 50-    const xmlChar *name; 51:} xmlHashedString; 52- 53-XML_HIDDEN void 54-xmlI...
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: sed -n '516,565p' dict.c
+      -> RC=0 | STDOUT: xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,                  const xmlChar *name, int len, unsigned hashValue,                  int *...
+  [$] Executing: grep -n 'xmlDictLookupInternal' dict.c | head -5
+      -> RC=2 | STDOUT: dict.c-630- dict.c-631-    return(0); dict.c-632-} dict.c-633- dict.c-634-/** dict.c:635: * xmlDictLookupInternal: dict.c-636- * @dict: dict dict.c-63...
+  [$] Executing: sed -n '645,778p' dict.c
+      -> RC=0 | STDOUT: static const xmlDictEntry * xmlDictLookupInternal(xmlDictPtr dict, const xmlChar *prefix,                       const xmlChar *name, int maybeLen, int...
+
+  --- [Planner Turn 14/15] ---
+  [>] Action: shell
+  [?] Reason: Need to see the full xmlStrQEqual prototype, xmlMutex definition, and the full xmlDictLookupInternal function to understand dependencies for embedding/stubbing.
+  [$] Executing: grep -n 'xmlStrQEqual' include/libxml/xmlstring.h -A 10 -B 2
+      -> RC=0 | STDOUT: 79-                                         const xmlChar *str2); 80-XMLPUBFUN int 81:                xmlStrQEqual             (const xmlChar *pref, 8...
+  [$] Executing: grep -n 'struct _xmlMutex' include/libxml/threads.h -A 5
+      -> RC=0 | STDOUT: 23:typedef struct _xmlMutex xmlMutex; 24-typedef xmlMutex *xmlMutexPtr; 25- 26-/* 27- * xmlRMutex are reentrant mutual exception locks. 28- */
+  [$] Executing: sed -n '645,778p' dict.c
+      -> RC=0 | STDOUT: static const xmlDictEntry * xmlDictLookupInternal(xmlDictPtr dict, const xmlChar *prefix,                       const xmlChar *name, int maybeLen, int...
+
+  --- [Planner Turn 15/15] ---
+  [>] Action: final_plan
+  [?] Reason: No reasoning provided
+  [=] Planner produced final plan.
+[+] Plan Accepted by DCV.
+
+[DEBUG] Starting Builder...
+
+  --- [Builder Turn 1/50] ---
+  [>] Action: shell
+  [$] Executing: cat dict.c | sed -n '516,565p'
+      -> RC=1
+
+  --- [Builder Turn 2/50] ---
+  [>] Action: shell
+  [$] Executing: sed -n '516,565p' dict.c
+      -> RC=0
+
+  --- [Builder Turn 3/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'xmlHashedString' include/private/dict.h
+      -> RC=0
+
+  --- [Builder Turn 4/50] ---
+  [>] Action: shell
+  [$] Executing: sed -n '45,51p' include/private/dict.h
+      -> RC=0
+
+  --- [Builder Turn 5/50] ---
+  [>] Action: shell
+  [$] Executing: sed -n '1,60p' include/private/dict.h
+      -> RC=0
+
+  --- [Builder Turn 6/50] ---
+  [>] Action: shell
+  [$] Executing: grep -n 'ATTRIBUTE_NO_SANITIZE_INTEGER' dict.c | head -5
+      -> RC=2
+
+  --- [Builder Turn 7/50] ---
+  [>] Action: shell
+  [$] Executing: sed -n '59,72p' dict.c
+      -> RC=0
+
+  --- [Builder Turn 8/50] ---
+  [>] Action: shell
+  [$] Executing: sed -n '516,565p' dict.c
+      -> RC=0
+
+  --- [Builder Turn 9/50] ---
+  [>] Action: shell
+  [$] Executing: sed -n '1,30p' include/libxml/xmlstring.h
+      -> RC=0
+
+  --- [Builder Turn 10/50] ---
+  [>] Action: harness
+  [i] Harness received. Attempting compile...
+  [+] Compilation Success!
+[DEBUG] Builder SUCCEEDED. Harness compiled.
+[B] Baseline KLEE Run...
+[DEBUG] Baseline Result: assertion_bug (Bug Hit: True)
+[DEBUG] BUG FOUND in Baseline!
+[✓] Finished 164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5: H2

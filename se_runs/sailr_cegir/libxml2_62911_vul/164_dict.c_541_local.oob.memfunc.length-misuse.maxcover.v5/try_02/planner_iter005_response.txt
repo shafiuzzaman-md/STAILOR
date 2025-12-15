@@ -1,0 +1,10 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"xmlDictHashQName\" dict.c -B 2 -A 10",
+    "grep -n \"xmlStrQEqual\" dict.c -B 2 -A 10",
+    "grep -n \"xmlMutex\" dict.c -B 2 -A 2",
+    "grep -n \"ATTRIBUTE_NO_SANITIZE_INTEGER\" dict.c -B 2 -A 2"
+  ],
+  "reason": "Need to understand helper functions and macros used by xmlDictFindEntry and xmlDictLookupInternal to decide what to embed vs stub. Also need to see if xmlMutex is used (likely stub). Need to see macro definition for ATTRIBUTE_NO_SANITIZE_INTEGER."
+}

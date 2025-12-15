@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "sed -n '1,100p' dict.c | grep -n 'xmlDictFindEntry'",
+  "reason": "Need to locate the exact start and end of xmlDictFindEntry function to copy its full body."
+}

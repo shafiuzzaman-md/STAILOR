@@ -1,0 +1,42 @@
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:28:16: error: unknown type name 'xmlDictPtr'
+xmlDictQLookup(xmlDictPtr dict, const xmlChar *prefix, const xmlChar *name) {
+               ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:39:16: warning: implicit declaration of function 'xmlDictLookup' is invalid in C99 [-Wimplicit-function-declaration]
+        return(xmlDictLookup(dict, name, -1));
+               ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:68:21: error: no member named 'hashValue' in 'struct _xmlDictEntry'; did you mean 'nameValue'?
+        if ((entry->hashValue == hashValue) &&
+                    ^~~~~~~~~
+                    nameValue
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:15:18: note: 'nameValue' declared here
+    unsigned int nameValue;
+                 ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:76:11: warning: implicit declaration of function 'xmlDictAddQString' is invalid in C99 [-Wimplicit-function-declaration]
+    ret = xmlDictAddQString(dict, prefix, name, l, hashValue);
+          ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:81:21: error: no member named 'hashValue' in 'struct _xmlDictEntry'; did you mean 'nameValue'?
+        if ((entry->hashValue == hashValue) &&
+                    ^~~~~~~~~
+                    nameValue
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:15:18: note: 'nameValue' declared here
+    unsigned int nameValue;
+                 ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:92:30: error: unknown type name 'xmlDictPtr'
+const xmlChar *xmlDictLookup(xmlDictPtr dict, const xmlChar *name, int len) {
+                             ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:98:23: error: unknown type name 'xmlDictPtr'
+int xmlDictAddQString(xmlDictPtr dict, const xmlChar *prefix,
+                      ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:108:13: error: variable has incomplete type 'xmlDict' (aka 'struct _xmlDict')
+    xmlDict dict;
+            ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:9:16: note: forward declaration of 'struct _xmlDict'
+typedef struct _xmlDict xmlDict;
+               ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:111:21: error: variable has incomplete type 'struct _xmlDict'
+    struct _xmlDict inner;
+                    ^
+/media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness.c:9:16: note: forward declaration of 'struct _xmlDict'
+typedef struct _xmlDict xmlDict;
+               ^
+2 warnings and 7 errors generated.

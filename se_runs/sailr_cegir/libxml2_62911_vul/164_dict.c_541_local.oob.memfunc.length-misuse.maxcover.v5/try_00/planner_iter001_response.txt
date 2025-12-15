@@ -1,0 +1,11 @@
+{
+  "action": "shell",
+  "commands": [
+    "grep -n \"struct xmlDict\" dict.c",
+    "grep -n \"struct xmlDictEntry\" dict.c",
+    "grep -n \"typedef.*xmlDict\" dict.c",
+    "grep -n \"typedef.*xmlDictEntry\" dict.c",
+    "head -20 dict.c"
+  ],
+  "reason": "Need to find the definitions of xmlDict and xmlDictEntry structs to understand the data layout for the target line (entry->name[len]). Also need to see if there are any macros or typedefs in the file header."
+}

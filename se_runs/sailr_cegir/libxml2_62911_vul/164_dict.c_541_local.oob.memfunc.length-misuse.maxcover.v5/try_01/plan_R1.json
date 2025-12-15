@@ -1,0 +1,169 @@
+{
+  "assertions": [
+    {
+      "derived_condition": "len < strlen(entry->name)",
+      "final_klee_assert_string": "klee_assert(len < strlen(entry->name) && \"BUG_ASSERT\");",
+      "id": "BUG_ASSERT",
+      "kind": "bug",
+      "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+      "rationale": "The OOB access occurs at entry->name[len] == 0. To be safe, len must be less than the length of entry->name (i.e., index within bounds)."
+    },
+    {
+      "final_klee_assert_string": "klee_assert(0 && \"REACH_ASSERT\");",
+      "id": "REACH_ASSERT",
+      "kind": "reach",
+      "placement_target": "if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {",
+      "rationale": "Marker for reaching target line."
+    }
+  ],
+  "budget": {
+    "max_builder_iters": 8,
+    "max_klee_runs": 12
+  },
+  "embedding_plan": {
+    "avoid": [
+      "Do not include duplicate function bodies",
+      "Do not include any natural-language prose in harness.c",
+      "Prefer stubs for non-critical helpers to keep file small"
+    ],
+    "must_embed_functions": [
+      {
+        "from_file": "dict.c",
+        "name": "xmlDictFindEntry",
+        "notes": "copy exact body once",
+        "why_needed": "Contains the target line; we need its exact body to analyze the vulnerability."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "xmlDictHashName",
+        "notes": "copy exact body once",
+        "why_needed": "Called by xmlDictLookupInternal to compute hash; needed to compute hashValue for realistic path."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "xmlDictHashQName",
+        "notes": "copy exact body once",
+        "why_needed": "Alternative hash function when prefix != NULL; we will set prefix=NULL, but still embed for completeness."
+      }
+    ],
+    "must_embed_types_macros": [
+      {
+        "from_file": "./include/private/dict.h",
+        "name": "xmlHashedString",
+        "notes": "typedef struct { unsigned hashValue; const xmlChar *name; } xmlHashedString;",
+        "why_needed": "xmlDictEntry is typedef of xmlHashedString; needed for struct layout."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "struct _xmlDict",
+        "notes": "struct _xmlDict { int ref_counter; xmlDictEntry *table; size_t size; unsigned int nbElems; xmlDictStringsPtr strings; struct _xmlDict *subdict; unsigned seed; size_t limit; };",
+        "why_needed": "xmlDict is a pointer to struct _xmlDict; needed to initialize dict->table, dict->size, etc."
+      },
+      {
+        "from_file": "/usr/include/libxml2/libxml/xmlstring.h",
+        "name": "xmlChar",
+        "notes": "typedef unsigned char xmlChar;",
+        "why_needed": "xmlChar is used throughout; it's unsigned char."
+      },
+      {
+        "from_file": "./include/private/dict.h",
+        "name": "HASH_INIT, HASH_UPDATE, HASH_FINISH, HASH_ROL, HASH_ROR, MAX_HASH_SIZE",
+        "notes": "Copy all hash-related macros from dict.h",
+        "why_needed": "Macros used by hash functions."
+      },
+      {
+        "from_file": "dict.c",
+        "name": "ATTRIBUTE_NO_SANITIZE_INTEGER",
+        "notes": "#define ATTRIBUTE_NO_SANITIZE_INTEGER",
+        "why_needed": "Attribute on functions; can be defined as empty for standalone harness."
+      }
+    ],
+    "stub_instead_of_embed": [
+      {
+        "name": "xmlStrQEqual",
+        "signature": "int xmlStrQEqual(const xmlChar *pref, const xmlChar *name, const xmlChar *str)",
+        "strategy": "Return 0 (false) to avoid taking that branch (since we want prefix=NULL path).",
+        "why_safe": "We will set prefix=NULL, so xmlStrQEqual is never called; stub ensures linkage."
+      },
+      {
+        "name": "xmlDictAddString",
+        "signature": "static const xmlChar *xmlDictAddString(xmlDictPtr dict, const xmlChar *name, unsigned int namelen)",
+        "strategy": "Return NULL to simulate allocation failure, preventing update path.",
+        "why_safe": "We will set update=0 (no insertion) in xmlDictLookupInternal, so this is never called."
+      },
+      {
+        "name": "xmlDictAddQString",
+        "signature": "static const xmlChar *xmlDictAddQString(xmlDictPtr dict, const xmlChar *prefix, unsigned int plen, const xmlChar *name, unsigned int namelen)",
+        "strategy": "Return NULL.",
+        "why_safe": "Not called because prefix=NULL and update=0."
+      },
+      {
+        "name": "xmlDictGrow",
+        "signature": "static int xmlDictGrow(xmlDictPtr dict, unsigned size)",
+        "strategy": "Return -1 (error).",
+        "why_safe": "We will ensure dict->size > 0 and no need to grow."
+      },
+      {
+        "name": "xmlMalloc",
+        "signature": "void *xmlMalloc(size_t size)",
+        "strategy": "Return malloc(size) (use standard malloc).",
+        "why_safe": "Simple allocator; we will not rely on complex xmlMemory."
+      },
+      {
+        "name": "xmlFree",
+        "signature": "void xmlFree(void *ptr)",
+        "strategy": "free(ptr).",
+        "why_safe": "Standard free."
+      }
+    ]
+  },
+  "harness_shape": {
+    "call_sequence": [
+      "Setup dict struct (malloc, set size > 0, allocate table)",
+      "Setup entry in table with hashValue matching hashValue, name pointing to entry_name_buf",
+      "klee_make_symbolic for len, name_buf, entry_name_buf",
+      "Call klee_make_symbolic for inputs",
+      "Call xmlDictFindEntry with dict, prefix=NULL, name=name_buf, len, hashValue matching entry, pfound",
+      "BUG_ASSERT"
+    ],
+    "needs_main": true,
+    "notes": "We directly call xmlDictFindEntry (static) by embedding it and removing static keyword. We'll set dict->size = 8, table allocated, entry->hashValue = hashValue, entry->name = entry_name_buf. Ensure entry_name_buf is null-terminated at some index > len to trigger OOB."
+  },
+  "symbolic_inputs": [
+    {
+      "c_type": "int",
+      "constraints": [
+        "len >= 0",
+        "len < 1000"
+      ],
+      "name": "len",
+      "rationale": "Length parameter passed to xmlDictFindEntry; must be non-negative (as per bounds_hints). Upper bound to avoid huge loops.",
+      "size": 0,
+      "symbolic": true
+    },
+    {
+      "c_type": "xmlChar[]",
+      "constraints": [
+        "name_buf[len] == 0"
+      ],
+      "name": "name_buf",
+      "rationale": "name is a string of length len; we need to ensure it's null-terminated at index len for the condition entry->name[len] == 0.",
+      "size": 1000,
+      "symbolic": true
+    },
+    {
+      "c_type": "xmlChar[]",
+      "constraints": [],
+      "name": "entry_name_buf",
+      "rationale": "entry->name points to a string; we need to control its content and length.",
+      "size": 1000,
+      "symbolic": true
+    }
+  ],
+  "target_function": {
+    "file": "dict.c",
+    "name": "xmlDictFindEntry",
+    "rationale": "The target line 541 is inside xmlDictFindEntry. This function is called by xmlDictLookupInternal, which is called by xmlDictLookup (the entrypoint from spec). To reach the target, we must call xmlDictFindEntry with appropriate parameters that cause the vulnerable condition.",
+    "signature": "static xmlDictEntry *xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix, const xmlChar *name, int len, unsigned hashValue, int *pfound)"
+  }
+}

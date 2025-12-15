@@ -1,0 +1,5 @@
+{
+  "action": "shell",
+  "command": "rg -n 'xmlStrEqual' xmlstring.c | head -5",
+  "reason": "Need to locate xmlStrEqual and xmlStrQEqual function bodies to embed them in harness.c."
+}
