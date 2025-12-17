@@ -1,50 +1,147 @@
 # SAILR-CEGIR Pipeline
 
-**SAILR** (Static-Analysis–Guided Iterative LLM Refinement) is an agentic framework designed to automatically verify static analysis findings. It uses a specialized loop of LLM agents to generate, compile, and refine KLEE harnesses that prove the existence of vulnerabilities.
+**SAILR** (Static-Analysis–Guided Iterative LLM Refinement) is an agentic framework that verifies static analysis findings by autonomously generating and refining symbolic execution harnesses (KLEE).
 
-## The Pipeline Loop
 
-For each vulnerability spec, SAILR executes the following autonomous loop:
+## Prerequisites & Installation
 
-1.  **Planner**: Analyzes the static analysis spec, source code context, and rule type to propose a strategic **Instrumentation Plan**. This includes identifying the entrypoint, necessary data structures, and precise assertion logic.
-2.  **Deterministic Contract Validator (DCV)**: A strict, rule-based gatekeeper that validates the Plan *before* code generation. It ensures the plan is semantically sound (e.g., checks that OOB assertions actually constrain length vs. capacity) and faithful to the project's requirements.
-3.  **Builder**: Interactively uses shell tools (`rg`, `grep`, `sed`) and compilation feedback to synthesize a **standalone, compilable KLEE harness** (`harness.c`) that implements the Plan.
-4.  **KLEE Refiner**: Runs KLEE on the generated harness. It then iteratively refines the code to:
-    * **Reach** the target vulnerable line.
-    * **Trigger** the specific bug condition.
+### System packages
 
----
+```bash
+sudo apt update && sudo apt install -y \
+    build-essential autoconf automake libtool pkg-config cmake \
+    python3 python3-pip git-lfs unzip wget \
+    llvm-14 clang-14 lldb-14 lld-14 clangd-14 libclang-14-dev \
+    libsqlite3-dev zlib1g-dev liblzma-dev libicu-dev
 
-## Prerequisites
+# Set Clang-14 as default
+sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 140 \
+  --slave /usr/bin/clang++ clang++ /usr/bin/clang++-14
 
-Ensure your environment is set up with the following:
+# Python Environment
+pip install --upgrade openai requests pyyaml
+```
 
-1.  **Directory Structure**:
-    * `sa_outputs/<PROJECT_NAME>/`: Static analysis results (must include `fact_pack.json` and `compile_commands.json`).
-    * `dataset/<PROJECT_ID>/`: The target source code (e.g., `dataset/62911/libxml2_62911_vul/`).
-    * `specs/<PROJECT_NAME>/`: Directory containing per-vulnerability JSON specs.
+### Build KLEE (from source)
+```
+# Install dependencies
+sudo apt-get update
+sudo apt-get install -y libsqlite3-dev
 
-2.  **Tools**:
-    * `clang-14`: Required for compiling harnesses.
-    * `klee`: The symbolic execution engine.
-    * `wllvm`: Required for building the project bitcode (install via `pipx install wllvm`).
+mkdir -p ~/tools && cd ~/tools
 
-3.  **Credentials**:
-    * Export your LLM API key for the `llm_utils` module:
-        ```bash
-        export DEEPSEEK_API_KEY=your_key_here
-        # or
-        export OPENAI_API_KEY=your_key_here
-        ```
+# Build klee-uclibc
+git clone https://github.com/klee/klee-uclibc.git
+cd klee-uclibc
+./configure --make-llvm-lib --with-cc clang-14 --with-llvm-config llvm-config-14
+make -j2
+cd ..
 
----
+# Build KLEE
+git clone https://github.com/klee/klee.git
+cd klee
+mkdir build && cd build
 
-## Setup & Installation
+cmake .. \
+  -DCMAKE_C_COMPILER=clang-14 \
+  -DCMAKE_CXX_COMPILER=clang++-14 \
+  -DLLVM_CONFIG=/usr/lib/llvm-14/bin/llvm-config \
+  -DENABLE_POSIX_RUNTIME=ON \
+  -DKLEE_UCLIBC_PATH="$HOME/tools/klee-uclibc" \
+  -DENABLE_UNIT_TESTS=OFF \
+  -DENABLE_SYSTEM_TESTS=OFF \
+  -DENABLE_TCMALLOC=OFF \
+  -DENABLE_STP=OFF \
+  -DENABLE_METASMT=OFF
 
-Before running the agents, you must build the unified project bitcode. This allows the harness to link against the target library if necessary (though SAILR aims for standalone compilation).
+make -j$(nproc)
+echo 'export PATH=$HOME/tools/klee/build/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+
+Verify:
+
+```
+which klee
+klee --version
+ls ~/tools/klee/include/klee/klee.h
+```
+### CodeQL Setup
+```
+python3 install_codeql.py
+source ~/.bashrc
+```
+
+## Dataset
+SAILR assumes a frozen dataset snapshot under ./dataset/.
+
+Extract target project source (e.g., from CyberGym):
+```
+python3 extract_from_cybergym.py arvo:19910 binutils
+# Produces: ./dataset/55980/libxml2_55980_vul/...
+```
+
+2. Fetch ground-truth metadata (optional)
+```
+python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:19910 
+```
+This pulls task manifests / metadata that SAILR can later use when evaluating refinement quality.
+
+## Run Static Analysis (CodeQL)
+### Download queries 
+```
+codeql pack download codeql/cpp-queries
+codeql pack install rules/oob-pack
+codeql pack install rules/uaf-pack \
+  --search-path "/home/shafi/codeql-cli/codeql:/home/shafi/.codeql/packages"
+```
+### Run CodeQL 
+chmod +x codeql_scan.sh 
+
+```
+./codeql_scan.sh \
+  PROJECT_NAME=binutils_19910_vul \
+  SRC_ROOT=./dataset/19910/binutils_19910_vul \
+  BUILD_CMD="./build.sh" \
+  QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
+  CONTEXT_LINES=5 \
+  ALSO_CPP=false
+```
+This produces, under ```sa_outputs/libxml2_62911_vul```, artifacts like:
+
+- findings.json / findings.jsonl / findings.csv
+- codeql-results.sarif
+- fact_pack.json
+- compile_commands.json
+
+### Generate Vulnerability Specs
+Convert raw findings into individual JSON specs:
+```
+python3 scripts/make_vul_specs.py \
+  --findings sa_outputs/libxml2_55980_vul/findings.json \
+  --facts sa_outputs/libxml2_62911_vul/fact_pack.json \
+  --out specs/libxml2_55980_vul
+```
+
+# Infer entrypoint (LLM Pre-pass)
+```
+chmod +x llm_infer_entrypoints.py
+
+export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
+
+./llm_infer_entrypoints.py \
+  --spec-dir specs/libxml2_62911_vul \
+  --src-root ./dataset/62911/libxml2_62911_vul \
+  --model deepseek-chat \
+  --api-base https://api.deepseek.com \
+  --prompt-file prompts/entrypoint_prompt.txt
+```
+
+## LLM Iterative Refinement
 
 **1. Build Project Bitcode**
-Use the provided utility script to build `project.bc`:
+Compile the target library into a single bitcode file for linking (optional but recommended). Use the provided utility script to build `project.bc`:
 
 ```bash
 chmod +x sailr_cegir/build_project_bc.sh
@@ -58,9 +155,9 @@ Ensure all runner scripts are executable:
 chmod +x sailr_cegir/run_sailr_cegir_batch.sh
 chmod +x sailr_cegir/run_sailr_cegir_single.sh
 ```
-## Usage
+### Usage
 **Option A: Run Batch Automation (All Specs)**
-This is the standard mode. It iterates through every JSON spec in the target directory and runs the full SAILR loop.
+Run the full pipeline on all specs in a directory.
 ```
 SA_OUT_DIR=sa_outputs \
 DATASET_ROOT=dataset \
@@ -68,7 +165,7 @@ CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tool
 MAX_A=25 \
 MAX_B=20 \
 TIMEOUT=600 \
-bash sailr_cegir/run_sailr_cegir_single.sh \
+bash sailr_cegir/run_sailr_cegir_batch.sh \
   62911/libxml2_62911_vul \
   local.oob.memfunc.length-misuse \
   specs
@@ -86,13 +183,13 @@ To isolate and debug a specific vulnerability spec:
 SA_OUT_DIR=sa_outputs \
 DATASET_ROOT=dataset \
 CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
-MAX_A=25 \
+MAX_A=10 \
 MAX_B=20 \
 TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_single.sh \
   62911/libxml2_62911_vul \
   local.oob.memfunc.length-misuse \
-  specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
+  specs/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5.json
 ```
 
 ## Results & Artifacts
