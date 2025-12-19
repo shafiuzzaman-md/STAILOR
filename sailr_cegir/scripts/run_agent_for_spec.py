@@ -497,21 +497,18 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     
     log_tail = full_log[-2000:] if len(full_log) > 2000 else full_log
     
-    # 1. BUG Check (Explicit Assertion)
+    # 1. BUG Check (Strict)
+    # Only count as a bug if the Agent's specific "BUG_ASSERT" marker is hit.
+    # This prevents counting random harness crashes (e.g. invalid pointer in cleanup) as success.
     bug_assert = "BUG_ASSERT" in full_log
     
-    # 2. Memory Error Check (Implicit Oracle)
-    # Detects: "memory error: out of bound pointer", "invalid pointer", etc.
-    memory_error = "memory error" in full_log.lower() or "out of bound" in full_log.lower()
-    
-    # 3. Reachability Check
-    # "REACH_ASSERT" text OR "ASSERTION FAIL: 0" (since we defined REACH_ASSERT as klee_assert(0))
+    # 2. Reachability Check
+    # REACH_ASSERT maps to klee_assert(0), which KLEE reports as "ASSERTION FAIL: 0"
     reach_marker = "REACH_ASSERT" in full_log
     assertion_fail = "ASSERTION FAIL" in full_log
     reach = reach_marker or assertion_fail
     
-    # Stage 3 Success = Explicit Bug OR Memory Error
-    bug_found = bug_assert or memory_error
+    bug_found = bug_assert
 
     status = "assertion_bug" if bug_found else ("assertion_reach" if reach else ("timeout" if "Timed out" in err else "ok"))
     
