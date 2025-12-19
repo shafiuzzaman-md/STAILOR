@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SAILR-CEGIR Single Spec Debugger + Auto-Builder
-# Fixed: Handles relative path resolution for bitcode output
+# SAILR-CEGIR Single Spec Debugger
+# UPDATED: Configured for 3-Stage Pipeline (Model -> Reach -> Vuln)
 
 if [ $# -lt 3 ]; then
   echo "Usage: $0 PROJECT_ID RULE_ID SPEC_JSON_PATH" >&2
@@ -15,18 +15,21 @@ SPEC_FILE="$3"
 
 # --- Configuration ---
 SA_OUT_DIR="${SA_OUT_DIR:-sa_outputs}"
-DATASET_ROOT="${DATASET_ROOT:-dataset}"
+# Ensure absolute path for safe directory switching
+DATASET_ROOT="$(realpath "${DATASET_ROOT:-dataset}")"
 LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
 LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
 
-MAX_A="${MAX_A:-15}"     
-MAX_B="${MAX_B:-20}"
-TIMEOUT="${TIMEOUT:-300}" 
+MAX_A="${MAX_A:-10}"      # Builder Iterations
+MAX_B="${MAX_B:-15}"      # Refiner Iterations
+TIMEOUT="${TIMEOUT:-300}" # KLEE Process Timeout
+
+# PIPELINE UPDATE: Reduced cycles because new architecture is more robust
+MAX_CYCLES="${MAX_CYCLES:-3}" 
 
 CLANG="${CLANG:-clang-14}"
 KLEE="${KLEE:-klee}"
-CLANG_FLAGS="${CLANG_FLAGS:-}"
-KLEE_FLAGS="${KLEE_FLAGS:---search=nurs:covnew --max-time=3600 --external-calls=all}"
+KLEE_FLAGS="${KLEE_FLAGS:---search=nurs:covnew --max-time=120 --external-calls=all}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_SLUG="$(basename "$PROJECT_ID")"
@@ -54,11 +57,6 @@ ensure_project_bitcode() {
     local src="$1"
     local dest="$2"
 
-    # FIX: Resolve absolute path for dest because we will pushd later
-    if [[ "$dest" != /* ]]; then
-        dest="$(pwd)/$dest"
-    fi
-
     if [ -f "$dest" ]; then
         echo "[i] Found existing bitcode: $dest"
         return 0
@@ -66,19 +64,11 @@ ensure_project_bitcode() {
 
     echo "==============================================="
     echo "[*] Bitcode missing. Starting Auto-Build..."
-    echo "    Source: $src"
-    echo "    Dest:   $dest"
     echo "==============================================="
 
     if ! command -v wllvm &> /dev/null; then
-        echo "[!] wllvm not found. Installing via pipx..."
-        if ! command -v pipx &> /dev/null; then
-             echo "[!] pipx not found. Installing..."
-             sudo apt update && sudo apt install -y pipx
-             pipx ensurepath
-        fi
-        pipx install wllvm --force
-        export PATH=$PATH:$HOME/.local/bin
+        echo "[!] wllvm not found. Aborting."
+        exit 1
     fi
 
     export LLVM_COMPILER=clang
@@ -86,70 +76,52 @@ ensure_project_bitcode() {
     export CXX=wllvm+
 
     pushd "$src" > /dev/null
-    echo "[*] Cleaning build artifacts..."
     make clean > /dev/null 2>&1 || true
-    rm -f .libs/*.o .libs/*.bc .libs/*.bca
-
-    echo "[*] Configuring..."
+    
     if [ -f "./configure" ]; then
         ./configure --disable-shared --without-python --silent
-    elif [ -f "./autogen.sh" ]; then
-        ./autogen.sh --disable-shared --without-python
-    else
-        echo "[!] No configure script or autogen.sh found in $src"
-        popd > /dev/null
-        exit 1
     fi
 
-    echo "[*] Building with wllvm..."
     make -j$(nproc) > /dev/null
 
-    echo "[*] Extracting bitcode..."
-    local TARGET_LIB=$(find .libs -name "libxml2.a" | head -n 1)
+    local TARGET_LIB=$(find .libs -name "*.a" | head -n 1)
     if [ -z "$TARGET_LIB" ]; then
-        TARGET_LIB=$(find . -name "libxml2.a" | head -n 1)
+        TARGET_LIB=$(find . -name "*.a" | head -n 1)
     fi
 
     if [ -z "$TARGET_LIB" ]; then
-        echo "[!] Build failed: Could not find libxml2.a"
+        echo "[!] Build failed: No static lib found"
         popd > /dev/null
         exit 1
     fi
 
-    echo "    -> Found library: $TARGET_LIB"
     extract-bc -b "$TARGET_LIB"
 
     if [ -f "${TARGET_LIB}.bc" ]; then
         mv "${TARGET_LIB}.bc" "$dest"
-        echo "[✓] Build Success! Created: $dest"
     elif [ -f "${TARGET_LIB}.bca" ]; then
-        echo "[i] Linking archive (.bca) to module..."
-        if ! command -v llvm-link &> /dev/null; then
-             echo "[!] llvm-link not found. Please install llvm/clang."
-             popd > /dev/null
-             exit 1
-        fi
         llvm-link "${TARGET_LIB}.bca" -o "$dest"
-        echo "[✓] Build/Link Success! Created: $dest"
-    else
-        echo "[!] extract-bc failed to produce output."
-        ls -l "${TARGET_LIB}"*
-        popd > /dev/null
-        exit 1
     fi
 
     popd > /dev/null
 }
 
-# --- Main Execution Flow ---
-
 ensure_project_bitcode "${SRC_ROOT}" "${PROJECT_BC}"
+
+# --- Cleanup Block ---
+echo "[*] Cleaning build artifacts to reduce noise for Agent..."
+pushd "${SRC_ROOT}" > /dev/null
+if [ -f "project.bc" ]; then mv project.bc project.bc.temp_keep; fi
+make clean > /dev/null 2>&1 || true
+rm -f .*.o .*.lo .*.la .*.o.bc .*.lo.bc *.o *.lo *.la *.bc
+if [ -f "project.bc.temp_keep" ]; then mv project.bc.temp_keep project.bc; fi
+popd > /dev/null
+echo "[✓] Source directory cleaned (project.bc preserved)."
 
 echo "==============================================="
 echo "[*] Debugging Single Spec"
 echo "    TARGET     = ${TARGET_VUL}"
-echo "    SPEC       = ${SPEC_FILE}"
-echo "    PROJECT_BC = ${PROJECT_BC}"
+echo "    PIPELINE   = Model -> Reach -> Vuln"
 echo "    RUN_DIR    = ${RUN_DIR}"
 echo "==============================================="
 
@@ -169,12 +141,12 @@ python3 "${REPO_ROOT}/sailr_cegir/scripts/run_agent_for_spec.py" \
   --llm-model "${LLM_MODEL}" \
   --llm-api-base "${LLM_API_BASE}" \
   --clang "${CLANG}" \
-  --clang-flags="${CLANG_FLAGS}" \
+  --clang-flags="${CLANG_FLAGS:-}" \
   --klee "${KLEE}" \
   --klee-flags="${KLEE_FLAGS}" \
   --max-a "${MAX_A}" \
   --max-b "${MAX_B}" \
-  --max-cycles ${MAX_CYCLES:-5} \
+  --max-cycles "${MAX_CYCLES}" \
   --timeout "${TIMEOUT}" \
   --run-dir "${RUN_DIR}" \
   --summary-tsv "${SUMMARY_TSV}" \

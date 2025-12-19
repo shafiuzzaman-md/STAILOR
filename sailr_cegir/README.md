@@ -9,7 +9,7 @@
 
 ```bash
 sudo apt update && sudo apt install -y \
-    build-essential autoconf automake libtool pkg-config cmake \
+    build-essential autoconf automake libtool pkg-config cmake ripgrep\
     python3 python3-pip git-lfs unzip wget \
     llvm-14 clang-14 lldb-14 lld-14 clangd-14 libclang-14-dev \
     libsqlite3-dev zlib1g-dev liblzma-dev libicu-dev
@@ -162,13 +162,13 @@ Run the full pipeline on all specs in a directory.
 SA_OUT_DIR=sa_outputs \
 DATASET_ROOT=dataset \
 CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
-MAX_A=25 \
+MAX_A=10 \
 MAX_B=20 \
 TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_batch.sh \
   62911/libxml2_62911_vul \
-  local.oob.memfunc.length-misuse \
-  specs
+  local.oob.memfunc.length-misuse.maxcover.v5 \
+  specs 4
 ```
 Key Variables:
 - MAX_A: Max compilation attempts by the Builder (per plan).
@@ -188,8 +188,8 @@ MAX_B=20 \
 TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_single.sh \
   62911/libxml2_62911_vul \
-  local.oob.memfunc.length-misuse \
-  specs/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5.json
+  local.oob.memfunc.length-misuse.maxcover.v5 \
+  specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
 ```
 
 ## Results & Artifacts

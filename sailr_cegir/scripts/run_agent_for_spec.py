@@ -3,16 +3,11 @@
 """
 run_agent_for_spec.py
 
-Agentic SAILR-CEGIR driver for a *single* spec.
-WIRED FOR STATIC ANALYSIS: Automatically consumes fact_pack.json, findings.json, and compile_commands.json.
-PATCHED: Includes automated header injection to prevent trivial compilation failures.
-UPDATED: 
-  - Robust pipe handling (allows shell=True).
-  - Increased Planner iterations (15).
-  - Added [DEBUG] logs for Builder/Refiner transitions.
-  - Added 'execution.log' to capture all console output.
-  - Removed error truncation for full build failure logs.
-  - Added HISTORY TRUNCATION to prevent LLM 413 "Request Entity Too Large" errors.
+Agentic SAILR-CEGIR driver.
+UPDATED for 3-Stage Synthesis Pipeline:
+  1. Environment Modeling (Planner + Rule-Based Validator)
+  2. Reachability Harness Synthesis (Builder + KLEE Reach check)
+  3. Vulnerability Harness Synthesis (Refiner + Assertion Validator + KLEE Bug check)
 """
 
 from __future__ import annotations
@@ -24,12 +19,12 @@ import re
 import shlex
 import subprocess
 import sys
-import textwrap
 import time
 import fcntl
 from pathlib import Path
 from typing import Dict, Any, Tuple, List
 
+# Add repo root to path for imports
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -51,7 +46,6 @@ except ImportError as e:
 # ---------------- LOGGING UTILS ----------------
 
 class Tee:
-    """Writes to both stdout/stderr and a log file."""
     def __init__(self, original_stream, log_file):
         self.original_stream = original_stream
         self.log_file = log_file
@@ -66,18 +60,67 @@ class Tee:
         self.log_file.flush()
 
 def setup_logging(run_dir: Path):
-    """Redirects sys.stdout and sys.stderr to execution.log."""
     log_path = run_dir / "execution.log"
-    # Open in 'a' (append) or 'w' (write). 'w' cleans up old runs.
     f = open(log_path, 'w', encoding='utf-8')
-    
-    # Redirect
     sys.stdout = Tee(sys.stdout, f)
     sys.stderr = Tee(sys.stderr, f)
-    
     print(f"[i] Logging all output to: {log_path}")
 
+# ---------------- HARNESS ANALYSIS UTILS ----------------
+
+def get_harness_analysis_string(plan: Dict, harness_src: str) -> str:
+    """Generates a text summary of the current harness state for the LLM."""
+    out = []
+    out.append("[CURRENT HARNESS STATE]")
+    
+    tf = plan.get("target_function", {})
+    if isinstance(tf, str):
+        out.append(f"TARGET: {tf}")
+    else:
+        out.append(f"TARGET: {tf.get('name', 'Unknown')} ({tf.get('file', 'Unknown')})")
+
+    emb = plan.get("embedding_plan")
+    if isinstance(emb, dict):
+        stubs = emb.get("stub_instead_of_embed", [])
+        stub_names = []
+        for s in stubs:
+            if isinstance(s, dict): stub_names.append(s.get('name', 'Unknown'))
+            elif isinstance(s, str): stub_names.append(s)
+        stub_list = ", ".join(stub_names) if stub_names else "(None)"
+    else:
+        stub_list = "(None)"
+        
+    out.append(f"STUBS (Planned): {stub_list}")
+
+    assertions = re.findall(r'klee_assert\((.*?)\);', harness_src)
+    clean_asserts = [" ".join(a.split()) for a in assertions]
+    out.append(f"ACTIVE ASSERTIONS: {json.dumps(clean_asserts)}")
+
+    assumptions = re.findall(r'klee_assume\((.*?)\);', harness_src)
+    clean_assumes = [" ".join(a.split()) for a in assumptions]
+    out.append(f"ACTIVE ASSUMPTIONS: {json.dumps(clean_assumes)}")
+    
+    return "\n".join(out)
+
+def get_commands_list(resp: Dict[str, Any]) -> List[str]:
+    """Robustly extracts commands from LLM response."""
+    cmds = []
+    if "commands" in resp:
+        val = resp["commands"]
+        if isinstance(val, list): cmds.extend(val)
+        elif isinstance(val, str): cmds.append(val)
+    if "command" in resp:
+        val = resp["command"]
+        if isinstance(val, str): cmds.append(val)
+        elif isinstance(val, list): cmds.extend(val)
+    return [c for c in cmds if c and isinstance(c, str)]
+
+def log_harness_analysis_console(plan, src):
+    print(get_harness_analysis_string(plan, src))
+
 # ---------------- BASIC UTILS ----------------
+
+ALLOWED_SHELL_TOOLS = {"rg", "grep", "ls", "find", "sed", "cat", "head", "tail"}
 
 def normalize_flag_list(flags) -> list[str]:
     if not flags: return []
@@ -87,31 +130,27 @@ def normalize_flag_list(flags) -> list[str]:
     if isinstance(flags, str): return shlex.split(flags)
     return list(flags)
 
+def sanitize_shell_command(cmd: str) -> List[str]:
+    for ch in ["&", "`"]:
+        if ch in cmd: raise ValueError(f"disallowed metacharacter: {ch}")
+    if "$(" in cmd or "${" in cmd: raise ValueError("command substitution not allowed")
+    argv = shlex.split(cmd)
+    if not argv: raise ValueError("empty command")
+    if Path(argv[0]).name not in ALLOWED_SHELL_TOOLS:
+        raise ValueError(f"tool {argv[0]} not allowed")
+    return argv
+
 def run_cmd(cmd: list[str] | str, cwd: Path | None = None, timeout: int | None = None, use_shell: bool = False) -> Tuple[int, str, str, float]:
-    """
-    Runs a command. Supports shell=True for complex agent commands (pipes).
-    """
     start = time.monotonic()
     try:
-        if use_shell and isinstance(cmd, list):
-            cmd_str = " ".join(shlex.quote(x) for x in cmd)
-        else:
-            cmd_str = cmd 
-
-        proc = subprocess.run(
-            cmd_str if use_shell else cmd, 
-            cwd=str(cwd) if cwd else None,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, timeout=timeout,
-            shell=use_shell
-        )
-        elapsed = time.monotonic() - start
-        return proc.returncode, proc.stdout, proc.stderr, elapsed
+        if use_shell and isinstance(cmd, list): cmd_str = " ".join(shlex.quote(x) for x in cmd)
+        else: cmd_str = cmd 
+        proc = subprocess.run(cmd_str if use_shell else cmd, cwd=str(cwd) if cwd else None,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout, shell=use_shell)
+        return proc.returncode, proc.stdout, proc.stderr, time.monotonic() - start
     except subprocess.TimeoutExpired as e:
-        elapsed = time.monotonic() - start
-        def _to_str(x): return x if isinstance(x, str) else (x.decode('utf-8', 'ignore') if x else "")
-        stderr = _to_str(e.stderr) + f"\n[SAILR_TIMEOUT] subprocess timed out after {timeout} seconds."
-        return 124, _to_str(e.stdout), stderr, elapsed
+        def _s(x): return x if isinstance(x, str) else (x.decode('utf-8', 'ignore') if x else "")
+        return 124, _s(e.stdout), _s(e.stderr) + f"\n[TIMEOUT] {timeout}s", time.monotonic() - start
 
 def ensure_dir(p: Path) -> Path:
     p.mkdir(parents=True, exist_ok=True)
@@ -120,112 +159,97 @@ def ensure_dir(p: Path) -> Path:
 def read_json(path: Path) -> Any:
     try:
         with path.open("r", encoding="utf-8") as f: return json.load(f)
-    except Exception as e:
-        print(f"[!] Error reading JSON {path}: {e}", file=sys.stderr)
-        return None
+    except: return None
 
 def write_json(path: Path, obj: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2, sort_keys=True)
+    with path.open("w", encoding="utf-8") as f: json.dump(obj, f, indent=2, sort_keys=True)
 
 def extract_json_block(text: str) -> str:
-    fence_match = re.search(r"```(?:json)?(.*?)```", text, flags=re.DOTALL | re.IGNORECASE)
-    if fence_match: return fence_match.group(1).strip()
-    return text.strip()
+    """
+    Robustly extracts the largest valid JSON object from a string.
+    Handles Markdown fences, messy preambles, and C code inside strings.
+    """
+    # 1. Strip outer Markdown fences if they wrap the whole response
+    pattern = r"^```(?:json)?\s*(\{.*\})\s*```$"
+    m = re.match(pattern, text.strip(), flags=re.DOTALL | re.IGNORECASE)
+    if m:
+        return m.group(1)
+
+    # 2. Heuristic: Find the first '{' and the last '}'
+    start_idx = text.find('{')
+    end_idx = text.rfind('}')
+    
+    if start_idx == -1 or end_idx == -1 or end_idx < start_idx:
+        return text # Let json.loads fail naturally
+
+    # 3. Extract the candidate substring
+    candidate = text[start_idx : end_idx + 1]
+    return candidate
 
 def call_llm_json(system_prompt: str, user_prompt: str, out_dir: Path, tag: str) -> Dict[str, Any]:
     ensure_dir(out_dir)
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    
+    # Save prompt for debugging
     (out_dir / f"{tag}_messages.json").write_text(json.dumps(messages, indent=2), encoding="utf-8")
     
     raw = llm_chat(messages)
     
-    if isinstance(raw, (dict, list)):
-        (out_dir / f"{tag}_response.txt").write_text(json.dumps(raw, indent=2), encoding="utf-8")
-        return raw if isinstance(raw, dict) else {"_llm_list": raw}
+    # Save raw response for debugging (CRITICAL for fixing these bugs)
+    (out_dir / f"{tag}_raw_response.txt").write_text(str(raw), encoding="utf-8")
 
-    (out_dir / f"{tag}_response.txt").write_text(str(raw), encoding="utf-8")
-    text = extract_json_block(str(raw)).strip()
-    if not text: return {"_llm_error": "empty response"}
-    if not text.lstrip().startswith("{"):
-        m = re.search(r"(\{.*\})", text, flags=re.DOTALL)
-        if m: text = m.group(1)
-    try: return json.loads(text)
-    except Exception as e: return {"_llm_error": f"json_parse_failed: {e}"}
-
-# ---------------- SECURITY & LOOKUP UTILS ----------------
-
-ALLOWED_SHELL_TOOLS = {"rg", "grep", "ls", "find", "sed", "cat", "head", "tail"}
-
-def sanitize_shell_command(cmd: str) -> List[str]:
-    """
-    Validates command safety. Returns argv list.
-    Allows pipes ('|') and semicolons (';'), but blocks dangerous metachars like '&', '`'.
-    """
-    for ch in ["&", "`"]:
-        if ch in cmd: raise ValueError(f"disallowed metacharacter: {ch}")
-    if "$(" in cmd or "${" in cmd: raise ValueError("command substitution not allowed")
-    
-    argv = shlex.split(cmd)
-    if not argv: raise ValueError("empty command")
-    
-    # Check start token
-    first_word = argv[0]
-    tool = Path(first_word).name
-    if tool not in ALLOWED_SHELL_TOOLS:
-        raise ValueError(f"tool {first_word!r} not allowed")
+    if isinstance(raw, dict): 
+        return raw
         
-    return argv
+    text = extract_json_block(str(raw))
+    
+    try:
+        # Strict=False helps with control characters inside strings
+        return json.loads(text, strict=False)
+    except json.JSONDecodeError:
+        # --- RECOVERY ATTEMPT ---
+        # Sometimes LLMs escape newlines badly in C code. 
+        try:
+            # Fix: invalid escape sequences for C code newlines
+            corrected = text.replace('"\n', '",\n').replace('\n"', ',\n"')
+            return json.loads(corrected, strict=False)
+        except:
+            pass
+
+        return {"_llm_error": "json_parse_failed", "raw": str(raw)}
+
+# ---------------- HELPERS ----------------
 
 def inject_standard_headers(hsrc: str) -> str:
-    headers_map = {
-        "<limits.h>": ["INT_MAX", "INT_MIN", "UINT_MAX"],
-        "<assert.h>": ["assert(", "__assert_fail", "klee_assert"],
-        "<stdint.h>": ["uint8_t", "int32_t", "uint32_t", "uint64_t", "int64_t", "uintptr_t"],
-        "<stdlib.h>": ["malloc", "free", "calloc", "realloc", "exit", "abort", "strtoul"],
-        "<string.h>": ["memcpy", "memset", "strcpy", "strlen", "memcmp", "strcat", "strdup"],
-        "<stdio.h>":  ["printf", "fprintf", "sprintf", "snprintf", "stderr", "stdout"],
-        "<stdbool.h>": ["bool", "true", "false"],
-        "<stddef.h>": ["NULL", "size_t", "ptrdiff_t", "offsetof"],
-    }
-    lines = hsrc.splitlines()
-    existing_includes = set()
-    for line in lines:
-        m = re.match(r'^\s*#\s*include\s*[<"]([^>"]+)[>"]', line)
-        if m: existing_includes.add(m.group(1))
-    
-    injections = []
-    for header, keywords in headers_map.items():
-        if header.strip("<>") not in existing_includes:
-            if any(kw in hsrc for kw in keywords):
-                injections.append(f"#include {header}")
-    
-    if not injections: return hsrc
-    last_include_idx = -1
-    for i, line in enumerate(lines):
-        if line.strip().startswith("#include"): last_include_idx = i
-    insert_pos = last_include_idx + 1 if last_include_idx != -1 else 0
-    return "\n".join(lines[:insert_pos] + injections + lines[insert_pos:])
+    headers = [
+        "<limits.h>", "<assert.h>", "<stdint.h>", "<stdlib.h>", 
+        "<string.h>", "<stdio.h>", "<stdbool.h>", "<stddef.h>"
+    ]
+    # Check if klee.h is missing
+    if "<klee/klee.h>" not in hsrc:
+        headers.append("<klee/klee.h>")
 
-def looks_like_c(code: str) -> bool:
-    if not code or len(code) < 50: return False
-    bad = ("copy ", "insert ", "the exact", "example", "should check", "immediately before", "please ")
-    if any(b in code.lstrip()[:250].lower() for b in bad): return False
-    return any(tok in code for tok in ["#include", "int ", "void ", "typedef", "struct", "klee_make_symbolic", "{", ";"])
+    injections = [f"#include {h}" for h in headers if h not in hsrc]
+    
+    # --- FIX: FORCE DEFINITION OF REACH_ASSERT ---
+    # This maps the REACH_ASSERT marker to klee_assert(0), which causes
+    # KLEE to halt with an "ASSERTION FAIL", proving the line was reached.
+    injections.append("#ifndef REACH_ASSERT")
+    injections.append("#define REACH_ASSERT klee_assert(0)")
+    injections.append("#endif")
+    # ---------------------------------------------
+
+    return "\n".join(injections) + "\n" + hsrc
 
 def extract_c_code(text: str) -> str | None:
     m = re.search(r"```c(.*?)```", text, flags=re.DOTALL | re.IGNORECASE)
-    if m and looks_like_c(m.group(1).strip()): return m.group(1).strip()
+    if m: return m.group(1).strip()
     m = re.search(r"```(.*?)```", text, flags=re.DOTALL)
-    if m and looks_like_c(m.group(1).strip()): return m.group(1).strip()
-    return text.strip() if looks_like_c(text.strip()) else None
-
-def reject_non_code(hsrc: str) -> str | None:
-    if re.search(r"^\s*(Copy|Insert|Example|Please|The exact|We need to)\b", hsrc, re.MULTILINE | re.IGNORECASE):
-        return "harness begins with natural language instructions"
-    if not any(k in hsrc for k in ("#include", "klee_make_symbolic", "klee_assert", "main(", "{")):
-        return "missing C structure markers"
+    if m: return m.group(1).strip()
+    clean_text = text.strip()
+    if clean_text.startswith("#include") or "int main" in clean_text:
+        return clean_text
     return None
 
 def extract_function_body_at(file_path: Path, line_num: int) -> str:
@@ -242,6 +266,31 @@ def extract_function_body_at(file_path: Path, line_num: int) -> str:
                 break
         return "\n".join(lines[max(0, func_start):min(len(lines), idx + 100)])
     except Exception as e: return f"[error reading file] {e}"
+
+def find_source_file(src_root: Path, vul_file: str) -> Path:
+    direct = src_root / vul_file
+    if direct.exists(): return direct
+    matches = list(src_root.rglob(vul_file))
+    if not matches: raise FileNotFoundError(f"{vul_file} not found under {src_root}")
+    return sorted(matches, key=lambda p: len(str(p)))[0]
+
+def extract_vulnerable_statement_text(lines: List[str], start_line_num: int) -> str:
+    idx = start_line_num - 1
+    if idx < 0 or idx >= len(lines): return f"[error] line {start_line_num} out of bounds"
+    i = idx
+    while i >= 0:
+        if lines[i].strip().startswith(("if", "while", "for")):
+            idx = i
+            break
+        i -= 1
+    stmt = []
+    for j in range(0, 10):
+        if idx + j >= len(lines): break
+        line = lines[idx + j].strip()
+        if not line or line.startswith(("/", "*")): continue
+        stmt.append(line)
+        if line.endswith(("{", ";")): break
+    return " ".join(stmt)
 
 def perform_smart_lookup(src_root: Path, symbols: List[str]) -> str:
     results = []
@@ -262,69 +311,49 @@ def perform_smart_lookup(src_root: Path, symbols: List[str]) -> str:
                         found_any = True
                     except: continue
             if not found_any: results.append(f"Symbol '{sym}': matches found but extraction failed.")
-        else: results.append(f"Symbol '{sym}': Definition not found.")
+        else:
+            results.append(f"Symbol '{sym}': Definition not found.")
     return "\n".join(results)
 
-def find_source_file(src_root: Path, vul_file: str) -> Path:
-    direct = src_root / vul_file
-    if direct.exists(): return direct
-    matches = list(src_root.rglob(vul_file))
-    if not matches: raise FileNotFoundError(f"{vul_file} not found under {src_root}")
-    return sorted(matches, key=lambda p: len(str(p)))[0]
-
-def ccdb_flags(cc_entry: Dict[str, Any] | None) -> List[str]:
-    if not cc_entry: return []
-    cmd = cc_entry.get("command")
-    argv = shlex.split(cmd) if cmd else cc_entry.get("arguments", [])
-    out = []
-    i = 0
-    while i < len(argv):
-        a = argv[i]
-        if a in ("-I", "-isystem", "-D", "-U") and i + 1 < len(argv):
-            out.extend([a, argv[i + 1]])
-            i += 2
-        elif any(a.startswith(p) for p in ("-I", "-isystem", "-D", "-U")):
-            out.append(a)
-            i += 1
-        else: i += 1
-    return out
-
-# ---------------- CONTEXT & DCV ----------------
-
-def extract_vulnerable_statement_text(lines: List[str], start_line_num: int) -> str:
-    idx = start_line_num - 1
-    if idx < 0 or idx >= len(lines): return f"[error] line {start_line_num} out of bounds"
-    i = idx
-    while i >= 0:
-        if lines[i].strip().startswith(("if", "while", "for")):
-            idx = i
-            break
-        i -= 1
-    stmt = []
-    for j in range(0, 10):
-        if idx + j >= len(lines): break
-        line = lines[idx + j].strip()
-        if not line or line.startswith(("/", "*")): continue
-        stmt.append(line)
-        if line.endswith(("{", ";")): break
-    return " ".join(stmt)
+# ---------------- VALIDATION LOGIC ----------------
 
 def run_dcv(plan_path: Path, ctx: Dict, args: argparse.Namespace) -> Tuple[bool, str]:
+    """Runs the Rule-Based Validator (Plan Validator)."""
     dcv_script = SCRIPT_DIR / "validate_plan_contract.py"
-    if not dcv_script.exists(): return True, "" 
+    if not dcv_script.exists():
+        print("[!] DCV script missing. Skipping validation.")
+        return True, "" 
 
     cmd = [sys.executable, str(dcv_script), "--plan", str(plan_path), 
            "--spec", ctx["spec_path"], "--rule-id", args.rule_id, 
            "--project-name", args.project_id]
     
-    if ctx.get("fact_pack_path"): cmd.extend(["--fact-pack", ctx["fact_pack_path"]])
+    if ctx.get("fact_pack_path"):
+        cmd.extend(["--fact-pack", ctx["fact_pack_path"]])
     
     rc, out, err, _ = run_cmd(cmd)
     if rc != 0:
-        return False, f"STDOUT:\n{out}\nSTDERR:\n{err}"
+        return False, f"Rule-Based Validator Rejected the Model:\n{out}\n{err}"
     return True, ""
 
-def build_context(sa_out_dir: Path, src_root: Path, spec_path: Path, vul_file: str, vul_line: int, ctx_dir: Path) -> Dict[str, Any]:
+def validate_harness_integrity(harness_src: str) -> Tuple[bool, str]:
+    """
+    Stage 3 Validator: Checks for common LLM 'cheats' in the C code.
+    Returns (True, "") if clean, or (False, reason) if rejected.
+    """
+    # Rule 1: No Hardcoded Numbers in BUG_ASSERT
+    magic_number_pattern = r'BUG_ASSERT\s*\([^\)]*[<>=]+\s*\d+\s*\)'
+    if re.search(magic_number_pattern, harness_src):
+        return False, "REJECTED: Usage of hardcoded number (Magic Number) in BUG_ASSERT. You must assert against a variable (e.g., buffer_size), not a constant."
+
+    # Rule 2: No Rigged Allocators (e.g. if(size > 1000) return NULL)
+    if "realloc" in harness_src and "return NULL" in harness_src:
+        if re.search(r'if\s*\(.*size\s*[><].*\)\s*.*return\s*NULL', harness_src, re.DOTALL):
+            return False, "REJECTED: Do not manually rig allocator stubs to fail on specific sizes. Allocators must only fail on real OOM."
+
+    return True, ""
+
+def build_context(sa_out_dir: Path, src_root: Path, spec_path: Path, vul_file: str, vul_line: int, ctx_dir: Path) -> Dict:
     ensure_dir(ctx_dir)
     spec = read_json(spec_path)
     (ctx_dir / "spec.json").write_text(json.dumps(spec, indent=2), encoding="utf-8")
@@ -366,201 +395,333 @@ def build_context(sa_out_dir: Path, src_root: Path, spec_path: Path, vul_file: s
     write_json(ctx_dir / "context.json", ctx)
     return ctx
 
-# ---------------- AGENTS ----------------
-
-def interactive_planner(
-    ctx: Dict[str, Any], args: argparse.Namespace, planner_prompt: str, prompts_dir: Path, src_root: Path, max_iters: int, feedback_error: str | None
+# ---------------- STAGE 1: ENVIRONMENT MODELING ----------------
+def interactive_environment_modeler(
+    ctx: Dict[str, Any], 
+    args: argparse.Namespace, 
+    planner_prompt: str, 
+    prompts_dir: Path, 
+    src_root: Path, 
+    max_iters: int
 ) -> Dict[str, Any]:
+    """Stage 1: Verification Strategy Synthesis."""
     history = []
-    if feedback_error:
-        history.append(f"SYSTEM: Previous Plan Failed.\nError:\n{feedback_error}\n\nPlease propose a NEW plan.")
-    else:
-        history.append("STRATEGY: Analyze spec -> Use 'shell' to find function body -> 'final_plan'.")
-
-    # Limit history size to prevent 413 Errors
-    MAX_OUT_LEN = 3000
+    history.append("STRATEGY: Analyze spec -> 'shell' to find definitions -> 'final_plan'.")
+    feedback_error = None
+    seen_shell_actions = set()
 
     for i in range(max_iters):
-        print(f"\n  --- [Planner Turn {i+1}/{max_iters}] ---")
+        print(f"\n  --- [Environment Modeler Turn {i+1}/{max_iters}] ---")
         
-        hist_txt = "\n\n".join(history)
-        user_msg = f"""Static Spec: {json.dumps(ctx['spec'], indent=2)}\nSnippet:\n{ctx['snippet']}\nHistory:\n{hist_txt}"""
-        
-        try:
-            resp = call_llm_json(planner_prompt, user_msg, prompts_dir, f"planner_iter{i:03d}")
-        except Exception as e:
-            print(f"  [!] LLM Call Failed: {e}")
-            return {"plan_error": f"LLM API Error: {e}"}
+        hist_txt = "\n\n".join(history[-10:]) 
+        if feedback_error:
+            hist_txt += f"\n\n[SYSTEM FEEDBACK]:\n{feedback_error}\n\nPlease fix the plan violations."
 
+        if i >= max_iters - 2:
+            hist_txt += "\n\n[SYSTEM WARNING]: You are running out of turns! Stop searching and output 'final_plan' NOW."
+
+        user_msg = f"Spec: {json.dumps(ctx['spec'], indent=2)}\nSnippet:\n{ctx['snippet']}\nHistory:\n{hist_txt}"
+        
+        resp = call_llm_json(planner_prompt, user_msg, prompts_dir, f"modeler_iter{i:03d}")
         action = resp.get("action")
         reason = resp.get("reason", "No reasoning provided")
 
         print(f"  [>] Action: {action}")
         print(f"  [?] Reason: {reason}")
-
+        
         if action == "shell":
+            cmds = get_commands_list(resp)
+            if not cmds:
+                print("  [!] Warning: Empty shell command list.")
+                history.append("SYSTEM: Error: You selected 'shell' but provided NO commands.")
+                continue
+
+            cmd_signature = tuple(cmds)
+            if cmd_signature in seen_shell_actions:
+                print("  [!] Warning: Detected duplicate shell commands.")
+                history.append(f"SYSTEM: Duplicate commands. Try something else.")
+                continue
+            seen_shell_actions.add(cmd_signature)
+
             log = ""
-            for cmd in resp.get("commands", []):
+            for cmd in cmds:
                 print(f"  [$] Executing: {cmd}")
                 try:
-                    # FIX: Allow pipes by passing use_shell=True
-                    safe_cmd_argv = sanitize_shell_command(cmd)
-                    rc, out, err, _ = run_cmd(safe_cmd_argv, cwd=src_root, use_shell=True)
-                    
-                    # Print summary of output to console
-                    out_s = out.strip().replace('\n', ' ')
-                    out_s = (out_s[:150] + '...') if len(out_s) > 150 else out_s
-                    print(f"      -> RC={rc} | STDOUT: {out_s}")
-                    
-                    # --- TRUNCATION FOR HISTORY ---
-                    # To prevent 413, limit what we store in the prompt
-                    out_trunc = out if len(out) < MAX_OUT_LEN else out[:MAX_OUT_LEN] + f"\n... [TRUNCATED {len(out)-MAX_OUT_LEN} chars] ..."
-                    err_trunc = err if len(err) < MAX_OUT_LEN else err[:MAX_OUT_LEN] + f"\n... [TRUNCATED {len(err)-MAX_OUT_LEN} chars] ..."
-                    
-                    log += f"$ {cmd}\nRC={rc}\nSTDOUT:\n{out_trunc}\nSTDERR:\n{err_trunc}\n"
-                except ValueError as e:
-                    print(f"  [!] Planner Shell Security Error: {e}")
-                    log += f"$ {cmd}\n[SECURITY ERROR] {e}\n"
-                except Exception as e:
-                    print(f"  [!] Planner Shell Exec Error: {e}")
-                    log += f"$ {cmd}\n[EXEC ERROR] {e}\n"
+                    sanitize_shell_command(cmd)
+                    rc, out, err, _ = run_cmd(cmd, cwd=src_root, use_shell=True)
+                    trunc_out = out[:2000] 
+                    if len(out) > 2000: trunc_out += "\n...[Output Truncated]..."
+                    log += f"$ {cmd}\nRC={rc}\nSTDOUT: {trunc_out}\nSTDERR: {err[:500]}\n"
+                    if (rc != 0 or not out.strip()) and (cmd.strip().startswith("/") or "/mnt/" in cmd):
+                        log += "\n[SYSTEM HINT]: Do not use absolute paths.\n"
+                except Exception as e: log += f"Error: {e}\n"
             history.append(log)
+            feedback_error = None
+
         elif action == "lookup_symbols":
             syms = resp.get("symbols", [])
             print(f"  [s] Looking up: {syms}")
-            res = perform_smart_lookup(src_root, syms)
-            if len(res) > MAX_OUT_LEN:
-                res = res[:MAX_OUT_LEN] + "\n... [TRUNCATED] ..."
-            history.append(f"LOOKUP RESULTS:\n{res}")
+            try:
+                res = perform_smart_lookup(src_root, syms)
+                history.append(f"LOOKUP:\n{res[:2000]}")
+            except Exception as e:
+                print(f"  [!] Lookup Failed: {e}")
+                history.append(f"SYSTEM ERROR: Lookup failed: {e}")
+            feedback_error = None
+
         elif action == "final_plan":
-            print("  [=] Planner produced final plan.")
-            return resp.get("plan", {})
-        else:
-            return {"plan_error": f"Planner output invalid action: {action}"}
+            raw_plan = resp.get("plan", {})
+            temp_plan_path = prompts_dir / "temp_plan.json"
+            write_json(temp_plan_path, raw_plan)
             
-    return {"plan_error": "Planner max iterations exceeded"}
+            valid, msg = run_dcv(temp_plan_path, ctx, args)
+            if valid:
+                print("  [✓] Model Validated.")
+                return raw_plan
+            else:
+                print("  [x] Validator Rejected Model.")
+                feedback_error = msg
+        else:
+            print(f"  [!] Invalid Action: {action}")
+            history.append(f"SYSTEM ERROR: Invalid action '{action}'.")
+            
+    return {"plan_error": "Max iterations exhausted in modeling phase"}
 
-def interactive_builder(
-    plan: Dict, ctx: Dict, args: argparse.Namespace, builder_prompt: str, prompts_dir: Path, src_root: Path, harness_dir: Path, logs_dir: Path, max_iters: int, replan_idx: int, project_bc: Path | None
-) -> Tuple[bool, str, str, int, int]:
-    harness_src = ""
-    last_err = ""
-    history = []
-    MAX_OUT_LEN = 3000
+def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: Path, idx: int) -> Dict:
+    ensure_dir(log_dir)
+    cmd = [klee] + flags + [str(bc_path)]
+    rc, out, err, t = run_cmd(cmd, timeout=timeout)
     
-    for i in range(max_iters * 2):
-        print(f"\n  --- [Builder Turn {i+1}/{max_iters*2}] ---")
-        user_msg = f"""Plan: {json.dumps(plan, indent=2)}\nCurrent Harness: {harness_src}\nLast Clang Error: {last_err}\nHistory:\n{chr(10).join(history[-5:])}"""
-        
-        try:
-            resp = call_llm_json(builder_prompt, user_msg, prompts_dir, f"builder_R{replan_idx}_T{i:03d}")
-        except Exception as e:
-            print(f"  [!] LLM Call Failed: {e}")
-            return False, harness_src, f"LLM Crash: {e}", i, i
+    full_log = f"{out}\n{err}"
+    (log_dir/f"klee_{idx}.log").write_text(full_log)
+    
+    log_tail = full_log[-2000:] if len(full_log) > 2000 else full_log
+    
+    # 1. BUG Check (Explicit Assertion)
+    bug_assert = "BUG_ASSERT" in full_log
+    
+    # 2. Memory Error Check (Implicit Oracle)
+    # Detects: "memory error: out of bound pointer", "invalid pointer", etc.
+    memory_error = "memory error" in full_log.lower() or "out of bound" in full_log.lower()
+    
+    # 3. Reachability Check
+    # "REACH_ASSERT" text OR "ASSERTION FAIL: 0" (since we defined REACH_ASSERT as klee_assert(0))
+    reach_marker = "REACH_ASSERT" in full_log
+    assertion_fail = "ASSERTION FAIL" in full_log
+    reach = reach_marker or assertion_fail
+    
+    # Stage 3 Success = Explicit Bug OR Memory Error
+    bug_found = bug_assert or memory_error
 
+    status = "assertion_bug" if bug_found else ("assertion_reach" if reach else ("timeout" if "Timed out" in err else "ok"))
+    
+    return {
+        "status": status, 
+        "bug_assert_hit": bug_found, 
+        "reach_assert_hit": reach, 
+        "elapsed": t,
+        "log_tail": log_tail  
+    }
+
+# ---------------- STAGE 2: REACHABILITY HARNESS SYNTHESIS ----------------
+def interactive_reachability_synthesizer(
+    plan: Dict, 
+    ctx: Dict, 
+    args: argparse.Namespace, 
+    prompt: str, 
+    prompts_dir: Path, 
+    src_root: Path, 
+    harness_dir: Path, 
+    logs_dir: Path, 
+    max_iters: int
+) -> Tuple[bool, str, Dict]:
+    harness_src = ""
+    history = []
+    best_stats = {}
+    
+    SHELL_BUDGET = 10 
+    shell_turns = 0
+    
+    for i in range(max_iters):
+        print(f"\n  --- [Reachability Synthesizer Turn {i+1}] ---")
+        
+        # 1. Generate Feedback
+        klee_feedback = ""
+        if best_stats:
+            status = best_stats.get("status")
+            log_tail = best_stats.get("log_tail", "").strip()
+            # Escape braces for f-string safety
+            log_tail_safe = log_tail.replace("{", "{{").replace("}", "}}")
+            
+            if status == "assertion_reach":
+                return True, harness_src, best_stats
+            elif status == "timeout":
+                klee_feedback = (f"Previous Run: TIMEOUT.\nLOG:\n{log_tail_safe}\nHINT: Simplify harness.")
+            else:
+                hint = "HINT: Unreachable."
+                if "memory error" in log_tail.lower(): hint += " Fix memory error (check log)."
+                elif "undefined reference" in log_tail.lower(): hint += " Fix linker error (missing stub)."
+                klee_feedback = (f"Previous Run: UNREACHABLE.\nLOG:\n{log_tail_safe}\n{hint}")
+
+        # 2. Define Status Message (Fixed Scope)
+        budget_msg = f"(Shell Budget: {shell_turns}/{SHELL_BUDGET} used)"
+        if i >= max_iters - 2:
+             print("  [!] SYSTEM: Injecting 'Final Turn' Warning...")
+             budget_msg += " CRITICAL: 2 TURNS LEFT. STOP SEARCHING. WRITE HARNESS NOW."
+
+        # 3. Build Prompt
+        user_msg = (f"Model: {json.dumps(plan)}\n"
+                    f"Status: {budget_msg}\n"
+                    f"Harness:\n{harness_src}\n"
+                    f"KLEE Feedback:\n{klee_feedback}\n"
+                    f"History:\n" + "\n".join(history[-5:]))
+                    
+        resp = call_llm_json(prompt, user_msg, prompts_dir, f"reach_gen_T{i:02d}")
+        
         action = resp.get("action")
+        reason = resp.get("reason", "No reasoning provided")
+        
         print(f"  [>] Action: {action}")
+        print(f"  [?] Reason: {reason}")
         
         if action == "shell":
-            cmd = resp.get("command")
-            if cmd:
-                print(f"  [$] Executing: {cmd}")
-                try:
-                    safe_cmd_argv = sanitize_shell_command(cmd)
-                    rc, out, err, _ = run_cmd(safe_cmd_argv, cwd=src_root, use_shell=True)
-                    print(f"      -> RC={rc}")
-                    
-                    # --- TRUNCATION ---
-                    out_trunc = out if len(out) < MAX_OUT_LEN else out[:MAX_OUT_LEN] + "\n...[TRUNCATED]..."
-                    err_trunc = err if len(err) < MAX_OUT_LEN else err[:MAX_OUT_LEN] + "\n...[TRUNCATED]..."
-                    history.append(f"$ {cmd}\nSTDOUT:\n{out_trunc}\nSTDERR:\n{err_trunc}")
-                except ValueError as e:
-                    print(f"  [!] Security Error: {e}")
-                    history.append(f"$ {cmd}\n[SECURITY ERROR] {e}")
-        elif action == "harness":
-            raw = resp.get("harness_c", "")
-            hsrc = extract_c_code(raw)
-            if not hsrc or reject_non_code(hsrc):
-                print("  [!] Invalid C code received")
-                history.append("SYSTEM: Output invalid C code. Return ONLY C code.")
+            if shell_turns >= SHELL_BUDGET:
+                print("  [!] HARD CAP: Shell Budget Exceeded.")
+                history.append('SYSTEM: SHELL BUDGET EXHAUSTED. Output { "action": "harness" }.')
                 continue
-            
-            print("  [i] Harness received. Attempting compile...")
-            harness_src = inject_standard_headers(hsrc)
-            hpath = harness_dir / "harness.c"
-            hpath.write_text(harness_src, encoding="utf-8")
-            
-            bc_path = harness_dir / "harness.bc"
-            cmd = [args.clang] + args.clang_flags + ["-emit-llvm", "-c", str(hpath), "-o", str(bc_path)]
-            rc, out, err, _ = run_cmd(cmd, cwd=src_root)
-            
-            if rc == 0:
-                print("  [+] Compilation Success!")
-                return True, harness_src, "", i, i
-            
-            print(f"  [-] Compilation Failed: {err[:200]}...")
-            last_err = err
-            history.append(f"SYSTEM: Clang Failed:\n{err}")
-    
-    return False, harness_src, last_err, max_iters, max_iters * 2
 
-def run_klee(harness_bc: Path, klee: str, flags: List[str], timeout: int, log_dir: Path, idx: int) -> Dict:
-    ensure_dir(log_dir)
-    cmd = [klee] + flags + [str(harness_bc)]
-    rc, out, err, t = run_cmd(cmd, timeout=timeout)
-    (log_dir / f"klee_{idx}.log").write_text(f"CMD: {' '.join(cmd)}\n\nSTDOUT:\n{out}\n\nSTDERR:\n{err}")
-    
-    bug = "BUG_ASSERT" in (out + err)
-    reach = "REACH_ASSERT" in (out + err)
-    status = "assertion_bug" if bug else ("assertion_reach" if reach else ("timeout" if "Timed out" in err else "ok"))
-    return {"status": status, "bug_assert_hit": bug, "reach_assert_hit": reach, "elapsed": t}
+            cmds = get_commands_list(resp)
+            if not cmds:
+                 print("  [!] WARNING: Empty shell command list.")
+                 history.append("SYSTEM: Error: You sent 'shell' with no commands.")
+                 continue
 
-def interactive_klee_refiner(
-    ctx: Dict, args: argparse.Namespace, plan: Dict, refiner_prompt: str, prompts_dir: Path, src_root: Path, harness_dir: Path, logs_dir: Path, harness_src: str, initial_stats: Dict, runs_used: int, max_runs: int, project_bc: Path
+            shell_turns += 1
+            for cmd in cmds:
+                try:
+                    sanitize_shell_command(cmd)
+                    print(f"  [$] Executing: {cmd}")
+                    rc, out, err, _ = run_cmd(cmd, cwd=src_root, use_shell=True)
+                    snippet = out[:200].replace('\n', ' ')
+                    print(f"      -> RC={rc} | Output: {snippet}...")
+                    if rc != 0 and (cmd.strip().startswith("/") or "/mnt/" in cmd):
+                         err += "\nSYSTEM HINT: Do not use absolute paths."
+                    history.append(f"$ {cmd}\nRC={rc}\nSTDOUT: {out[:500]}")
+                except Exception as e: history.append(f"Error: {e}")
+
+        elif action == "harness":
+            raw_harness = resp.get("harness_c", "")
+            code = extract_c_code(raw_harness)
+            if not code:
+                print("  [!] ERROR: No C code found.")
+                history.append("SYSTEM ERROR: No code block found. Wrap code in ```c ... ```.")
+                continue
+
+            harness_src = inject_standard_headers(code)
+            (harness_dir/"harness.c").write_text(harness_src, encoding="utf-8")
+            
+            # [FIX] Added -g for debug info
+            cmd = [args.clang] + args.clang_flags + ["-g", "-emit-llvm", "-c", str(harness_dir/"harness.c"), "-o", str(harness_dir/"harness.bc")]
+            rc, _, err, _ = run_cmd(cmd, cwd=src_root)
+            
+            if rc != 0:
+                print(f"  [-] Compile Error:\n{err[:300]}")
+                history.append(f"COMPILER ERROR:\n{err[:500]}")
+                continue 
+            
+            print("  [>] Compiles. Checking Reachability...")
+            stats = run_klee(harness_dir/"harness.bc", args.klee, args.klee_flags, args.timeout, logs_dir, i)
+            best_stats = stats
+            
+            if stats["reach_assert_hit"] or stats["bug_assert_hit"]:
+                print("  [✓] PATH FOUND!")
+                return True, harness_src, stats
+            else:
+                print("  [x] Unreachable.")
+                history.append(f"KLEE RESULT: Unreachable (H0). Time: {stats['elapsed']}s")
+
+        else:
+             print(f"  [!] ERROR: Invalid Action: {action}")
+             if shell_turns > 0:
+                 hint = "SYSTEM: Invalid response. You have enough info. Output 'harness' now."
+             else:
+                 hint = "SYSTEM: Invalid JSON format. Retry."
+             history.append(hint)
+             continue
+                
+    return False, harness_src, best_stats
+
+# ---------------- STAGE 3: VULNERABILITY HARNESS SYNTHESIS ----------------
+
+def interactive_vulnerability_synthesizer(
+    ctx, args, plan, prompt, prompts_dir, src_root, harness_dir, logs_dir, 
+    start_src, start_stats, max_runs
 ) -> Tuple[str, Dict, str]:
-    harness = harness_src
-    stats = initial_stats
-    runs = runs_used
+    """Stage 3: Vulnerability Harness Synthesis (Refiner)."""
+    src = start_src
+    stats = start_stats
+    runs = 0
     
+    if stats.get("bug_assert_hit"):
+        return "H2", stats, src
+
     while runs < max_runs:
-        print(f"\n  --- [Refiner Run {runs}/{max_runs}] ---")
-        user_msg = f"Harness:\n{harness}\nKLEE Stats: {json.dumps(stats, indent=2)}\nGoal: Reach BUG_ASSERT."
-        resp = call_llm_json(refiner_prompt, user_msg, prompts_dir, f"refiner_run{runs:02d}")
+        print(f"\n  --- [Vulnerability Synthesizer Run {runs+1}/{max_runs}] ---")
+        
+        harness_analysis = get_harness_analysis_string(plan, src)
+        klee_log_snippet = stats.get("log_tail", "(No KLEE output available yet)")
+        
+        user_msg = (
+            f"{harness_analysis}\n\n"
+            f"Current Harness:\n{src}\n"
+            f"KLEE Stats: {json.dumps(stats)}\n"
+            f"KLEE Output (Last 2k chars):\n{klee_log_snippet}\n\n"
+            f"Goal: Trigger BUG_ASSERT (or trigger a Memory Error)."
+        )
+        resp = call_llm_json(prompt, user_msg, prompts_dir, f"vuln_gen_{runs:02d}")
         action = resp.get("action")
         print(f"  [>] Action: {action}")
         
-        if action == "final": return ("H2" if stats.get("bug_assert_hit") else "H0"), stats, harness
-        
-        if action in ("refine_build_only", "refine_and_run_klee"):
-            new_src = extract_c_code(resp.get("harness_c", ""))
-            if new_src:
-                harness = inject_standard_headers(new_src)
-                (harness_dir/"harness.c").write_text(harness, encoding="utf-8")
+        if action == "final":
+            if stats.get("bug_assert_hit"): return "H2", stats, src
+            return ("H2_REACH", stats, src) 
+            
+        if "refine" in action:
+            new_code = extract_c_code(resp.get("harness_c", ""))
+            
+            # --- [NEW] ASSERTION VALIDATOR GATE ---
+            is_valid, reject_reason = validate_harness_integrity(new_code)
+            if not is_valid:
+                print(f"  [!] Validator Rejected Harness: {reject_reason}")
+                stats = {"log_tail": f"SYSTEM FEEDBACK: {reject_reason} Fix the code and retry."}
+                runs += 1
+                continue 
+            # --------------------------------------
+
+            if new_code:
+                src = inject_standard_headers(new_code)
+                (harness_dir/"harness.c").write_text(src, encoding="utf-8")
                 
-                cmd = [args.clang] + args.clang_flags + ["-emit-llvm", "-c", str(harness_dir/"harness.c"), "-o", str(harness_dir/"harness.bc")]
+                # [FIX] Added -g
+                cmd = [args.clang] + args.clang_flags + ["-g", "-emit-llvm", "-c", str(harness_dir/"harness.c"), "-o", str(harness_dir/"harness.bc")]
                 rc, _, err, _ = run_cmd(cmd, cwd=src_root)
-                if rc != 0: 
-                    print(f"  [-] Refinement Compile Failed: {err[:100]}...")
-                    continue 
+                if rc != 0:
+                    print("  [-] Compile Failed in Refiner")
+                    stats = {"log_tail": f"COMPILER ERROR:\n{err[:1000]}"}
+                    runs += 1
+                    continue
                 
                 if action == "refine_and_run_klee":
                     runs += 1
                     print("  [i] Running KLEE...")
-                    stats = run_klee(harness_dir/"harness.bc", args.klee, args.klee_flags, args.timeout, logs_dir, runs)
-                    if stats.get("bug_assert_hit"): return "H2", stats, harness
-        
-        if action == "shell":
-            cmd = resp.get("command")
-            if cmd:
-                try:
-                    # FIX: Allow pipes here too
-                    safe_cmd_argv = sanitize_shell_command(cmd)
-                    run_cmd(safe_cmd_argv, cwd=src_root, use_shell=True)
-                except: pass
-    
-    return ("H2" if stats.get("bug_assert_hit") else "H1"), stats, harness
+                    stats = run_klee(harness_dir/"harness.bc", args.klee, args.klee_flags, args.timeout, logs_dir, runs + 100)
+                    if stats.get("bug_assert_hit"):
+                        print("  [!!!] BUG TRIGGERED!")
+                        return "H2", stats, src
+                        
+    return ("H2_REACH", stats, src)
 
-# ---------------- MAIN ----------------
+# ---------------- MAIN PIPELINE ----------------
 
 def main():
     ap = argparse.ArgumentParser()
@@ -577,11 +738,11 @@ def main():
     ap.add_argument("--llm-model", required=True)
     ap.add_argument("--llm-api-base", required=True)
     ap.add_argument("--clang", default="clang-14")
-    ap.add_argument("--clang-flags", dest="clang_flags", nargs="*", default=[])
+    ap.add_argument("--clang-flags", nargs="*", default=[])
     ap.add_argument("--klee", default="klee")
-    ap.add_argument("--klee-flags", dest="klee_flags", nargs="*", default=[])
+    ap.add_argument("--klee-flags", nargs="*", default=[])
     ap.add_argument("--project-bc", default=None)
-    ap.add_argument("--max-a", type=int, default=8)
+    ap.add_argument("--max-a", type=int, default=15) # Increased per suggestion
     ap.add_argument("--max-b", type=int, default=12)
     ap.add_argument("--max-cycles", type=int, default=5)
     ap.add_argument("--timeout", type=int, default=120)
@@ -592,137 +753,64 @@ def main():
     args.clang_flags = normalize_flag_list(args.clang_flags)
     args.klee_flags = normalize_flag_list(args.klee_flags)
     os.environ["LLM_MODEL"] = args.llm_model
-    os.environ["LLM_API_BASE"] = args.llm_api_base.rstrip("/")
+    os.environ["LLM_API_BASE"] = args.llm_api_base
 
-    run_dir = Path(args.run_dir).resolve()
-    sa_out_dir = Path(args.sa_out_dir).resolve()
-    src_root = Path(args.src_root).resolve()
-    
-    ctx_dir = ensure_dir(run_dir / "ctx")
-    prompts_dir = ensure_dir(run_dir / "prompts")
-
-    # --- SETUP LOGGING ---
+    run_dir = ensure_dir(Path(args.run_dir).resolve())
     setup_logging(run_dir)
-
-    print("[i] Building context...")
-    ctx = build_context(sa_out_dir, src_root, Path(args.spec), args.vul_file, args.vul_line, ctx_dir)
     
-    args.clang_flags = list(dict.fromkeys(ccdb_flags(ctx.get("compile_commands_entry")) + args.clang_flags))
-
-    prompts_map = make_prompt.generate_prompts(
-        args.vul_file, args.vul_line, args.rule_id, ctx.get("vul_statement_text", ""), prompts_dir
-    )
-    
-    planner_prompt = prompts_map["planner"]
-    builder_prompt = prompts_map["builder"]
-    refiner_prompt = prompts_map["refiner"]
+    ctx = build_context(Path(args.sa_out_dir), Path(args.src_root), Path(args.spec), args.vul_file, args.vul_line, ensure_dir(run_dir/"ctx"))
+    prompts = make_prompt.generate_prompts(args.vul_file, args.vul_line, args.rule_id, ctx.get("vul_statement_text", ""), ensure_dir(run_dir/"prompts"))
 
     overall_status = "E"
-    klee_final = None
-    harness_final = ""
-    cycle_feedback = None
-
-    for cycle_idx in range(args.max_cycles):
-        print(f"\n[=] CYCLE {cycle_idx+1}/{args.max_cycles}")
-        attempt_dir = ensure_dir(run_dir / f"try_{cycle_idx:02d}")
-        harness_dir = ensure_dir(attempt_dir / "harness")
-        logs_dir = ensure_dir(attempt_dir / "logs")
+    klee_final = {}
+    
+    for cycle in range(args.max_cycles):
+        print(f"\n[=] PIPELINE CYCLE {cycle+1}/{args.max_cycles}")
+        d = ensure_dir(run_dir / f"try_{cycle:02d}")
         
-        plan = {}
-        # --- PLANNER LOOP ---
-        for r_idx in range(3):
-            print(f"[i] Planner (replan={r_idx})")
-            # --- MAX ITERATIONS: 15 ---
-            raw_plan = interactive_planner(ctx, args, planner_prompt, attempt_dir, src_root, 15, cycle_feedback)
-            
-            if "plan_error" in raw_plan:
-                cycle_feedback = raw_plan["plan_error"]
-                print(f"[-] Planner failed: {cycle_feedback}")
-                continue
-            
-            plan_path = attempt_dir / f"plan_R{r_idx}.json"
-            write_json(plan_path, raw_plan)
-            
-            dcv_ok, dcv_err = run_dcv(plan_path, ctx, args)
-            if not dcv_ok:
-                print(f"[!] DCV Rejected Plan: {dcv_err[:200]}...")
-                cycle_feedback = f"DCV Plan Validation Failed:\n{dcv_err}"
-                continue
-            
-            plan = raw_plan
-            print("[+] Plan Accepted by DCV.")
-            cycle_feedback = None
-            break
-        
-        if not plan:
-            print("[-] Planner failed to produce valid plan after retries.")
-            break
-
-        # --- BUILDER LOOP ---
-        print("\n[DEBUG] Starting Builder...")
-        build_success, h_src, b_err, _, _ = interactive_builder(
-            plan, ctx, args, builder_prompt, attempt_dir, src_root, harness_dir, logs_dir, args.max_a, 0, Path(args.project_bc) if args.project_bc else None
-        )
-        
-        if not build_success:
-            error_msg = b_err if b_err else "<No compilation error captured (Builder may have timed out)>"
-            # --- REMOVED TRUNCATION FOR FULL ERROR LOG ---
-            print(f"[DEBUG] Builder FAILED. Error:\n{error_msg}")
-            cycle_feedback = f"Builder failed to compile:\n{error_msg}"
+        # --- STAGE 1: ENVIRONMENT MODELING ---
+        plan = interactive_environment_modeler(ctx, args, prompts["planner"], d, Path(args.src_root), 8)
+        if "plan_error" in plan: 
+            print("[!] Modeling Failed.")
             continue
         
-        print("[DEBUG] Builder SUCCEEDED. Harness compiled.")
-
-        # --- BASELINE KLEE ---
-        print("[B] Baseline KLEE Run...")
-        stats = run_klee(harness_dir/"harness.bc", args.klee, args.klee_flags, args.timeout, logs_dir, 0)
-        print(f"[DEBUG] Baseline Result: {stats['status']} (Bug Hit: {stats['bug_assert_hit']})")
-        
-        if stats["bug_assert_hit"]:
-            print("[DEBUG] BUG FOUND in Baseline!")
-            overall_status = "H2"
-            klee_final = stats
-            harness_final = h_src
-            break
-            
-        # --- REFINER LOOP ---
-        print("[B] Entering Refiner...")
-        status, stats, h_final = interactive_klee_refiner(
-            ctx, args, plan, refiner_prompt, attempt_dir, src_root, harness_dir, logs_dir, h_src, stats, 1, args.max_b, Path(args.project_bc) if args.project_bc else None
+        # --- STAGE 2: REACHABILITY HARNESS SYNTHESIS ---
+        reach_success, h_src, stats = interactive_reachability_synthesizer(
+            plan, ctx, args, prompts["builder"], d, Path(args.src_root), 
+            ensure_dir(d/"harness"), ensure_dir(d/"logs"), args.max_a
         )
         
-        print(f"[DEBUG] Refiner Finished. Status: {status}")
-        
-        overall_status = status
-        klee_final = stats
-        harness_final = h_final
-        
-        if overall_status == "H2":
-            print("[DEBUG] BUG FOUND in Refiner!")
-            break
+        if not reach_success:
+            fail_reason = stats.get('status', 'unknown')
+            print(f"[!] Reachability Failed ({fail_reason}). Restarting Pipeline.")
+            overall_status = "H0"
+            klee_final = stats
+            continue
             
-        cycle_feedback = f"Refiner finished with {overall_status}. Bug assert not hit."
-        print(f"[DEBUG] Cycle failed. Feedback for next cycle: {cycle_feedback}")
-
-    if not klee_final: klee_final = {"status": "not_run", "bug_assert_hit": False}
-    
-    meta = {
-        "spec": str(args.spec),
-        "spec_stem": args.spec_stem,
-        "class": overall_status,
-        "klee": klee_final
-    }
-    write_json(run_dir / "run_meta.json", meta)
-    
-    if harness_final:
-        (run_dir / "harness_final.c").write_text(harness_final, encoding="utf-8")
+        # --- STAGE 3: VULNERABILITY HARNESS SYNTHESIS ---
+        print("[+] Path Found. Engaging Vulnerability Synthesizer.")
+        vuln_status, final_stats, final_src = interactive_vulnerability_synthesizer(
+            ctx, args, plan, prompts["refiner"], d, Path(args.src_root), 
+            ensure_dir(d/"harness"), ensure_dir(d/"logs"), h_src, stats, args.max_b
+        )
         
+        klee_final = final_stats
+        if vuln_status == "H2":
+            print("[!!!] VULNERABILITY VERIFIED.")
+            overall_status = "H2"
+            break 
+        elif vuln_status == "H2_REACH":
+            print("[-] Reached target but could not trigger bug.")
+            overall_status = "H2_REACH"
+            
+    # Final Reporting
+    write_json(run_dir / "run_meta.json", {"spec": str(args.spec), "class": overall_status, "klee": klee_final})
     if args.summary_tsv:
         with open(args.summary_tsv, "a") as f:
             fcntl.flock(f, fcntl.LOCK_EX)
-            f.write(f"{args.spec_stem}\t{overall_status}\t{klee_final.get('status')}\t{klee_final.get('elapsed', 0.0):.2f}\n")
+            f.write(f"{args.spec_stem}\t{overall_status}\t{klee_final.get('status','none')}\t{klee_final.get('elapsed',0):.2f}\n")
             fcntl.flock(f, fcntl.LOCK_UN)
-
+            
     print(f"[✓] Finished {args.spec_stem}: {overall_status}")
 
 if __name__ == "__main__":

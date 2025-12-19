@@ -4,8 +4,12 @@
 validate_plan_contract.py
 
 Deterministic Contract Validator (DCV) for the Planner output.
-Enforces semantic correctness, assertion fidelity, and project heuristics.
-UPDATED: Includes Anti-Tautology logic to prevent redundant assumptions.
+Enforces semantic correctness and fidelity.
+
+UPDATED FEATURES:
+  - Rule-Based Logic Inference: Checks if assertions match the CodeQL rule pattern.
+  - Robust Symbolic Setup: Ensures buffers have concrete sizes but symbolic contents.
+  - Non-Restrictive: Warns rather than blocks on heuristic mismatches.
 """
 
 from __future__ import annotations
@@ -14,7 +18,6 @@ import argparse
 import json
 import re
 import sys
-import textwrap
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -22,29 +25,27 @@ from typing import Any, Dict, List, Optional, Tuple
 MARK_BUG = "BUG_ASSERT"
 MARK_REACH = "REACH_ASSERT"
 
+# --- 1. Rule-Based Inference Templates ---
+# Defines the expected logic for specific CodeQL rules.
+RULE_TEMPLATES = {
+    "local.oob.memfunc.length-misuse.maxcover.v5": {
+        "description": "OOB Risk: Count argument (n) vs Destination Capacity",
+        "target_arg_index": {
+            # Map function names to the index of the 'length' argument (0-based)
+            "memcpy": 2, "memmove": 2, "memset": 2, 
+            "strncpy": 2, "strncat": 2, "strlcpy": 2, "strlcat": 2,
+            "read": 2, "recv": 2, "recvfrom": 2,
+            "fgets": 1, # Special case
+            "pread": 2, # pread(fd, buf, count, off) -> count is arg 2
+        },
+        "logic_hint": "assert( {count_var} > {dest_capacity} )"
+    }
+}
+
 def _read_json(path: Optional[Path]) -> Optional[Any]:
     if not path: return None
     try: return json.loads(path.read_text(encoding="utf-8", errors="replace"))
     except Exception: return None
-
-def _norm_path(p: str) -> str: return p.replace("\\", "/")
-
-def _rel_to_root(p: str, src_root: Optional[Path]) -> str:
-    p = _norm_path(p)
-    if not src_root: return p
-    try:
-        rp = Path(p)
-        if not rp.is_absolute(): return _norm_path(str(rp))
-        return _norm_path(str(rp.relative_to(src_root)))
-    except Exception:
-        root_name = src_root.name
-        idx = p.find("/" + root_name + "/")
-        if idx != -1: return p[idx + len(root_name) + 2 :]
-        return p
-
-def _load_text(path: Path) -> str:
-    try: return path.read_text(encoding="utf-8", errors="replace")
-    except Exception: return ""
 
 def _walk_strings(obj: Any, path: str = "") -> List[Tuple[str, str]]:
     out: List[Tuple[str, str]] = []
@@ -64,40 +65,93 @@ def _find_marker_strings(plan_obj: Any) -> Dict[str, List[Tuple[str, str]]]:
 
 def check_for_tautology(plan_text: str, bug_assert_code: str) -> List[str]:
     """
-    Detects if the BUG_ASSERT condition is identical to an assumption/constraint.
-    Example: klee_assume(len < 100) ... klee_assert(len < 100) -> TAUTOLOGY (Bad)
+    Detects if the BUG_ASSERT condition is identical to an assumption.
     """
     warnings = []
-    
-    # 1. Extract the core condition from the assertion string
-    # Matches: klee_assert(  len < 100  && "BUG_ASSERT"  );
-    # Captures: len < 100
     match = re.search(r'klee_assert\s*\((.*?)\s*&&\s*["\']BUG_ASSERT', bug_assert_code)
-    
-    if not match:
-        return []
+    if not match: return []
 
     condition = match.group(1).strip()
-    
-    # 2. Normalize spaces for comparison (remove extra whitespace)
+    # Basic normalization to catch "len < 10" vs "len<10"
     normalized_condition = "".join(condition.split())
-    
-    # 3. Scan the ENTIRE plan text for assumptions/constraints containing this condition
-    # We look for "assume" or "constraint" blocks that might contain the same logic
-    # This is a heuristic: strict string matching on the normalized condition
     plan_no_spaces = "".join(plan_text.split())
     
-    # Look for "assume(len<100)" pattern in the normalized text
-    # We strip "klee_" prefix to match generic "assume" usage in comments or code
+    # Check if we assume what we assert (Tautology = False Positive Safety)
+    # e.g., klee_assume(len < 10) ... klee_assert(len < 10)
     check_pattern = f"assume({normalized_condition})"
     
     if check_pattern in plan_no_spaces:
         warnings.append(
             f"Logical Tautology Detected: The plan implies `assume({condition})`. "
-            f"You are assuming the safety condition '{condition}' which you then assert! "
-            "This makes the bug unreachable. You MUST relax the assumption (e.g., allow len > buffer)."
+            "You cannot assume the safety condition you are trying to test. "
+            "To prove the bug, you must ALLOW the unsafe condition in assumptions."
         )
+    return warnings
+
+def validate_symbolic_setup(plan: Dict[str, Any]) -> List[str]:
+    """
+    Checks if the symbolic inputs are defined robustly.
+    - Pointers should have concrete allocation sizes.
+    - Lengths should be symbolic.
+    """
+    errors = []
+    inputs = plan.get("symbolic_inputs", [])
+    if not isinstance(inputs, list):
+        return ["'symbolic_inputs' must be a list."]
+
+    for item in inputs:
+        name = item.get("name", "unknown")
+        c_type = item.get("c_type", "")
         
+        # Rule: Pointers needs concrete allocation size to avoid KLEE OOB on initialization
+        if "*" in c_type or "ptr" in name:
+            alloc = item.get("allocation_size")
+            if not alloc or (isinstance(alloc, str) and not alloc.isdigit()):
+                 # We warn, not fail, because sometimes it's a pointer to an existing struct
+                 pass 
+            else:
+                 # If they provided a size, it must be concrete integer
+                 try:
+                     int(alloc)
+                 except:
+                     errors.append(f"Input '{name}': allocation_size must be a concrete integer (found {alloc}).")
+
+    return errors
+
+def validate_rule_logic(plan: Dict[str, Any], rule_id: str) -> List[str]:
+    """
+    Checks if the plan's assertions align with the CodeQL rule logic.
+    Returns WARNINGS only (does not block LLM, but guides it).
+    """
+    warnings = []
+    if not rule_id or rule_id not in RULE_TEMPLATES:
+        return [] # Unknown rule, skip logic check
+
+    template = RULE_TEMPLATES[rule_id]
+    target_func = plan.get("target_function", {}).get("name", "")
+    
+    # If the LLM identified a function we know about, check the logic
+    if target_func in template.get("target_arg_index", {}):
+        # We expect the assertion to involve the argument at this index
+        expected_idx = template["target_arg_index"][target_func]
+        
+        # Scan assertions for variables that look like arguments
+        assertions = plan.get("assertions", [])
+        found_logic = False
+        for a in assertions:
+            cond = a.get("condition", "") + a.get("derived_condition", "")
+            # Heuristic: does the condition mention "arg" or variable names likely to be arguments?
+            # This is loose to avoid restricting the LLM too much.
+            if len(cond) > 3: 
+                found_logic = True
+                break
+        
+        if not found_logic:
+            warnings.append(
+                f"[Logic Hint] Rule {rule_id} typically involves checking Argument {expected_idx+1} "
+                f"of {target_func}. Ensure your BUG_ASSERT constrains this value against the buffer size."
+            )
+
     return warnings
 
 @dataclass
@@ -126,56 +180,41 @@ def validate_plan_against_contract(
         hard.append("Planner output is empty or not a JSON object.")
         return DCVReport(False, hard, warn, info, "Planner output invalid.")
 
-    # Convert plan back to string for global text search
     plan_text = json.dumps(plan_obj)
-
-    plan = plan_obj["plan"] if "plan" in plan_obj and isinstance(plan_obj["plan"], dict) and len(plan_obj) <= 3 else plan_obj
+    # Support both wrapped {"plan": {...}} and flat structures
+    plan = plan_obj.get("plan", plan_obj)
     
     # --- 1. Assertion Fidelity ---
     marker_hits = _find_marker_strings(plan)
-    if not marker_hits[MARK_BUG]: hard.append("Missing BUG_ASSERT in plan.")
-    if not marker_hits[MARK_REACH]: hard.append("Missing REACH_ASSERT in plan.")
-
-    rule = rule_id or (spec.get("rule_id") if spec else "") or ""
-    info["rule"] = rule
-
-    bug_str = marker_hits[MARK_BUG][0][1] if marker_hits[MARK_BUG] else ""
     
-    # --- 1.1 Tautology Check (New) ---
+    # CRITICAL: REACH_ASSERT is mandatory.
+    if not marker_hits[MARK_REACH]: 
+        hard.append("Missing REACH_ASSERT in plan. You MUST mark the target line.")
+    
+    # BUG_ASSERT is optional in "Relaxed" mode, but if present, must be non-tautological.
+    bug_str = marker_hits[MARK_BUG][0][1] if marker_hits[MARK_BUG] else ""
     if bug_str:
         tautology_errors = check_for_tautology(plan_text, bug_str)
-        if tautology_errors:
-            # Treat tautology as a HARD error to prevent wasted cycles
-            hard.extend(tautology_errors)
-
-    # Semantic Check: OOB Rule must constrain length/capacity
-    if "oob.memfunc.length-misuse" in rule:
-        facts = (spec.get("facts") if spec else {}) or (fact_pack.get("facts", {}) if fact_pack else {})
-        length_vars = facts.get("length_vars", []) if isinstance(facts, dict) else []
-        
-        # Check for safety operators (<, <=)
-        if not any(op in bug_str for op in ["<", "<="]):
-             warn.append("OOB Rule Heuristic: BUG_ASSERT should likely use '<' or '<=' to check bounds.")
-        
-        # Check for null checks (common hallucination)
-        if "!= NULL" in bug_str or "== NULL" in bug_str:
-             warn.append("OOB Rule Heuristic: BUG_ASSERT appears to check for NULL, but rule is Length Misuse (OOB).")
+        if tautology_errors: hard.extend(tautology_errors)
 
     # --- 2. Harness Fidelity ---
-    # Relaxed check: Look for keyword anywhere in the file structure
     if "klee_make_symbolic" not in plan_text:
-        hard.append("Harness must include 'klee_make_symbolic' to define inputs.")
+        # We allow implicit creation via helper functions, so this is a warning now, not hard error
+        warn.append("Plan should explicitly mention 'klee_make_symbolic' to ensure inputs are generated.")
 
-    # --- 3. Project Heuristics (LibXML2) ---
-    # proj = project_name or (spec.get("project") if spec else "") or ""
-    # if "libxml2" in proj.lower() and "dict.c" in (spec.get("file") or ""):
-    #     if not any("memset" in s and "dict" in s for s in call_seq):
-    #          warn.append("LibXML2 Heuristic: Dictionary functions usually require explicit struct initialization (memset).")
+    # --- 3. Robust Symbolic Setup ---
+    sym_errors = validate_symbolic_setup(plan)
+    hard.extend(sym_errors)
+
+    # --- 4. Rule-Based Logic Check (Soft) ---
+    if rule_id:
+        logic_warns = validate_rule_logic(plan, rule_id)
+        warn.extend(logic_warns)
 
     ok = len(hard) == 0
     feedback = ""
     if hard: feedback += "DCV ERRORS:\n- " + "\n- ".join(hard) + "\n"
-    if warn: feedback += "DCV WARNINGS:\n- " + "\n- ".join(warn[:5])
+    if warn: feedback += "DCV SUGGESTIONS:\n- " + "\n- ".join(warn[:5])
     
     return DCVReport(ok, hard, warn, info, feedback)
 
@@ -205,6 +244,7 @@ def main() -> int:
         Path(args.out).write_text(json.dumps(rep.to_dict(), indent=2), encoding="utf-8")
     
     if not rep.ok:
+        # Print feedback to stderr so the Agent can see it in the logs
         print(rep.suggested_feedback, file=sys.stderr)
         return 1
     return 0

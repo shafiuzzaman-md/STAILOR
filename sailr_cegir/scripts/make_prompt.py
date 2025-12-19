@@ -11,6 +11,7 @@ and returns/saves the finalized prompt text.
 import textwrap
 from pathlib import Path
 
+# Robust path resolution
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = SCRIPT_DIR.parent / "prompt_template"
 
@@ -44,11 +45,11 @@ def generate_prompts(
     Returns a dictionary mapping 'role' -> 'prompt_content'.
     """
     
-    # --- FIX: Removed "assert_contract": "assertion_contract.txt" ---
+    # --- MAPPING: Aligned with new 3-Stage Architecture ---
     templates = {
-        "planner": "planner.txt",
-        "builder": "builder.txt",
-        "refiner": "klee_refiner.txt"
+        "planner": "planner.txt",          # Environment Modeler
+        "builder": "klee_builder.txt",     # Reachability Synthesizer
+        "refiner": "klee_refiner.txt"      # Vulnerability Synthesizer
     }
 
     results = {}
@@ -56,7 +57,7 @@ def generate_prompts(
     if not TEMPLATE_DIR.exists():
         raise FileNotFoundError(
             f"[!] Prompt template directory missing: {TEMPLATE_DIR}\n"
-            f"    Expected location: SAILR/sailr_cegir/prompt_template"
+            f"    Expected location: {TEMPLATE_DIR}"
         )
 
     for key, fname in templates.items():
