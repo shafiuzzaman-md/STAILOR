@@ -22,6 +22,11 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# Allow local rule_validators.py imports
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+
+
 MARK_BUG = "BUG_ASSERT"
 MARK_REACH = "REACH_ASSERT"
 
@@ -118,42 +123,62 @@ def validate_symbolic_setup(plan: Dict[str, Any]) -> List[str]:
 
     return errors
 
+def hard_validate_rule_logic(plan: Dict[str, Any], rule_id: str, spec: Optional[Dict[str, Any]] = None) -> List[str]:
+    """Delegates rule-specific hard checks to rule_validators.py."""
+    try:
+        from rule_validators import validate_plan_rule_specific
+    except Exception as e:
+        # If the module is missing, do not hard-fail the pipeline; fall back to no rule-specific checks.
+        return []
+    return validate_plan_rule_specific(plan, rule_id=rule_id, spec=spec)
+
+
+
 def validate_rule_logic(plan: Dict[str, Any], rule_id: str) -> List[str]:
+    """    Soft (non-blocking) rule-logic hints.
+
+    This is intentionally heuristic: it guides the Planner/Builder when the plan
+    does not appear to express the expected safety/bug relationship for a known rule.
     """
-    Checks if the plan's assertions align with the CodeQL rule logic.
-    Returns WARNINGS only (does not block LLM, but guides it).
-    """
-    warnings = []
+    warnings: List[str] = []
     if not rule_id or rule_id not in RULE_TEMPLATES:
-        return [] # Unknown rule, skip logic check
+        return warnings
 
     template = RULE_TEMPLATES[rule_id]
-    target_func = plan.get("target_function", {}).get("name", "")
-    
-    # If the LLM identified a function we know about, check the logic
-    if target_func in template.get("target_arg_index", {}):
-        # We expect the assertion to involve the argument at this index
-        expected_idx = template["target_arg_index"][target_func]
-        
-        # Scan assertions for variables that look like arguments
-        assertions = plan.get("assertions", [])
-        found_logic = False
-        for a in assertions:
-            cond = a.get("condition", "") + a.get("derived_condition", "")
-            # Heuristic: does the condition mention "arg" or variable names likely to be arguments?
-            # This is loose to avoid restricting the LLM too much.
-            if len(cond) > 3: 
-                found_logic = True
+
+    # Try to infer a likely sink function and whether the plan mentions any bug condition.
+    target_func = (plan.get("target_function", {}) or {}).get("name", "")
+    if not target_func:
+        # Fallback: look for common sink names anywhere in the plan.
+        plan_dump = json.dumps(plan)
+        for fn in template.get("target_arg_index", {}).keys():
+            if fn in plan_dump:
+                target_func = fn
                 break
-        
-        if not found_logic:
+
+    # If we can map the sink, provide a tailored hint.
+    if target_func and target_func in template.get("target_arg_index", {}):
+        expected_idx = template["target_arg_index"][target_func]
+
+        assertions = plan.get("assertions", [])
+        found_nontrivial = False
+        if isinstance(assertions, list):
+            for a in assertions:
+                if not isinstance(a, dict):
+                    continue
+                cond = (a.get("condition", "") or "") + " " + (a.get("derived_condition", "") or "")
+                if len(cond.strip()) > 3:
+                    found_nontrivial = True
+                    break
+
+        if not found_nontrivial:
             warnings.append(
-                f"[Logic Hint] Rule {rule_id} typically involves checking Argument {expected_idx+1} "
-                f"of {target_func}. Ensure your BUG_ASSERT constrains this value against the buffer size."
+                f"[Logic Hint] Rule {rule_id} usually requires relating the count/length argument "
+                f"(arg #{expected_idx+1}) of {target_func} to the destination capacity. "
+                "Ensure BUG_ASSERT encodes an OOB condition (count > capacity), not allocator success (ptr != NULL)."
             )
 
     return warnings
-
 @dataclass
 class DCVReport:
     ok: bool
@@ -206,7 +231,12 @@ def validate_plan_against_contract(
     sym_errors = validate_symbolic_setup(plan)
     hard.extend(sym_errors)
 
-    # --- 4. Rule-Based Logic Check (Soft) ---
+    # --- 4. Rule-Based Logic Check (Hard for known FP patterns) ---
+    if rule_id:
+        hard_logic = hard_validate_rule_logic(plan, rule_id, spec)
+        hard.extend(hard_logic)
+
+    # --- 5. Rule-Based Logic Check (Soft / advisory) ---
     if rule_id:
         logic_warns = validate_rule_logic(plan, rule_id)
         warn.extend(logic_warns)
@@ -251,3 +281,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+# Allow local rule_validators.py imports

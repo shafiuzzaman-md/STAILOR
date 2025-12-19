@@ -31,6 +31,13 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(SCRIPT_DIR))
 
+# Rule-specific validators (user-extensible)
+try:
+    from rule_validators import validate_harness_rule_specific
+except Exception:
+    validate_harness_rule_specific = None
+
+
 try:
     from llm_utils import llm_chat
 except Exception as e:
@@ -274,23 +281,48 @@ def find_source_file(src_root: Path, vul_file: str) -> Path:
     if not matches: raise FileNotFoundError(f"{vul_file} not found under {src_root}")
     return sorted(matches, key=lambda p: len(str(p)))[0]
 
-def extract_vulnerable_statement_text(lines: List[str], start_line_num: int) -> str:
-    idx = start_line_num - 1
-    if idx < 0 or idx >= len(lines): return f"[error] line {start_line_num} out of bounds"
+def extract_vulnerable_statement_text(lines: List[str], line_num: int) -> str:
+    """
+    Extract the *statement at the exact line number* (best-effort), rather than
+    walking upward to the nearest control predicate. This is critical for avoiding
+    mis-targeted harness assertions (false positives).
+    """
+    idx = line_num - 1
+    if idx < 0 or idx >= len(lines):
+        return f"[error] line {line_num} out of bounds"
+
+    # If the target line is blank/comment, scan downward to next non-empty line.
     i = idx
-    while i >= 0:
-        if lines[i].strip().startswith(("if", "while", "for")):
-            idx = i
+    while i < len(lines) and (not lines[i].strip() or lines[i].lstrip().startswith(("//", "/*", "*"))):
+        i += 1
+    if i >= len(lines):
+        return f"[error] no statement at/after line {line_num}"
+
+    # Best-effort multi-line statement join:
+    # - Start at first non-empty code line at/after line_num
+    # - Keep appending while terminator not reached and parens/braces not balanced
+    stmt_parts = []
+    paren = brace = bracket = 0
+
+    def _count(s: str):
+        nonlocal paren, brace, bracket
+        paren += s.count("(") - s.count(")")
+        brace += s.count("{") - s.count("}")
+        bracket += s.count("[") - s.count("]")
+
+    for j in range(i, min(len(lines), i + 15)):
+        ln = lines[j].strip()
+        if not ln or ln.startswith(("//", "/*", "*")):
+            continue
+        stmt_parts.append(ln)
+        _count(ln)
+
+        # Stop at a reasonable statement boundary.
+        if (ln.endswith(";") or ln.endswith("{") or ln.endswith("}")) and paren <= 0 and bracket <= 0:
             break
-        i -= 1
-    stmt = []
-    for j in range(0, 10):
-        if idx + j >= len(lines): break
-        line = lines[idx + j].strip()
-        if not line or line.startswith(("/", "*")): continue
-        stmt.append(line)
-        if line.endswith(("{", ";")): break
-    return " ".join(stmt)
+
+    return " ".join(stmt_parts).strip()
+
 
 def perform_smart_lookup(src_root: Path, symbols: List[str]) -> str:
     results = []
@@ -336,22 +368,142 @@ def run_dcv(plan_path: Path, ctx: Dict, args: argparse.Namespace) -> Tuple[bool,
         return False, f"Rule-Based Validator Rejected the Model:\n{out}\n{err}"
     return True, ""
 
-def validate_harness_integrity(harness_src: str) -> Tuple[bool, str]:
+def validate_harness_integrity(harness_src: str, *, rule_id: str = "", spec: Dict[str, Any] | None = None, ctx: Dict[str, Any] | None = None) -> Tuple[bool, str]:
     """
-    Stage 3 Validator: Checks for common LLM 'cheats' in the C code.
-    Returns (True, "") if clean, or (False, reason) if rejected.
+    Harden Validator: Rejects common 'rigged' setups while protecting True Positives.
+    
+    Checks:
+    1. No Magic Numbers in Assertions (allows 0).
+    2. No Silent Assertions (klee_assert(1)).
+    3. No Strawman Allocations (malloc(1)).
+    4. Allocator Integrity (Stub must use 'size' arg).
     """
-    # Rule 1: No Hardcoded Numbers in BUG_ASSERT
-    magic_number_pattern = r'BUG_ASSERT\s*\([^\)]*[<>=]+\s*\d+\s*\)'
-    if re.search(magic_number_pattern, harness_src):
-        return False, "REJECTED: Usage of hardcoded number (Magic Number) in BUG_ASSERT. You must assert against a variable (e.g., buffer_size), not a constant."
 
-    # Rule 2: No Rigged Allocators (e.g. if(size > 1000) return NULL)
-    if "realloc" in harness_src and "return NULL" in harness_src:
-        if re.search(r'if\s*\(.*size\s*[><].*\)\s*.*return\s*NULL', harness_src, re.DOTALL):
-            return False, "REJECTED: Do not manually rig allocator stubs to fail on specific sizes. Allocators must only fail on real OOM."
+    # --- 1. Magic Number Detection (Anti-Cheat) ---
+    # We allow '0' (for NULL checks) but block 1-9...
+    # TP Protection: Allows 'BUG_ASSERT(len < allocated_size)' (variables are fine).
+    magic_pattern = r'(?:klee_assert|BUG_ASSERT|assert)\s*\(.*(?:<=|>=|<|>|==|!=)\s*[1-9][0-9]*'
+    if re.search(magic_pattern, harness_src):
+        return False, "REJECTED: Magic number detected in assert. Use program variables (e.g., len < capacity) instead of constants."
+
+    # --- 2. Silent Assertion Detection (Anti-Cheat) ---
+    # Blocks 'klee_assert(1)' which passes silently.
+    # TP Protection: Your TP uses 'REACH_ASSERT' which maps to 'klee_assert(0)', so this passes.
+    silent_pattern = r'(?:klee_assert|assert|BUG_ASSERT|REACH_ASSERT)\s*\(\s*(?:1|true)\b'
+    if re.search(silent_pattern, harness_src, re.IGNORECASE):
+        return False, "REJECTED: Silent Assertion detected. You MUST write 'klee_assert(0)' (or REACH_ASSERT) to force a crash so the pipeline detects the path."
+
+    # --- 3. Strawman Allocation Block (Anti-Cheat) ---
+    # Blocks malloc(1), malloc(4), etc. which are used to force OOBs artificially.
+    # TP Protection: Your TP uses 'malloc(name_buf_size)' (variable), so this passes.
+    strawman_malloc = r'malloc\s*\(\s*(1|4|8|16)\b\s*\)'
+    if re.search(strawman_malloc, harness_src):
+        return False, "REJECTED: Rigged tiny allocation detected (e.g. malloc(16)). Use sizeof(T) or a variable size."
+
+    # --- 4. Allocator Stub Integrity (New - Anti-Cheat) ---
+    # Blocks stubs that ignore the 'size' argument (e.g., return global_buf).
+    # TP Protection: Your TP stub 'return malloc(size);' uses 'size', so this passes.
+    
+    # Regex explains: Look for 'void *function(size_t argname) {'
+    allocator_pattern = r'(?:void\s*\*\s*|char\s*\*\s*)(?:xmlMalloc|malloc|calloc|mem_alloc)\s*\(\s*size_t\s+(\w+)\s*\)\s*\{'
+    matches = re.finditer(allocator_pattern, harness_src)
+    for m in matches:
+        arg_name = m.group(1)
+        start_idx = m.end()
+        # Scan the next 500 chars (body of function) to see if arg_name is used
+        body_snippet = harness_src[start_idx : start_idx + 500]
+        
+        # We ensure the arg is used as a whole word (not a substring)
+        if not re.search(rf'\b{re.escape(arg_name)}\b', body_snippet):
+             return False, (f"REJECTED: Allocator Stub Integrity Violation. Your stub for 'malloc/xmlMalloc' "
+                            f"defines argument '{arg_name}' but does not use it. "
+                            "You must pass this size to the real allocator or use it in an assertion.")
+
+    # --- 5. Rule-Specific Checks ---
+    if validate_harness_rule_specific is not None and rule_id:
+        try:
+            outcome = validate_harness_rule_specific(harness_src, rule_id=rule_id, spec=spec, ctx=ctx)
+            if not outcome.ok:
+                return False, outcome.reason
+        except Exception:
+            pass
 
     return True, ""
+
+def validate_target_statement_placement(harness_src: str, *, rule_id: str, spec: Dict[str, Any], ctx: Dict[str, Any]) -> Tuple[bool, str]:
+    """
+    Generic placement validator.
+    Ensures REACH_ASSERT is placed close to the intended target statement.
+    
+    UPDATED: 
+    1. Checks ALL occurrences.
+    2. Ignores REACH_ASSERT inside comments (//, /*) or strings ("...").
+       This forces the agent to use the executable macro.
+    """
+    lines = harness_src.splitlines()
+    candidates = []
+
+    for i, ln in enumerate(lines):
+        # 1. Skip Preprocessor macros
+        if ln.strip().startswith("#"): 
+            continue
+            
+        # 2. Strip Strings (simple heuristic: remove anything between quotes)
+        # Note: This doesn't handle escaped quotes perfectly but suffices for generated harnesses.
+        line_no_strings = re.sub(r'".*?"', '', ln)
+        
+        # 3. Strip Comments (C++ style // and C style /* ... */)
+        # Note: Multi-line /* */ is hard line-by-line, but checking start is usually enough for single lines.
+        line_code_only = re.sub(r'//.*', '', line_no_strings)
+        line_code_only = re.sub(r'/\*.*?\*/', '', line_code_only) 
+
+        # 4. Check for marker as a distinct word in the remaining code
+        if "REACH_ASSERT" in line_code_only:
+            candidates.append(i)
+
+    if not candidates:
+        return False, "REJECTED: REACH_ASSERT macro not found in executable code. (Occurrences inside comments or strings are ignored)."
+
+    target_stmt = (ctx.get("vul_statement_text") or "").strip()
+    if not target_stmt:
+        return True, ""
+
+    tnorm = re.sub(r"\s+", " ", target_stmt)
+    c_keywords = {"if", "while", "for", "switch", "return"}
+
+    mcall = re.match(r"\s*([A-Za-z_]\w*)\s*\(", tnorm)
+    callee = None
+    if mcall and mcall.group(1) not in c_keywords:
+        callee = mcall.group(1)
+
+    for idx in candidates:
+        # Check window around valid candidate
+        window = "\n".join(lines[max(0, idx - 10): min(len(lines), idx + 16)])
+        wnorm = re.sub(r"\s+", " ", window)
+
+        match_found = False
+        if callee:
+            if re.search(rf"\b{re.escape(callee)}\s*\(", wnorm):
+                match_found = True
+        else:
+            toks = [t for t in re.split(r"[^A-Za-z0-9_]+", tnorm) if len(t) >= 3 and t not in c_keywords]
+            if toks:
+                found_count = sum(1 for t in toks if re.search(rf"\b{re.escape(t)}\b", wnorm))
+                if found_count > 0:
+                    match_found = True
+        
+        if match_found:
+            # Delegate to rule-specific validator
+            if validate_harness_rule_specific is not None and rule_id:
+                try:
+                    outcome = validate_harness_rule_specific(harness_src, rule_id=rule_id, spec=spec, ctx=ctx)
+                    if not outcome.ok:
+                        return False, outcome.reason
+                except Exception:
+                    pass 
+            return True, ""
+
+    return False, f"REJECTED: REACH_ASSERT is not colocated with target statement '{target_stmt[:30]}...'."
 
 def build_context(sa_out_dir: Path, src_root: Path, spec_path: Path, vul_file: str, vul_line: int, ctx_dir: Path) -> Dict:
     ensure_dir(ctx_dir)
@@ -616,15 +768,39 @@ def interactive_reachability_synthesizer(
 
             harness_src = inject_standard_headers(code)
             (harness_dir/"harness.c").write_text(harness_src, encoding="utf-8")
+
+            # --- Grounding / Anti-FP Gates ---
+            is_valid, reject_reason = validate_harness_integrity(harness_src, rule_id=args.rule_id, spec=ctx.get("spec"), ctx=ctx)
+            if not is_valid:
+                print(f"  [!] Harness rejected: {reject_reason}")
+                history.append("SYSTEM ERROR: " + reject_reason)
+                continue
+
+
+            ok_place, place_reason = validate_target_statement_placement(
+                harness_src, rule_id=args.rule_id, spec=ctx.get("spec", {}), ctx=ctx
+            )
+            if not ok_place:
+                print(f"  [!] Harness rejected: {place_reason}")
+                history.append("SYSTEM ERROR: " + place_reason)
+                continue
             
-            # [FIX] Added -g for debug info
-            cmd = [args.clang] + args.clang_flags + ["-g", "-emit-llvm", "-c", str(harness_dir/"harness.c"), "-o", str(harness_dir/"harness.bc")]
-            rc, _, err, _ = run_cmd(cmd, cwd=src_root)
+            # [FIX] Correct indentation and use a safe variable name
+            comp_cmd = [
+                args.clang
+            ] + args.clang_flags + [
+                "-emit-llvm", "-c", "-g", "-O0", "-Xclang", "-disable-O0-optnone", 
+                str(harness_dir/"harness.c"), 
+                "-o", str(harness_dir/"harness.bc")
+            ]
+            
+            # Pass the new list variable, NOT 'cmd'
+            rc, _, err, _ = run_cmd(comp_cmd, cwd=src_root)
             
             if rc != 0:
                 print(f"  [-] Compile Error:\n{err[:300]}")
                 history.append(f"COMPILER ERROR:\n{err[:500]}")
-                continue 
+                continue
             
             print("  [>] Compiles. Checking Reachability...")
             stats = run_klee(harness_dir/"harness.bc", args.klee, args.klee_flags, args.timeout, logs_dir, i)
@@ -687,7 +863,7 @@ def interactive_vulnerability_synthesizer(
             new_code = extract_c_code(resp.get("harness_c", ""))
             
             # --- [NEW] ASSERTION VALIDATOR GATE ---
-            is_valid, reject_reason = validate_harness_integrity(new_code)
+            is_valid, reject_reason = validate_harness_integrity(new_code, rule_id=args.rule_id, spec=ctx.get("spec"), ctx=ctx)
             if not is_valid:
                 print(f"  [!] Validator Rejected Harness: {reject_reason}")
                 stats = {"log_tail": f"SYSTEM FEEDBACK: {reject_reason} Fix the code and retry."}
@@ -700,7 +876,7 @@ def interactive_vulnerability_synthesizer(
                 (harness_dir/"harness.c").write_text(src, encoding="utf-8")
                 
                 # [FIX] Added -g
-                cmd = [args.clang] + args.clang_flags + ["-g", "-emit-llvm", "-c", str(harness_dir/"harness.c"), "-o", str(harness_dir/"harness.bc")]
+                cmd = [args.clang] + args.clang_flags + ["-emit-llvm", "-c", "-g", "-O0", "-Xclang", "-disable-O0-optnone", str(harness_dir/"harness.c"), "-o", str(harness_dir/"harness.bc")]
                 rc, _, err, _ = run_cmd(cmd, cwd=src_root)
                 if rc != 0:
                     print("  [-] Compile Failed in Refiner")
@@ -812,3 +988,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
