@@ -1,7 +1,0 @@
-Error: invalid klee_assume call (provably false)
-File: se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness_step.c
-Line: 142
-assembly.ll line: 5034
-State: 2
-Stack: 
-	#000005034 in main() at se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_00/harness/harness_step.c:142

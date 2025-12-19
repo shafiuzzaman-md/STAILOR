@@ -1,4 +1,0 @@
-Error: ASSERTION FAIL: len < strlen(entry->name) && "BUG_ASSERT"
-Stack: 
-	#000000287 in xmlDictFindEntry(127469325647872, 0, 127477915582464, symbolic, symbolic, 127431744684032)
-	#100000196 in main()

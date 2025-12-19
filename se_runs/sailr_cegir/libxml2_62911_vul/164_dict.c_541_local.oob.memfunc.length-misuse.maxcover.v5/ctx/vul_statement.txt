@@ -1,1 +1,0 @@
-if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)) {

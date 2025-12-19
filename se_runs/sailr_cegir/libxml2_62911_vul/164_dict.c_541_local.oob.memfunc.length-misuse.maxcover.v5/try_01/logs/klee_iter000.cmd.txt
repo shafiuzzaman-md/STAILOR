@@ -1,1 +1,0 @@
-klee --search=nurs:covnew --max-time=3600 --external-calls=all /media/shafi/Research/home/SAILR/se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/try_01/harness/harness.bc

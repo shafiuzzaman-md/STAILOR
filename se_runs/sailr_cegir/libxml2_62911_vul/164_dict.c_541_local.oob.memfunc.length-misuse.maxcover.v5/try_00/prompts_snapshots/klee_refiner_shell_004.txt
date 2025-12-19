@@ -1,3 +1,0 @@
-# refiner shell
-$ grep -n 'xmlDictFindEntry' dict.c -A 100 | head -200
-ERROR: piping not allowed

@@ -1,9 +1,0 @@
-spec_stem	class	completed_paths	time_sec	klee_status	klee_iters
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	H2	2	3.113	assertion_bug	0
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	E	0	0.000	not_run	0
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	E	not_run	0.00
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	E	not_run	0.00
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	E	not_run	0.00
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	E	not_run	0.00
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	H2	assertion_bug	2.29
-164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5	H2	assertion_bug	0.07
