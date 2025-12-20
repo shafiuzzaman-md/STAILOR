@@ -4,30 +4,79 @@
 make_prompt.py
 
 Responsible for generating spec-specific system prompts.
-It reads base templates, injects "Mission Critical" context (Target File/Line),
-and returns/saves the finalized prompt text.
+UPDATED: Injects Mission Context, Assertion Ordering, and Rule-Specific Guidance.
 """
 
 import textwrap
+import yaml
+import re
 from pathlib import Path
 
 # Robust path resolution
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = SCRIPT_DIR.parent / "prompt_template"
+RULES_YAML_PATH = SCRIPT_DIR / "rules.yaml"
+
+def load_rule_guidance(rule_id: str) -> str:
+    """
+    Reads rules.yaml and extracts prompt_guidance for the matching rule.
+    """
+    if not RULES_YAML_PATH.exists():
+        return ""
+    
+    try:
+        with open(RULES_YAML_PATH, "r") as f:
+            data = yaml.safe_load(f)
+            
+        for rule in data.get("rules", []):
+            if re.search(rule['id_pattern'], rule_id):
+                guidance = rule.get("prompt_guidance", {})
+                sections = []
+                
+                if "construction" in guidance:
+                    sections.append("ARCHITECTURAL GUIDANCE:\n" + 
+                                    "\n".join(f"- {item}" for item in guidance["construction"]))
+                if "planning" in guidance:
+                    sections.append("PLANNING TIPS:\n" + 
+                                    "\n".join(f"- {item}" for item in guidance["planning"]))
+                if "assertion" in guidance:
+                    sections.append("STRATEGIC ASSERTION HINTS:\n" + 
+                                    "\n".join(f"- {item}" for item in guidance["assertion"]))
+                
+                if sections:
+                    return "\n\n" + "\n\n".join(sections) + "\n"
+    except Exception:
+        pass
+    return ""
 
 def inject_mission_context(raw: str, vul_file: str, vul_line: int, rule_id: str, vul_statement: str) -> str:
+    """
+    Injects the unified 'Target Lock' header and Assumption Invariant rules.
+    """
+    rule_advice = load_rule_guidance(rule_id)
+
     header = textwrap.dedent(f"""
     MISSION CRITICAL: TARGET LOCK
     =============================
-    TARGET FILE: {vul_file}
-    TARGET LINE: {vul_line}
-    RULE ID:     {rule_id}
-    VULNERABLE STATEMENT (Target for Assertions):
-    {vul_statement}
+    1. TARGET FILE:      {vul_file}
+    2. TARGET LINE:      {vul_line}
+    3. RULE ID:          {rule_id}
+    4. TARGET STATEMENT: {vul_statement}
 
-    1. Assertions (BUG_ASSERT/REACH_ASSERT) MUST be placed IMMEDIATELY BEFORE this statement.
-    2. Focus ONLY on the function containing this line.
+    STRICT OPERATIONAL PROTOCOL:
+    ----------------------------
+    A. **Assertion Order:** `BUG_ASSERT` MUST come BEFORE `REACH_ASSERT`.
+    B. **Placement:** Assertions MUST be placed IMMEDIATELY BEFORE the Target Statement[cite: 24, 35].
+    C. **Assumption Invariants:** Steering/Environment assumptions (klee_assume) MUST be 
+       identical for both reachability and bug verification[cite: 36, 37]. 
+       Do NOT relax constraints solely to trigger a failure.
+    D. **Vulnerability Variables:** Lengths/indices MUST be fully symbolic and unconstrained[cite: 17, 39].
+    """)
     
+    if rule_advice:
+        header += rule_advice
+        
+    header += textwrap.dedent("""
     END MISSION CONTEXT
     ===================
     """)
@@ -40,30 +89,19 @@ def generate_prompts(
     vul_statement: str,
     output_dir: Path | None = None
 ) -> dict[str, str]:
-    """
-    Reads templates, injects context, and optionally writes to output_dir.
-    Returns a dictionary mapping 'role' -> 'prompt_content'.
-    """
-    
-    # --- MAPPING: Aligned with new 3-Stage Architecture ---
     templates = {
-        "planner": "planner.txt",          # Environment Modeler
-        "builder": "klee_builder.txt",     # Reachability Synthesizer
-        "refiner": "klee_refiner.txt"      # Vulnerability Synthesizer
+        "planner": "planner.txt",
+        "builder": "klee_builder.txt",
     }
-
-    results = {}
     
+    results = {}
     if not TEMPLATE_DIR.exists():
-        raise FileNotFoundError(
-            f"[!] Prompt template directory missing: {TEMPLATE_DIR}\n"
-            f"    Expected location: {TEMPLATE_DIR}"
-        )
+        raise FileNotFoundError(f"Template dir missing: {TEMPLATE_DIR}")
 
     for key, fname in templates.items():
         src = TEMPLATE_DIR / fname
         if not src.exists():
-            raise FileNotFoundError(f"[!] Template file not found: {src}")
+            continue
             
         raw = src.read_text(encoding="utf-8")
         final = inject_mission_context(raw, vul_file, vul_line, rule_id, vul_statement)

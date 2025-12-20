@@ -189,7 +189,7 @@ TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_single.sh \
   62911/libxml2_62911_vul \
   local.oob.memfunc.length-misuse.maxcover.v5 \
-  specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
+  specs/libxml2_62911_vul/006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5.json
 ```
 
 ## Results & Artifacts
@@ -212,4 +212,24 @@ python3 sailr_cegir/collect_vulnerabilities.py \
 python3 sailr_cegir/collect_verification_pack.py \
   --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
   --out-dir verification_pack
+```
+
+# Adding a new rule (new file per rule)
+Create a new file:
+```
+sailr_cegir/scripts/validators/rules/<your_rule>.py
+```
+Implement a class extending BaseRuleValidator and register it:
+```
+from ..base import BaseRuleValidator, ValidationOutcome
+from ..registry import register_validator
+
+class MyRule(BaseRuleValidator):
+    RULE_ID_PATTERN = r".*my-rule-id.*"
+
+    def validate_plan(...): ...
+    def validate_harness(...): ...
+
+register_validator(MyRule())
+
 ```

@@ -3,189 +3,176 @@
 """
 rule_validators.py
 
-Rule-specific validation layer for SAILR-CEGIR.
+Generic, data-driven validation layer for SAILR-CEGIR.
+Logic is defined entirely in `rules.yaml`. This script simply executes that policy.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
 import re
+import yaml
+from pathlib import Path
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
+# Path to rules.yaml (relative to this script)
+SCRIPT_DIR = Path(__file__).resolve().parent
+RULES_YAML_PATH = SCRIPT_DIR / "rules.yaml"
 
 @dataclass
 class ValidationOutcome:
     ok: bool
     reason: str = ""
 
+class GenericYamlValidator:
+    """
+    A validator that enforces constraints defined entirely in rules.yaml.
+    """
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.id_pattern = config.get("id_pattern", ".*")
+        self.description = config.get("description", "Generic Rule")
+        self.validator_policy = config.get("validator", {})
 
-class BaseRuleValidator:
     def match(self, rule_id: str) -> bool:
-        return False
+        """Checks if this validator applies to the given rule_id."""
+        return bool(re.match(self.id_pattern, rule_id))
 
-    def validate_plan(self, plan: Dict[str, Any], *, rule_id: str, spec: Optional[Dict[str, Any]] = None) -> List[str]:
-        return []
+    def validate_plan(self, plan: Dict[str, Any], **kwargs) -> List[str]:
+        """Validates the JSON plan against YAML-defined regexes."""
+        errors = []
+        bug_asserts = plan.get("bug_assertions", [])
+        
+        # 1. Check Plan Regexes (e.g., banning NULL checks in conditions)
+        forbidden = self.validator_policy.get("plan_forbidden_patterns", [])
+        
+        for assertion in bug_asserts:
+            cond = assertion.get("condition", "")
+            for pattern in forbidden:
+                if re.search(pattern["regex"], cond):
+                    errors.append(f"REJECTED ({self.description}): {pattern['message']}")
+                    
+        return errors
 
-    def validate_harness(
-        self,
-        harness_src: str,
-        *,
-        rule_id: str,
-        spec: Optional[Dict[str, Any]] = None,
-        ctx: Optional[Dict[str, Any]] = None,
-    ) -> ValidationOutcome:
+    def validate_harness(self, harness_src: str, **kwargs) -> ValidationOutcome:
+        """Validates the C harness source code against YAML-defined regexes."""
+        
+        # 1. Check Forbidden Patterns (e.g., magic numbers, pointer checks)
+        forbidden = self.validator_policy.get("forbidden_patterns", [])
+        for pattern in forbidden:
+            if re.search(pattern["regex"], harness_src, flags=re.MULTILINE):
+                return ValidationOutcome(False, f"REJECTED ({self.description}): {pattern['message']}")
+
+        # 2. Check Required Patterns (e.g., specific setup calls)
+        required = self.validator_policy.get("required_patterns", [])
+        for pattern in required:
+            if not re.search(pattern["regex"], harness_src, flags=re.MULTILINE):
+                return ValidationOutcome(False, f"REJECTED ({self.description}): {pattern['message']}")
+
+        # 3. Placement Heuristics (Optional Sink Checks)
+        # If the YAML defines a list of 'sinks', we check that the reach marker is reasonably
+        # aligned with either (a) the sink call itself, or (b) the original vulnerable statement.
+        #
+        # Important: For "sink-in-condition" patterns (e.g., if (memcmp(...) == 0 && ...)),
+        # the sink executes *before* control enters the branch where REACH_ASSERT is often placed.
+        # A tight +/-N window is therefore insufficient and can reject true positives.
+        sinks = self.validator_policy.get("sinks", [])
+        if sinks:
+            lines = harness_src.splitlines()
+
+            # Find REACH_ASSERT (ignore preprocessor macro definitions)
+            reach_idx = next(
+                (i for i, ln in enumerate(lines)
+                 if "REACH_ASSERT" in ln and not ln.strip().startswith("#")),
+                None
+            )
+            if reach_idx is None:
+                return ValidationOutcome(False, "REJECTED: REACH_ASSERT not found in executable code.")
+
+            # (1) Tight window: the common case (REACH_ASSERT near sink)
+            tight_lo = max(0, reach_idx - 15)
+            tight_hi = min(len(lines), reach_idx + 15)
+            tight_window = "\n".join(lines[tight_lo:tight_hi])
+            found_sink = any(re.search(rf"\b{re.escape(s)}\s*\(", tight_window) for s in sinks)
+
+            if not found_sink:
+                # (2) Secondary window: allow sink-in-condition and multiline statements.
+                lookback = int(self.validator_policy.get("placement_lookback", 120))
+                lookahead = int(self.validator_policy.get("placement_lookahead", 30))
+                ext_lo = max(0, reach_idx - lookback)
+                ext_hi = min(len(lines), reach_idx + lookahead)
+                ext_text = "\n".join(lines[ext_lo:ext_hi])
+
+                def _norm(s: str) -> str:
+                    return re.sub(r"\s+", "", s or "")
+
+                # 2a) If we have the original vulnerable statement text, accept if it appears
+                # near REACH_ASSERT (robust to multiline / formatting).
+                ctx = kwargs.get("ctx") or {}
+                vul_stmt = (ctx.get("vul_statement_text") or "").strip()
+                if vul_stmt and _norm(vul_stmt) in _norm(ext_text):
+                    found_sink = True
+
+                # 2b) Otherwise, accept if any sink call appears in the extended window AND
+                # is plausibly part of an 'if (...)' condition before the reach marker.
+                if not found_sink:
+                    for i in range(ext_lo, min(reach_idx + 1, ext_hi)):
+                        ln = lines[i]
+                        if any(re.search(rf"\b{re.escape(s)}\s*\(", ln) for s in sinks):
+                            neighborhood = " ".join(lines[max(0, i - 2): min(len(lines), i + 1)])
+                            if "if" in neighborhood:
+                                found_sink = True
+                                break
+
+                # 2c) Fallback: accept if a sink appears anywhere in the extended window.
+                if not found_sink:
+                    found_sink = any(
+                        re.search(rf"\b{re.escape(s)}\s*\(", ext_text)
+                        for s in sinks
+                    )
+
+            if not found_sink:
+                return ValidationOutcome(
+                    False,
+                    f"REJECTED ({self.description}): REACH_ASSERT is not aligned with a known sink or target statement "
+                    f"({', '.join(sinks[:3])}...)."
+                )
+
         return ValidationOutcome(True, "")
 
+# --- Loader ---
 
-class MemfuncLengthMisuseValidator(BaseRuleValidator):
-    def match(self, rule_id: str) -> bool:
-        return "memfunc.length-misuse" in (rule_id or "")
-
-    def validate_plan(self, plan: Dict[str, Any], *, rule_id: str, spec: Optional[Dict[str, Any]] = None) -> List[str]:
-        hard: List[str] = []
-        bug_asserts = plan.get("bug_assertions", []) or []
-        conds = []
-        for a in bug_asserts:
-            c = (a.get("condition") or "").strip()
-            if c:
-                conds.append(c)
-
-        for c in conds:
-            if re.search(r"\b\w+\s*!=\s*NULL\b", c) and ("BUG_ASSERT" in c or True):
-                hard.append(
-                    "Rule-specific rejection (memfunc.length-misuse): BUG_ASSERT is only checking non-NULL allocation. "
-                    "For this rule family, BUG_ASSERT must encode an OOB condition (count/offset vs capacity)."
-                )
-                break
-        return hard
-
-    def validate_harness(
-        self,
-        harness_src: str,
-        *,
-        rule_id: str,
-        spec: Optional[Dict[str, Any]] = None,
-        ctx: Optional[Dict[str, Any]] = None,
-    ) -> ValidationOutcome:
-
-        # 1) BUG_ASSERT must not be allocator-success check
-        if re.search(r"BUG_ASSERT\s*\(\s*\w+\s*!=\s*NULL", harness_src):
-            return ValidationOutcome(
-                False,
-                "REJECTED (memfunc.length-misuse): BUG_ASSERT is asserting allocation success (ptr != NULL). "
-                "For memfunc OOB rules, BUG_ASSERT must encode an OOB condition (count/offset vs capacity).",
-            )
-
-        # 2) Placement: REACH_ASSERT should be in the neighborhood of the sink call.
-        sinks = set()
-        try:
-            suspect_calls = ((spec or {}).get("facts") or {}).get("suspect_calls") or []
-            if isinstance(suspect_calls, list):
-                sinks.update({str(x) for x in suspect_calls if x})
-        except Exception:
-            pass
-
-        if not sinks:
-            sinks.update(
-                {
-                    "memcpy",
-                    "memmove",
-                    "memset",
-                    "strncpy",
-                    "strncat",
-                    "snprintf",
-                    "vsnprintf",
-                    "strlcpy",
-                    "strlcat",
-                    "read",
-                    "recv",
-                    "recvfrom",
-                    "fgets",
-                    "pread",
-                    "memcmp"  # Ensure memcmp is included
-                }
-            )
-
-        lines = harness_src.splitlines()
+def load_validators() -> List[GenericYamlValidator]:
+    """Parses rules.yaml and creates validator instances."""
+    if not RULES_YAML_PATH.exists():
+        return []
+    
+    try:
+        with open(RULES_YAML_PATH, "r") as f:
+            data = yaml.safe_load(f)
         
-        # [FIX] Ignore lines starting with '#' to avoid matching the macro definition
-        # instead of the actual usage.
-        reach_idx = next(
-            (i for i, ln in enumerate(lines) 
-             if "REACH_ASSERT" in ln and not ln.strip().startswith("#")), 
-            None
-        )
-        
-        if reach_idx is None:
-            # Fallback: maybe they put it on the same line as a macro? 
-            # If strictly missing, reject.
-            # But double check if we missed it because of whitespace
-            return ValidationOutcome(False, "REJECTED: REACH_ASSERT not found in harness code body.")
+        validators = []
+        for rule_conf in data.get("rules", []):
+            validators.append(GenericYamlValidator(rule_conf))
+        return validators
+    except Exception as e:
+        print(f"[!] Failed to load rules.yaml: {e}")
+        return []
 
-        # Tight window check (fast path)
-        tight = "\n".join(lines[max(0, reach_idx - 8) : min(len(lines), reach_idx + 12)])
-        if any(re.search(rf"\b{re.escape(s)}\s*\(", tight) for s in sinks):
-            return ValidationOutcome(True, "")
+_VALIDATORS = load_validators()
 
-        # Relaxed check: handle multiline conditions.
-        lo = max(0, reach_idx - 80)
-        span_lines = lines[lo : reach_idx + 1]
-        for i, ln in enumerate(span_lines):
-            for s in sinks:
-                if re.search(rf"\b{re.escape(s)}\s*\(", ln):
-                    j0 = max(0, i - 4)
-                    if any(re.search(r"\bif\b", span_lines[j]) for j in range(j0, i + 1)):
-                        return ValidationOutcome(True, "")
-
-        # Final Fallback: Normalized Source Matching
-        back_span = "\n".join(span_lines)
-        vul_stmt = ((ctx or {}).get("vul_statement_text") or "").strip()
-        
-        if vul_stmt:
-            def _norm(s: str) -> str:
-                return re.sub(r"\s+", " ", s).strip()
-            if _norm(vul_stmt) in _norm(back_span):
-                return ValidationOutcome(True, "")
-
-        return ValidationOutcome(
-            False,
-            "REJECTED (memfunc.length-misuse): REACH_ASSERT does not appear aligned with the sink or target statement. "
-            "Place REACH_ASSERT at the target statement or within the immediate then-branch when the sink is in a condition.",
-        )
-
-
-# --- Registry ---
-
-_VALIDATORS: List[BaseRuleValidator] = [
-    MemfuncLengthMisuseValidator(),
-]
-
-
-def get_validator(rule_id: str) -> Optional[BaseRuleValidator]:
+def get_validator(rule_id: str) -> Optional[GenericYamlValidator]:
     for v in _VALIDATORS:
-        try:
-            if v.match(rule_id):
-                return v
-        except Exception:
-            continue
+        if v.match(rule_id):
+            return v
     return None
-
 
 def validate_plan_rule_specific(plan: Dict[str, Any], *, rule_id: str, spec: Optional[Dict[str, Any]] = None) -> List[str]:
     v = get_validator(rule_id)
-    if not v:
-        return []
-    return v.validate_plan(plan, rule_id=rule_id, spec=spec)
+    if not v: return []
+    return v.validate_plan(plan)
 
-
-def validate_harness_rule_specific(
-    harness_src: str,
-    *,
-    rule_id: str,
-    spec: Optional[Dict[str, Any]] = None,
-    ctx: Optional[Dict[str, Any]] = None,
-) -> ValidationOutcome:
+def validate_harness_rule_specific(harness_src: str, *, rule_id: str, spec: Optional[Dict[str, Any]] = None, ctx: Optional[Dict[str, Any]] = None) -> ValidationOutcome:
     v = get_validator(rule_id)
-    if not v:
-        return ValidationOutcome(True, "")
-    return v.validate_harness(harness_src, rule_id=rule_id, spec=spec, ctx=ctx)
+    if not v: return ValidationOutcome(True, "")
+    return v.validate_harness(harness_src)

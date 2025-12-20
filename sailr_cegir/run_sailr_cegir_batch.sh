@@ -20,8 +20,8 @@ export DATASET_ROOT="$(realpath "${DATASET_ROOT:-dataset}")"
 export LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
 export LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
 
-export MAX_A="${MAX_A:-8}"      
-export MAX_B="${MAX_B:-10}"     
+export MAX_A="${MAX_A:-10}"     # Increased for complex reachability
+export MAX_B="${MAX_B:-3}"     
 export MAX_CYCLES="${MAX_CYCLES:-2}" # Default 2 cycles for batch
 export TIMEOUT="${TIMEOUT:-300}"     
 
@@ -31,6 +31,7 @@ export KLEE="${KLEE:-klee}"
 export KLEE_FLAGS="${KLEE_FLAGS:---search=nurs:covnew --max-time=60 --external-calls=all}"
 
 export REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS_DIR="${REPO_ROOT}/sailr_cegir/scripts"
 
 PROJECT_SLUG="$(basename "$PROJECT_ID")"   
 SPEC_DIR="${SPEC_ROOT}/${PROJECT_SLUG}"

@@ -15,16 +15,13 @@ SPEC_FILE="$3"
 
 # --- Configuration ---
 SA_OUT_DIR="${SA_OUT_DIR:-sa_outputs}"
-# Ensure absolute path for safe directory switching
 DATASET_ROOT="$(realpath "${DATASET_ROOT:-dataset}")"
 LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
 LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
 
-MAX_A="${MAX_A:-10}"      # Builder Iterations
-MAX_B="${MAX_B:-15}"      # Refiner Iterations
+MAX_A="${MAX_A:-15}"      # Builder Iterations (Increased)
+MAX_B="${MAX_B:-3}"      # Refiner Iterations
 TIMEOUT="${TIMEOUT:-300}" # KLEE Process Timeout
-
-# PIPELINE UPDATE: Reduced cycles because new architecture is more robust
 MAX_CYCLES="${MAX_CYCLES:-3}" 
 
 CLANG="${CLANG:-clang-14}"
@@ -32,6 +29,7 @@ KLEE="${KLEE:-klee}"
 KLEE_FLAGS="${KLEE_FLAGS:---search=nurs:covnew --max-time=120 --external-calls=all}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS_DIR="${REPO_ROOT}/sailr_cegir/scripts"
 PROJECT_SLUG="$(basename "$PROJECT_ID")"
 SA_PROJECT_DIR="${SA_OUT_DIR}/${PROJECT_SLUG}"
 SRC_ROOT="${DATASET_ROOT}/${PROJECT_ID}"
@@ -61,73 +59,46 @@ ensure_project_bitcode() {
         echo "[i] Found existing bitcode: $dest"
         return 0
     fi
-
-    echo "==============================================="
-    echo "[*] Bitcode missing. Starting Auto-Build..."
-    echo "==============================================="
-
+    echo "[*] Bitcode missing. Building..."
     if ! command -v wllvm &> /dev/null; then
-        echo "[!] wllvm not found. Aborting."
+        echo "[!] wllvm not found."
         exit 1
     fi
-
     export LLVM_COMPILER=clang
     export CC=wllvm
     export CXX=wllvm+
-
     pushd "$src" > /dev/null
     make clean > /dev/null 2>&1 || true
-    
-    if [ -f "./configure" ]; then
-        ./configure --disable-shared --without-python --silent
-    fi
-
+    if [ -f "./configure" ]; then ./configure --disable-shared --without-python --silent; fi
     make -j$(nproc) > /dev/null
-
     local TARGET_LIB=$(find .libs -name "*.a" | head -n 1)
-    if [ -z "$TARGET_LIB" ]; then
-        TARGET_LIB=$(find . -name "*.a" | head -n 1)
-    fi
-
-    if [ -z "$TARGET_LIB" ]; then
-        echo "[!] Build failed: No static lib found"
-        popd > /dev/null
-        exit 1
-    fi
-
+    if [ -z "$TARGET_LIB" ]; then TARGET_LIB=$(find . -name "*.a" | head -n 1); fi
+    if [ -z "$TARGET_LIB" ]; then echo "[!] Build failed"; popd > /dev/null; exit 1; fi
     extract-bc -b "$TARGET_LIB"
-
-    if [ -f "${TARGET_LIB}.bc" ]; then
-        mv "${TARGET_LIB}.bc" "$dest"
-    elif [ -f "${TARGET_LIB}.bca" ]; then
-        llvm-link "${TARGET_LIB}.bca" -o "$dest"
-    fi
-
+    if [ -f "${TARGET_LIB}.bc" ]; then mv "${TARGET_LIB}.bc" "$dest"; fi
     popd > /dev/null
 }
 
 ensure_project_bitcode "${SRC_ROOT}" "${PROJECT_BC}"
 
 # --- Cleanup Block ---
-echo "[*] Cleaning build artifacts to reduce noise for Agent..."
+echo "[*] Cleaning build artifacts..."
 pushd "${SRC_ROOT}" > /dev/null
 if [ -f "project.bc" ]; then mv project.bc project.bc.temp_keep; fi
 make clean > /dev/null 2>&1 || true
 rm -f .*.o .*.lo .*.la .*.o.bc .*.lo.bc *.o *.lo *.la *.bc
 if [ -f "project.bc.temp_keep" ]; then mv project.bc.temp_keep project.bc; fi
 popd > /dev/null
-echo "[✓] Source directory cleaned (project.bc preserved)."
 
 echo "==============================================="
 echo "[*] Debugging Single Spec"
 echo "    TARGET     = ${TARGET_VUL}"
-echo "    PIPELINE   = Model -> Reach -> Vuln"
 echo "    RUN_DIR    = ${RUN_DIR}"
 echo "==============================================="
 
 mkdir -p "${RUN_DIR}"
 
-python3 "${REPO_ROOT}/sailr_cegir/scripts/run_agent_for_spec.py" \
+python3 "${SCRIPTS_DIR}/run_agent_for_spec.py" \
   --sa-out-dir "${SA_PROJECT_DIR}" \
   --dataset-root "${DATASET_ROOT}" \
   --project-id "${PROJECT_ID}" \
@@ -155,4 +126,3 @@ python3 "${REPO_ROOT}/sailr_cegir/scripts/run_agent_for_spec.py" \
 echo
 echo "[✓] Single run finished."
 echo "    Logs: ${RUN_DIR}/logs/"
-echo "    Harness: ${RUN_DIR}/harness/harness.c"
