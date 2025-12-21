@@ -87,6 +87,11 @@ POINTER / ALLOCATOR MODELING
   /* 3. Assert using macro (Logical link is clear) */
   BUG_ASSERT(len < ENTRY_CAPACITY);
   
+- **Allocator Fidelity (CRITICAL):**
+  - Your allocator stubs (e.g., `xmlMalloc`) MUST respect the `size` argument passed to them.
+  - **Prohibited:** Do NOT ignore the argument and substitute a symbolic global variable.
+  - *Wrong:* `void* my_malloc(size_t n) { return malloc(global_sym_size); }`
+  - *Right:* `void* my_malloc(size_t n) { return malloc(n); }`
 SYMBOLIC BOUNDARY & STUBBING
 ============================
 1.  **Call Depth Limit:** Stop 1-2 levels deeper than the entrypoint. Stub the rest.
