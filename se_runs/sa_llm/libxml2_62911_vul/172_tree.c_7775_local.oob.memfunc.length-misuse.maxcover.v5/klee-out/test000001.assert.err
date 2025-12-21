@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: (an == 1) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/172_tree.c_7775_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 50
-assembly.ll line: 133
-State: 2
-Stack: 
-	#000000133 in xmlNsMapLookup(121892291739648, symbolic) at se_runs/sa_llm/libxml2_62911_vul/172_tree.c_7775_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:50
-	#100000071 in main() at se_runs/sa_llm/libxml2_62911_vul/172_tree.c_7775_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:87

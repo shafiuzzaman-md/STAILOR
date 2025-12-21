@@ -1,7 +1,0 @@
-Error: external call with symbolic argument: xmlHashRemoveEntry3
-File: se_runs/sa_llm/libxml2_62911_vul/040_hash.c_498_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 41
-assembly.ll line: 86
-State: 1
-Stack: 
-	#000000086 in main() at se_runs/sa_llm/libxml2_62911_vul/040_hash.c_498_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:41

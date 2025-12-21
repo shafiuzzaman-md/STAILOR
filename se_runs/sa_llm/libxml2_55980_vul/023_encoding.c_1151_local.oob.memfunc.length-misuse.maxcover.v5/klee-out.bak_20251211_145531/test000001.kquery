@@ -1,7 +1,0 @@
-array alias[256] : w32 -> w8 = symbolic
-array array_size[4] : w32 -> w8 = symbolic
-(query [(Eq 0 (Read w8 255 alias))
-         (Eq false
-             (Sle 0
-                  (ReadLSB w32 0 array_size)))]
-        false)

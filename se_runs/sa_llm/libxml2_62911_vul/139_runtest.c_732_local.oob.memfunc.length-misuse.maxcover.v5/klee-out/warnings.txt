@@ -1,9 +1,0 @@
-KLEE: WARNING: undefined reference to function: close
-KLEE: WARNING: undefined reference to function: fprintf
-KLEE: WARNING: undefined reference to function: open
-KLEE: WARNING: undefined reference to function: read
-KLEE: WARNING: undefined reference to variable: stderr
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: open(130013823238144, 0) at se_runs/sa_llm/libxml2_62911_vul/139_runtest.c_732_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:19 8
-KLEE: WARNING ONCE: calling external: fprintf(131216451847392, 131199771082752, 130013823238144) at se_runs/sa_llm/libxml2_62911_vul/139_runtest.c_732_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:22 9
-KLEE: WARNING: unable to write output test case, losing it

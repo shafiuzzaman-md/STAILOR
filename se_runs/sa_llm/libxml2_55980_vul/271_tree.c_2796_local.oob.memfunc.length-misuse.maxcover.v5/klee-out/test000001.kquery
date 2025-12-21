@@ -1,5 +1,0 @@
-array len[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 len))
-         (Sle N0 255)]
-        false)

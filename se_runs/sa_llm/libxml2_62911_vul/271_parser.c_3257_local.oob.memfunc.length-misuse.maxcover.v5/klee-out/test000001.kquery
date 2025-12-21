@@ -1,9 +1,0 @@
-array len[4] : w32 -> w8 = symbolic
-array max[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              (ReadLSB w32 0 len))
-         (Sle 0
-              N0:(ReadLSB w32 0 max))
-         (Slt 0 N0)
-         (Eq false (Eq 128 N0))]
-        false)

@@ -1,8 +1,0 @@
-array inlen[4] : w32 -> w8 = symbolic
-array rptr_offset[4] : w32 -> w8 = symbolic
-(query [(Eq 0
-             (ReadLSB w32 0 inlen))
-         (Eq false
-             (Sle 0
-                  (ReadLSB w32 0 rptr_offset)))]
-        false)

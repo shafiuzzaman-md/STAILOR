@@ -1,9 +1,0 @@
-array file1_size[4] : w32 -> w8 = symbolic
-array file2_size[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 file1_size))
-         (Sle N0 4096)
-         (Eq false
-             (Sle 0
-                  (ReadLSB w32 0 file2_size)))]
-        false)

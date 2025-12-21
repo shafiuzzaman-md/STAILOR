@@ -1,9 +1,0 @@
-array bind_nbNodes[4] : w32 -> w8 = symbolic
-array parBind_alloc_success[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 bind_nbNodes))
-         (Slt N0 1024)
-         (Eq 1
-             (ReadLSB w32 0 parBind_alloc_success))
-         (Eq false (Slt 0 N0))]
-        false)

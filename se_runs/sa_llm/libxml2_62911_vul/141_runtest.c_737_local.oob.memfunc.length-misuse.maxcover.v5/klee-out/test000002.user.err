@@ -1,8 +1,0 @@
-Error: invalid klee_assume call (provably false)
-File: se_runs/sa_llm/libxml2_62911_vul/141_runtest.c_737_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 26
-assembly.ll line: 99
-State: 3
-Stack: 
-	#000000099 in read(symbolic, 122351559639040, 4096) at se_runs/sa_llm/libxml2_62911_vul/141_runtest.c_737_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:26
-	#100000176 in main() at se_runs/sa_llm/libxml2_62911_vul/141_runtest.c_737_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57

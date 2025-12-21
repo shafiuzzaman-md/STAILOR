@@ -1,6 +1,0 @@
-array pool_size[8] : w32 -> w8 = symbolic
-(query [(Ule 100
-              N0:(ReadLSB w64 0 pool_size))
-         (Ule N0 4096)
-         (Eq false (Eq 100 N0))]
-        false)

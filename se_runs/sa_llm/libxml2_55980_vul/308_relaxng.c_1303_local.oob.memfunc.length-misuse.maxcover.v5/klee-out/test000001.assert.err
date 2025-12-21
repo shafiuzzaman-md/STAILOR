@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_55980_vul/308_relaxng.c_1303_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 65
-assembly.ll line: 112
-State: 1
-Stack: 
-	#000000112 in xmlRelaxNGCopyValidState(127688912142336, 127708239495168) at se_runs/sa_llm/libxml2_55980_vul/308_relaxng.c_1303_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:65
-	#100000191 in main() at se_runs/sa_llm/libxml2_55980_vul/308_relaxng.c_1303_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:92

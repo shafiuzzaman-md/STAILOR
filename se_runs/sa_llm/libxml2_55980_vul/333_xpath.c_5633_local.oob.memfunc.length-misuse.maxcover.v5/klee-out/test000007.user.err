@@ -1,7 +1,0 @@
-Error: Wrong size given to klee_make_symbolic
-File: se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 86
-assembly.ll line: 171
-State: 7
-Stack: 
-	#000000171 in main() at se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:86

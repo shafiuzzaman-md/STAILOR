@@ -1,5 +1,0 @@
-array allocated_size[8] : w32 -> w8 = symbolic
-(query [(Ule 0
-              N0:(ReadLSB w64 0 allocated_size))
-         (Ule 8 N0)]
-        false)

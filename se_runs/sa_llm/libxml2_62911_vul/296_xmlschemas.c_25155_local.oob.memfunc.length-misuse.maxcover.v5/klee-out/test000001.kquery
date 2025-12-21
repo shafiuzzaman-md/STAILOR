@@ -1,8 +1,0 @@
-array num_attrs[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 num_attrs))
-         (Sle N0 100)
-         (Eq false
-             (Eq 0
-                 (Mul w64 72 (SExt w64 N0))))]
-        false)

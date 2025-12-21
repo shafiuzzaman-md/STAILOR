@@ -1,5 +1,0 @@
-array skey[8] : w32 -> w8 = symbolic
-(query [(Ult (Extract w32 0 (URem w64 (ReadLSB w64 0 skey)
-                                       10))
-              10)]
-        false)

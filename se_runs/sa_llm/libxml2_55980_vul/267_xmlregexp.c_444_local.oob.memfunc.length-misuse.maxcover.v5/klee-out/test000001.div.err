@@ -1,9 +1,0 @@
-Error: divide by zero
-File: se_runs/sa_llm/libxml2_55980_vul/267_xmlregexp.c_444_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 49
-assembly.ll line: 172
-State: 1
-Stack: 
-	#000000268 in klee_div_zero_check(symbolic) at runtime/Intrinsic/klee_div_zero_check.c:14
-	#100000172 in xmlMalloc3(symbolic, symbolic, symbolic) at se_runs/sa_llm/libxml2_55980_vul/267_xmlregexp.c_444_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:49
-	#200000105 in main() at se_runs/sa_llm/libxml2_55980_vul/267_xmlregexp.c_444_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:73

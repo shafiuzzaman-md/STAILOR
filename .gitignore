@@ -12,4 +12,5 @@ __pycache__/
 se_runs/**/prompts_snapshots/
 se_runs/**/*_messages.json
 se_runs/**/*_response.txt
-
+# Ignore all files under any directory whose name ends with ".v5"
+**/*.v5/**

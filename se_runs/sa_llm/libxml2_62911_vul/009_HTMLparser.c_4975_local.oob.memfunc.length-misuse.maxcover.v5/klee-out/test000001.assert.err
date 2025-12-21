@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/009_HTMLparser.c_4975_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 299
-assembly.ll line: 93
-State: 2
-Stack: 
-	#000000093 in htmlParseComment(131723195056128) at se_runs/sa_llm/libxml2_62911_vul/009_HTMLparser.c_4975_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:299
-	#100000177 in main() at se_runs/sa_llm/libxml2_62911_vul/009_HTMLparser.c_4975_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:322

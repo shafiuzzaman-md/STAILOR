@@ -1,5 +1,0 @@
-KLEE: WARNING: undefined reference to function: close
-KLEE: WARNING: undefined reference to function: open
-KLEE: WARNING: undefined reference to function: read
-KLEE: WARNING: undefined reference to function: stat
-KLEE: WARNING ONCE: calling external: stat(124943509487616, 124941362003968) at se_runs/sa_llm/libxml2_55980_vul/191_runtest.c_747_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:61 31

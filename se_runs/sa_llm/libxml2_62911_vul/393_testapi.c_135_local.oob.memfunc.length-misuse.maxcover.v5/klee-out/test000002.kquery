@@ -1,8 +1,0 @@
-array on[4] : w32 -> w8 = symbolic
-array return[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 on))
-         (Sle 0
-              (ReadLSB w32 0 return))
-         (Ule (SExt w64 N0) 256)]
-        false)

@@ -1,8 +1,0 @@
-array has_empty_ns[4] : w32 -> w8 = symbolic
-array visible[4] : w32 -> w8 = symbolic
-(query [(Eq false
-             (Eq 0
-                 (ReadLSB w32 0 visible)))
-         (Eq 0
-             (ReadLSB w32 0 has_empty_ns))]
-        false)

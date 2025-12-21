@@ -1,7 +1,0 @@
-array map[16] : w32 -> w8 = symbolic
-(query [(Eq false
-             (Eq 0
-                 (ReadLSB w64 0 map)))
-         (Eq 0
-             (ReadLSB w64 8 map))]
-        false)

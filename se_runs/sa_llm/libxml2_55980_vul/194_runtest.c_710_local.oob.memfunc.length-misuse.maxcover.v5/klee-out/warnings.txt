@@ -1,9 +1,0 @@
-KLEE: WARNING: undefined reference to function: close
-KLEE: WARNING: undefined reference to function: open
-KLEE: WARNING: undefined reference to function: read
-KLEE: WARNING: undefined reference to function: write
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: open(130957797490688, 577, 420) at se_runs/sa_llm/libxml2_55980_vul/194_runtest.c_710_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:74 9
-KLEE: WARNING ONCE: calling external: write(12, 129820436459520, 8192) at se_runs/sa_llm/libxml2_55980_vul/194_runtest.c_710_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:80 15
-KLEE: WARNING ONCE: calling external: close(13) at se_runs/sa_llm/libxml2_55980_vul/194_runtest.c_710_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:81 5
-KLEE: WARNING ONCE: calling external: read(12, 129837616332800, 4096) at se_runs/sa_llm/libxml2_55980_vul/194_runtest.c_710_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:28 15

@@ -1,7 +1,0 @@
-array fgets_returns_null[4] : w32 -> w8 = symbolic
-array output_is_null[4] : w32 -> w8 = symbolic
-(query [(Eq 0
-             (ReadLSB w32 0 output_is_null))
-         (Eq 0
-             (ReadLSB w32 0 fgets_returns_null))]
-        false)

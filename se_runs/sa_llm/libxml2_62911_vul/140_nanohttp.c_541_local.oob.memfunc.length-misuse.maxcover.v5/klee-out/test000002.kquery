@@ -1,9 +1,0 @@
-array d_content[4] : w32 -> w8 = symbolic
-array d_inptr[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 d_inptr))
-         (Slt N0 4096)
-         (Eq false
-             (Sle 0
-                  (ReadLSB w32 0 d_content)))]
-        false)

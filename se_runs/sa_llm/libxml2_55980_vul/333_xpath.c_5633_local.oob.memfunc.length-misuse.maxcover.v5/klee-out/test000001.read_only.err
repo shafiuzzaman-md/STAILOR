@@ -1,7 +1,0 @@
-Error: memory error: object read only
-File: se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 78
-assembly.ll line: 158
-State: 8
-Stack: 
-	#000000158 in main() at se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:78

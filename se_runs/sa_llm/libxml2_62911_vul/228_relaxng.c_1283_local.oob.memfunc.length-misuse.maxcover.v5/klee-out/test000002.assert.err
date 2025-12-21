@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: (sizeof(xmlRelaxNGValidState) <= state_buffer_size) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/228_relaxng.c_1283_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 52
-assembly.ll line: 80
-State: 3
-Stack: 
-	#000000080 in xmlRelaxNGCopyValidState(130328517672960) at se_runs/sa_llm/libxml2_62911_vul/228_relaxng.c_1283_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:52
-	#100000225 in main() at se_runs/sa_llm/libxml2_62911_vul/228_relaxng.c_1283_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:90

@@ -1,7 +1,0 @@
-Error: ASSERTION FAIL: (initialSize <= 1024 * 1024) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/369_xpath.c_863_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 96
-assembly.ll line: 201
-State: 3
-Stack: 
-	#000000201 in main() at se_runs/sa_llm/libxml2_62911_vul/369_xpath.c_863_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:96

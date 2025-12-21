@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING: undefined reference to function: testlimits
-KLEE: WARNING ONCE: calling external: strlen(125337927155712) at se_runs/sa_llm/libxml2_55980_vul/077_testlimits.c_1342_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:39 12

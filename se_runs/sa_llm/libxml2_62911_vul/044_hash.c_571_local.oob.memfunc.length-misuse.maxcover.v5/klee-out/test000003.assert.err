@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/044_hash.c_571_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 57
-assembly.ll line: 142
-State: 1
-Stack: 
-	#000000142 in xmlHashRemoveEntry3(124540250226688, 0, 0, 0, 0) at se_runs/sa_llm/libxml2_62911_vul/044_hash.c_571_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57
-	#100000251 in main() at se_runs/sa_llm/libxml2_62911_vul/044_hash.c_571_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:91

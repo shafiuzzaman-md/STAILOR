@@ -1,8 +1,0 @@
-Error: external call with symbolic argument: strncmp
-File: se_runs/sa_llm/libxml2_55980_vul/200_parser.c_11846_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 43
-assembly.ll line: 92
-State: 1
-Stack: 
-	#000000092 in target_function(136033450590208, symbolic) at se_runs/sa_llm/libxml2_55980_vul/200_parser.c_11846_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:43
-	#100000339 in main() at se_runs/sa_llm/libxml2_55980_vul/200_parser.c_11846_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:121

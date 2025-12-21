@@ -1,8 +1,0 @@
-array ns_flag[4] : w32 -> w8 = symbolic
-array uqname_flag[4] : w32 -> w8 = symbolic
-(query [(Eq 0
-             (ReadLSB w32 0 uqname_flag))
-         (Ult N0:(ReadLSB w32 0 ns_flag)
-              2)
-         (Eq false (Eq 0 N0))]
-        false)

@@ -1,4 +1,0 @@
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING: undefined reference to function: strncmp
-KLEE: WARNING ONCE: calling external: strncmp(126186627792896, 127370897915904, 5) at se_runs/sa_llm/libxml2_55980_vul/113_testlimits.c_104_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:43 28
-KLEE: WARNING ONCE: calling external: strlen(126186627792896) at se_runs/sa_llm/libxml2_55980_vul/113_testlimits.c_104_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 39

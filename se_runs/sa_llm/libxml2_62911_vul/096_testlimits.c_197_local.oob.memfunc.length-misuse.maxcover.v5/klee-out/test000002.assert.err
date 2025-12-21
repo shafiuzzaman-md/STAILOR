@@ -1,7 +1,0 @@
-Error: ASSERTION FAIL: (len <= 1024) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/096_testlimits.c_197_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 39
-assembly.ll line: 105
-State: 2
-Stack: 
-	#000000105 in main() at se_runs/sa_llm/libxml2_62911_vul/096_testlimits.c_197_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:39

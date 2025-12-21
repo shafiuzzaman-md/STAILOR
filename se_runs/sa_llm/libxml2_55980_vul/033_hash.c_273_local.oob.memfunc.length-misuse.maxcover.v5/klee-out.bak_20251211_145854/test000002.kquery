@@ -1,9 +1,0 @@
-array newsize[4] : w32 -> w8 = symbolic
-array oldsize[4] : w32 -> w8 = symbolic
-(query [(Slt 0
-              N0:(ReadLSB w32 0 oldsize))
-         (Slt N0 100)
-         (Eq false
-             (Slt 0
-                  (ReadLSB w32 0 newsize)))]
-        false)

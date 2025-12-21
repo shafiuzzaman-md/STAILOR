@@ -1,2 +1,0 @@
-KLEE: WARNING: undefined reference to function: kleke_assume
-KLEE: WARNING: undefined reference to function: strlen

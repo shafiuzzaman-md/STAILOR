@@ -110,11 +110,16 @@ The output `harness.c` must be a **single translation unit** that compiles by it
 2. **One Definition Rule (CRITICAL):**
    - Do NOT define the same function twice.
    - **Check:** Did you paste the Target Function (`xmlDictFindEntry`) twice? Delete the duplicate!
-3. **Assertions are VOID:**
+3. **Struct Dependencies:** If you define `Struct A`, you MUST also define any structs it points to (e.g., `Struct B`) BEFORE `Struct A`.
+4. **Assertions are VOID:**
    - `BUG_ASSERT` and `REACH_ASSERT` are **statements**, not expressions.
-   - *WRONG:* `if (BUG_ASSERT(x) && cond) ...` (Syntax Error!)
    - *RIGHT:* `BUG_ASSERT(x); if (cond) ...`
-
+5. **Function Fidelity (CRITICAL):**
+   - When copying target functions (e.g., static functions) into the harness, **DO NOT** modify the function body.
+   - **Rule:** You may only modify the *inputs* passed to the function.
+   - **Prohibited:** Do NOT replace concrete constants (e.g., `malloc(sizeof(T))`) with symbolic variables (`malloc(sym_size)`).
+   - **Reason:** Modifying the target code creates "Hallucinated Bugs" that do not exist in the real program.
+   
 INTERACTIVE PROTOCOL
 ====================
 1) Request shell: `{ "action": "shell", "commands": ["..."] }`.

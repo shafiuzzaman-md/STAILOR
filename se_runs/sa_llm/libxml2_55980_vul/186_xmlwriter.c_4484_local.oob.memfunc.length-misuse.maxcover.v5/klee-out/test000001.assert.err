@@ -1,9 +1,0 @@
-Error: ASSERTION FAIL: (count <= size) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_55980_vul/186_xmlwriter.c_4484_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 56
-assembly.ll line: 151
-State: 1
-Stack: 
-	#000000151 in xmlTextWriterVSprintf(127792956047360, 127795103531008) at se_runs/sa_llm/libxml2_55980_vul/186_xmlwriter.c_4484_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:56
-	#100000070 in call_xmlTextWriterVSprintf(127792956047360) at se_runs/sa_llm/libxml2_55980_vul/186_xmlwriter.c_4484_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:86
-	#200000047 in main() at se_runs/sa_llm/libxml2_55980_vul/186_xmlwriter.c_4484_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:112

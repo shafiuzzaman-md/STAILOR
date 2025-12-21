@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_55980_vul/277_tree.c_2443_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 99
-assembly.ll line: 111
-State: 1
-Stack: 
-	#000000111 in xmlNewDocFragment(136406638788608) at se_runs/sa_llm/libxml2_55980_vul/277_tree.c_2443_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:99
-	#100000173 in main() at se_runs/sa_llm/libxml2_55980_vul/277_tree.c_2443_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:122

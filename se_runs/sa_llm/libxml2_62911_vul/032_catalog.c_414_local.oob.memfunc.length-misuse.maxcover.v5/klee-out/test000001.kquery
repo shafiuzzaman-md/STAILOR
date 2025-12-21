@@ -1,8 +1,0 @@
-array prefer[4] : w32 -> w8 = symbolic
-array sgml[4] : w32 -> w8 = symbolic
-(query [(Ule (ReadLSB w32 0 prefer)
-              2)
-         (Eq false
-             (Eq 0
-                 (ReadLSB w32 0 sgml)))]
-        false)

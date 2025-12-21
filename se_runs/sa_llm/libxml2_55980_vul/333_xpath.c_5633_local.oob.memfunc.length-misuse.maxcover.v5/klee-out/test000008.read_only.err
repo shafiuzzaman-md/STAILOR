@@ -1,9 +1,0 @@
-Error: memory error: object read only
-File: runtime/Freestanding/memset.c
-Line: 15
-assembly.ll line: 284
-State: 55
-Stack: 
-	#000000284 in memset(symbolic, 0, 8) at runtime/Freestanding/memset.c:15
-	#100000117 in target_function(symbolic, symbolic) at se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:57
-	#200000203 in main() at se_runs/sa_llm/libxml2_55980_vul/333_xpath.c_5633_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:97

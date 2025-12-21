@@ -1,7 +1,0 @@
-KLEE: WARNING: undefined reference to function: fclose
-KLEE: WARNING: undefined reference to function: fgets
-KLEE: WARNING: undefined reference to function: fprintf
-KLEE: WARNING: undefined reference to variable: stderr
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: strlen(126989061062656) at se_runs/sa_llm/libxml2_55980_vul/028_runtest.c_4595_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:149 15

@@ -1,9 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_55980_vul/162_timsort.h_402_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 20
-assembly.ll line: 203
-State: 3
-Stack: 
-	#000000203 in merge_right(127727654928384, symbolic, symbolic, symbolic, 127590215974912) at se_runs/sa_llm/libxml2_55980_vul/162_timsort.h_402_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:20
-	#100000141 in timsort_merge(127727654928384, symbolic, symbolic, symbolic, 127590215974912) at se_runs/sa_llm/libxml2_55980_vul/162_timsort.h_402_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:48
-	#200000090 in main() at se_runs/sa_llm/libxml2_55980_vul/162_timsort.h_402_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:83

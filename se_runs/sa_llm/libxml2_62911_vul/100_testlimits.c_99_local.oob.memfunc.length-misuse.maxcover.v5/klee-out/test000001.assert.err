@@ -1,7 +1,0 @@
-Error: ASSERTION FAIL: (strlen(URI) >= 5) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/100_testlimits.c_99_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 30
-assembly.ll line: 46
-State: 1
-Stack: 
-	#000000046 in main() at se_runs/sa_llm/libxml2_62911_vul/100_testlimits.c_99_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:30

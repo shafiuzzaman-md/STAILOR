@@ -1,8 +1,0 @@
-KLEE: Using Z3 solver backend
-KLEE: Deterministic allocator: Using quarantine queue size 8
-KLEE: Deterministic allocator: globals (start-address=0x7dcf7a600000 size=10 GiB)
-KLEE: Deterministic allocator: constants (start-address=0x7dccfa600000 size=10 GiB)
-KLEE: Deterministic allocator: heap (start-address=0x7cccfa600000 size=1024 GiB)
-KLEE: Deterministic allocator: stack (start-address=0x7cacfa600000 size=128 GiB)
-KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/122_nanohttp.c_1000_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32: failed external call: klee_make_symbolic_str
-KLEE: NOTE: now ignoring this error at this location

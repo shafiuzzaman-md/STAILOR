@@ -1,9 +1,0 @@
-array chartab_size[8] : w32 -> w8 = symbolic
-array memset_len[8] : w32 -> w8 = symbolic
-(query [(Eq 127
-             (ReadLSB w64 0 chartab_size))
-         (Ult 0
-              N0:(ReadLSB w64 0 memset_len))
-         (Ule N0 2048)
-         (Eq false (Ule N0 127))]
-        false)

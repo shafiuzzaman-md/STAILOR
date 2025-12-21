@@ -1,5 +1,0 @@
-array nbCounters[4] : w32 -> w8 = symbolic
-(query [(Eq false
-             (Sle 4294967286
-                  (ReadLSB w32 0 nbCounters)))]
-        false)

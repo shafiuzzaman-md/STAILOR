@@ -1,8 +1,0 @@
-array base_len[8] : w32 -> w8 = symbolic
-array filename_len[8] : w32 -> w8 = symbolic
-(query [(Eq 0
-             (ReadLSB w64 0 filename_len))
-         (Ult N0:(ReadLSB w64 0 base_len)
-              1024)
-         (Eq false (Eq 0 N0))]
-        false)

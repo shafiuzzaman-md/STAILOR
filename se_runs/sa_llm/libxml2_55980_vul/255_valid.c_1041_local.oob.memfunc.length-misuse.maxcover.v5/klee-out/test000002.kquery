@@ -1,8 +1,0 @@
-array list_node[32] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 list_node))
-         (Sle N0 10)
-         (Eq false
-             (Sle 0
-                  (ReadLSB w32 4 list_node)))]
-        false)

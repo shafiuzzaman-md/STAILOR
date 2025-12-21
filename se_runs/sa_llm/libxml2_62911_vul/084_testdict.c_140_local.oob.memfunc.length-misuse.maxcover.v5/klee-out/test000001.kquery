@@ -1,8 +1,0 @@
-array NB_STRINGS_MIN[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 NB_STRINGS_MIN))
-         (Slt N0 100)
-         (Eq false
-             (Ule (Mul w64 8 (SExt w64 N0))
-                  100))]
-        false)

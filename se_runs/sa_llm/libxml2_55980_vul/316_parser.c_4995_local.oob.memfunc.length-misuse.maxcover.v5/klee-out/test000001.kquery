@@ -1,8 +1,0 @@
-array nbchar[4] : w32 -> w8 = symbolic
-array state_val[4] : w32 -> w8 = symbolic
-(query [(Eq 6
-             (ReadLSB w32 0 state_val))
-         (Eq false
-             (Sle 0
-                  (ReadLSB w32 0 nbchar)))]
-        false)

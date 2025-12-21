@@ -1,8 +1,0 @@
-KLEE: Using Z3 solver backend
-KLEE: Deterministic allocator: Using quarantine queue size 8
-KLEE: Deterministic allocator: globals (start-address=0x76958a600000 size=10 GiB)
-KLEE: Deterministic allocator: constants (start-address=0x76930a600000 size=10 GiB)
-KLEE: Deterministic allocator: heap (start-address=0x75930a600000 size=1024 GiB)
-KLEE: Deterministic allocator: stack (start-address=0x75730a600000 size=128 GiB)
-KLEE: ERROR: se_runs/sa_llm/libxml2_62911_vul/317_xmlschemas.c_23689_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:92: Wrong size given to klee_make_symbolic
-KLEE: NOTE: now ignoring this error at this location

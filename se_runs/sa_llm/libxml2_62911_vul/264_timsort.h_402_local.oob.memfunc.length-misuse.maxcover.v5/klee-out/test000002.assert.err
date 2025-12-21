@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: (B <= size) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/264_timsort.h_402_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 34
-assembly.ll line: 91
-State: 3
-Stack: 
-	#000000091 in TIM_SORT(137884822667264, symbolic, 137867642798080) at se_runs/sa_llm/libxml2_62911_vul/264_timsort.h_402_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:34
-	#100000166 in main() at se_runs/sa_llm/libxml2_62911_vul/264_timsort.h_402_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:61

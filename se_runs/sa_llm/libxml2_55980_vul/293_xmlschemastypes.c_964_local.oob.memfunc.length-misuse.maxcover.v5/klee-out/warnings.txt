@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: malloc_usable_size
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: malloc_usable_size(125821024993280) at se_runs/sa_llm/libxml2_55980_vul/293_xmlschemastypes.c_964_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:72 9

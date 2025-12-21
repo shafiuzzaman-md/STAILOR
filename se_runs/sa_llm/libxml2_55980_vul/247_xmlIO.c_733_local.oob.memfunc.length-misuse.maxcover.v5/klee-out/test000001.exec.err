@@ -1,8 +1,0 @@
-Error: external call with symbolic argument: read
-File: se_runs/sa_llm/libxml2_55980_vul/247_xmlIO.c_733_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 54
-assembly.ll line: 114
-State: 1
-Stack: 
-	#000000114 in xmlFdRead(symbolic, 138118562840576, symbolic) at se_runs/sa_llm/libxml2_55980_vul/247_xmlIO.c_733_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:54
-	#100000069 in main() at se_runs/sa_llm/libxml2_55980_vul/247_xmlIO.c_733_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:38

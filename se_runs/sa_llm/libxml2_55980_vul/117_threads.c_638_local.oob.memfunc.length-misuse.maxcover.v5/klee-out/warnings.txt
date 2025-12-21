@@ -1,2 +1,0 @@
-KLEE: WARNING: undefined reference to variable: libxml_is_threaded
-KLEE: ERROR: Unable to load symbol(libxml_is_threaded) while initializing globals

@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: strlen(135460928094208) at se_runs/sa_llm/libxml2_62911_vul/176_xinclude.c_244_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:41 30

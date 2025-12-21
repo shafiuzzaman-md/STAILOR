@@ -1,9 +1,0 @@
-array ctxt[96] : w32 -> w8 = symbolic
-array read_len[4] : w32 -> w8 = symbolic
-(query [(Ule N0:(ReadLSB w64 8 ctxt)
-              N1:(ReadLSB w64 0 ctxt))
-         (Sle 0 N2:(Sub w64 N1 N0))
-         (Slt N2 2048)
-         (Eq 0
-             (ReadLSB w32 0 read_len))]
-        false)

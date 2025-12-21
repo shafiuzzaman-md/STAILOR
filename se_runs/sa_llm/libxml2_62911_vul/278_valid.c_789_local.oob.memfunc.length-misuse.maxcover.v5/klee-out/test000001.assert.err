@@ -1,7 +1,0 @@
-Error: ASSERTION FAIL: (0) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/278_valid.c_789_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 76
-assembly.ll line: 214
-State: 1
-Stack: 
-	#000000214 in main() at se_runs/sa_llm/libxml2_62911_vul/278_valid.c_789_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:76

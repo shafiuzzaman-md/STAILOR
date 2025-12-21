@@ -1,8 +1,0 @@
-Error: external call with symbolic argument: strlen
-File: se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 59
-assembly.ll line: 119
-State: 42
-Stack: 
-	#000000119 in xmlStringDecodeEntities(0, 130488209506304, 129846111895552, 130471029637120, 129850406862848, 0, 0, 0, 0) at se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:59
-	#100000262 in main() at se_runs/sa_llm/libxml2_55980_vul/218_HTMLparser.c_2325_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:121

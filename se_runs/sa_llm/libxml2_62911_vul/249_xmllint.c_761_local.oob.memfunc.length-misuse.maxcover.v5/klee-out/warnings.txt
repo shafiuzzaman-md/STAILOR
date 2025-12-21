@@ -1,9 +1,0 @@
-KLEE: WARNING: undefined reference to function: fflush
-KLEE: WARNING: undefined reference to function: fgets
-KLEE: WARNING: undefined reference to function: fprintf
-KLEE: WARNING: undefined reference to variable: stdin
-KLEE: WARNING: undefined reference to variable: stdout
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING ONCE: calling external: fprintf(125316429268416, 125296527278080, 125297668128768) at se_runs/sa_llm/libxml2_62911_vul/249_xmllint.c_761_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 9
-KLEE: WARNING ONCE: calling external: fflush(125316429268416) at se_runs/sa_llm/libxml2_62911_vul/249_xmllint.c_761_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:26 24
-KLEE: WARNING ONCE: calling external: fgets(124122390593536, 500, 125316429265120) at se_runs/sa_llm/libxml2_62911_vul/249_xmllint.c_761_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:11 10

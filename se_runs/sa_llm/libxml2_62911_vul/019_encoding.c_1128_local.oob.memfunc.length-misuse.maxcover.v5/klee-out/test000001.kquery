@@ -1,9 +1,0 @@
-array alias_count[4] : w32 -> w8 = symbolic
-(query [(Sle 0
-              N0:(ReadLSB w32 0 alias_count))
-         (Sle N0 100)
-         (Eq false
-             (Eq 16
-                 (Mul w64 16
-                          (SExt w64 (Add w32 1 N0)))))]
-        false)

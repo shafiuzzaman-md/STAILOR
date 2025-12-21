@@ -1,6 +1,0 @@
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING: undefined reference to function: xmlMalloc
-KLEE: WARNING: undefined reference to function: xmlStrdup
-KLEE: WARNING: undefined reference to function: xmlTreeErrMemory
-KLEE: WARNING ONCE: calling external: strlen(137964239716352) at se_runs/sa_llm/libxml2_62911_vul/301_tree.c_1144_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:64 19
-KLEE: WARNING ONCE: calling external: xmlMalloc(16) at se_runs/sa_llm/libxml2_62911_vul/301_tree.c_1144_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 11

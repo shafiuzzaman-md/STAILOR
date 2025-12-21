@@ -1,7 +1,0 @@
-Error: ASSERTION FAIL: (offs + move_dest_offset + move_size <= buf + bufsize) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_55980_vul/234_xmlschemastypes.c_5931_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 47
-assembly.ll line: 189
-State: 8
-Stack: 
-	#000000189 in main() at se_runs/sa_llm/libxml2_55980_vul/234_xmlschemastypes.c_5931_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:47

@@ -1,3 +1,0 @@
-KLEE: WARNING: undefined reference to function: memchr
-KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: memchr(126531456204800, 0, (ReadLSB w64 0 size)) at se_runs/sa_llm/libxml2_62911_vul/219_xmlIO.c_2925_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:32 10

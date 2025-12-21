@@ -1,8 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_55980_vul/163_nanohttp.c_1242_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 59
-assembly.ll line: 281
-State: 4
-Stack: 
-	#000000281 in xmlNanoHTTPRead(134279233273856, 134305003077632, symbolic) at se_runs/sa_llm/libxml2_55980_vul/163_nanohttp.c_1242_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:59
-	#100000388 in main() at se_runs/sa_llm/libxml2_55980_vul/163_nanohttp.c_1242_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:86

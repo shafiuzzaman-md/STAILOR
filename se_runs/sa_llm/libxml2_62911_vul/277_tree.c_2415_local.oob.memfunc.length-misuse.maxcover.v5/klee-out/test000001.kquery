@@ -1,3 +1,0 @@
-array content_buf[1024] : w32 -> w8 = symbolic
-(query [(Eq 0 (Read w8 1023 content_buf))]
-        false)

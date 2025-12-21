@@ -1,9 +1,0 @@
-Error: memory error: object read only
-File: runtime/Freestanding/memset.c
-Line: 15
-assembly.ll line: 185
-State: 11
-Stack: 
-	#000000185 in memset(symbolic, 0, 20) at runtime/Freestanding/memset.c:15
-	#100000060 in xmlXPathContextCacheCreate() at se_runs/sa_llm/libxml2_55980_vul/357_xpath.c_2211_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:41
-	#200000105 in main() at se_runs/sa_llm/libxml2_55980_vul/357_xpath.c_2211_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:59

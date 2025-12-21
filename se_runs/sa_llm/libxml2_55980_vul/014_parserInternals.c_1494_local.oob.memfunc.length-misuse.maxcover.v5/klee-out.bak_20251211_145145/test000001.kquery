@@ -1,5 +1,0 @@
-array sax[104] : w32 -> w8 = symbolic
-(query [(Eq false
-             (Eq 3735928559
-                 (ReadLSB w32 0 sax)))]
-        false)

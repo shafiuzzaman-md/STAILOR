@@ -1,9 +1,0 @@
-Error: ASSERTION FAIL: 0 && "SAILR_REACH_ASSERT"
-File: se_runs/sa_llm/libxml2_62911_vul/016_c14n.c_828_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 45
-assembly.ll line: 68
-State: 1
-Stack: 
-	#000000068 in xmlC14NPrintNamespaces(140676746444800, 139804331212800) at se_runs/sa_llm/libxml2_62911_vul/016_c14n.c_828_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:45
-	#100000151 in xmlC14NProcessAttrsAxis(139804331212800) at se_runs/sa_llm/libxml2_62911_vul/016_c14n.c_828_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:80
-	#200000188 in main() at se_runs/sa_llm/libxml2_62911_vul/016_c14n.c_828_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:94

@@ -1,7 +1,0 @@
-Error: ASSERTION FAIL: (remove_head <= buffer_size && (1 + new_len) <= (buffer_size - remove_head)) && "SAILR_VULN_ASSERT"
-File: se_runs/sa_llm/libxml2_55980_vul/358_parser.c_1232_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 81
-assembly.ll line: 222
-State: 3
-Stack: 
-	#000000222 in main() at se_runs/sa_llm/libxml2_55980_vul/358_parser.c_1232_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:81

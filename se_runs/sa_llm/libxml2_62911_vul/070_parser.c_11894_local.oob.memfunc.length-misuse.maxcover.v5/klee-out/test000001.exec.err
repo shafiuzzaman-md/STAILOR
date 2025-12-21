@@ -1,8 +1,0 @@
-Error: external call with symbolic argument: strncmp
-File: se_runs/sa_llm/libxml2_62911_vul/070_parser.c_11894_local.oob.memfunc.length-misuse.maxcover.v5/harness.c
-Line: 37
-assembly.ll line: 102
-State: 1
-Stack: 
-	#000000102 in xmlParseExternalEntityPrivate(133086765383680, 132670153555968, 132668006072320, symbolic) at se_runs/sa_llm/libxml2_62911_vul/070_parser.c_11894_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:37
-	#100000344 in main() at se_runs/sa_llm/libxml2_62911_vul/070_parser.c_11894_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:118

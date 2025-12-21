@@ -1,5 +1,0 @@
-KLEE: WARNING: undefined reference to function: fgets
-KLEE: WARNING: undefined reference to variable: stdin
-KLEE: WARNING: undefined reference to variable: stdout
-KLEE: WARNING: undefined reference to function: strlen
-KLEE: WARNING ONCE: calling external: fgets(137407523450880, 4500, 138562907420896) at se_runs/sa_llm/libxml2_62911_vul/071_runtest.c_4593_local.oob.memfunc.length-misuse.maxcover.v5/harness.c:23 47
