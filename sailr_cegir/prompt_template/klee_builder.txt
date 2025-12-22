@@ -58,10 +58,20 @@ ASSUMPTION STRATEGY
    - *Action:* Use `klee_assume(flag == TRUE)` to prune irrelevant paths.
 
 2. **Vulnerability Variables (Bug Logic):**
-   - Variables involved in the vulnerability (lengths, indices, counts).
-   - **Rule:** These MUST be FULLY SYMBOLIC and unconstrained.
-   - **Scope Rule (CRITICAL):** If a variable is used in a `BUG_ASSERT` inside a target function (outside `main`), it **MUST be defined as a Global Variable**.
-     - *Wrong:* `int main() { int limit; ... } void target() { BUG_ASSERT(x < limit); }` (Undefined!)
+   - Variables involved in the vulnerability (lengths, indices, file sizes, counts).
+   - **Rule:** These MUST be FULLY SYMBOLIC.
+   
+   - **No Hardcoding (CRITICAL):**
+     - **NEVER** replace a dynamic variable with a concrete constant in the target logic.
+     - *Wrong:* `size = 1024;` (Creates "Hallucinated Bugs" or hides real ones)
+     - *Right:* `klee_make_symbolic(&size, sizeof(size), "size");`
+   
+   - **System Call Stubbing:**
+     - If a variable comes from a syscall (e.g., `stat.st_size`, `read` return), you MUST stub that syscall to return a symbolic value.
+   
+   - **Scope Rule (CRITICAL):**
+     - If a variable is used in a `BUG_ASSERT` inside a target function (outside `main`), it **MUST be defined as a Global Variable**.
+     - *Wrong:* `int main() { int limit; ... } void target() { BUG_ASSERT(x < limit); }` (Undefined Identifier!)
      - *Right:* `int limit; /* Global */ void target() { BUG_ASSERT(x < limit); } int main() { ... }`
 
 POINTER / ALLOCATOR MODELING
@@ -173,9 +183,17 @@ The output `harness.c` must be a **single translation unit** that compiles by it
    - **Rule:** You may only modify the *inputs* passed to the function.
    - **Prohibited:** Do NOT replace concrete constants (e.g., `malloc(sizeof(T))`) with symbolic variables (`malloc(sym_size)`).
    - **Reason:** Modifying the target code creates "Hallucinated Bugs" that do not exist in the real program.
-6. **No "Lying" Stubs:**
-   - Wrapper functions (e.g., `xmlMalloc` wrapping `malloc`) must pass arguments through **unchanged**.
-   - *Strict Check:* Does your stub ignore any argument? If yes, DELETE IT and rewrite.
+6. **Stub Fidelity (CRITICAL):**
+   - **Allocator Rule:** Wrapper functions (e.g., `xmlMalloc`) must pass arguments through unchanged.
+   - **I/O Contract Rule:** Stubs for I/O (read, fread, recv) MUST respect the `count`/`size` argument.
+     - *Wrong:* `ssize_t my_read(..., size_t count) { return sym_val; }` (Allows return > count!)
+     - *Right:* ```c
+       ssize_t my_read(..., size_t count) { 
+           if (sym_val > count) return count; /* Clamp to limit */
+           return sym_val; 
+       }
+       ```
+   - **Reason:** Real system calls never return more bytes than requested. Ignoring this creates False Positives.
 7. **Macro & Type Cleaning (CRITICAL):**
    - If you copy target functions containing project-specific macros (e.g., `ATTRIBUTE_NO_SANITIZE_INTEGER`, `xmlForceAdd`), you **MUST** stub them.
    - *Action:* Add `#define ATTRIBUTE_NO_SANITIZE_INTEGER` (empty) to the top of your harness.
@@ -195,6 +213,12 @@ The output `harness.c` must be a **single translation unit** that compiles by it
      /* Now you can use it */
      struct Context *ctx = malloc(sizeof(struct Context));
      ```
+9. **State Integrity (CRITICAL):**
+   - **Rule:** You must NOT manually modify struct fields (e.g., `buf->size *= 2`) to "force" a bug.
+   - **Requirement:** You MUST use the **Public API** (e.g., `buf_add_item()`) to mutate the state.
+   - **Reason:** Manually changing a size field without calling the corresponding `realloc` logic creates an **Impossible State** (Hallucination) that yields False Positives.
+   - *Wrong:* `ctx->len = 99999; target(ctx);` (Skipped realloc!)
+   - *Right:* `for(int i=0; i<99999; i++) ctx_add(ctx, i); target(ctx);` (Realistic)
 INTERACTIVE PROTOCOL
 ====================
 1) Request shell: `{ "action": "shell", "commands": ["..."] }`.
