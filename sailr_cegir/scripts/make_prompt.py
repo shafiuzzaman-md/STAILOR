@@ -4,79 +4,51 @@
 make_prompt.py
 
 Responsible for generating spec-specific system prompts.
-UPDATED: Injects Mission Context, Assertion Ordering, and Rule-Specific Guidance.
 """
 
 import textwrap
-import yaml
-import re
 from pathlib import Path
 
 # Robust path resolution
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIR = SCRIPT_DIR.parent / "prompt_template"
-RULES_YAML_PATH = SCRIPT_DIR / "rules.yaml"
 
-def load_rule_guidance(rule_id: str) -> str:
+def inject_mission_context(
+    raw: str, 
+    vul_file: str, 
+    vul_line: int, 
+    rule_id: str, 
+    vul_statement: str,
+    source_root: str
+) -> str:
     """
-    Reads rules.yaml and extracts prompt_guidance for the matching rule.
+    Injects the unified 'Target Lock' header, Assumption Invariants, and LOCATION GROUNDING.
     """
-    if not RULES_YAML_PATH.exists():
-        return ""
-    
-    try:
-        with open(RULES_YAML_PATH, "r") as f:
-            data = yaml.safe_load(f)
-            
-        for rule in data.get("rules", []):
-            if re.search(rule['id_pattern'], rule_id):
-                guidance = rule.get("prompt_guidance", {})
-                sections = []
-                
-                if "construction" in guidance:
-                    sections.append("ARCHITECTURAL GUIDANCE:\n" + 
-                                    "\n".join(f"- {item}" for item in guidance["construction"]))
-                if "planning" in guidance:
-                    sections.append("PLANNING TIPS:\n" + 
-                                    "\n".join(f"- {item}" for item in guidance["planning"]))
-                if "assertion" in guidance:
-                    sections.append("STRATEGIC ASSERTION HINTS:\n" + 
-                                    "\n".join(f"- {item}" for item in guidance["assertion"]))
-                
-                if sections:
-                    return "\n\n" + "\n\n".join(sections) + "\n"
-    except Exception:
-        pass
-    return ""
-
-def inject_mission_context(raw: str, vul_file: str, vul_line: int, rule_id: str, vul_statement: str) -> str:
-    """
-    Injects the unified 'Target Lock' header and Assumption Invariant rules.
-    """
-    rule_advice = load_rule_guidance(rule_id)
-
     header = textwrap.dedent(f"""
     MISSION CRITICAL: TARGET LOCK
     =============================
-    1. TARGET FILE:      {vul_file}
-    2. TARGET LINE:      {vul_line}
-    3. RULE ID:          {rule_id}
-    4. TARGET STATEMENT: {vul_statement}
+    1. PROJECT ROOT:     {source_root}
+    2. TARGET FILE:      {vul_file}
+    3. TARGET LINE:      {vul_line}
+    4. RULE ID:          {rule_id}
+    5. TARGET STATEMENT: {vul_statement}
 
     STRICT OPERATIONAL PROTOCOL:
     ----------------------------
-    A. **Assertion Order:** `BUG_ASSERT` MUST come BEFORE `REACH_ASSERT`.
-    B. **Placement:** Assertions MUST be placed IMMEDIATELY BEFORE the Target Statement[cite: 24, 35].
-    C. **Assumption Invariants:** Steering/Environment assumptions (klee_assume) MUST be 
-       identical for both reachability and bug verification[cite: 36, 37]. 
+    A. **Location Grounding (CRITICAL):**
+       - You are executing inside a container. The code is located at `PROJECT ROOT`.
+       - The `TARGET FILE` path provided above might be an absolute path from a different machine.
+       - **RULE:** IGNORE the absolute prefix. Find the file relative to `PROJECT ROOT`.
+       - **PROHIBITED:** Do NOT try to access `/mnt/...`, `/home/...`, or `/media/...`. 
+       - **REQUIRED:** Use relative paths (e.g., `find . -name filename`).
+
+    B. **Assertion Order:** `BUG_ASSERT` MUST come BEFORE `REACH_ASSERT`.
+    C. **Placement:** Assertions MUST be placed IMMEDIATELY BEFORE the Target Statement.
+    D. **Assumption Invariants:** Steering/Environment assumptions (klee_assume) MUST be 
+       identical for both reachability and bug verification. 
        Do NOT relax constraints solely to trigger a failure.
-    D. **Vulnerability Variables:** Lengths/indices MUST be fully symbolic and unconstrained[cite: 17, 39].
-    """)
+    E. **Vulnerability Variables:** Lengths/indices MUST be fully symbolic and unconstrained.
     
-    if rule_advice:
-        header += rule_advice
-        
-    header += textwrap.dedent("""
     END MISSION CONTEXT
     ===================
     """)
@@ -87,6 +59,7 @@ def generate_prompts(
     vul_line: int,
     rule_id: str,
     vul_statement: str,
+    source_root: str = ".", # Default to current dir if not provided
     output_dir: Path | None = None
 ) -> dict[str, str]:
     templates = {
@@ -96,7 +69,8 @@ def generate_prompts(
     
     results = {}
     if not TEMPLATE_DIR.exists():
-        raise FileNotFoundError(f"Template dir missing: {TEMPLATE_DIR}")
+        # Ideally log a warning here if templates are missing
+        pass
 
     for key, fname in templates.items():
         src = TEMPLATE_DIR / fname
@@ -104,7 +78,17 @@ def generate_prompts(
             continue
             
         raw = src.read_text(encoding="utf-8")
-        final = inject_mission_context(raw, vul_file, vul_line, rule_id, vul_statement)
+        
+        # Pass the source_root to the injector
+        final = inject_mission_context(
+            raw, 
+            vul_file, 
+            vul_line, 
+            rule_id, 
+            vul_statement, 
+            source_root
+        )
+        
         results[key] = final
         
         if output_dir:

@@ -568,7 +568,6 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     }
 
 # ---------------- STAGE 2: REACHABILITY HARNESS SYNTHESIS ----------------
-
 def interactive_reachability_synthesizer(
     plan: Dict[str, Any],
     ctx: Dict[str, Any],
@@ -578,7 +577,8 @@ def interactive_reachability_synthesizer(
     src_root: Path,
     harness_dir: Path,
     logs_dir: Path,
-    max_iters: int
+    max_iters: int,
+    start_src: str = ""
 ) -> Tuple[bool, str, Dict[str, Any]]:
 
     harness_src = ""
@@ -593,31 +593,53 @@ def interactive_reachability_synthesizer(
         if best_stats:
             klee_fb = f"Previous Run: {best_stats.get('status')}\nLOG:\n{best_stats.get('log_tail','')}"
 
+        # --- NEW: Budget Warning (Fixes Analysis Paralysis) ---
+        warning_msg = ""
+        if i >= max_iters - 3:
+            warning_msg = (
+                f"\n\n[SYSTEM CRITICAL]: You have used {i}/{max_iters} turns. "
+                "You are running out of budget. "
+                "You MUST stop analyzing and output a 'harness' NOW, or the mission will fail."
+            )
+        # ------------------------------------------------------
+
         user_msg = (
             f"Model: {json.dumps(plan)}\n"
             f"Harness:\n{harness_src}\n"
             f"KLEE Feedback:\n{klee_fb}\n"
-            f"History:\n" + "\n".join(history[-5:])
+            f"History:\n" + "\n".join(history[-5:]) +
+            warning_msg  # <--- Injected here
         )
         resp = call_llm_json(builder_prompt, user_msg, out_dir, f"reach_gen_T{i:02d}")
+        
+        # --- Summarized Logging ---
         action = resp.get("action")
+        reason = resp.get("reason", "No reasoning provided")
+        print(f"  [>] Action: {action}")
+        if reason:
+            print(f"  [?] Reason: {reason}")
+        # --------------------------
 
         if action == "shell":
             for cmd in get_commands_list(resp):
+                print(f"  [$] Executing: {cmd}")
                 try:
                     sanitize_shell_command(cmd)
                     rc, out, err, _ = run_cmd(cmd, cwd=src_root, timeout=10, use_shell=True)
                     history.append(f"$ {cmd}\nRC={rc}\nSTDOUT:\n{out[:800]}\nSTDERR:\n{err[:200]}")
                 except Exception as e:
+                    print(f"  [!] Shell Error: {e}")
                     history.append(f"Error: {e}")
             continue
 
         if action != "harness":
+            print(f"  [!] Invalid Action: {action}")
             history.append(f"SYSTEM: expected 'harness' or 'shell', got '{action}'")
             continue
 
         code = extract_c_code(resp.get("harness_c", ""))
         if not code:
+            print("  [!] No code block found in response.")
             history.append("SYSTEM ERROR: No code block found. Wrap code in ```c ... ```.")
             continue
 
@@ -632,6 +654,7 @@ def interactive_reachability_synthesizer(
         ensure_dir(harness_dir)
         (harness_dir / "harness.c").write_text(harness_src, encoding="utf-8")
 
+        print("  [*] Compiling harness...")
         okc, msg, bc_to_run = compile_harness_to_bc(
             args,
             src_root,
@@ -640,21 +663,27 @@ def interactive_reachability_synthesizer(
             project_bc
         )
         if msg:
-            print(msg)
+            if not okc: print(f"  [!] Compilation Failed:\n{msg[:300]}...") 
             history.append(msg)
         if not okc:
             history.append(f"COMPILER ERROR:\n{msg[:1500]}")
             continue
 
+        print(f"  [*] Running KLEE (Timeout: {args.timeout}s)...")
         stats = run_klee(bc_to_run, args.klee, args.klee_flags, args.timeout, logs_dir, i)
         best_stats = stats
+
+        # Concise status report
+        status_str = stats.get("status", "unknown")
+        bug_hit = "YES" if stats.get("bug_assert_hit") else "no"
+        reach_hit = "YES" if stats.get("reach_assert_hit") else "no"
+        print(f"  [=] Result: {status_str} | Reach: {reach_hit} | Bug: {bug_hit}")
 
         # Reach stage success = reached marker OR (bug found early).
         if stats.get("reach_assert_hit") or stats.get("bug_assert_hit"):
             return True, harness_src, stats
 
     return False, harness_src, best_stats
-
 # ---------------- STAGE 3: VULNERABILITY HARNESS SYNTHESIS ----------------
 
 def interactive_vulnerability_synthesizer(
@@ -785,22 +814,30 @@ def main():
 
     overall_status = "E"
     klee_final = {}
-
+    best_harness_src = ""
     for cycle in range(args.max_cycles):
         print(f"\n[=] CYCLE {cycle+1}/{args.max_cycles}")
         d = ensure_dir(run_dir / f"try_{cycle:02d}")
 
-        plan = interactive_environment_modeler(ctx, args, prompts["planner"], d, Path(args.src_root), 10)
-        if "plan_error" in plan:
-            continue
+        if best_harness_src:
+            print("  [i] Carrying forward harness from previous cycle. Skipping Modeler.")
+            plan = {"action": "final_plan", "explanation": "Carried forward"}
+        else:
+            plan = interactive_environment_modeler(ctx, args, prompts["planner"], d, Path(args.src_root), 10)
+            if "plan_error" in plan:
+                continue
 
         reach_ok, h_src, stats = interactive_reachability_synthesizer(
             plan, ctx, args, prompts["builder"],
-            d, Path(args.src_root), ensure_dir(d / "harness"), ensure_dir(d / "logs"), args.max_a
+            d, Path(args.src_root), ensure_dir(d / "harness"), ensure_dir(d / "logs"), args.max_a,
+            start_src=best_harness_src
         )
+        # --- Save successful harness for next cycle ---
+        if h_src and stats and stats.get("status") != "error":
+             best_harness_src = h_src
 
         if not reach_ok:
-            # FIX: Distinguish H0 (Unreachable) vs H1 (Timeout) vs E (Compile Error)
+            # Distinguish H0 (Unreachable) vs H1 (Timeout) vs E (Compile Error)
             if not stats: 
                 fail_status = "E" # No stats = Compile/Gen Failure
             elif stats.get("status") == "timeout":

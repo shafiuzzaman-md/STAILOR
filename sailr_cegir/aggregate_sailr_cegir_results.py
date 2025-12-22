@@ -16,7 +16,7 @@ Post-hoc aggregator for SAILR-CEGIR runs.
 
 Outputs:
   1) A human-readable table on stdout.
-  2) A top-level summary of class counts and BUG/REACH assertion hits.
+  2) A top-level summary of class counts (H2 vs H2_REACH vs others).
   3) Aggregate files compatible with SA+LLM formats:
      - counts.tsv / .csv
      - summary_agg.tsv / .csv
@@ -35,20 +35,10 @@ from typing import List, Dict, Any
 
 def read_summary(summary_path: Path) -> List[Dict[str, Any]]:
     """
-    Read summary.tsv and return a list of rows:
-      [
-        {
-          "spec_stem": ...,
-          "class": ...,
-          "completed_paths": int,
-          "time_sec": float,
-        },
-        ...
-      ]
+    Read summary.tsv and return a list of rows.
     """
     rows: List[Dict[str, Any]] = []
     if not summary_path.exists():
-        # Fallback if file doesn't exist, we just return empty
         return rows
 
     with summary_path.open("r", encoding="utf-8") as f:
@@ -105,9 +95,9 @@ def load_run_meta(spec_dir: Path) -> Dict[str, Any] | None:
 def fmt_table(headers: List[str], rows: List[List[str]]) -> str:
     """
     Pretty-print a simple table with aligned columns.
-    headers: list of column names
-    rows: list of row lists (already converted to strings)
     """
+    if not rows:
+        return ""
     # Compute width per column based on both headers and rows
     widths = [len(h) for h in headers]
     for row in rows:
@@ -128,8 +118,7 @@ def fmt_table(headers: List[str], rows: List[List[str]]) -> str:
 
 def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
     """
-    Aggregate over a SAILR-CEGIR mode root (e.g. se_runs/sailr_cegir/libxml2_62911_vul).
-    Also produces standard aggregation files (counts.tsv, summary_agg.tsv, etc.).
+    Aggregate over a SAILR-CEGIR mode root.
     """
     summary_path = mode_root / "summary.tsv"
     if not summary_path.exists():
@@ -142,7 +131,7 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
         print(f"[i] No rows in {summary_path}; nothing to aggregate.")
         return
 
-    # 1. Internal Accumulators for detailed table & logic
+    # 1. Internal Accumulators
     class_counts: Dict[str, int] = {}
     bug_assert_total = 0
     reach_assert_total = 0
@@ -152,7 +141,9 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
     count_E = 0
     count_H0 = 0
     count_H1 = 0
-    count_H2 = 0
+    count_H2 = 0         # H2 (Bug Found)
+    count_H2_Reach = 0   # H2_REACH (Reached but no bug)
+    
     count_Vul_specs = 0
     sum_VulnAsserts = 0
     sum_ReachAsserts = 0
@@ -160,9 +151,10 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
     count_Vul_only = 0
     count_Reach_only = 0
     count_Vul_and_Reach = 0
+    
     total_time = 0.0
     attempt = 0
-    count_FP = 0  # Placeholder, SAILR typically doesn't track FPs here automatically
+    count_FP = 0
     num_timeout = 0
     count_timed = 0
 
@@ -177,20 +169,23 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
         total_time += time_sec
         class_counts[cls] = class_counts.get(cls, 0) + 1
 
-        # Class Buckets
+        # --- FIX: Differentiate H2 (Bug) vs H2_REACH (Reach Only) ---
         if cls == "E":
             count_E += 1
         elif cls == "H0":
             count_H0 += 1
-            count_timed += 1  # Often considered 'timed' if it ran to completion/timeout
+            count_timed += 1
         elif cls == "H1":
             count_H1 += 1
             count_timed += 1
         elif cls == "H2":
             count_H2 += 1
             count_timed += 1
+        elif cls == "H2_REACH":
+            count_H2_Reach += 1
+            count_timed += 1
         else:
-            # Treat unknown as E
+            # Unknown classes fallback to E
             count_E += 1
 
         # Meta loading
@@ -206,8 +201,8 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
 
         if meta is not None:
             klee_meta = meta.get("klee", {})
-            # Some runners use 'bug_assert_hit' (bool) or 'num_vuln_assert' (int)
-            # We try to support both.
+            
+            # Vuln asserts
             if "num_vuln_assert" in klee_meta:
                 num_vuln = int(klee_meta["num_vuln_assert"])
                 bug_hit = num_vuln > 0
@@ -215,6 +210,7 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
                 bug_hit = bool(klee_meta.get("bug_assert_hit", False))
                 num_vuln = 1 if bug_hit else 0
 
+            # Reach asserts
             if "num_reach_assert" in klee_meta:
                 num_reach = int(klee_meta["num_reach_assert"])
                 reach_hit = num_reach > 0
@@ -224,7 +220,7 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
 
             klee_status = str(klee_meta.get("status", "unknown"))
 
-        # Detailed Table Stats
+        # Table Stats
         if bug_hit:
             bug_assert_total += 1
         if reach_hit:
@@ -242,7 +238,7 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
             ]
         )
 
-        # Standard Agg Stats
+        # Aggregation Stats
         sum_VulnAsserts += num_vuln
         sum_ReachAsserts += num_reach
 
@@ -258,12 +254,11 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
         elif num_vuln > 0 and num_reach > 0:
             count_Vul_and_Reach += 1
 
-    # ---- 3. Token Counting (if log exists) ----
+    # ---- 3. Token Counting ----
     prompt_tok = 0
     comp_tok = 0
     total_tok = 0
 
-    # Determine LLM log path
     target_llm_log = llm_usage_log if llm_usage_log else (mode_root / "llm_usage.tsv")
     
     if target_llm_log and target_llm_log.exists():
@@ -271,7 +266,6 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
             with target_llm_log.open("r", encoding="utf-8") as f:
                 reader = csv.reader(f, delimiter="\t")
                 header = next(reader, None)
-                # Expecting: ... prompt_tokens, completion_tokens, total_tokens at indices 5,6,7
                 if header and len(header) >= 8:
                     for row in reader:
                         if len(row) < 8:
@@ -283,10 +277,9 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
                         except ValueError:
                             pass
         except Exception:
-            # If token parsing fails, just ignore
             pass
 
-    # ---- 4. Print Detailed Table (Existing Functionality) ----
+    # ---- 4. Print Detailed Table ----
     headers = [
         "spec_stem",
         "class",
@@ -301,59 +294,48 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
 
     # Top-level summary (Stdout)
     total_specs = attempt
-    h2_count = class_counts.get("H2", 0)
-    h1_count = class_counts.get("H1", 0)
-    h0_count = class_counts.get("H0", 0)
-    e_count = class_counts.get("E", 0)
+    h2_bug_count = count_H2
+    h2_reach_count = count_H2_Reach
+    h1_count = count_H1
+    h0_count = count_H0
+    e_count = count_E
 
     print("\n=== Aggregate Summary ===")
     print(f"Mode root        : {mode_root}")
     print(f"Total specs      : {total_specs}")
-    print(f"Class H2 (any)   : {h2_count}")
-    print(f"Class H1         : {h1_count}")
-    print(f"Class H0         : {h0_count}")
-    print(f"Class E          : {e_count}")
+    print(f"Class H2 (Bug)   : {h2_bug_count}")
+    print(f"Class H2 (Reach) : {h2_reach_count}")
+    print(f"Class H1 (Time)  : {h1_count}")
+    print(f"Class H0 (Unrch) : {h0_count}")
+    print(f"Class E (Err)    : {e_count}")
+    
+    total_h2_any = h2_bug_count + h2_reach_count
     if total_specs > 0:
-        print(f"H2 rate          : {h2_count}/{total_specs} = {h2_count/total_specs:.3f}")
+        print(f"H2(Bug) rate     : {h2_bug_count}/{total_specs} = {h2_bug_count/total_specs:.3f}")
+        print(f"H2(Any) rate     : {total_h2_any}/{total_specs} = {total_h2_any/total_specs:.3f}")
+    
     print(f"BUG_ASSERT hits  : {bug_assert_total}")
     print(f"REACH_ASSERT hits: {reach_assert_total}")
 
     # ---- 5. Write Standard Integration Files ----
-    # File Paths
     counts_tsv = mode_root / "counts.tsv"
     counts_csv = mode_root / "counts.csv"
     summary_agg_tsv = mode_root / "summary_agg.tsv"
     summary_agg_csv = mode_root / "summary_agg.csv"
     summary_agg_html = mode_root / "summary_agg.html"
 
-    # Data Construction
+    # Updated Headers to include H2_Reach
     counts_headers = [
-        "E",
-        "HO",  # Note: Keeping 'HO' to match reference format exactly
-        "H1",
-        "H2",
-        "Vul",
-        "VulnAsserts",
-        "FP",
-        "time(s)",
-        "attempt",
-        "prompt_tokens",
-        "completion_tokens",
-        "total_tokens",
+        "E", "HO", "H1", "H2", "H2_Reach",
+        "Vul", "VulnAsserts", "FP",
+        "time(s)", "attempt",
+        "prompt_tokens", "completion_tokens", "total_tokens",
     ]
     counts_row = [
-        count_E,
-        count_H0,
-        count_H1,
-        count_H2,
-        count_Vul_specs,
-        sum_VulnAsserts,
-        count_FP,
-        total_time,
-        attempt,
-        prompt_tok,
-        comp_tok,
-        total_tok,
+        count_E, count_H0, count_H1, count_H2, count_H2_Reach,
+        count_Vul_specs, sum_VulnAsserts, count_FP,
+        total_time, attempt,
+        prompt_tok, comp_tok, total_tok,
     ]
 
     project_name = mode_root.name
@@ -363,64 +345,46 @@ def aggregate(mode_root: Path, llm_usage_log: Path | None = None) -> None:
     avg_reach_per_pos = (sum_ReachAsserts / count_Reach_specs) if count_Reach_specs > 0 else 0.0
 
     summary_headers = [
-        "MODE", "PROJECT", "attempt", "E", "H0", "H1", "H2",
+        "MODE", "PROJECT", "attempt", "E", "H0", "H1", "H2", "H2_Reach",
         "Vul", "VulnAsserts", "ReachSpecs", "ReachAsserts",
         "VulOnlySpecs", "ReachOnlySpecs", "VulAndReachSpecs",
         "FP", "time(s)", "prompt_tokens", "completion_tokens", "total_tokens",
         "timeouts", "timed_specs", "AvgVulnPerPos", "AvgReachPerPos",
     ]
     summary_row = [
-        mode_name,
-        project_name,
-        attempt,
-        count_E,
-        count_H0,
-        count_H1,
-        count_H2,
-        count_Vul_specs,
-        sum_VulnAsserts,
-        count_Reach_specs,
-        sum_ReachAsserts,
-        count_Vul_only,
-        count_Reach_only,
-        count_Vul_and_Reach,
-        count_FP,
-        total_time,
-        prompt_tok,
-        comp_tok,
-        total_tok,
-        num_timeout,
-        count_timed,
+        mode_name, project_name, attempt,
+        count_E, count_H0, count_H1, count_H2, count_H2_Reach,
+        count_Vul_specs, sum_VulnAsserts,
+        count_Reach_specs, sum_ReachAsserts,
+        count_Vul_only, count_Reach_only, count_Vul_and_Reach,
+        count_FP, total_time,
+        prompt_tok, comp_tok, total_tok,
+        num_timeout, count_timed,
         round(avg_vuln_per_pos, 4),
         round(avg_reach_per_pos, 4),
     ]
 
-    # Writing operations
-    # counts.tsv
+    # Writing files
     with counts_tsv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter="\t")
         writer.writerow(counts_headers)
         writer.writerow(counts_row)
 
-    # counts.csv
     with counts_csv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(counts_headers)
         writer.writerow(counts_row)
 
-    # summary_agg.tsv
     with summary_agg_tsv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter="\t")
         writer.writerow(summary_headers)
         writer.writerow(summary_row)
 
-    # summary_agg.csv
     with summary_agg_csv.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(summary_headers)
         writer.writerow(summary_row)
 
-    # summary_agg.html
     with summary_agg_html.open("w", encoding="utf-8") as f:
         f.write("<html><head><meta charset='utf-8'><title>SAILR-CEGIR Aggregate</title></head><body>\n")
         f.write("<h2>SAILR-CEGIR Aggregate</h2>\n")

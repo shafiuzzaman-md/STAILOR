@@ -181,15 +181,15 @@ Key Variables:
 To isolate and debug a specific vulnerability spec:
 ```
 SA_OUT_DIR=sa_outputs \
-DATASET_ROOT=dataset \
+DATASET_ROOT=$(pwd)/dataset \
 CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
 MAX_A=10 \
-MAX_B=20 \
+MAX_B=3 \
 TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_single.sh \
   62911/libxml2_62911_vul \
   local.oob.memfunc.length-misuse.maxcover.v5 \
-  specs/libxml2_62911_vul/006_debugXML.c_2636_local.oob.memfunc.length-misuse.maxcover.v5.json
+  specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
 ```
 
 ## Results & Artifacts
@@ -198,7 +198,8 @@ After the batch run completes, use the aggregation scripts to summarize results 
 1. Generate Summary Table Prints a table of results (H2/H1/H0/E) and execution times.
 ```
 python3 sailr_cegir/aggregate_sailr_cegir_results.py \
-  --mode-root se_runs/sailr_cegir/libxml2_62911_vul
+  --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
+  --llm-usage-log llm_usage.tsv
 ```
 
 2. Collect Vulnerabilities Generates a CSV list of all confirmed vulnerabilities.
@@ -211,7 +212,8 @@ python3 sailr_cegir/collect_vulnerabilities.py \
 ```
 python3 sailr_cegir/collect_verification_pack.py \
   --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
-  --out-dir verification_pack
+  --out-dir verification_pack \
+  --src-root dataset/62911/libxml2_62911_vul
 ```
 
 # Adding a new rule (new file per rule)
