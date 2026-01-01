@@ -12,6 +12,11 @@ Your GOAL is to construct a harness that:
      - **NEVER** make a pointer variable symbolic directly: `klee_make_symbolic(&ptr...)`.
      - **Result:** This creates a random garbage address -> IMMEDIATE SEGFAULT.
      - **Requirement:** Always `malloc` first, then make the *content* symbolic.
+4. **STRICT ADHERENCE TO PLAN (CRITICAL):**
+   - You MUST implement the harness exactly as described in the "Frozen Plan".
+   - **Entrypoint Rule:** You MUST call the function specified in `plan["entrypoint"]["name"]`.
+   - **Prohibited:** Do NOT swap the entrypoint for a "better" or "easier" one. If the plan says `htmlGetMetaEncoding`, you MUST call `htmlGetMetaEncoding`.
+   - If the planned entrypoint seems impossible, you must FAIL rather than deviate.
 
 ASSERTION PROTOCOL
 ==================
@@ -83,8 +88,11 @@ POINTER / ALLOCATOR MODELING
      1. Allocate a **Concrete Max Capacity** (e.g., `#define CAP 64`).
      2. Make the **Logical Length** symbolic.
      3. **Constraint Logic:**
-        - To reach the code, assume `len >= 0`.
-        - **TO FIND THE BUG:** Do **NOT** assume `len <= CAP`. Let `len` be large!
+      - To reach the code, assume `len >= 0`.
+      - **TO FIND THE BUG:**
+        - **General Case:** Do **NOT** assume `len <= CAP`. Let `len` be large to trigger OOB!
+        - **EXCEPTION (API Contracts):** If the function is `memcmp`, `memcpy`, or `strncmp`, and `len` controls the *read size* of the buffer you allocated, you **MUST** ensure `len <= CAP` for that buffer.
+        - **Reason:** Passing a valid buffer with an OOB length to `memcmp` violates the API contract and causes a False Positive harness crash, not a library bug.
    
    *Right (Fully Symbolic Logic):*
    ```c
@@ -136,11 +144,10 @@ POINTER / ALLOCATOR MODELING
      }
      ```
 
-4. **Allocator Fidelity (CRITICAL):**
-  - Your allocator stubs (e.g., wrapper_malloc, custom_alloc) MUST respect the size argument passed to them.
-  - **Prohibited:** Do NOT ignore the argument and substitute a symbolic global variable.
-  - *Wrong:* `void* my_malloc(size_t n) { return malloc(global_sym_size); }`
-  - *Right:* `void* my_malloc(size_t n) { return malloc(n); }`
+4. Allocator Fidelity (CRITICAL for STRICT REPLAY):
+  - Your allocator stubs (e.g., `xmlMalloc`) MUST match the standard signature: `void *func(size_t size)`.
+  - **Standard Behavior:** Even inside the stub, use `malloc(size)`. Do NOT use global symbolic variables for the size unless absolutely necessary for the specific vulnerability logic.
+  - **Reason:** The validation pipeline will attempt to STRIP these stubs to verify the bug against the real system allocator. Non-standard stubs will break this removal process.
 
 SYMBOLIC BOUNDARY & STUBBING
 ============================
@@ -150,8 +157,21 @@ SYMBOLIC BOUNDARY & STUBBING
     - *Example:* If Target is `internal_do_work`, and `public_api` calls it, `main()` must call `public_api`.
     - **Reason:** Calling internal functions directly skips validity checks (null checks, sanitization) present in the caller, leading to False Positives or impossible states.
 2.  **Call Depth Limit:** Stop 1-2 levels deeper than the entrypoint. Stub the rest.
-3.  **The Horizon:** Stubs must return **fully symbolic data**.
-4.  **Loops:** Use concrete bounds for setup, but unconstrained bounds for the target logic.
+3.  **The Horizon (Symbolic Returns):**
+    - **Rule:** Stubs MUST return fresh symbolic values, not concrete constants.
+    - **Reason:** Returning "0" or "-1" often forces an error path, skipping the target logic entirely.
+    - *Wrong:* `int stub_func(...) { return 0; }` (Forces failure path)
+    - *Right:* ```c
+      int stub_func(...) {
+          int sym_ret;
+          klee_make_symbolic(&sym_ret, sizeof(sym_ret), "sym_ret");
+          return sym_ret; 
+      }
+      ```
+
+4.  **Steering via Assumptions (Optional):**
+    - Only if a specific return value is *required* to reach the target (e.g., matching a specific ID), use `klee_assume` inside the stub.
+    - *Example:* `klee_assume(sym_ret == REQUIRED_ID);`
 
 SHELL COMPLIANCE (CRITICAL)
 ===========================
@@ -179,10 +199,12 @@ The output `harness.c` must be a **single translation unit** that compiles by it
    - `BUG_ASSERT` and `REACH_ASSERT` are **statements**, not expressions.
    - *RIGHT:* `BUG_ASSERT(x); if (cond) ...`
 5. **Function Fidelity (CRITICAL):**
-   - When copying target functions (e.g., static functions) into the harness, **DO NOT** modify the function body.
-   - **Rule:** You may only modify the *inputs* passed to the function.
-   - **Prohibited:** Do NOT replace concrete constants (e.g., `malloc(sizeof(T))`) with symbolic variables (`malloc(sym_size)`).
-   - **Reason:** Modifying the target code creates "Hallucinated Bugs" that do not exist in the real program.
+   - **General Rule:** When copying target functions, **DO NOT** modify the function body. You may only modify the *inputs*.
+   - **Prohibited:** Do NOT replace concrete constants (e.g., `malloc(sizeof(T))`) with symbolic variables.
+   - **EXCEPTION (CRITICAL - HASHING):**
+     - You **MUST** completely replace the body of Hash/Checksum functions with a simple stub (e.g., `return 0;`).
+     - **Reason:** Real hash functions often depend on complex project-specific macros (`HASH_INIT`, `HASH_ROL`) that cause compilation failures if missing.
+     - **Goal:** Verify the *logic handling the hash*, not the hash algorithm itself.
 6. **Stub Fidelity (CRITICAL):**
    - **Allocator Rule:** Wrapper functions (e.g., `xmlMalloc`) must pass arguments through unchanged.
    - **I/O Contract Rule:** Stubs for I/O (read, fread, recv) MUST respect the `count`/`size` argument.

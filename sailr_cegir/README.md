@@ -84,7 +84,7 @@ python3 extract_from_cybergym.py arvo:19910 binutils
 
 2. Fetch ground-truth metadata (optional)
 ```
-python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:19910 
+python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911 
 ```
 This pulls task manifests / metadata that SAILR can later use when evaluating refinement quality.
 
@@ -191,7 +191,27 @@ bash sailr_cegir/run_sailr_cegir_single.sh \
   local.oob.memfunc.length-misuse.maxcover.v5 \
   specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
 ```
-
+**Run the validation step only**
+```
+python3 sailr_cegir/scripts/run_agent_for_spec.py \
+  --sa-out-dir sa_outputs/libxml2_62911_vul \
+  --dataset-root $(pwd)/dataset \
+  --project-id 62911/libxml2_62911_vul \
+  --src-root $(pwd)/dataset/62911/libxml2_62911_vul \
+  --spec specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json \
+  --spec-stem 164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5 \
+  --vul-file dict.c \
+  --vul-line 541 \
+  --rule-id local.oob.memfunc.length-misuse.maxcover.v5 \
+  --target-vul 62911/libxml2_62911_vul:dict.c:541 \
+  --project-bc $(pwd)/dataset/62911/libxml2_62911_vul/project.bc \
+  --llm-model deepseek-chat \
+  --llm-api-base https://api.deepseek.com \
+  --clang-flags "-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
+  --run-dir se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5 \
+  --reproduce \
+  --reproduce-ktest se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/refinement/logs/klee-out-5/test000017.ktest
+  ```
 ## Results & Artifacts
 After the batch run completes, use the aggregation scripts to summarize results and collect artifacts for manual review.
 

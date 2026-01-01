@@ -124,6 +124,34 @@ def validate_symbolic_setup(plan: Dict[str, Any]) -> List[str]:
 
     return errors
 
+def validate_assertion_order(plan: Dict[str, Any]) -> List[str]:
+    """
+    CRITICAL: Enforces that BUG_ASSERT comes BEFORE REACH_ASSERT.
+    If REACH_ASSERT (exit) comes first, the bug check is dead code.
+    """
+    errors = []
+    shape = plan.get("harness_shape", {})
+    call_seq = shape.get("call_sequence", [])
+    
+    # Flatten list if needed
+    if isinstance(call_seq, str): call_seq = call_seq.splitlines()
+    
+    bug_idx = -1
+    reach_idx = -1
+    
+    for i, line in enumerate(call_seq):
+        if "BUG_ASSERT" in line: bug_idx = i
+        if "REACH_ASSERT" in line: reach_idx = i
+        
+    if reach_idx != -1 and bug_idx != -1:
+        if reach_idx < bug_idx:
+            errors.append(
+                f"ORDER VIOLATION: REACH_ASSERT (line {reach_idx}) appears BEFORE BUG_ASSERT (line {bug_idx}). "
+                "REACH_ASSERT terminates execution; it must be the LAST step."
+            )
+            
+    return errors
+
 def validate_rule_logic(plan: Dict[str, Any], rule_id: str) -> List[str]:
     """
     Checks if the plan's assertions align with the CodeQL rule logic.
@@ -211,7 +239,8 @@ def validate_plan_against_contract(
     # --- 3. Robust Symbolic Setup ---
     sym_errors = validate_symbolic_setup(plan)
     hard.extend(sym_errors)
-
+    order_errors = validate_assertion_order(plan)
+    hard.extend(order_errors)
     # --- 4. Rule-Based Logic Check (Soft) ---
     # --- 5. Rule Plugin Validation (Hard+Soft, TP-safe) ---
     if get_rule_validator is not None and rule_id:

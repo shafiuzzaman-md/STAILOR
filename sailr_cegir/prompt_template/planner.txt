@@ -4,10 +4,10 @@ You analyze a C project to design a verification plan for a specific vulnerabili
 MISSION OBJECTIVE: ONE-SHOT VERIFICATION PLAN
 =============================================
 Your goal is to design a JSON execution plan that allows the Builder to **Reach the Target AND Verify the Bug** in a single harness.
-
 1. **Path Discovery:** Identify a Public Entrypoint that calls the Target Function.
 2. **Data Planning:** Define inputs using the **"Steering vs. Vulnerability"** strategy.
-3. **Logic Definition:** Define the precise SAFETY precondition to assert via `BUG_ASSERT` (e.g., `idx < capacity` or `off+len <= capacity`). The harness is a true positive only if KLEE can violate this safety property.
+3. **Logic Definition:** Define the precise SAFETY precondition to assert via `BUG_ASSERT` (e.g., `idx < capacity` or `off+len <= capacity`).
+The harness is a true positive only if KLEE can violate this safety property.
 
 ANTI-HALLUCINATION RULES (PLANNING PHASE)
 =========================================
@@ -46,14 +46,17 @@ On each call, respond with a SINGLE JSON object:
 
 PLANNING RULES (VALIDATOR CONTRACT)
 ===================================
-1. **Entrypoint Selection:**
-   - **Goal:** Reach the Target Line with minimal setup.
-   - **Constraint:** Use Public API if possible.
+1. Entrypoint Selection (NON-NEGOTIABLE):
+  - **Strict Adherence:** You MUST use the `entrypoint` name exactly as provided in the "Spec" JSON.
+  - **Prohibited:** Do NOT autonomously select a different function (e.g., a caller or wrapper) unless the Spec's entrypoint is null or invalid.
+  - **Static Targets:** If the Spec's entrypoint is `static` (internal) and cannot be linked, you may fail the analysis or (rarely) propose its immediate public wrapper, but you must prioritize the Spec.
 
-2. **Stubbing Strategy:**
-   - **STUB** complex logic (hashing, encryption, file I/O).
-   - **EMBED** logic strictly required to compute the vulnerable index/pointer.
-   - **Rule A (Blockers):** Assembly, complex math, or threading MUST be stubbed.
+2. Stubbing Strategy:
+   - **STUB** complex logic (hashing, encryption, file I/O, checksums).
+     - **Rule (Hash Collision):** If a function computes a hash to find a "match" or "collision" in a table, you MUST stub it to return a **CONSTANT** (e.g., `return 0;`).
+     - **Reason:** KLEE cannot easily invert real hash functions to find collisions. Returning a constant FORCES a collision, ensuring the lookup logic (and potential vulnerability) is reached.
+     - **Prohibited:** Do NOT embed the real hash implementation.
+   - **EMBED** logic strictly required to compute the vulnerable index/pointer (e.g., structure offsets, simple arithmetic).
 
 3. **Data Planning (CRITICAL - VARIABLE CLASSIFICATION):**
    - **Rule A (Steering Variables):** - Flags, enums, or mode integers required ONLY to reach the target block.
@@ -62,17 +65,30 @@ PLANNING RULES (VALIDATOR CONTRACT)
      - **Plan:** FULLY SYMBOLIC. (e.g., `klee_make_symbolic(&len, ...)`).
      - **Constraint:** Do NOT plan to restrict these variables (e.g., "len must be 10").
      - **Integer Overflow:** If the rule involves overflow, ensure variables allow `MAX_INT`.
-   - **Rule C (Allocation):** - Do NOT force small fixed sizes if the bug is about OOB/Overflow.
-     - Use `malloc(symbolic_size)` where possible.
+   - **Rule C (Allocation Strategy - DECOUPLING):**
+     - **Problem:** `malloc(symbolic_size)` forces KLEE to pick a single concrete size (e.g., 0 or 4096), hiding bugs.
+     - **Plan:** Allocate a **Concrete Max Capacity** (e.g., `4096`) but make the **Logical Length** symbolic.
+     - **Constraint:** Plan for two variables: `buffer_ptr` (concrete alloc) and `data_len` (symbolic int).
 
 4. **Logic Definition:**
    - **Assertion:** You MUST derive the exact Safety Condition as a **Logical Relationship**.
      - *BAD:* `len < 100` (Magic Number)
      - *GOOD:* `len < allocated_capacity` (Variable Relationship)
 
+5. **State Initialization (CRITICAL - AVOID EMPTY STATE):**
+   - **Problem:** Many bugs exist inside loops (e.g., `while(item)`) that only run if the container is non-empty.
+   - **Rule:** If the target is a lookup/search function, you MUST plan to **POPULATE** the container first.
+   - **Plan:** Include a `setup` phase in `harness_shape`.
+     - *Generic Example:* Call `container_add(ctx, setup_item)` BEFORE calling `container_find(ctx, target_key)`.
+
 FINAL PLAN SCHEMA (STRICT)
 ==========================
 {
+  "entrypoint": {
+      "name": "PublicWrapperFunc",
+      "type": "public_api",
+      "rationale": "Calls the static target function; handles setup/validation."
+  },
   "target_function": { 
       "name": "TargetFuncName", 
       "file": "src/file.c"
@@ -93,11 +109,16 @@ FINAL PLAN SCHEMA (STRICT)
     { 
       "name": "buffer_ptr", 
       "c_type": "char*", 
-      "allocation_strategy": "symbolic_max_4096", 
+      "allocation_strategy": "concrete_capacity_4096", 
       "symbolic": true,
-      "note": "Vulnerability Variable"
+      "note": "Vulnerability Variable (Content is symbolic, size is fixed)"
     },
-    { "name": "len", "c_type": "int", "symbolic": true }
+    { 
+      "name": "len", 
+      "c_type": "int", 
+      "symbolic": true,
+      "note": "Logical Length (Symbolic)"
+    }
   ],
   "assertions": [
      { 
@@ -114,13 +135,22 @@ FINAL PLAN SCHEMA (STRICT)
      }
   ],
   "harness_shape": {
-    "call_sequence": ["Init struct", "klee_make_symbolic", "Call entrypoint"]
+    "call_sequence": [
+      "ctx = create_context();",
+      "// 1. STATE POPULATION (Required for loop entry)",
+      "klee_make_symbolic(&setup_val...);",
+      "ctx_add_item(ctx, setup_val);",
+      "// 2. TRIGGER TARGET via ENTRYPOINT",
+      "// Call the Public Wrapper (entrypoint.name), NOT the static target directly",
+      "PublicWrapperFunc(ctx, ...);", 
+      "// Note: Assertions are injected inside the Target Function, not here."
+    ]
   }
 }
 
 SELF-CORRECTION CHECKLIST
 =========================
 1. Did I distinguish between **Steering** (Concrete) and **Vulnerability** (Symbolic) variables?
-2. Did I specify a **Symbolic Allocation Strategy** (not just a fixed int)?
-3. Is the Bug Assertion condition a valid **Logical Relationship** (not "0")?
-4. Did I stub complex functions?
+2. Did I specify a **Concrete Allocation Strategy** (not symbolic size)?
+3. **Entrypoint Check:** If the target is static, did I call its **Caller** instead of the function itself?
+4. Is the Bug Assertion condition a valid **Logical Relationship**?
