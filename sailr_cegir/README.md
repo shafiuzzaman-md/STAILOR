@@ -28,7 +28,7 @@ What it does (high-level):
 
 ### 2) Run the full pipeline (per project / rule)
 ```bash
-bash scripts/run_pipeline.sh
+bash sailr_cegir/run_pipeline.sh
 ```
 
 ---

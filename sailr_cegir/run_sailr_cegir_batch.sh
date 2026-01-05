@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SAILR-CEGIR Batch Runner
-# UPDATED: Parallelized 3-Stage Pipeline with CLANG_FLAGS fix
+# STAILOR Batch Runner
+# [FIXED] Removed 'make clean' to preserve generated headers (config.h)
+# [FIXED] Surgical removal of object files to reduce agent noise
+# [VERIFIED] Arguments align with new validation logic
 
 if [ $# -lt 3 ]; then
-  echo "Usage: $0 PROJECT_ID RULE_ID SPEC_ROOT [JOBS]" >&2
+  echo "Usage: $0 PROJECT_ID RULE_ID SPEC_ROOT [JOBS] [QL_FILE]" >&2
   exit 1
 fi
 
-export PROJECT_ID="$1"        
-export RULE_ID="$2"           
-export SPEC_ROOT="$3"         
+export PROJECT_ID="$1"
+export RULE_ID="$2"
+export SPEC_ROOT="$3"
 JOBS="${4:-4}"
+export QL_FILE="${5:-}"
 
 # --- DEFAULTS ---
 export SA_OUT_DIR="${SA_OUT_DIR:-sa_outputs}"
@@ -20,20 +23,20 @@ export DATASET_ROOT="$(realpath "${DATASET_ROOT:-dataset}")"
 export LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
 export LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
 
-export MAX_A="${MAX_A:-10}"     # Increased for complex reachability
-export MAX_B="${MAX_B:-3}"     
-export MAX_CYCLES="${MAX_CYCLES:-2}" # Default 2 cycles for batch
-export TIMEOUT="${TIMEOUT:-300}"     
+export MAX_A="${MAX_A:-10}"
+export MAX_B="${MAX_B:-3}"
+export MAX_CYCLES="${MAX_CYCLES:-2}"
+export TIMEOUT="${TIMEOUT:-300}"
 
 export CLANG="${CLANG:-clang-14}"
-export CLANG_FLAGS="${CLANG_FLAGS:-}" # Capture env var
+export CLANG_FLAGS="${CLANG_FLAGS:-}" 
 export KLEE="${KLEE:-klee}"
 export KLEE_FLAGS="${KLEE_FLAGS:---search=nurs:covnew --max-time=60 --external-calls=all}"
 
 export REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPTS_DIR="${REPO_ROOT}/sailr_cegir/scripts"
+export SCRIPTS_DIR="${REPO_ROOT}/sailr_cegir/scripts"
 
-PROJECT_SLUG="$(basename "$PROJECT_ID")"   
+PROJECT_SLUG="$(basename "$PROJECT_ID")"
 SPEC_DIR="${SPEC_ROOT}/${PROJECT_SLUG}"
 export SRC_ROOT="${DATASET_ROOT}/${PROJECT_ID}"
 export SA_PROJECT_DIR="${SA_OUT_DIR}/${PROJECT_SLUG}"
@@ -47,7 +50,7 @@ mkdir -p "${MODE_ROOT}"
 echo "[i] CONFIG:"
 echo "    PROJECT_ID   = ${PROJECT_ID}"
 echo "    JOBS         = ${JOBS}"
-echo "    CYCLES       = ${MAX_CYCLES}"
+echo "    SRC_ROOT     = ${SRC_ROOT}"
 
 if [ ! -d "${SPEC_DIR}" ]; then
   echo "[!] Spec directory does not exist: ${SPEC_DIR}" >&2
@@ -64,9 +67,7 @@ ensure_project_bitcode() {
         return 0
     fi
 
-    echo "==============================================="
     echo "[*] Bitcode missing. Starting Auto-Build..."
-    echo "==============================================="
 
     if ! command -v wllvm &> /dev/null; then
         echo "[!] wllvm not found. Please install it."
@@ -78,20 +79,24 @@ ensure_project_bitcode() {
     export CXX=wllvm+
 
     pushd "$src" > /dev/null
-    make clean > /dev/null 2>&1 || true
     
-    if [ -f "./configure" ]; then
-        ./configure --disable-shared --without-python --silent
-    elif [ -f "./autogen.sh" ]; then
-        ./autogen.sh --disable-shared --without-python
+    # [SAFETY] Do NOT run make clean here if possible, to keep config.h
+    # Only run configure if Makefile is missing
+    if [ ! -f "Makefile" ]; then
+        if [ -f "./configure" ]; then
+            ./configure --disable-shared --without-python --silent
+        elif [ -f "./autogen.sh" ]; then
+            ./autogen.sh --disable-shared --without-python
+        fi
     fi
 
-    make -j$(nproc) > /dev/null
+    make -j"$(nproc)" > /dev/null
 
     echo "[*] Extracting..."
-    local TARGET_LIB=$(find .libs -maxdepth 1 -name "*.a" | head -n 1)
-    if [ -z "$TARGET_LIB" ]; then 
-        TARGET_LIB=$(find . -maxdepth 1 -name "*.a" | head -n 1); 
+    local TARGET_LIB
+    TARGET_LIB="$(find .libs -maxdepth 1 -name "*.a" | head -n 1)"
+    if [ -z "$TARGET_LIB" ]; then
+        TARGET_LIB="$(find . -maxdepth 1 -name "*.a" | head -n 1)"
     fi
 
     if [ -z "$TARGET_LIB" ]; then
@@ -106,57 +111,87 @@ ensure_project_bitcode() {
     elif [ -f "${TARGET_LIB}.bca" ]; then
         llvm-link "${TARGET_LIB}.bca" -o "$dest"
     fi
-    
+
     echo "[✓] Bitcode ready: $dest"
     popd > /dev/null
 }
 
 ensure_project_bitcode "${SRC_ROOT}" "${PROJECT_BC}"
 
-# --- Cleanup Block ---
-echo "[*] Cleaning build artifacts to reduce noise for Agent..."
+# --- Cleanup Block (SAFER VERSION) ---
+echo "[*] Cleaning object artifacts (preserving headers)..."
 pushd "${SRC_ROOT}" > /dev/null
-if [ -f "project.bc" ]; then mv project.bc project.bc.temp_keep; fi
-make clean > /dev/null 2>&1 || true
-rm -f .*.o .*.lo .*.la .*.o.bc .*.lo.bc *.o *.lo *.la *.bc
-if [ -f "project.bc.temp_keep" ]; then mv project.bc.temp_keep project.bc; fi
-popd > /dev/null
-echo "[✓] Source directory cleaned."
 
-# --- JOB FUNCTION ---
+# [CRITICAL FIX] Do NOT run 'make clean'. It often deletes config.h.
+# Instead, explicitly find and delete object files to reduce noise for the Agent.
+find . -type f \( -name "*.o" -o -name "*.lo" -o -name "*.la" -o -name "*.o.bc" \) -delete
+
+# Ensure project.bc is safe
+if [ ! -f "${PROJECT_BC}" ]; then
+    echo "[!] Error: project.bc was deleted or not created!"
+    exit 1
+fi
+
+popd > /dev/null
+echo "[✓] Source directory cleaned (Objects removed, Headers preserved)."
+
 process_spec() {
-    SPEC="$1"
+    local SPEC="$1"
+    local STEM
     STEM="$(basename "${SPEC}" .json)"
-    RUN_DIR="${MODE_ROOT}/${STEM}"
-    
-    # Skip if we already found a Full Bug (H2)
+    local RUN_DIR="${MODE_ROOT}/${STEM}"
+
+    # Robust parsing: 000_filename_line_rule
+    # Uses cut, but assumes standard naming.
+    local VUL_FILE VUL_LINE TARGET_VUL
+    VUL_FILE="$(echo "${STEM}" | cut -d'_' -f2)"
+    VUL_LINE="$(echo "${STEM}" | cut -d'_' -f3)"
+    TARGET_VUL="${PROJECT_ID}:${VUL_FILE}:${VUL_LINE}"
+
+    # Resume Logic: Skip if verified
     if [ -f "${RUN_DIR}/run_meta.json" ]; then
-        if grep -q '"class": "H2"' "${RUN_DIR}/run_meta.json"; then
-            echo "[SKIP] ${STEM} (Already found H2)"
-            return
+        if grep -Eq '"class"[[:space:]]*:[[:space:]]*"H2_BUG"' "${RUN_DIR}/run_meta.json"; then
+            echo "[SKIP] ${STEM} (Verified Bug)"
+            return 0
         fi
     fi
 
     echo "[START] ${STEM}"
     mkdir -p "${RUN_DIR}"
 
-    python3 "${REPO_ROOT}/sailr_cegir/scripts/run_agent_for_spec.py" \
+    local CLANG_FLAGS_ARG=()
+    if [[ -n "${CLANG_FLAGS}" ]]; then
+      CLANG_FLAGS_ARG=( --clang-flags "${CLANG_FLAGS}" )
+    fi
+
+    local KLEE_FLAGS_ARG=()
+    if [[ -n "${KLEE_FLAGS}" ]]; then
+      KLEE_FLAGS_ARG=( --klee-flags "${KLEE_FLAGS}" )
+    fi
+
+    local QL_FILE_ARG=()
+    if [[ -n "${QL_FILE}" ]]; then
+      QL_FILE_ARG=( --ql-file "${QL_FILE}" )
+    fi
+
+    python3 "${SCRIPTS_DIR}/run_agent_for_spec.py" \
       --sa-out-dir "${SA_PROJECT_DIR}" \
       --dataset-root "${DATASET_ROOT}" \
       --project-id "${PROJECT_ID}" \
       --src-root "${SRC_ROOT}" \
       --spec "${SPEC}" \
       --spec-stem "${STEM}" \
-      --vul-file "$(echo "${STEM}" | cut -d'_' -f2)" \
-      --vul-line "$(echo "${STEM}" | cut -d'_' -f3)" \
+      --vul-file "${VUL_FILE}" \
+      --vul-line "${VUL_LINE}" \
       --rule-id "${RULE_ID}" \
-      --target-vul "${PROJECT_ID}:..." \
+      --target-vul "${TARGET_VUL}" \
       --llm-model "${LLM_MODEL}" \
       --llm-api-base "${LLM_API_BASE}" \
       --clang "${CLANG}" \
-      --clang-flags="${CLANG_FLAGS}" \
+      "${CLANG_FLAGS_ARG[@]}" \
       --klee "${KLEE}" \
-      --klee-flags="${KLEE_FLAGS}" \
+      "${KLEE_FLAGS_ARG[@]}" \
+      "${QL_FILE_ARG[@]}" \
       --max-a "${MAX_A}" \
       --max-b "${MAX_B}" \
       --max-cycles "${MAX_CYCLES}" \
@@ -167,10 +202,8 @@ process_spec() {
 
     echo "[DONE] ${STEM}"
 }
-
 export -f process_spec
 
-# --- PARALLEL EXECUTION ---
 find "${SPEC_DIR}" -maxdepth 1 -type f -name "*.json" | sort | \
   xargs -P "${JOBS}" -I {} bash -c 'process_spec "$@"' _ {}
 

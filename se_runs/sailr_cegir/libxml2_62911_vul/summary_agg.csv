@@ -1,2 +1,0 @@
-MODE,PROJECT,attempt,E,H0,H1,H2,Vul,VulnAsserts,ReachSpecs,ReachAsserts,VulOnlySpecs,ReachOnlySpecs,VulAndReachSpecs,FP,time(s),prompt_tokens,completion_tokens,total_tokens,timeouts,timed_specs,AvgVulnPerPos,AvgReachPerPos
-sailr_cegir,libxml2_62911_vul,131,72,14,0,45,45,45,26,26,23,4,22,0,1119.3699999999994,0,0,0,0,59,1.0,1.0
