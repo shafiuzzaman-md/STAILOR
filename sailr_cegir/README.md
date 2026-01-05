@@ -1,257 +1,160 @@
-# SAILR-CEGIR Pipeline
+# Quick Start & Usage
 
-**SAILR** (Static-Analysis–Guided Iterative LLM Refinement) is an agentic framework that verifies static analysis findings by autonomously generating and refining symbolic execution harnesses (KLEE).
+This repository ships utility scripts to (1) set up the analysis environment and (2) run the full pipeline end-to-end.  
+The README focuses on **how to run** the pipeline and **what artifacts to expect**.
 
+---
 
-## Prerequisites & Installation
+## What the pipeline does
 
-### System packages
+1. **Static Analysis** (e.g., CodeQL) produces findings and fact packs.
+2. **Spec Generation** converts findings into per-vulnerability JSON specs.
+3. **Agent Verification** iteratively synthesizes and checks harnesses (KLEE) for reachability and bug triggering.
+4. **Result Packaging** aggregates runs and collects evidence into a verification pack.
+
+---
+
+## Quick Start
+
+### 1) Environment setup (run once)
+```bash
+bash scripts/setup_env.sh
+```
+
+What it does (high-level):
+- Installs LLVM/Clang 14 toolchain and common build deps
+- Builds KLEE with uClibc support
+- Installs Python dependencies used by the pipeline
+
+### 2) Run the full pipeline (per project / rule)
+```bash
+bash scripts/run_pipeline.sh
+```
+
+---
+
+## Configuration
+
+The pipeline is configured primarily via environment variables. These are typically set in `scripts/run_pipeline.sh`, but you can also export them in your shell before running the scripts.
+
+| Variable | Meaning | Example |
+|---|---|---|
+| `DATASET_ROOT` | Root directory containing extracted projects | `dataset` |
+| `PROJECT_ID` | Project identifier (relative to `DATASET_ROOT`) | `62911/libxml2_62911_vul` |
+| `SA_OUT_DIR` | Static analysis output directory | `sa_outputs` |
+| `RULE_ID` | Rule identifier used to select specs | `local.oob.memfunc.length-misuse.maxcover.v5` |
+| `PROJECT_BC` | Path to project-wide LLVM bitcode | `dataset/<project>/project.bc` |
+| `CLANG_FLAGS` | Include flags for compiling harnesses | `-I.../include -I.../klee/include` |
+| `MAX_A` | Max Phase-II refinement iterations | `20` |
+| `MAX_B` | Max Phase-I frozen-analysis turns | `3` |
+| `TIMEOUT` | Per-spec timeout (seconds) | `600` |
+
+---
+
+## Manual Usage Guide
+
+### Phase 1: Preparation (Static Analysis)
+
+#### (Optional) Extract source
+```bash
+python3 extract_from_cybergym.py arvo:<ID> <project-name>
+```
+
+#### Run CodeQL scan (produces `findings.json`)
+```bash
+./codeql_scan.sh PROJECT_NAME=<name> SRC_ROOT="<path>"   BUILD_CMD="make -j$(nproc)"   QUERY_SUITES="rules/<pack>/suites/<suite>.qls"   CONTEXT_LINES=5 ALSO_CPP=false
+```
+
+#### Generate specs from findings
+```bash
+python3 scripts/make_vul_specs.py   --findings "<SA_OUT_DIR>/<project>/findings.json"   --facts "<SA_OUT_DIR>/<project>/fact_pack.json"   --out "specs/<project>"
+```
+
+#### Build project bitcode (if missing)
+```bash
+./sailr_cegir/build_project_bc.sh "<SRC_ROOT>" "<PROJECT_BC>"
+```
+
+---
+
+### Phase 2: Agent Verification
+
+#### Batch mode (all specs under a directory)
+```bash
+SA_OUT_DIR=sa_outputs DATASET_ROOT=dataset CLANG_FLAGS="-I$(pwd)/dataset/<project>/include -I$HOME/tools/klee/include" MAX_A=20 MAX_B=3 TIMEOUT=600 bash sailr_cegir/run_sailr_cegir_batch.sh   "<PROJECT_ID>"   "<RULE_ID>"   specs 4
+```
+
+#### Single-spec mode (debug one case interactively)
+```bash
+SA_OUT_DIR=sa_outputs DATASET_ROOT=$(pwd)/dataset CLANG_FLAGS="-I$(pwd)/dataset/<project>/include -I$HOME/tools/klee/include" MAX_A=20 MAX_B=3 TIMEOUT=600 bash sailr_cegir/run_sailr_cegir_single.sh   "<PROJECT_ID>"   "<RULE_ID>"   "specs/<project>/<spec>.json"   "rules/<pack>/queries/<query>.ql"
+```
+
+---
+
+## Phase 3: Result Analysis
+
+### Aggregate results
+```bash
+python3 sailr_cegir/aggregate_sailr_cegir_results.py   --mode-root se_runs/sailr_cegir/<project>   --llm-usage-log llm_usage.tsv
+```
+
+### Collect the verification pack
+```bash
+python3 sailr_cegir/collect_verification_pack.py   --mode-root se_runs/sailr_cegir/<project>   --out-dir verification_pack   --src-root "dataset/<project>"
+```
+
+### Verification pack structure
+
+`verification_pack/` contains evidence suitable for inspection and reporting:
+
+- `verified_bugs/`  
+  Cases where symbolic execution found a bug and the replay/validation confirmed it.
+- `false_positives_or_reach_only/`  
+  Cases that reached the target but did not reproduce the bug (or failed validation).
+- `failures/`  
+  Compilation/linking failures and pipeline aborts.
+
+---
+
+## Scripts and entrypoints
+
+- `scripts/setup_env.sh` — installs/builds toolchain (LLVM 14, KLEE+uClibc, deps)
+- `scripts/run_pipeline.sh` — runs: scan → specs → bitcode → batch → aggregation → pack
+- `sailr_cegir/run_sailr_cegir_batch.sh` — batch mode runner
+- `sailr_cegir/run_sailr_cegir_single.sh` — single-spec runner (debug)
+- `sailr_cegir/scripts/run_agent_for_spec.py` — per-spec agent driver (core)
+
+---
+
+## Troubleshooting
+
+### Ghost execution (externals / concretization)
+**Symptom:** KLEE warns about “calling external” functions or “undefined reference” but still runs.  
+**Cause:** Analysis is running on harness-only bitcode (not linked), so library calls are treated as externals and may force concretization.  
+**Fix:** Ensure the project bitcode is built and the analysis uses linked bitcode. Verify key symbols exist:
 
 ```bash
-sudo apt update && sudo apt install -y \
-    build-essential autoconf automake libtool pkg-config cmake ripgrep\
-    python3 python3-pip git-lfs unzip wget \
-    llvm-14 clang-14 lldb-14 lld-14 clangd-14 libclang-14-dev \
-    libsqlite3-dev zlib1g-dev liblzma-dev libicu-dev
-
-# Set Clang-14 as default
-sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 140 \
-  --slave /usr/bin/clang++ clang++ /usr/bin/clang++-14
-
-# Python Environment
-pip install --upgrade openai requests pyyaml
+llvm-nm "$PROJECT_BC" | grep " T "
 ```
 
-### Build KLEE (from source)
-```
-# Install dependencies
-sudo apt-get update
-sudo apt-get install -y libsqlite3-dev
+### Linker collision / illegal redefinition
+**Symptom:** Validator reports `ILLEGAL REDEFINITION` of a real library function.  
+**Cause:** The harness defines a symbol that the real project already provides.  
+**Fix:** Use an `extern` declaration and call the real function from `main()`. If you need wrappers, rename them (e.g., `Harness_<name>`).
 
-mkdir -p ~/tools && cd ~/tools
+### Placement errors during replay/validation
+**Symptom:** Replay fails because behavior-changing logic was placed in a removable section.  
+**Fix:** Keep only semantics-preserving stubs in removable sections. If logic is required for correctness, it must be eliminated in favor of real linking and proper setup.
 
-# Build klee-uclibc
-git clone https://github.com/klee/klee-uclibc.git
-cd klee-uclibc
-./configure --make-llvm-lib --with-cc clang-14 --with-llvm-config llvm-config-14
-make -j2
-cd ..
+---
 
-# Build KLEE
-git clone https://github.com/klee/klee.git
-cd klee
-mkdir build && cd build
+## Logs and artifacts
 
-cmake .. \
-  -DCMAKE_C_COMPILER=clang-14 \
-  -DCMAKE_CXX_COMPILER=clang++-14 \
-  -DLLVM_CONFIG=/usr/lib/llvm-14/bin/llvm-config \
-  -DENABLE_POSIX_RUNTIME=ON \
-  -DKLEE_UCLIBC_PATH="$HOME/tools/klee-uclibc" \
-  -DENABLE_UNIT_TESTS=OFF \
-  -DENABLE_SYSTEM_TESTS=OFF \
-  -DENABLE_TCMALLOC=OFF \
-  -DENABLE_STP=OFF \
-  -DENABLE_METASMT=OFF
+Per-spec run directories are created under:
+- `se_runs/sailr_cegir/<project>/<spec-id>/`
 
-make -j$(nproc)
-echo 'export PATH=$HOME/tools/klee/build/bin:$PATH' >> ~/.bashrc
-source ~/.bashrc
-```
-
-
-Verify:
-
-```
-which klee
-klee --version
-ls ~/tools/klee/include/klee/klee.h
-```
-### CodeQL Setup
-```
-python3 install_codeql.py
-source ~/.bashrc
-```
-
-## Dataset
-SAILR assumes a frozen dataset snapshot under ./dataset/.
-
-Extract target project source (e.g., from CyberGym):
-```
-python3 extract_from_cybergym.py arvo:19910 binutils
-# Produces: ./dataset/55980/libxml2_55980_vul/...
-```
-
-2. Fetch ground-truth metadata (optional)
-```
-python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911 
-```
-This pulls task manifests / metadata that SAILR can later use when evaluating refinement quality.
-
-## Run Static Analysis (CodeQL)
-### Download queries 
-```
-codeql pack download codeql/cpp-queries
-codeql pack install rules/oob-pack
-codeql pack install rules/uaf-pack \
-  --search-path "/home/shafi/codeql-cli/codeql:/home/shafi/.codeql/packages"
-```
-### Run CodeQL 
-chmod +x codeql_scan.sh 
-
-```
-./codeql_scan.sh \
-  PROJECT_NAME=binutils_19910_vul \
-  SRC_ROOT=./dataset/19910/binutils_19910_vul \
-  BUILD_CMD="./build.sh" \
-  QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
-  CONTEXT_LINES=5 \
-  ALSO_CPP=false
-```
-This produces, under ```sa_outputs/libxml2_62911_vul```, artifacts like:
-
-- findings.json / findings.jsonl / findings.csv
-- codeql-results.sarif
-- fact_pack.json
-- compile_commands.json
-
-### Generate Vulnerability Specs
-Convert raw findings into individual JSON specs:
-```
-python3 scripts/make_vul_specs.py \
-  --findings sa_outputs/libxml2_55980_vul/findings.json \
-  --facts sa_outputs/libxml2_62911_vul/fact_pack.json \
-  --out specs/libxml2_55980_vul
-```
-
-# Infer entrypoint (LLM Pre-pass)
-```
-chmod +x llm_infer_entrypoints.py
-
-export DEEPSEEK_API_KEY=...   # or OPENAI_API_KEY
-
-./llm_infer_entrypoints.py \
-  --spec-dir specs/libxml2_62911_vul \
-  --src-root ./dataset/62911/libxml2_62911_vul \
-  --model deepseek-chat \
-  --api-base https://api.deepseek.com \
-  --prompt-file prompts/entrypoint_prompt.txt
-```
-
-## LLM Iterative Refinement
-
-**1. Build Project Bitcode**
-Compile the target library into a single bitcode file for linking (optional but recommended). Use the provided utility script to build `project.bc`:
-
-```bash
-chmod +x sailr_cegir/build_project_bc.sh
-
-# Usage: ./build_project_bc.sh <source_dir> <output_bc_name>
-./sailr_cegir/build_project_bc.sh dataset/62911/libxml2_62911_vul libxml2.bc
-```
-**2. Prepare Runner Scripts**
-Ensure all runner scripts are executable:
-```
-chmod +x sailr_cegir/run_sailr_cegir_batch.sh
-chmod +x sailr_cegir/run_sailr_cegir_single.sh
-```
-### Usage
-**Option A: Run Batch Automation (All Specs)**
-Run the full pipeline on all specs in a directory.
-```
-SA_OUT_DIR=sa_outputs \
-DATASET_ROOT=dataset \
-CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
-MAX_A=10 \
-MAX_B=20 \
-TIMEOUT=600 \
-bash sailr_cegir/run_sailr_cegir_batch.sh \
-  62911/libxml2_62911_vul \
-  local.oob.memfunc.length-misuse.maxcover.v5 \
-  specs 4
-```
-Key Variables:
-- MAX_A: Max compilation attempts by the Builder (per plan).
-- MAX_B: Max refinement iterations (KLEE runs) by the Refiner.
-- TIMEOUT: Execution timeout for KLEE (in seconds).
-- PROJECT_ID: The dataset identifier (e.g., 62911/libxml2_62911_vul).
-- RULE_ID: The vulnerability class (used for assertion templates).
-
-**Option B: Run Single Spec (Debugging)**
-To isolate and debug a specific vulnerability spec:
-```
-SA_OUT_DIR=sa_outputs \
-DATASET_ROOT=$(pwd)/dataset \
-CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
-MAX_A=10 \
-MAX_B=3 \
-TIMEOUT=600 \
-bash sailr_cegir/run_sailr_cegir_single.sh \
-  62911/libxml2_62911_vul \
-  local.oob.memfunc.length-misuse.maxcover.v5 \
-  specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json
-```
-**Run the validation step only**
-```
-python3 sailr_cegir/scripts/run_agent_for_spec.py \
-  --sa-out-dir sa_outputs/libxml2_62911_vul \
-  --dataset-root $(pwd)/dataset \
-  --project-id 62911/libxml2_62911_vul \
-  --src-root $(pwd)/dataset/62911/libxml2_62911_vul \
-  --spec specs/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5.json \
-  --spec-stem 164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5 \
-  --vul-file dict.c \
-  --vul-line 541 \
-  --rule-id local.oob.memfunc.length-misuse.maxcover.v5 \
-  --target-vul 62911/libxml2_62911_vul:dict.c:541 \
-  --project-bc $(pwd)/dataset/62911/libxml2_62911_vul/project.bc \
-  --llm-model deepseek-chat \
-  --llm-api-base https://api.deepseek.com \
-  --clang-flags "-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
-  --run-dir se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5 \
-  --reproduce \
-  --reproduce-ktest se_runs/sailr_cegir/libxml2_62911_vul/164_dict.c_541_local.oob.memfunc.length-misuse.maxcover.v5/refinement/logs/klee-out-5/test000017.ktest
-  ```
-## Results & Artifacts
-After the batch run completes, use the aggregation scripts to summarize results and collect artifacts for manual review.
-
-1. Generate Summary Table Prints a table of results (H2/H1/H0/E) and execution times.
-```
-python3 sailr_cegir/aggregate_sailr_cegir_results.py \
-  --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
-  --llm-usage-log llm_usage.tsv
-```
-
-2. Collect Vulnerabilities Generates a CSV list of all confirmed vulnerabilities.
-```
-python3 sailr_cegir/collect_vulnerabilities.py \
-  --mode-root se_runs/sailr_cegir/libxml2_62911_vul
-```
-
-3. Collect Verification Pack Gather harnesses, logs, and reproduction artifacts for all H2 (Bug Found) results into a clean folder.
-```
-python3 sailr_cegir/collect_verification_pack.py \
-  --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
-  --out-dir verification_pack \
-  --src-root dataset/62911/libxml2_62911_vul
-```
-
-# Adding a new rule (new file per rule)
-Create a new file:
-```
-sailr_cegir/scripts/validators/rules/<your_rule>.py
-```
-Implement a class extending BaseRuleValidator and register it:
-```
-from ..base import BaseRuleValidator, ValidationOutcome
-from ..registry import register_validator
-
-class MyRule(BaseRuleValidator):
-    RULE_ID_PATTERN = r".*my-rule-id.*"
-
-    def validate_plan(...): ...
-    def validate_harness(...): ...
-
-register_validator(MyRule())
-
-```
+They include:
+- `execution.log` (high-level run log)
+- `prompts/` (materialized prompts used for the run)
+- `refinement/` (generated harness artifacts, compile/KLEE logs)
+- `logs/` (summary logs and per-turn records)
