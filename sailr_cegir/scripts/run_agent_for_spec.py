@@ -1352,7 +1352,17 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     if out_dir.exists():
         shutil.rmtree(out_dir, ignore_errors=True)
 
-    cmd = [klee] + flags + ["--output-dir", str(out_dir)] + [str(bc_path)]
+
+    # [UPDATE] Add flags to prevent inode exhaustion
+    cmd = [klee] + flags + [
+        "--output-dir", str(out_dir),
+        "--write-no-tests",                  # Critical: Only write .ktest on error/bug
+        "--only-output-states-covering-new", # Critical: Reduce redundant tests
+        "--compress-global",                 # Critical: Gzip large logs
+        str(bc_path)
+    ]
+
+
     rc, out, err, t = run_cmd(cmd, timeout=timeout)
     full_log = f"{out}\n{err}"
     (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
@@ -1755,6 +1765,20 @@ def interactive_synthesizer(
 
         print(f"  [*] Running KLEE...")
         stats = run_klee(bc, args.klee, args.klee_flags, args.timeout, logs_dir, i)
+
+        # [UPDATE] Immediate Cleanup Logic
+        klee_out_dir = logs_dir / f"klee-out-{i}"
+        
+        # If this turn didn't find a bug or reach the target, Nuke it.
+        if not stats["bug_assert_hit"] and not stats["reach_assert_hit"]:
+             if klee_out_dir.exists():
+                 shutil.rmtree(klee_out_dir, ignore_errors=True)
+                 
+        # Always delete the intermediate bitcode for this turn (save block space)
+        # We only need the C source (harness.c) which is small.
+        if (harness_dir / "harness.bc").exists():
+            (harness_dir / "harness.bc").unlink()
+            
         log_summary = summarize_log(stats['full_log'], "KLEE Log")
 
         current_score = 0
