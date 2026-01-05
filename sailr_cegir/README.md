@@ -18,7 +18,7 @@ The README focuses on **how to run** the pipeline and **what artifacts to expect
 
 ### 1) Environment setup (run once)
 ```bash
-bash scripts/setup_env.sh
+bash sailr_cegir/setup_env.sh
 ```
 
 What it does (high-level):
@@ -27,8 +27,10 @@ What it does (high-level):
 - Installs Python dependencies used by the pipeline
 
 ### 2) Run the full pipeline (per project / rule)
+# Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> [RULE_ID]
+bash sailr_cegir/run_pipeline.sh 55980/libxml2_55980_vul
 ```bash
-bash sailr_cegir/run_pipeline.sh
+bash sailr_cegir/run_pipeline.sh 55980/libxml2_55980_vul oob-read
 ```
 
 ---
@@ -91,38 +93,16 @@ SA_OUT_DIR=sa_outputs DATASET_ROOT=$(pwd)/dataset CLANG_FLAGS="-I$(pwd)/dataset/
 
 ---
 
-## Phase 3: Result Analysis
+## Result Analysis
 
-### Aggregate results
-```bash
-python3 sailr_cegir/aggregate_sailr_cegir_results.py   --mode-root se_runs/sailr_cegir/<project>   --llm-usage-log llm_usage.tsv
+
+```
+python3 sailr_cegir/collect_results.py \
+  --mode-root se_runs/sailr_cegir/<project> \
+  --src-root "dataset/<project>" \
+  --out-dir stailor_report_pack_<project>
 ```
 
-### Collect the verification pack
-```bash
-python3 sailr_cegir/collect_verification_pack.py   --mode-root se_runs/sailr_cegir/<project>   --out-dir verification_pack   --src-root "dataset/<project>"
-```
-
-### Verification pack structure
-
-`verification_pack/` contains evidence suitable for inspection and reporting:
-
-- `verified_bugs/`  
-  Cases where symbolic execution found a bug and the replay/validation confirmed it.
-- `false_positives_or_reach_only/`  
-  Cases that reached the target but did not reproduce the bug (or failed validation).
-- `failures/`  
-  Compilation/linking failures and pipeline aborts.
-
----
-
-## Scripts and entrypoints
-
-- `scripts/setup_env.sh` — installs/builds toolchain (LLVM 14, KLEE+uClibc, deps)
-- `scripts/run_pipeline.sh` — runs: scan → specs → bitcode → batch → aggregation → pack
-- `sailr_cegir/run_sailr_cegir_batch.sh` — batch mode runner
-- `sailr_cegir/run_sailr_cegir_single.sh` — single-spec runner (debug)
-- `sailr_cegir/scripts/run_agent_for_spec.py` — per-spec agent driver (core)
 
 ---
 
