@@ -1235,7 +1235,7 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
     ensure_dir(out_dir)
     history = ["STRATEGY: Analyze spec -> 'shell' to verify call paths -> 'final_plan'."]
     
-    for i in range(5): 
+    for i in range(10): 
         print(f"  --- [Analysis Turn {i+1}/5] ---")
         hist_txt = "\n\n".join(history[-5:])
         
@@ -1254,6 +1254,10 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
             f"SOURCE CODE CONTEXT:\n{ctx['enclosing_function']}\n" 
             f"History:\n{hist_txt}\n"
             f"{anti_grep_msg}\n"
+            # [NEW INSTRUCTION START]
+            f"\n[CRITICAL]: Do NOT pipe 'grep' to 'head' (e.g. '| head -2'). This hides function bodies and causes failure.\n"
+            f"If you find promising files, use 'read_file' to inspect them properly.\n"
+            # [NEW INSTRUCTION END]
             f"GOAL: Identify the Public Entrypoint and the bug-triggering (violating) predicate for BUG_ASSERT."
         )
         
