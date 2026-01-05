@@ -1236,7 +1236,7 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
     history = ["STRATEGY: Analyze spec -> 'shell' to verify call paths -> 'final_plan'."]
     
     for i in range(10): 
-        print(f"  --- [Analysis Turn {i+1}/5] ---")
+        print(f"  --- [Analysis Turn {i+1}/10] ---")
         hist_txt = "\n\n".join(history[-5:])
         
         anti_grep_msg = ""
@@ -1254,14 +1254,18 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
             f"SOURCE CODE CONTEXT:\n{ctx['enclosing_function']}\n" 
             f"History:\n{hist_txt}\n"
             f"{anti_grep_msg}\n"
-            # [NEW INSTRUCTION START]
-            f"\n[CRITICAL]: Do NOT pipe 'grep' to 'head' (e.g. '| head -2'). This hides function bodies and causes failure.\n"
-            f"If you find promising files, use 'read_file' to inspect them properly.\n"
-            # [NEW INSTRUCTION END]
+            # [INSERT THIS BLOCK START]
+            f"\n[CRITICAL INSTRUCTION]:\n"
+            f"1. STOP using 'grep' piped to 'head' (e.g. '| head -n'). It hides the function body you need.\n"
+            f"2. If you see a line number from a previous grep (e.g. '2479: void x...'), "
+            f"IMMEDIATELY use the 'read_file' tool to read 50-100 lines around that line.\n"
+            f"3. Do NOT search for the same term twice.\n"
+            # [INSERT THIS BLOCK END]
             f"GOAL: Identify the Public Entrypoint and the bug-triggering (violating) predicate for BUG_ASSERT."
         )
         
         resp = call_llm_json(planner_prompt, user_msg, out_dir, f"frozen_iter{i:03d}")
+
         action = resp.get("action")
         rationale = (resp.get("rationale") or "").strip()
         turn_hdr = f"ACTION: {action}\n" + (f"RATIONALE: {rationale}\n" if rationale else "")
