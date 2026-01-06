@@ -86,7 +86,9 @@ SAILR assumes a frozen dataset snapshot under ./dataset/.
 
 Extract target project source (e.g., from CyberGym):
 ```
-python3 extract_from_cybergym.py arvo:62911 libxml2
+python3 extract_from_cybergym.py arvo:19910 binutils
+
+python3 extract_from_cybergym.py arvo:55980 libxml2
 # Produces: ./dataset/55980/libxml2_55980_vul/...
 ```
 

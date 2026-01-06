@@ -13,13 +13,17 @@ export PROJECT_ID="$1"
 export RULE_ID="$2"
 export SPEC_ROOT_DIR="$3"
 export JOBS="${4:-4}"
-export SUMMARY_TSV="$(pwd)/summary.tsv"
-touch "$SUMMARY_TSV"
 
 # Paths
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKER_SCRIPT="${REPO_ROOT}/sailr_cegir/run_worker.sh"
 PROJECT_SLUG="$(basename "$PROJECT_ID")"
+
+# [FIX] Isolate summary file to the project's output directory
+OUTPUT_DIR="se_runs/sailr_cegir/${PROJECT_SLUG}"
+mkdir -p "$OUTPUT_DIR"
+export SUMMARY_TSV="$(realpath "${OUTPUT_DIR}/summary.tsv")"
+touch "$SUMMARY_TSV"
 
 # Handle the spec directory (Standard vs Resume folders)
 if [ -d "${SPEC_ROOT_DIR}/${PROJECT_SLUG}" ]; then
