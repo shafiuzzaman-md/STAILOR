@@ -12,6 +12,13 @@ __pycache__/
 se_runs/**/prompts_snapshots/
 se_runs/**/*_messages.json
 se_runs/**/*_response.txt
-# Ignore all files under any directory whose name ends with ".v5"
-**/*.v5/**
-se_runs/
+# Ignore everything under se_runs...
+se_runs/**
+
+# ...but keep summary.tsv anywhere inside se_runs
+!se_runs/
+!se_runs/**/
+!se_runs/**/summary.tsv
+
+# specs: ignore everything (no exceptions)
+specs/**

@@ -38,18 +38,39 @@ export PROJECT_BC="${SRC_ROOT}/project.bc"
 mkdir -p "${MODE_ROOT}"
 
 # [FIX] Define Summary TSV Location (Self-Sufficient)
-# If env var provided (batch), use it. If not (single run), use project-local file.
 if [ -z "${SUMMARY_TSV:-}" ]; then
     export SUMMARY_TSV="$(realpath "${MODE_ROOT}/summary.tsv")"
 fi
 touch "$SUMMARY_TSV"
 
-# Parse Filename
+# --- [FIXED] Robust Filename Parsing & Filtering ---
 STEM="$(basename "${SPEC_FILE}" .json)"
 RUN_DIR="${MODE_ROOT}/${STEM}"
-VUL_FILE="$(echo "${STEM}" | cut -d'_' -f2)"
-VUL_LINE="$(echo "${STEM}" | cut -d'_' -f3)"
+
+# 1. Strip the leading index (e.g., "001_") to get "vi_mode.c_1884_..."
+NAME_NO_ID="${STEM#*_}"
+
+# 2. Extract Line Number: Find the digits immediately following the file extension
+# Looks for pattern like ".c_1234_" or ".cpp_1234_"
+VUL_LINE="$(echo "$NAME_NO_ID" | grep -oE '\.[a-z]+_[0-9]+_' | head -1 | grep -oE '[0-9]+' || echo "")"
+
+# 3. Extract Filename: Everything before "_${VUL_LINE}_"
+if [ -n "$VUL_LINE" ]; then
+    VUL_FILE="${NAME_NO_ID%%_${VUL_LINE}_*}"
+else
+    # Fallback to simple cut if regex fails (e.g. filename has no extension)
+    VUL_FILE="$(echo "${STEM}" | cut -d'_' -f2)"
+    VUL_LINE="$(echo "${STEM}" | cut -d'_' -f3)"
+fi
+
+# [FIX] Skip temporary build files (Fixes FileNotFoundError)
+if [[ "$VUL_FILE" == *"conftest.c"* ]]; then
+    echo "[SKIP] Ignoring temporary build file: ${VUL_FILE}"
+    exit 0
+fi
+
 TARGET_VUL="${PROJECT_ID}:${VUL_FILE}:${VUL_LINE}"
+# ---------------------------------------------------
 
 mkdir -p "${RUN_DIR}"
 
@@ -66,7 +87,7 @@ if [[ -n "${KLEE_FLAGS:-}" ]]; then KLEE_FLAGS_ARG=( --klee-flags "${KLEE_FLAGS}
 QL_FILE_ARG=()
 if [[ -n "${QL_FILE}" ]]; then QL_FILE_ARG=( --ql-file "${QL_FILE}" ); fi
 
-echo "[WORKER] Processing: ${STEM}"
+echo "[WORKER] Processing: ${STEM} (File: ${VUL_FILE}, Line: ${VUL_LINE})"
 
 # Call Python Driver
 python3 "${SCRIPTS_DIR}/run_agent_for_spec.py" \
