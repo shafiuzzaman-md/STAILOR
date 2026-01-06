@@ -1,0 +1,60 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xpath.c:9202",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xpath.c",
+  "line": 9202,
+  "column": 6,
+  "end_line": 9202,
+  "end_column": 12,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 9197,
+    "contextEnd": 9207,
+    "snippet": "            }\n\t    buffer = (xmlChar *) xmlMallocAtomic(max);\n\t    if (buffer == NULL) {\n\t\tXP_ERRORNULL(XPATH_MEMORY_ERROR);\n\t    }\n\t    memcpy(buffer, buf, len);\n\t    while ((IS_LETTER(c)) || (IS_DIGIT(c)) || /* test bigname.xml */\n\t\t   (c == '.') || (c == '-') ||\n\t\t   (c == '_') || ((qualified) && (c == ':')) ||\n\t\t   (IS_COMBINING(c)) ||\n\t\t   (IS_EXTENDER(c))) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 9202,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [
+      "IS_COMBINING",
+      "IS_DIGIT",
+      "IS_EXTENDER",
+      "IS_LETTER",
+      "XP_ERRORNULL",
+      "memcpy",
+      "xmlMallocAtomic"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "len"
+    ],
+    "bounds_hints": [
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

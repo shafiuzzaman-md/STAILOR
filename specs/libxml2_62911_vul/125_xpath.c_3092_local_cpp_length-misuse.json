@@ -1,0 +1,58 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xpath.c:3092",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xpath.c",
+  "line": 3092,
+  "column": 2,
+  "end_line": 3092,
+  "end_column": 8,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 3087,
+    "contextEnd": 3097,
+    "snippet": "\t\t\t\t\t     sizeof(xmlNodePtr));\n\tif (cur->nodeTab == NULL) {\n\t    xmlXPathErrMemory(NULL, \"growing nodeset\\n\");\n\t    return(-1);\n\t}\n\tmemset(cur->nodeTab, 0 ,\n\t       XML_NODESET_DEFAULT * sizeof(xmlNodePtr));\n        cur->nodeMax = XML_NODESET_DEFAULT;\n    } else if (cur->nodeNr == cur->nodeMax) {\n        xmlNodePtr *temp;\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 3092,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlXPathErrMemory"
+    ],
+    "pointer_vars": [
+      "sizeof",
+      "temp"
+    ],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

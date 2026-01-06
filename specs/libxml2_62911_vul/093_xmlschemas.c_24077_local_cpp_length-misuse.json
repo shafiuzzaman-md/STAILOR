@@ -1,0 +1,55 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlschemas.c:24077",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
+  "line": 24077,
+  "column": 2,
+  "end_line": 24077,
+  "end_column": 8,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 24072,
+    "contextEnd": 24082,
+    "snippet": "\tif (vctxt->elemInfos == NULL) {\n\t    xmlSchemaVErrMemory(vctxt,\n\t\t\"allocating the element info array\", NULL);\n\t    return (NULL);\n\t}\n\tmemset(vctxt->elemInfos, 0, 10 * sizeof(xmlSchemaNodeInfoPtr));\n\tvctxt->sizeElemInfos = 10;\n    } else if (vctxt->sizeElemInfos <= vctxt->depth) {\n\tint i = vctxt->sizeElemInfos;\n\n\tvctxt->sizeElemInfos *= 2;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 24077,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlSchemaVErrMemory"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

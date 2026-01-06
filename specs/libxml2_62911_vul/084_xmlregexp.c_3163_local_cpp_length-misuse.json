@@ -1,0 +1,58 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlregexp.c:3163",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
+  "line": 3163,
+  "column": 9,
+  "end_line": 3163,
+  "end_column": 15,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 3158,
+    "contextEnd": 3168,
+    "snippet": "\texec->counts = (int *) xmlMalloc(comp->nbCounters * sizeof(int));\n\tif (exec->counts == NULL) {\n\t    xmlRegexpErrMemory(NULL, \"running regexp\");\n\t    return(XML_REGEXP_OUT_OF_MEMORY);\n\t}\n        memset(exec->counts, 0, comp->nbCounters * sizeof(int));\n    } else\n\texec->counts = NULL;\n    while ((exec->status == XML_REGEXP_OK) && (exec->state != NULL) &&\n\t   ((exec->inputString[exec->index] != 0) ||\n\t    ((exec->state != NULL) &&"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 3163,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlMalloc",
+      "xmlRegexpErrMemory"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

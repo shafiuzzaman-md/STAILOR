@@ -1781,6 +1781,37 @@ def interactive_synthesizer(
             
         log_summary = summarize_log(stats['full_log'], "KLEE Log")
 
+        incomplete_type_match = re.search(r"incomplete definition of type 'struct (.+?)'", stats['full_log'])
+        
+        if incomplete_type_match:
+            struct_name = incomplete_type_match.group(1)
+            
+            # [FIXED] Use 'frozen_plan' instead of 'plan'
+            target_file_name = frozen_plan.get('context_file', os.path.basename(args.vul_file))
+            ctx_file_path = out_dir / "ctx" / target_file_name
+            
+            if ctx_file_path.exists():
+                print(f"  [!] Detected Opaque Struct Error: '{struct_name}'. Scanning {ctx_file_path.name}...")
+                try:
+                    with open(ctx_file_path, 'r') as f:
+                        src_content = f.read()
+                    
+                    # Regex to grab the full struct definition
+                    struct_regex = re.compile(rf"struct\s+{re.escape(struct_name)}\s*\{{([^}}]+?)\}};", re.DOTALL)
+                    definition_match = struct_regex.search(src_content)
+                    
+                    if definition_match:
+                        found_def = definition_match.group(0)
+                        hint_msg = (
+                            f"\n\n[SYSTEM HINT]: The compiler reported an opaque struct error for '{struct_name}'.\n"
+                            f"I found the definition in {target_file_name}. YOU MUST COPY THIS INTO YOUR HARNESS:\n"
+                            f"```c\n{found_def}\n```\n"
+                        )
+                        log_summary += hint_msg
+                        print(f"  [+] Injected definition of 'struct {struct_name}' into prompt.")
+                except Exception as e:
+                    print(f"  [!] Failed to auto-recover struct: {e}")
+
         current_score = 0
         current_label = "E"
         current_reason = "Unknown"

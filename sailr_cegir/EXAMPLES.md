@@ -1,3 +1,4 @@
+
 # Run Single Spec
 
 ```
@@ -13,8 +14,6 @@ bash sailr_cegir/run_worker.sh \
    "specs/libxml2_62911_vul/025_dict.c_541_local_cpp_length-misuse.json" \
    "rules/oob-pack/queries/LengthMisuse.ql"
 ```
-
-
 
 # Batch mode
 ```

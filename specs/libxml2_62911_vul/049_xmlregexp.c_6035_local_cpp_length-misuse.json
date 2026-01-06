@@ -1,0 +1,68 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlregexp.c:6035",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
+  "line": 6035,
+  "column": 2,
+  "end_line": 6035,
+  "end_column": 8,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 6030,
+    "contextEnd": 6040,
+    "snippet": "\tlenp = strlen((char *) token);\n\n\tstr = (xmlChar *) xmlMallocAtomic(lenn + lenp + 2);\n\tif (str == NULL)\n\t    goto error;\n\tmemcpy(&str[0], token, lenp);\n\tstr[lenp] = '|';\n\tmemcpy(&str[lenp + 1], token2, lenn);\n\tstr[lenn + lenp + 1] = 0;\n\n\tatom->valuep = str;"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 6035,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "strlen",
+      "xmlMallocAtomic"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "lenn",
+      "strlen",
+      "token"
+    ],
+    "bounds_hints": [
+      {
+        "var": "lenn",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "strlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "token",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlsave.c:303",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlsave.c",
+  "line": 303,
+  "column": 6,
+  "end_line": 303,
+  "end_column": 12,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 298,
+    "contextEnd": 308,
+    "snippet": "        memset(&ctxt->indent[0], 0, MAX_INDENT + 1);\n    } else {\n\tctxt->indent_size = len;\n\tctxt->indent_nr = MAX_INDENT / ctxt->indent_size;\n\tfor (i = 0;i < ctxt->indent_nr;i++)\n\t    memcpy(&ctxt->indent[i * ctxt->indent_size], xmlTreeIndentString,\n\t\t   ctxt->indent_size);\n        ctxt->indent[ctxt->indent_nr * ctxt->indent_size] = 0;\n    }\n\n    if (xmlSaveNoEmptyTags) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 303,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "memset"
+    ],
+    "pointer_vars": [
+      "ctxt"
+    ],
+    "length_vars": [
+      "indent_size",
+      "len"
+    ],
+    "bounds_hints": [
+      {
+        "var": "indent_size",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

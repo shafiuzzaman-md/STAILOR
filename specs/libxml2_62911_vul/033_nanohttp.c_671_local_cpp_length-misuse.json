@@ -1,0 +1,64 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@nanohttp.c:671",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c",
+  "line": 671,
+  "column": 10,
+  "end_line": 671,
+  "end_column": 17,
+  "message": "Potential OOB Risk: The length argument for strncmp() is not trivially bounded.",
+  "context": {
+    "contextStart": 666,
+    "contextEnd": 676,
+    "snippet": "xmlNanoHTTPScanAnswer(xmlNanoHTTPCtxtPtr ctxt, const char *line) {\n    const char *cur = line;\n\n    if (line == NULL) return;\n\n    if (!strncmp(line, \"HTTP/\", 5)) {\n        int version = 0;\n\tint ret = 0;\n\n\tcur += 5;\n\twhile ((*cur >= '0') && (*cur <= '9')) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 671,
+    "column_start": 10,
+    "column_end": 17
+  },
+  "facts": {
+    "suspect_calls": [
+      "strncmp",
+      "xmlNanoHTTPScanAnswer"
+    ],
+    "pointer_vars": [
+      "cur",
+      "line"
+    ],
+    "length_vars": [
+      "return",
+      "version"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "version",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlschemas.c:3633",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlschemas.c",
+  "line": 3633,
+  "column": 5,
+  "end_line": 3633,
+  "end_column": 11,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 3628,
+    "contextEnd": 3638,
+    "snippet": "    ret = (xmlSchemaBucketPtr) xmlMalloc(size);\n    if (ret == NULL) {\n\txmlSchemaPErrMemory(NULL, \"allocating schema bucket\", NULL);\n\treturn(NULL);\n    }\n    memset(ret, 0, size);\n    ret->targetNamespace = targetNamespace;\n    ret->type = type;\n    ret->globals = xmlSchemaItemListCreate();\n    if (ret->globals == NULL) {\n\txmlSchemaBucketFree(ret);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 3633,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlMalloc",
+      "xmlSchemaBucketFree",
+      "xmlSchemaItemListCreate",
+      "xmlSchemaPErrMemory"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@uri.c:2347",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/uri.c",
+  "line": 2347,
+  "column": 6,
+  "end_line": 2347,
+  "end_column": 12,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 2342,
+    "contextEnd": 2352,
+    "snippet": "     * Finish up with the end of the URI\n     */\n    if (uptr != NULL) {\n        if ((vptr > val) && (len > 0) &&\n\t    (uptr[0] == '/') && (vptr[-1] == '/')) {\n\t    memcpy (vptr, uptr + 1, len - 1);\n\t    vptr[len - 2] = 0;\n\t} else {\n\t    memcpy (vptr, uptr, len);\n\t    vptr[len - 1] = 0;\n\t}"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 2347,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "len"
+    ],
+    "bounds_hints": [
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

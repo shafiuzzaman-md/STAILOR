@@ -1,0 +1,54 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xzlib.c:238",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xzlib.c",
+  "line": 238,
+  "column": 15,
+  "end_line": 238,
+  "end_column": 19,
+  "message": "Potential OOB Risk: The length argument for read() is not trivially bounded.",
+  "context": {
+    "contextStart": 233,
+    "contextEnd": 243,
+    "snippet": "{\n    int ret;\n\n    *have = 0;\n    do {\n        ret = read(state->fd, buf + *have, len - *have);\n        if (ret <= 0)\n            break;\n        *have += ret;\n    } while (*have < len);\n    if (ret < 0) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 238,
+    "column_start": 15,
+    "column_end": 19
+  },
+  "facts": {
+    "suspect_calls": [
+      "read"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "len"
+    ],
+    "bounds_hints": [
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

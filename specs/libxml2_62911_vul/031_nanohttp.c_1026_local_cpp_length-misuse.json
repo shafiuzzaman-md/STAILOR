@@ -1,0 +1,69 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@nanohttp.c:1026",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c",
+  "line": 1026,
+  "column": 3,
+  "end_line": 1026,
+  "end_column": 9,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 1021,
+    "contextEnd": 1031,
+    "snippet": "\t\tif ((size_t)res->ai_addrlen > sizeof(sockin)) {\n\t\t    __xmlIOErr(XML_FROM_HTTP, 0, \"address size mismatch\\n\");\n\t\t    freeaddrinfo (result);\n\t\t    return INVALID_SOCKET;\n\t\t}\n\t\tmemcpy (&sockin, res->ai_addr, res->ai_addrlen);\n\t\tsockin.sin_port = htons (port);\n\t\taddr = (struct sockaddr *)&sockin;\n\t    } else if (res->ai_family == AF_INET6) {\n\t\tif ((size_t)res->ai_addrlen > sizeof(sockin6)) {\n\t\t    __xmlIOErr(XML_FROM_HTTP, 0, \"address size mismatch\\n\");"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 1026,
+    "column_start": 3,
+    "column_end": 9
+  },
+  "facts": {
+    "suspect_calls": [
+      "__xmlIOErr",
+      "freeaddrinfo",
+      "htons",
+      "memcpy"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "ai_addrlen",
+      "return",
+      "sockin"
+    ],
+    "bounds_hints": [
+      {
+        "var": "ai_addrlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "sockin",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

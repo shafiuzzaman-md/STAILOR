@@ -1,0 +1,63 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@dict.c:588",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c",
+  "line": 588,
+  "column": 5,
+  "end_line": 588,
+  "end_column": 11,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 583,
+    "contextEnd": 593,
+    "snippet": "    if ((size_t) size + 0 > SIZE_MAX / sizeof(table[0]))\n        return(-1);\n    table = xmlMalloc(size * sizeof(table[0]));\n    if (table == NULL)\n        return(-1);\n    memset(table, 0, size * sizeof(table[0]));\n\n    oldsize = dict->size;\n    if (oldsize == 0)\n        goto done;\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 588,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlMalloc"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [
+      "oldsize",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "oldsize",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

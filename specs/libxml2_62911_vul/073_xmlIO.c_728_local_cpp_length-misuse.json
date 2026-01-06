@@ -1,0 +1,65 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlIO.c:728",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c",
+  "line": 728,
+  "column": 11,
+  "end_line": 728,
+  "end_column": 15,
+  "message": "Potential OOB Risk: The length argument for read() is not trivially bounded.",
+  "context": {
+    "contextStart": 723,
+    "contextEnd": 733,
+    "snippet": " */\nstatic int\nxmlFdRead (void * context, char * buffer, int len) {\n    int ret;\n\n    ret = read((int) (ptrdiff_t) context, &buffer[0], len);\n    if (ret < 0) xmlIOErr(0, \"read()\");\n    return(ret);\n}\n\n#ifdef LIBXML_OUTPUT_ENABLED"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 728,
+    "column_start": 11,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "read",
+      "xmlFdRead",
+      "xmlIOErr"
+    ],
+    "pointer_vars": [
+      "buffer",
+      "context"
+    ],
+    "length_vars": [
+      "len",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

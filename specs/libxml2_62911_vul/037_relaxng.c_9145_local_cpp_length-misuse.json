@@ -1,0 +1,71 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@relaxng.c:9145",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/relaxng.c",
+  "line": 9145,
+  "column": 5,
+  "end_line": 9145,
+  "end_column": 11,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 9140,
+    "contextEnd": 9150,
+    "snippet": "    lasts = (xmlNodePtr *) xmlMalloc(nbgroups * sizeof(xmlNodePtr));\n    if (lasts == NULL) {\n        xmlRngVErrMemory(ctxt, \"validating\\n\");\n        return (-1);\n    }\n    memset(lasts, 0, nbgroups * sizeof(xmlNodePtr));\n\n    /*\n     * Walk the sequence of children finding the right group and\n     * sorting them in sequences.\n     */"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 9145,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlMalloc",
+      "xmlRngVErrMemory"
+    ],
+    "pointer_vars": [
+      "sizeof",
+      "sorting"
+    ],
+    "length_vars": [
+      "children",
+      "in",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "children",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

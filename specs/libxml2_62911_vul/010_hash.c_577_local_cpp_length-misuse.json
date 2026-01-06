@@ -1,0 +1,46 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@hash.c:577",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/hash.c",
+  "line": 577,
+  "column": 9,
+  "end_line": 577,
+  "end_column": 16,
+  "message": "Potential OOB Risk: The length argument for memmove() is not trivially bounded.",
+  "context": {
+    "contextStart": 572,
+    "contextEnd": 582,
+    "snippet": "                    (char *) cur - (char *) hash->table);\n            cur = end - 1;\n            hash->table[0] = *cur;\n        }\n\n        memmove(&entry[1], entry, (char *) cur - (char *) entry);\n    }\n\n    /*\n     * Populate entry\n     */"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 577,
+    "column_start": 9,
+    "column_end": 16
+  },
+  "facts": {
+    "suspect_calls": [
+      "memmove"
+    ],
+    "pointer_vars": [],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

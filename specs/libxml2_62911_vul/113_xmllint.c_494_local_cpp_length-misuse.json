@@ -1,0 +1,65 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmllint.c:494",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c",
+  "line": 494,
+  "column": 5,
+  "end_line": 494,
+  "end_column": 11,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 489,
+    "contextEnd": 499,
+    "snippet": "    /*\n     * xmlEncodeEntitiesReentrant assumes valid UTF-8, but the buffer might\n     * end with a truncated UTF-8 sequence. This is a hack to at least avoid\n     * an out-of-bounds read.\n     */\n    memset(&buffer[sizeof(buffer)-4], 0, 4);\n    result = (char *) xmlEncodeEntitiesReentrant(NULL, BAD_CAST buffer);\n    if (result) {\n\txmlGenericError(xmlGenericErrorContext, \"%s\", result);\n\txmlFree(result);\n    }"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 494,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlEncodeEntitiesReentrant",
+      "xmlFree",
+      "xmlGenericError"
+    ],
+    "pointer_vars": [
+      "an",
+      "end"
+    ],
+    "length_vars": [
+      "an"
+    ],
+    "bounds_hints": [
+      {
+        "var": "an",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "an",
+        "relation": "<= sizeof(an)",
+        "source": "name-affinity"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

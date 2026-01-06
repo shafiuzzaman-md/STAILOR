@@ -1,0 +1,60 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@nanohttp.c:541",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c",
+  "line": 541,
+  "column": 22,
+  "end_line": 541,
+  "end_column": 26,
+  "message": "Potential OOB Risk: The length argument for recv() is not trivially bounded.",
+  "context": {
+    "contextStart": 536,
+    "contextEnd": 546,
+    "snippet": "            }\n            ctxt->inptr = ctxt->in + d_inptr;\n            ctxt->content = ctxt->in + d_content;\n            ctxt->inrptr = ctxt->in + d_inrptr;\n        }\n        ctxt->last = recv(ctxt->fd, ctxt->inptr, XML_NANO_HTTP_CHUNK, 0);\n        if (ctxt->last > 0) {\n            ctxt->inptr += ctxt->last;\n            return (ctxt->last);\n        }\n        if (ctxt->last == 0) {"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 541,
+    "column_start": 22,
+    "column_end": 26
+  },
+  "facts": {
+    "suspect_calls": [
+      "recv"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "in",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

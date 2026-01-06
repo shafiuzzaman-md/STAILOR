@@ -1,0 +1,63 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlregexp.c:3125",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c",
+  "line": 3125,
+  "column": 6,
+  "end_line": 3125,
+  "end_column": 12,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 3120,
+    "contextEnd": 3130,
+    "snippet": "\t    fprintf(stderr, \"exec save: allocation failed\");\n\t    exec->status = XML_REGEXP_INTERNAL_ERROR;\n\t    return;\n\t}\n\tif (exec->counts) {\n\t    memcpy(exec->counts, exec->rollbacks[exec->nbRollbacks].counts,\n\t       exec->comp->nbCounters * sizeof(int));\n\t}\n    }\n}\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 3125,
+    "column_start": 6,
+    "column_end": 12
+  },
+  "facts": {
+    "suspect_calls": [
+      "fprintf",
+      "memcpy"
+    ],
+    "pointer_vars": [
+      "sizeof"
+    ],
+    "length_vars": [
+      "allocation",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "allocation",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

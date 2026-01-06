@@ -1,0 +1,73 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_pointer-offset-misuse@parser.c:9351",
+  "project": null,
+  "rule_id": "local/cpp/pointer-offset-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c",
+  "line": 9351,
+  "column": 9,
+  "end_line": 9351,
+  "end_column": 15,
+  "message": "Potential OOB Risk: Destination pointer derived via dynamic arithmetic for memset().",
+  "context": {
+    "contextStart": 9346,
+    "contextEnd": 9356,
+    "snippet": "            table = newTable;\n            ctxt->attrHash = newTable;\n            ctxt->attrHashMax = newSize;\n        }\n\n        memset(&table[size], 0, (newSize - size) * sizeof(table[0]));\n\n        if (size > 0) {\n            /*\n             * We must search for the start of a probe sequence to make\n             * in-place operation work."
+  },
+  "target_statement": {
+    "text": null,
+    "line": 9351,
+    "column_start": 9,
+    "column_end": 15
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset"
+    ],
+    "pointer_vars": [
+      "in"
+    ],
+    "length_vars": [
+      "in",
+      "newSize",
+      "operation"
+    ],
+    "bounds_hints": [
+      {
+        "var": "in",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "newSize",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "operation",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "in",
+        "relation": "<= sizeof(in)",
+        "source": "name-affinity"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

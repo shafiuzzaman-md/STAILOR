@@ -1,0 +1,50 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xpath.c:3452",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xpath.c",
+  "line": 3452,
+  "column": 3,
+  "end_line": 3452,
+  "end_column": 9,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 3447,
+    "contextEnd": 3457,
+    "snippet": "\t\t    XML_NODESET_DEFAULT * sizeof(xmlNodePtr));\n\t\tif (set1->nodeTab == NULL) {\n\t\t    xmlXPathErrMemory(NULL, \"merging nodeset\\n\");\n\t\t    goto error;\n\t\t}\n\t\tmemset(set1->nodeTab, 0,\n\t\t    XML_NODESET_DEFAULT * sizeof(xmlNodePtr));\n\t\tset1->nodeMax = XML_NODESET_DEFAULT;\n\t    } else if (set1->nodeNr >= set1->nodeMax) {\n\t\txmlNodePtr *temp;\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 3452,
+    "column_start": 3,
+    "column_end": 9
+  },
+  "facts": {
+    "suspect_calls": [
+      "memset",
+      "xmlXPathErrMemory"
+    ],
+    "pointer_vars": [
+      "sizeof",
+      "temp"
+    ],
+    "length_vars": [],
+    "bounds_hints": []
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

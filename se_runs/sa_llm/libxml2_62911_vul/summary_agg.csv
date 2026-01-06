@@ -1,2 +1,0 @@
-MODE,PROJECT,attempt,E,H0,H1,H2,Vul,VulnAsserts,ReachSpecs,ReachAsserts,VulOnlySpecs,ReachOnlySpecs,VulAndReachSpecs,FP,time(s),prompt_tokens,completion_tokens,total_tokens,timeouts,timed_specs,AvgVulnPerPos,AvgReachPerPos
-sa_llm,libxml2_62911_vul,664,406,85,2,171,38,38,28,28,10,0,28,0,28826,1587023,566839,2153862,1,173,1.0,1.0

@@ -1,2 +1,0 @@
-MODE	PROJECT	attempt	E	H0	H1	H2	Vul	VulnAsserts	ReachSpecs	ReachAsserts	VulOnlySpecs	ReachOnlySpecs	VulAndReachSpecs	FP	time(s)	prompt_tokens	completion_tokens	total_tokens	timeouts	timed_specs	AvgVulnPerPos	AvgReachPerPos
-sa_llm	libxml2_55980_vul	661	425	84	0	152	18	18	11	11	7	0	11	0	22363	2389132	894765	3283897	0	152	1.0	1.0

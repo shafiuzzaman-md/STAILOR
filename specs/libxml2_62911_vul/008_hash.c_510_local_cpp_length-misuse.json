@@ -1,0 +1,55 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@hash.c:510",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/hash.c",
+  "line": 510,
+  "column": 13,
+  "end_line": 510,
+  "end_column": 19,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 505,
+    "contextEnd": 515,
+    "snippet": "            if (copy3 == NULL) {\n                xmlFree(copy);\n                xmlFree(copy2);\n                return(-1);\n            }\n            memcpy(copy3, key3, lengths[2] + 1);\n        } else {\n            copy3 = NULL;\n        }\n    }\n"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 510,
+    "column_start": 13,
+    "column_end": 19
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy",
+      "xmlFree"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

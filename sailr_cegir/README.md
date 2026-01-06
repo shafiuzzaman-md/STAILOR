@@ -30,7 +30,7 @@ What it does (high-level):
 # Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> [RULE_ID]
 
 ```bash
-bash sailr_cegir/run_pipeline.sh 62911/libxml2_62911_vul oob-read
+bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul oob-read
 ```
 
 ---

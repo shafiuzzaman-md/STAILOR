@@ -1,0 +1,64 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmlmemory.c:412",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlmemory.c",
+  "line": 412,
+  "column": 5,
+  "end_line": 412,
+  "end_column": 11,
+  "message": "Potential OOB Risk: The length argument for memset() is not trivially bounded.",
+  "context": {
+    "contextStart": 407,
+    "contextEnd": 417,
+    "snippet": "        Mem_Tag_Err(p);\n        goto error;\n    }\n    if (xmlMemStopAtBlock == p->mh_number) xmlMallocBreakpoint();\n    p->mh_tag = ~MEMTAG;\n    memset(target, -1, p->mh_size);\n    xmlMutexLock(&xmlMemMutex);\n    debugMemSize -= p->mh_size;\n    debugMemBlocks--;\n#ifdef MEM_LIST\n    debugmem_list_delete(p);"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 412,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "Mem_Tag_Err",
+      "debugmem_list_delete",
+      "memset",
+      "xmlMallocBreakpoint",
+      "xmlMutexLock"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "debugMemSize",
+      "mh_size"
+    ],
+    "bounds_hints": [
+      {
+        "var": "debugMemSize",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "mh_size",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@xmllint.c:767",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c",
+  "line": 767,
+  "column": 2,
+  "end_line": 767,
+  "end_column": 8,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 762,
+    "contextEnd": 772,
+    "snippet": "        return(NULL);\n    line_read[500] = 0;\n    len = strlen(line_read);\n    ret = (char *) malloc(len + 1);\n    if (ret != NULL) {\n\tmemcpy (ret, line_read, len + 1);\n    }\n    return(ret);\n#endif\n}\n#endif /* LIBXML_XPATH_ENABLED */"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 767,
+    "column_start": 2,
+    "column_end": 8
+  },
+  "facts": {
+    "suspect_calls": [
+      "malloc",
+      "memcpy",
+      "strlen"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "len",
+      "return",
+      "strlen"
+    ],
+    "bounds_hints": [
+      {
+        "var": "len",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "strlen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}

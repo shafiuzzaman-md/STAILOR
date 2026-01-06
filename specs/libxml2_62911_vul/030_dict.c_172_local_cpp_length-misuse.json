@@ -1,0 +1,60 @@
+{
+  "schema": "llmse.vul_spec.v1",
+  "id": "local_cpp_length-misuse@dict.c:172",
+  "project": null,
+  "rule_id": "local/cpp/length-misuse",
+  "family": "GENERIC",
+  "file": "/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c",
+  "line": 172,
+  "column": 5,
+  "end_line": 172,
+  "end_column": 11,
+  "message": "Potential OOB Risk: The length argument for memcpy() is not trivially bounded.",
+  "context": {
+    "contextStart": 167,
+    "contextEnd": 177,
+    "snippet": "\tpool->next = dict->strings;\n\tdict->strings = pool;\n    }\nfound_pool:\n    ret = pool->free;\n    memcpy(pool->free, name, namelen);\n    pool->free += namelen;\n    *(pool->free++) = 0;\n    pool->nbStrings++;\n    return(ret);\n}"
+  },
+  "target_statement": {
+    "text": null,
+    "line": 172,
+    "column_start": 5,
+    "column_end": 11
+  },
+  "facts": {
+    "suspect_calls": [
+      "memcpy"
+    ],
+    "pointer_vars": [],
+    "length_vars": [
+      "namelen",
+      "return"
+    ],
+    "bounds_hints": [
+      {
+        "var": "namelen",
+        "relation": ">= 0",
+        "source": "heuristic"
+      },
+      {
+        "var": "return",
+        "relation": ">= 0",
+        "source": "heuristic"
+      }
+    ]
+  },
+  "llm_hints": {
+    "entrypoint": {
+      "strategy": "LLM_INFER",
+      "candidates": []
+    },
+    "assertions": {
+      "presence_assertion_hint": "/* fill with program-specific property */",
+      "reachability_assertion": "klee_assert(0);  /* must be placed immediately before the vulnerable instruction */"
+    },
+    "notes": [
+      "Non-in-path helpers should be stub candidates.",
+      "Groom all in-path data structures to avoid null derefs."
+    ]
+  }
+}
