@@ -28,9 +28,9 @@ What it does (high-level):
 
 ### 2) Run the full pipeline (per project / rule)
 # Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> [RULE_ID]
-bash sailr_cegir/run_pipeline.sh 62922/libxml2_62911_vul
+
 ```bash
-bash sailr_cegir/run_pipeline.sh 55980/libxml2_55980_vul oob-read
+bash sailr_cegir/run_pipeline.sh 62911/libxml2_62911_vul oob-read
 ```
 
 ---
@@ -88,7 +88,15 @@ SA_OUT_DIR=sa_outputs DATASET_ROOT=dataset CLANG_FLAGS="-I$(pwd)/dataset/<projec
 
 #### Single-spec mode (debug one case interactively)
 ```bash
-SA_OUT_DIR=sa_outputs DATASET_ROOT=$(pwd)/dataset CLANG_FLAGS="-I$(pwd)/dataset/<project>/include -I$HOME/tools/klee/include" MAX_A=20 MAX_B=3 TIMEOUT=600 bash sailr_cegir/run_sailr_cegir_single.sh   "<PROJECT_ID>"   "<RULE_ID>"   "specs/<project>/<spec>.json"   "rules/<pack>/queries/<query>.ql"
+SA_OUT_DIR=sa_outputs \
+DATASET_ROOT=$(pwd)/dataset \
+CLANG_FLAGS="-I$(pwd)/dataset/<project>/include -I$HOME/tools/klee/include" \
+MAX_A=30 MAX_B=3 TIMEOUT=600 \
+bash sailr_cegir/run_worker.sh \
+  "<PROJECT_ID>" \
+  "<RULE_ID>" \
+  "specs/<project>/<spec>.json" \
+  "rules/<pack>/queries/<query>.ql"
 ```
 
 ---
