@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sailr_cegir/run_worker.sh
-# True single-spec runner
+# True single-spec runner (Robust & Resumable)
 
 set -euo pipefail
 
@@ -34,22 +34,31 @@ export SA_PROJECT_DIR="${SA_OUT_DIR}/${PROJECT_SLUG}"
 export MODE_ROOT="se_runs/sailr_cegir/${PROJECT_SLUG}"
 export PROJECT_BC="${SRC_ROOT}/project.bc"
 
+# [FIX] Ensure Project Output Directory Exists (Self-Sufficient)
+mkdir -p "${MODE_ROOT}"
+
+# [FIX] Define Summary TSV Location (Self-Sufficient)
+# If env var provided (batch), use it. If not (single run), use project-local file.
+if [ -z "${SUMMARY_TSV:-}" ]; then
+    export SUMMARY_TSV="$(realpath "${MODE_ROOT}/summary.tsv")"
+fi
+touch "$SUMMARY_TSV"
+
 # Parse Filename
 STEM="$(basename "${SPEC_FILE}" .json)"
 RUN_DIR="${MODE_ROOT}/${STEM}"
-# Extract Vulnerability info from filename (025_dict.c_541...)
 VUL_FILE="$(echo "${STEM}" | cut -d'_' -f2)"
 VUL_LINE="$(echo "${STEM}" | cut -d'_' -f3)"
 TARGET_VUL="${PROJECT_ID}:${VUL_FILE}:${VUL_LINE}"
 
 mkdir -p "${RUN_DIR}"
 
+# [FIX] Resumable Check: Skip if meta exists
 if [ -f "${RUN_DIR}/run_meta.json" ]; then
     echo "[SKIP] Already finished: ${STEM}"
     exit 0
 fi
 
-# Optional Flags
 CLANG_FLAGS_ARG=()
 if [[ -n "${CLANG_FLAGS:-}" ]]; then CLANG_FLAGS_ARG=( --clang-flags "${CLANG_FLAGS}" ); fi
 KLEE_FLAGS_ARG=()
@@ -84,4 +93,4 @@ python3 "${SCRIPTS_DIR}/run_agent_for_spec.py" \
   --timeout "${TIMEOUT}" \
   --run-dir "${RUN_DIR}" \
   --project-bc "${PROJECT_BC}" \
-  --summary-tsv "${SUMMARY_TSV:-}"
+  --summary-tsv "${SUMMARY_TSV}"
