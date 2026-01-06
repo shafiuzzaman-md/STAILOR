@@ -28,7 +28,7 @@ What it does (high-level):
 
 ### 2) Run the full pipeline (per project / rule)
 # Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> [RULE_ID]
-bash sailr_cegir/run_pipeline.sh 55980/libxml2_55980_vul
+bash sailr_cegir/run_pipeline.sh 62922/libxml2_62911_vul
 ```bash
 bash sailr_cegir/run_pipeline.sh 55980/libxml2_55980_vul oob-read
 ```

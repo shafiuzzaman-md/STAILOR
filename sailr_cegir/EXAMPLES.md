@@ -13,3 +13,6 @@ bash sailr_cegir/run_sailr_cegir_single.sh \
   specs/libxml2_62911_vul/000_SAX2.c_2479_local.oob.memfunc.length-misuse.maxcover.v5.json \
   rules/oob-pack/queries/oob-length-misuse-maxcover.ql
 ```
+
+# Usage: python3 sailr_cegir/resume_batch.py <PROJECT_ID> <THREADS>
+python3 sailr_cegir/resume_batch.py 62911/libxml2_62911_vul 4

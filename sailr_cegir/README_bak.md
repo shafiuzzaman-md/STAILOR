@@ -177,13 +177,14 @@ Run the full pipeline on all specs in a directory.
 SA_OUT_DIR=sa_outputs \
 DATASET_ROOT=dataset \
 CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I/home/shafi/tools/klee/include" \
-MAX_A=10 \
-MAX_B=20 \
+MAX_A=30 \
+MAX_B=3 \
 TIMEOUT=600 \
 bash sailr_cegir/run_sailr_cegir_batch.sh \
   62911/libxml2_62911_vul \
-  local.oob.memfunc.length-misuse.maxcover.v5 \
-  specs 4
+  oob-read \
+  specs 
+  4
 ```
 Key Variables:
 - MAX_A: Max compilation attempts by the Builder (per plan).
