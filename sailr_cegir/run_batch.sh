@@ -13,6 +13,8 @@ export PROJECT_ID="$1"
 export RULE_ID="$2"
 export SPEC_ROOT_DIR="$3"
 export JOBS="${4:-4}"
+export SUMMARY_TSV="$(pwd)/summary.tsv"
+touch "$SUMMARY_TSV"
 
 # Paths
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

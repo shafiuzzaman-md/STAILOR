@@ -78,4 +78,5 @@ python3 "${SCRIPTS_DIR}/run_agent_for_spec.py" \
   --max-cycles "${MAX_CYCLES}" \
   --timeout "${TIMEOUT}" \
   --run-dir "${RUN_DIR}" \
-  --project-bc "${PROJECT_BC}"
+  --project-bc "${PROJECT_BC}" \
+  --summary-tsv "${SUMMARY_TSV:-}"

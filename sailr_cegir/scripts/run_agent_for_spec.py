@@ -30,6 +30,32 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(SCRIPT_DIR))
 
+# --- GLOBAL TOKEN TRACKER ---
+_TOKEN_STATS = {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
+}
+
+def update_token_stats(response: Any):
+    """Safe extraction of usage stats from response objects."""
+    global _TOKEN_STATS
+    usage = None
+    if isinstance(response, dict):
+        usage = response.get("usage")
+    elif hasattr(response, "usage"):
+        usage = getattr(response, "usage")
+        
+    if usage:
+        # Handle usage being a dict or object
+        p = getattr(usage, "prompt_tokens", 0) if not isinstance(usage, dict) else usage.get("prompt_tokens", 0)
+        c = getattr(usage, "completion_tokens", 0) if not isinstance(usage, dict) else usage.get("completion_tokens", 0)
+        t = getattr(usage, "total_tokens", 0) if not isinstance(usage, dict) else usage.get("total_tokens", 0)
+        
+        _TOKEN_STATS["prompt_tokens"] += p
+        _TOKEN_STATS["completion_tokens"] += c
+        _TOKEN_STATS["total_tokens"] += t
+
 try:
     from llm_utils import llm_chat
 except Exception as e:
@@ -308,10 +334,7 @@ def strip_harness_for_system_replay(harness_src: str) -> str:
             continue
 
         if in_stub_section:
-            # Smart Filter: Only keep 'stub_' or 'harness_' prefixed functions
-            # Discard everything else (standard library overrides, etc)
-            
-            # Check for function start
+            # 1. Capture Wrapper Functions (stub_*, harness_*)
             if not capturing_function and re.search(r"^\s*(?:[\w\*]+\s+)+(stub_|harness_)\w+\s*\(", line):
                 capturing_function = True
                 brace_depth = 0
@@ -319,11 +342,23 @@ def strip_harness_for_system_replay(harness_src: str) -> str:
             if capturing_function:
                 out.append(line)
                 brace_depth += _brace_delta(line)
-                # Check if function ended
                 if "}" in line and brace_depth <= 0:
                     capturing_function = False
+                continue
             
-            # If not capturing a safe wrapper, we DROP the line (it's a stub to be stripped)
+            # [FIX] RETAIN Typedefs, Structs, Enums, Includes, and Extern Prototypes
+            # This ensures that types defined by the Agent in the stub section are visible to the replay driver.
+            # Matches: "typedef ...", "struct ...", "#include ...", "extern ...;"
+            if re.search(r"^\s*(typedef|struct|union|enum|#include)\b", line):
+                out.append(line)
+                continue
+            
+            # Keep extern prototypes (ending in semicolon), but reject definitions
+            if re.search(r"^\s*extern\b.*?;", line):
+                out.append(line)
+                continue
+
+            # Drop everything else (conflicting function bodies)
             continue
 
         # 3. Harness & Globals (Always Keep)
@@ -800,6 +835,7 @@ def call_llm_json(system_prompt: str, user_prompt: str, out_dir: Path, tag: str)
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
     (out_dir / f"{tag}_messages.json").write_text(json.dumps(messages, indent=2), encoding="utf-8")
     raw = llm_chat(messages)
+    update_token_stats(raw)
     (out_dir / f"{tag}_raw_response.txt").write_text(str(raw), encoding="utf-8")
     if isinstance(raw, dict): return raw
     text = extract_json_block(str(raw))
@@ -1356,9 +1392,7 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     # [UPDATE] Add flags to prevent inode exhaustion
     cmd = [klee] + flags + [
         "--output-dir", str(out_dir),
-        "--write-no-tests",                  # Critical: Only write .ktest on error/bug
         "--only-output-states-covering-new", # Critical: Reduce redundant tests
-        "--compress-global",                 # Critical: Gzip large logs
         str(bc_path)
     ]
 
@@ -1456,6 +1490,24 @@ def validate_harness_structure(
             "VIOLATION: You MUST use the actual logic predicate defined in the Frozen Plan's 'assertions' section.\n"
             "Example: BUG_ASSERT(len > 1024); NOT BUG_ASSERT(0);"
         )
+    
+    # [NEW] Forbid Generic Placeholders
+    # Detects comments like "Placeholder" or trivial conditions that ignore the plan
+    if "Placeholder" in harness_sec:
+        return False, (
+            "DETECTED PLACEHOLDER ASSERTION: You used a placeholder instead of the real bug predicate.\n"
+            "VIOLATION: You MUST implement the exact logic from the Frozen Plan (e.g., checking struct fields).\n"
+            "IF you are missing a struct definition (e.g. 'incomplete type'), SEARCH for it in the source files using `grep` "
+            "and copy it into your harness."
+        )
+    
+    # Detect trivial predicates often used as placeholders
+    if re.search(r"BUG_ASSERT\s*\(\s*len\s*>\s*0\s*\)", harness_sec):
+         return False, (
+            "WEAK ASSERTION DETECTED: 'BUG_ASSERT(len > 0)' is too generic.\n"
+            "VIOLATION: The bug depends on specific buffer sizes (e.g. len > capacity or len > strlen).\n"
+            "Use the specific predicate defined in the Frozen Plan."
+        )
 
     # Enforce BUG_ASSERT executes before REACH_ASSERT
     _exec = re.sub(r"^\s*#.*$", " ", harness_sec, flags=re.MULTILINE)
@@ -1540,6 +1592,55 @@ def validate_harness_structure(
     
     return True, ""
 
+def find_opaque_struct_global(src_root: Path, struct_name: str) -> Optional[str]:
+    """Scans the entire source tree for the definition of 'struct name { ... };'"""
+    # 1. Fast filter: Find files that might contain the definition
+    cmd = ["grep", "-r", "-l", f"struct {struct_name}", str(src_root)]
+    rc, out, _, _ = run_cmd(cmd)
+    
+    if rc != 0 or not out.strip():
+        return None
+        
+    candidate_files = out.strip().splitlines()
+    
+    # 2. Deep scan: Parse each candidate file with brace counting
+    start_pat = re.compile(rf"struct\s+{re.escape(struct_name)}\s*\{{")
+    
+    for fpath_str in candidate_files:
+        try:
+            if not fpath_str.endswith((".c", ".h")): continue
+            content = Path(fpath_str).read_text(encoding="utf-8", errors="ignore")
+            
+            match = start_pat.search(content)
+            if not match: continue
+            
+            # Brace counting to capture full body
+            start_idx = match.start()
+            open_braces = 0
+            found_start = False
+            end_idx = -1
+            
+            for i in range(start_idx, len(content)):
+                if content[i] == '{':
+                    open_braces += 1
+                    found_start = True
+                elif content[i] == '}':
+                    open_braces -= 1
+                    if found_start and open_braces == 0:
+                        # Found closing brace. Look for semicolon.
+                        sc_idx = content.find(';', i)
+                        if sc_idx != -1:
+                            end_idx = sc_idx + 1
+                        break
+            
+            if end_idx != -1:
+                return f"/* Definition found in {Path(fpath_str).name} */\n" + content[start_idx:end_idx]
+
+        except Exception:
+            continue
+            
+    return None
+
 def interactive_synthesizer(
     frozen_plan: Dict[str, Any], ctx: Dict[str, Any], args: argparse.Namespace, builder_prompt: str,
     out_dir: Path, src_root: Path, harness_dir: Path, logs_dir: Path, max_iters: int
@@ -1579,6 +1680,8 @@ def interactive_synthesizer(
         "- Preserve section markers exactly and in order.\n"
         "- main() MUST be inside /* --- Harness --- */ only.\n"
         f"- Entrypoint name is: {required_entrypoint}\n"
+        "- DO NOT redefine custom memory allocators (wrappers around malloc/free) found in the library.\n"
+        "- Use the library's existing allocators via 'extern'; do NOT write stubs for them.\n"
     )
 
     print("\n[=] PHASE 2: Iterative Refinement (Concrete -> Symbolic)")
@@ -1717,6 +1820,21 @@ def interactive_synthesizer(
             print(f"  [!] Compilation Failed. Reason:\n{summary}") 
 
             # Opaque Struct Recovery
+            struct_match = re.search(r"incomplete definition of type 'struct (.+?)'", msg)
+            if struct_match:
+                missing_struct = struct_match.group(1)
+                print(f"  [i] Opaque struct '{missing_struct}' detected. Scanning source tree...")
+                
+                found_def = find_opaque_struct_global(src_root, missing_struct)
+                
+                if found_def:
+                    print(f"  [+] Found definition for '{missing_struct}'. Injecting hint.")
+                    history.append(
+                        f"COMPILATION ERROR: Opaque type '{missing_struct}'.\n"
+                        f"SYSTEM HINT: I found the definition. YOU MUST COPY THIS INTO YOUR HARNESS:\n"
+                        f"```c\n{found_def}\n```"
+                    )
+
             struct_match = re.search(r"incomplete type '(struct [A-Za-z0-9_]+)'", msg)
             if struct_match:
                 missing_struct = struct_match.group(1)
@@ -2047,12 +2165,23 @@ def main():
 
     # ========================================================
 
-    write_json(run_dir / "run_meta.json", {"spec": str(args.spec), "class": final_status, "klee": stats})
+    write_json(run_dir / "run_meta.json", {"spec": str(args.spec), "class": final_status, "klee": stats, "tokens": _TOKEN_STATS})
 
     if args.summary_tsv:
         with open(args.summary_tsv, "a", encoding="utf-8") as f:
             fcntl.flock(f, fcntl.LOCK_EX)
-            f.write(f"{args.spec_stem}\t{final_status}\t{stats.get('status','none')}\t{stats.get('elapsed',0):.2f}\n")
+            # Columns: Spec | FinalStatus | KleeStatus | Time | BestTurn | PromptTokens | ComplTokens | TotalTokens
+            line = (
+                f"{args.spec_stem}\t"
+                f"{final_status}\t"
+                f"{stats.get('status','none')}\t"
+                f"{stats.get('elapsed',0):.2f}\t"
+                f"{stats.get('best_turn', -1)}\t"
+                f"{_TOKEN_STATS['prompt_tokens']}\t"
+                f"{_TOKEN_STATS['completion_tokens']}\t"
+                f"{_TOKEN_STATS['total_tokens']}\n"
+            )
+            f.write(line)
             fcntl.flock(f, fcntl.LOCK_UN)
 
     print(f"[✓] Finished {args.spec_stem}: {final_status}")
