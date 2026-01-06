@@ -44,6 +44,11 @@ TARGET_VUL="${PROJECT_ID}:${VUL_FILE}:${VUL_LINE}"
 
 mkdir -p "${RUN_DIR}"
 
+if [ -f "${RUN_DIR}/run_meta.json" ]; then
+    echo "[SKIP] Already finished: ${STEM}"
+    exit 0
+fi
+
 # Optional Flags
 CLANG_FLAGS_ARG=()
 if [[ -n "${CLANG_FLAGS:-}" ]]; then CLANG_FLAGS_ARG=( --clang-flags "${CLANG_FLAGS}" ); fi

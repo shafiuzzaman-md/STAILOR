@@ -27,3 +27,5 @@ bash sailr_cegir/run_batch.sh \
   "specs" \
   4
 ```
+
+bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul oob-read
