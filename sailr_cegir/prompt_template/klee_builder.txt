@@ -60,6 +60,12 @@ D) SYMBOLIC INPUTS
 - For pointer parameters: allocate fixed-size buffers (concrete allocation) and make their contents symbolic.
 - Use klee_assume only for reachability constraints that do NOT negate the bug predicate.
 
+E) NO PROXY ASSERTIONS (ANTI-HALLUCINATION)
+- You CANNOT access local variables inside the target library.
+- DO NOT create a new symbolic variable just to assert on it (e.g., 'int bug_hit; klee_make_symbolic(&bug_hit...); BUG_ASSERT(bug_hit)').
+- This is a "Self-Fulfilling Prophecy" and is strictly FORBIDDEN.
+- If the Frozen Plan predicate targets an invisible local variable, you must assert on the *observable consequence* (e.g. crash, return value) or a side-effect, NOT the variable itself.
+
 ====================
 MANDATORY MAIN SKELETON (FOLLOW THIS SHAPE)
 ====================

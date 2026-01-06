@@ -118,8 +118,8 @@ cd -
 2. Run scan
 ```
 ./codeql_scan.sh \
-  PROJECT_NAME=libxml2_62911_vul \
-  SRC_ROOT=./dataset/62911/libxml2_62911_vul \
+  PROJECT_NAME=binutils_19910_vul \
+  SRC_ROOT=./dataset/19910/binutils_19910_vul \
   BUILD_CMD="make -j$(nproc)" \
   QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
   CONTEXT_LINES=5 \

@@ -96,5 +96,8 @@ Hard requirements:
 3) If you require a semantic stub exception (e.g., HASH_COLLISION), you MUST mark it in stub_contracts with an "exception" field.
 4) Keep call_sequence minimal: only essential calls to reach the vulnerability.
 5) For pointer-like symbolic inputs, provide allocation_strategy or allocation_size; never use symbolic sizes for allocation.
-
+6) BUG_ASSERT must rely ONLY on observable state (return values, global variables,
+   or side-effects on pointer arguments). NEVER target local variables internal
+   to the function (e.g., 'lengths[0]' inside the library).
+   
 Output JSON only (with the action protocol).

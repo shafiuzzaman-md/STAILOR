@@ -1481,8 +1481,6 @@ def validate_harness_structure(
         return False, "Missing required assertion macro definitions (#define BUG_ASSERT / #define REACH_ASSERT)."
 
     # [NEW] Forbid Lazy Assertions (assert(0) / assert(false))
-    # This prevents the agent from bypassing logic by just forcing a crash.
-    # Matches: BUG_ASSERT(0), BUG_ASSERT( 0 ), BUG_ASSERT(false), etc.
     lazy_assert_re = re.compile(r"BUG_ASSERT\s*\(\s*(0|1|false|true|NULL)\s*\)", re.IGNORECASE)
     if lazy_assert_re.search(harness_sec):
         return False, (
@@ -1492,20 +1490,17 @@ def validate_harness_structure(
         )
     
     # [NEW] Forbid Generic Placeholders
-    # Detects comments like "Placeholder" or trivial conditions that ignore the plan
     if "Placeholder" in harness_sec:
         return False, (
             "DETECTED PLACEHOLDER ASSERTION: You used a placeholder instead of the real bug predicate.\n"
-            "VIOLATION: You MUST implement the exact logic from the Frozen Plan (e.g., checking struct fields).\n"
-            "IF you are missing a struct definition (e.g. 'incomplete type'), SEARCH for it in the source files using `grep` "
-            "and copy it into your harness."
+            "VIOLATION: You MUST implement the exact logic from the Frozen Plan.\n"
+            "IF you are missing a struct definition, SEARCH for it in the source files and copy it."
         )
     
-    # Detect trivial predicates often used as placeholders
     if re.search(r"BUG_ASSERT\s*\(\s*len\s*>\s*0\s*\)", harness_sec):
          return False, (
             "WEAK ASSERTION DETECTED: 'BUG_ASSERT(len > 0)' is too generic.\n"
-            "VIOLATION: The bug depends on specific buffer sizes (e.g. len > capacity or len > strlen).\n"
+            "VIOLATION: The bug depends on specific buffer sizes (e.g. len > capacity).\n"
             "Use the specific predicate defined in the Frozen Plan."
         )
 
@@ -1523,32 +1518,18 @@ def validate_harness_structure(
             "Place BUG_ASSERT(<predicate>); first, then REACH_ASSERT;"
         )
 
-    # --- 3. Main() Location Check (IMPROVED) ---
+    # --- 3. Main() Location Check ---
     main_re = re.compile(r"^\s*int\s+main\s*\(", re.MULTILINE)
-    
-    # Check if main is correctly placed
     if not main_re.search(harness_sec):
-        # Diagnose WHERE it is
         if main_re.search(stub_sec_raw):
-            return False, (
-                "STRUCTURAL ERROR: main() is defined inside the 'Stub/Embedded Functions' section. "
-                "Move main() DOWN to the '/* --- Harness --- */' section."
-            )
+            return False, "STRUCTURAL ERROR: main() is inside 'Stub/Embedded Functions'. Move it to '/* --- Harness --- */'."
         elif main_re.search(global_sec):
-             return False, (
-                "STRUCTURAL ERROR: main() is defined inside the 'Global Constants' section (at the top). "
-                "Move main() DOWN to the '/* --- Harness --- */' section (at the bottom)."
-            )
+             return False, "STRUCTURAL ERROR: main() is inside 'Global Constants'. Move it to '/* --- Harness --- */'."
         else:
-            return False, (
-                "STRUCTURAL ERROR: Missing 'int main(...)' definition.\n"
-                "You must define the entrypoint function: int main(int argc, char **argv) { ... }\n"
-                "It MUST be placed inside the '/* --- Harness --- */' section."
-            )
+            return False, "STRUCTURAL ERROR: Missing 'int main(...)' inside '/* --- Harness --- */'."
 
     # --- 4. Entrypoint Checks ---
     if required_entrypoint:
-        # A. Call Check
         clean = re.sub(r'("([^"\\]|\\.)*"|\'([^\'\\]|\\.)*\'|//.*?$|/\*.*?\*/)', " ", harness_sec, flags=re.MULTILINE | re.DOTALL)
         clean_no_defs = re.sub(r"^\s*(?:[\w\*]+\s+)+\b[\w]+\s*\(.*?\)\s*\{", " ", clean, flags=re.MULTILINE | re.DOTALL)
         
@@ -1556,23 +1537,18 @@ def validate_harness_structure(
         if not call_re.search(clean_no_defs):
             return False, f"Harness does not CALL required entrypoint '{required_entrypoint}' in the Harness section."
 
-        # B. Redefinition Check [CRITICAL FIX]
-        # We use [^;]*? to explicitly forbid consuming a semicolon.
-        # This ensures we match "func() {" but NOT "func(); ... {" (valid declaration)
         redef_re = re.compile(
             rf"^\s*(?:[\w\s\*]+?)[\s\*]+\b{re.escape(required_entrypoint)}\s*\([^;]*?\)\s*\{{", 
             re.MULTILINE | re.DOTALL
         )
-        
         if redef_re.search(harness_sec):
             return False, (
                 f"ILLEGAL REDEFINITION: You defined '{required_entrypoint}' in the Harness section.\n"
                 "STOP! You are NOT allowed to implement this function.\n"
-                "The real library provides it. By defining it here, you are causing a Linker Collision.\n"
-                f"ACTION: DELETE the body of '{required_entrypoint}'. Declare it as 'extern' and link against the library."
+                "ACTION: Delete the body. Declare it as 'extern' and link against the library."
             )
 
-    # --- 5. Policy Loading & Stub Checks ---
+    # --- 5. Stub Policy Checks ---
     vcfg = (policy or {}).get("validation", {}) or {}
     replay_critical = set(vcfg.get("hash_function_names", []) or [])
     detectors = vcfg.get("exception_detectors", {}) or {}
@@ -1585,11 +1561,44 @@ def validate_harness_structure(
              if fn_def_re.search(stub_sec_raw):
                  return False, (
                      f"PLACEMENT ERROR: You defined '{fn}' in '/* --- Stub Functions --- */'.\n"
-                     "This function is replay-critical and must persist during Phase III System Replay.\n"
-                     "CRITICAL FIX: Do NOT delete this function. You MUST MOVE it to the '/* --- Harness --- */' section.\n"
-                     "Use the tag: // STUB_EXCEPTION[REPLAY_CRITICAL] immediately before it."
+                     "This function is replay-critical and must persist during System Replay.\n"
+                     "CRITICAL FIX: MOVE it to the '/* --- Harness --- */' section."
                  )
-    
+
+    # --- 6. [NEW] Detect Self-Fulfilling Assertions (Proxy Variables) ---
+    # Heuristic: A variable is klee_make_symbolic'd, asserted in BUG_ASSERT,
+    # but NEVER passed to the required entrypoint.
+    if required_entrypoint:
+        # Find variables: klee_make_symbolic(&var, ...) or klee_make_symbolic(var, ...)
+        # Matches: &myVar or myPtr
+        sym_vars = re.findall(r"klee_make_symbolic\s*\(\s*(?:&)?(\w+)", harness_sec)
+        
+        # Clean harness to find calls (re-using clean version)
+        clean_code = strip_c_comments_and_strings(harness_sec)
+        
+        for var in sym_vars:
+            # Skip obvious buffers like 'key', 'buf', 'struct_ptr' which are usually fine
+            if len(var) < 3 or var in ["key", "buf", "str", "ptr"]: 
+                continue 
+
+            # 1. Is it asserted directly? e.g. BUG_ASSERT(var) or BUG_ASSERT(!var)
+            # We look for the variable boundary to avoid matching partial suffixes
+            assert_match = re.search(rf"BUG_ASSERT\s*\(\s*(!\s*)?\b{re.escape(var)}\b", clean_code)
+            
+            # 2. Is it ABSENT from the entrypoint call?
+            # We search for entrypoint( ... var ... )
+            # This regex looks for the entrypoint name, followed by parens containing the var
+            passed_to_entry = re.search(rf"\b{re.escape(required_entrypoint)}\s*\([^;]*\b{re.escape(var)}\b", clean_code)
+            
+            if assert_match and not passed_to_entry:
+                return False, (
+                    f"SELF-FULFILLING ASSERTION DETECTED: You created symbolic variable '{var}', "
+                    f"asserted it in BUG_ASSERT, but did NOT pass it to '{required_entrypoint}'.\n"
+                    "VIOLATION: You are faking the bug condition with a proxy variable.\n"
+                    "FIX: BUG_ASSERT must test the *consequences* of the library call (return val, memory), "
+                    "not an independent symbolic flag."
+                )
+
     return True, ""
 
 def find_opaque_struct_global(src_root: Path, struct_name: str) -> Optional[str]:
@@ -1749,7 +1758,7 @@ def interactive_synthesizer(
             if best_stats["score"] == 0: best_stats["failure_reason"] = "Agent returned no code"
             continue
         
-        # [NEW] Call Sequence Enforcement (The Fix for H2_BUG)
+        # Call Sequence Enforcement (The Fix for H2_BUG)
         if required_entrypoint:
             clean_code = strip_c_comments_and_strings(code)
             # Count calls to entrypoint (ignoring declarations)
