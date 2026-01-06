@@ -1,6 +1,6 @@
 #!/bin/bash
 # sailr_cegir/build_project_bc.sh
-# Universal Bitcode Builder (Smart-Detects Binutils vs Standard)
+# Universal Bitcode Builder (Fixed Linker & Extensions)
 
 SRC_DIR="$1"
 OUTPUT_BC=$(realpath -m "$2")
@@ -9,7 +9,18 @@ OUTPUT_BC=$(realpath -m "$2")
 export LLVM_COMPILER=clang
 export CC=wllvm
 export CXX=wllvm++
-export CFLAGS="-g -O1 -fno-inline-functions -Wno-error" # Generic safe flags
+export CFLAGS="-g -O1 -fno-inline-functions -Wno-error" 
+
+# [FIX] Auto-detect the correct llvm-link binary
+if command -v llvm-link-14 &> /dev/null; then
+    LLVM_LINK=llvm-link-14
+elif command -v llvm-link &> /dev/null; then
+    LLVM_LINK=llvm-link
+else
+    echo "[!] Error: llvm-link not found. Please install llvm-14."
+    exit 1
+fi
+echo "[*] Using Linker: $LLVM_LINK"
 
 if [ ! -d "$SRC_DIR" ]; then
     echo "[!] Source directory not found: $SRC_DIR"
@@ -18,114 +29,110 @@ fi
 
 cd "$SRC_DIR" || exit 1
 
-# --- STEP 1: DEEP CLEANING (Safe for all) ---
+# --- STEP 1: DEEP CLEANING ---
 echo "[*] Cleaning build artifacts..."
 set +e
 make distclean > /dev/null 2>&1
 make clean > /dev/null 2>&1
 set -e
-# Nuke config caches (Critical for switching compilers)
 find . -name "config.cache" -delete
 find . -name "config.status" -delete
 find . -name "config.log" -delete
 
-# --- STEP 2: SMART CONFIGURE ---
+# --- STEP 2: CONFIGURE ---
 echo "[*] Configuring build..."
 
 if [ -f "./configure" ]; then
-    # Default Flags
     CONFIG_FLAGS=(
         "--disable-nls"
         "--disable-werror"
         "MAKEINFO=true" 
     )
 
-    # [SMART] Detect Binutils structure (bfd folder exists)
     if [ -d "bfd" ]; then
-        echo "[*] Detected Binutils-like structure. Applying specialized flags..."
+        echo "[*] Detected Binutils. Disabling optional tools..."
         CONFIG_FLAGS+=(
-            "--disable-gdb"
-            "--disable-sim"
-            "--disable-readline"
-            "--disable-libdecnumber"
-            "--disable-gold"
-            "--disable-ld"
+            "--disable-gdb" "--disable-sim" "--disable-readline" 
+            "--disable-libdecnumber" "--disable-gold" "--disable-ld"
             "--enable-targets=all"
         )
     fi
     
     ./configure "${CONFIG_FLAGS[@]}"
-    make -j$(nproc) MAKEINFO=true
+
+    echo "[*] Building (Ignoring non-critical tool failures)..."
+    make -j$(nproc) MAKEINFO=true || echo "[!] Make hit errors, checking if libraries survived..."
 
 elif [ -f "CMakeLists.txt" ]; then
     echo "[*] Detected CMake"
     mkdir -p build && cd build
-    cmake .. \
-      -DCMAKE_C_COMPILER=wllvm \
-      -DCMAKE_CXX_COMPILER=wllvm++ \
-      -DBUILD_SHARED_LIBS=OFF
-    make -j$(nproc)
+    cmake .. -DCMAKE_C_COMPILER=wllvm -DCMAKE_CXX_COMPILER=wllvm++ -DBUILD_SHARED_LIBS=OFF
+    make -j$(nproc) || true
     cd ..
 elif [ -f "Makefile" ]; then
     echo "[*] Detected Bare Makefile"
-    make -j$(nproc)
-else
-    echo "[!] Unknown build system"
-    exit 1
+    make -j$(nproc) || true
 fi
 
-# --- STEP 3: SMART EXTRACTION ---
+# --- STEP 3: EXTRACT & CHECK ---
 echo "[*] Extracting bitcode..."
 
-# Strategy A: Binutils Multi-Lib Linker
-# If we see the key libraries for binutils, we link them all.
+# Strategy: Binutils Multi-Lib Linker
 if [ -f "bfd/libbfd.a" ]; then
-    echo "[*] Strategy: Multi-Lib Link (Binutils)"
+    echo "[*] Strategy: Binutils Libraries Found"
     BC_FILES=()
     
-    # Extract each known lib if it exists
     for lib in "bfd/libbfd.a" "libiberty/libiberty.a" "opcodes/libopcodes.a"; do
         if [ -f "$lib" ]; then
             echo "    -> Extracting $lib"
             extract-bc -b "$lib"
-            BC_FILES+=("${lib%.a}.bca")
+            
+            # [FIX] Check for both possible output names (.bca or .a.bc)
+            if [ -f "${lib%.a}.bca" ]; then
+                BC_FILES+=("${lib%.a}.bca")
+            elif [ -f "${lib}.bc" ]; then
+                BC_FILES+=("${lib}.bc")
+            else
+                echo "[!] Warning: Bitcode extraction failed for $lib (No .bca or .bc found)"
+            fi
         fi
     done
     
-    echo "[*] Linking combined bitcode..."
-    llvm-link "${BC_FILES[@]}" -o "$OUTPUT_BC"
-
-# Strategy B: Generic "Biggest Library" Finder
-# Finds the largest .a file (likely the main project lib) and uses that.
-else
-    echo "[*] Strategy: Generic Main Library"
-    # Find all .a files, sort by size (descending), take the top one
-    TARGET_LIB=$(find . -name "*.a" -type f -not -path "*/.libs/*" -printf "%s\t%p\n" | sort -nr | head -1 | cut -f2)
-
-    if [ -z "$TARGET_LIB" ]; then
-        # Fallback: check hidden .libs (common in Autotools)
-        TARGET_LIB=$(find .libs -name "*.a" -type f -printf "%s\t%p\n" | sort -nr | head -1 | cut -f2)
+    if [ ${#BC_FILES[@]} -eq 0 ]; then
+        echo "[!] Critical: No bitcode files found to link."
+        exit 1
     fi
 
+    echo "[*] Linking combined bitcode..."
+    "$LLVM_LINK" "${BC_FILES[@]}" -o "$OUTPUT_BC"
+
+# Strategy: Generic Main Library
+else
+    TARGET_LIB=$(find . -name "*.a" -type f -not -path "*/.libs/*" -printf "%s\t%p\n" | sort -nr | head -1 | cut -f2)
+    
     if [ -z "$TARGET_LIB" ]; then
-        echo "[!] Error: No static library (.a) found to extract bitcode from."
+        echo "[!] Error: No static library (.a) found."
         exit 1
     fi
 
     echo "    -> Target Lib: $TARGET_LIB"
     extract-bc -b "$TARGET_LIB"
     
-    # Handle .bca (archive) vs .bc (single file)
-    if [ -f "${TARGET_LIB}.bca" ]; then
-        llvm-link "${TARGET_LIB}.bca" -o "$OUTPUT_BC"
+    # [FIX] Handle extension variants
+    if [ -f "${TARGET_LIB%.a}.bca" ]; then
+        "$LLVM_LINK" "${TARGET_LIB%.a}.bca" -o "$OUTPUT_BC"
     elif [ -f "${TARGET_LIB}.bc" ]; then
         mv "${TARGET_LIB}.bc" "$OUTPUT_BC"
+    else
+         echo "[!] Error: Failed to find extracted bitcode for $TARGET_LIB"
+         exit 1
     fi
 fi
 
 # --- VERIFY ---
 if [ -f "$OUTPUT_BC" ]; then
     echo "[✓] Bitcode successfully created: $OUTPUT_BC"
+    ls -lh "$OUTPUT_BC"
 else
     echo "[!] Failed to create bitcode."
     exit 1
