@@ -2,7 +2,7 @@
 # setup_env.sh: Installs Prerequisites, KLEE, and CodeQL
 
 set -e  # Exit on error
-
+REPO_ROOT=$(pwd)
 echo "[*] Installing System Packages..."
 sudo apt update && sudo apt install -y \
     build-essential autoconf automake libtool pkg-config cmake ripgrep \
@@ -53,6 +53,7 @@ if [ ! -d "klee" ]; then
     fi
 fi
 
+cd "$REPO_ROOT"
 echo "[*] Installing CodeQL..."
 if ! command -v codeql &> /dev/null; then
     # Assumes you have install_codeql.py in current dir
