@@ -50,6 +50,7 @@ echo "[BATCH] Found ${COUNT} specs. Starting parallel execution..."
 # -P: Parallel jobs
 # -I {}: Placeholder for the file path
 find "${TARGET_DIR}" -name "*.json" -print0 | \
+  sort -z | \
   xargs -0 -P "${JOBS}" -I {} \
   bash "${WORKER_SCRIPT}" "${PROJECT_ID}" "${RULE_ID}" "{}"
 
