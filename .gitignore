@@ -1,24 +1,63 @@
+# --- Existing Data & External Resources ---
 runs/
 codeql-db/
 dataset/
 cybergym_data/
 **/llm_usage.tsv
 **/*.bc
-# Python bytecode
+
+# --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
-# LLM run artifacts
-se_runs/**/prompts_snapshots/
-se_runs/**/*_messages.json
-se_runs/**/*_response.txt
-# Ignore everything under se_runs...
-se_runs/**
 
-# ...but keep summary.tsv anywhere inside se_runs
-!se_runs/
-!se_runs/**/
-!se_runs/**/summary.tsv
-
-# specs: ignore everything (no exceptions)
+# --- Specs ---
 specs/**
+
+# =======================================================
+# ROBUST OUTPUT HANDLING (Fast Sweep / Deep Drill)
+# =======================================================
+
+# 1. Ignore ALL content in output directories by default
+se_runs*/
+sa_outputs*/
+stailor_report_pack_*/
+
+# 2. WHITELIST: Re-include the folder structures
+# (Git cannot track files inside ignored folders unless the folder itself is un-ignored)
+!se_runs*/
+!sa_outputs*/
+!stailor_report_pack_*/
+
+# 3. WHITELIST: Critical Analysis Artifacts
+# Keep high-level summaries
+!**/summary.tsv
+!**/summary_report.csv
+
+# Keep the Plan (Logic) & Policy
+!**/frozen_plan.json
+!**/auto_validation_policy.yaml
+
+# Keep Execution Metadata (Stats, Tokens)
+!**/run_meta.json
+!**/context.json
+
+# Keep the Proofs (Harness & Success Flag)
+!**/harness.c
+!**/reproduction_success.txt
+
+# =======================================================
+# HARD IGNORES (Garbage Collection)
+# =======================================================
+# Even if un-ignored above, force-ignore these specific bulk files
+**/klee-out-*/
+**/klee-last/
+**/prompts_snapshots/
+**/*_messages.json
+**/*_raw_response.txt
+**/*_response.txt
+**/*.ktest
+**/*.o
+**/*.a
+**/*.gcno
+**/*.gcda
