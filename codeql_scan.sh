@@ -21,6 +21,9 @@ CODEQL_RAM="${CODEQL_RAM:-80%}"
 CODEQL_VERBOSITY="${CODEQL_VERBOSITY:--v}"    # -v | -vv | -vvv
 CODEQL_LOG_TO_STDERR="${CODEQL_LOG_TO_STDERR:-true}"
 
+# If true, run each expanded query separately and write per-rule timing logs.
+TIME_PER_RULE="${TIME_PER_RULE:-false}"
+
 # Build a search path:
 # 1) explicit CODEQL_SEARCH_PATH if provided
 # 2) else default CLI dirs
@@ -70,13 +73,20 @@ if [[ -n "${CODEQL_VERBOSITY}" ]]; then
   args+=( "${CODEQL_VERBOSITY}" )
 fi
 
+if [[ "${TIME_PER_RULE}" == "true" ]]; then
+  args+=( --time-per-rule )
+fi
+
 OUT_ROOT="sa_outputs/${PROJECT_NAME}"
 mkdir -p "${OUT_ROOT}"
 TIME_LOG="${OUT_ROOT}/codeql_time.log"
 
 echo "[i] Running CodeQL analysis once for project: ${PROJECT_NAME}"
 echo "[dbg] run_codeql_analysis.py ${args[*]}"
-echo "[i] Timing info will be written to: ${TIME_LOG}"
+echo "[i] Total runtime (wall-clock) will be written to: ${TIME_LOG}"
+if [[ "${TIME_PER_RULE}" == "true" ]]; then
+  echo "[i] Per-rule timing will be written to: ${OUT_ROOT}/codeql_rule_time.(jsonl|csv)"
+fi
 
 # Use /usr/bin/time so only timing goes to TIME_LOG (stdout/stderr unchanged)
 LOGLEVEL=DEBUG /usr/bin/time -p -o "${TIME_LOG}" \
@@ -90,6 +100,9 @@ echo " - codeql-results.sarif"
 echo " - run_meta.json"
 echo " - fact_pack.json (LLM context bundle)"
 echo " - codeql_time.log (wall-clock runtime from /usr/bin/time)"
+if [[ "${TIME_PER_RULE}" == "true" ]]; then
+  echo " - codeql_rule_time.jsonl / codeql_rule_time.csv (per-rule timing)"
+fi
 echo
 echo "[tip] List candidate targets from findings:"
 echo "  jq -r '.results[] | \"\(.file):\(.startLine)  |  \(.ruleId)  |  \(.message)\"' ${OUT_ROOT}/findings.json | nl -ba"
