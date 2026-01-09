@@ -30,9 +30,9 @@ if [ ! -d "$SRC_ROOT" ]; then
     exit 1
 fi
 
-# Environment
 export KLEE_INCLUDE="$HOME/tools/klee/include"
-export CLANG_FLAGS="-I${SRC_ROOT}/include -I${KLEE_INCLUDE}"
+# [FIX] Include build directory for generated headers
+export CLANG_FLAGS="-I${SRC_ROOT}/include -I${SRC_ROOT}/build -I${KLEE_INCLUDE}"
 
 # --- Helper: Auto-Detect Build System for CodeQL ---
 detect_build_cmd() {
@@ -61,9 +61,10 @@ if [ ! -f "${SA_OUT_DIR}/${PROJECT_SLUG}/findings.json" ]; then
       PROJECT_NAME="${PROJECT_SLUG}" \
       SRC_ROOT="$SRC_ROOT" \
       BUILD_CMD="$DETECTED_BUILD_CMD" \
-      QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
+      QUERY_SUITES="rules/stailor-queries/suites/stailor.qls" \
       CONTEXT_LINES=5 \
-      ALSO_CPP=false
+      ALSO_CPP=false \
+      TIME_PER_RULE=true
 fi
 
 # 2. Generate Specs
@@ -76,6 +77,14 @@ python3 scripts/make_vul_specs.py \
 # 3. Build Project Bitcode (Critical for Linking)
 if [ ! -f "$PROJECT_BC" ]; then
     echo "[*] Building Project Bitcode..."
+    
+    # [FIX] Force Static Builds for Bitcode Extraction
+    # wllvm needs .a files to extract bitcode. CMake defaults to .so.
+    export LLVM_COMPILER=clang
+    export BUILD_SHARED_LIBS=OFF
+    export CMAKE_FLAGS="-DBUILD_SHARED_LIBS=OFF -DLIBXML2_WITH_PYTHON=OFF"
+    export CONFIGURE_FLAGS="--disable-shared --enable-static --without-python"
+
     ./sailr_cegir/build_project_bc.sh "$SRC_ROOT" "$PROJECT_BC"
     
     # Generic Symbol Check (Looks for any "Text" symbol)

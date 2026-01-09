@@ -22,7 +22,7 @@ export LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
 export MAX_A="${MAX_A:-10}"
 export MAX_B="${MAX_B:-3}"
 export MAX_CYCLES="${MAX_CYCLES:-2}"
-export TIMEOUT="${TIMEOUT:-300}"
+export TIMEOUT="${TIMEOUT:-45}"
 export CLANG="${CLANG:-clang-14}"
 
 # Paths
@@ -31,7 +31,9 @@ SCRIPTS_DIR="${REPO_ROOT}/sailr_cegir/scripts"
 PROJECT_SLUG="$(basename "$PROJECT_ID")"
 export SRC_ROOT="${DATASET_ROOT}/${PROJECT_ID}"
 export SA_PROJECT_DIR="${SA_OUT_DIR}/${PROJECT_SLUG}"
-export MODE_ROOT="se_runs/sailr_cegir/${PROJECT_SLUG}"
+# [UPDATED] Allow overriding root for Multi-Stage Pipeline (Stage1/Stage2)
+export SE_RUNS_ROOT="${SE_RUNS_ROOT:-se_runs}"
+export MODE_ROOT="${SE_RUNS_ROOT}/sailr_cegir/${PROJECT_SLUG}"
 export PROJECT_BC="${SRC_ROOT}/project.bc"
 
 # [FIX] Ensure Project Output Directory Exists (Self-Sufficient)
@@ -80,10 +82,29 @@ if [ -f "${RUN_DIR}/run_meta.json" ]; then
     exit 0
 fi
 
+# [FIX] Helper to safely append unique flags to avoid duplication
+append_klee_flag() {
+  local f="$1"
+  # Only append if not already present (surrounded by spaces for safety)
+  if [[ " ${KLEE_FLAGS:-} " != *" ${f} "* ]]; then
+    KLEE_FLAGS="${KLEE_FLAGS:-} ${f}"
+  fi
+}
+
+# [DEFAULT] Always enable POSIX runtime for user-space libraries (libxml2, etc)
+# This prevents "undefined reference" errors for malloc, pthread, etc.
+append_klee_flag "--libc=uclibc"
+append_klee_flag "--posix-runtime"
+
+# Trim leading/trailing whitespace to keep KLEE happy
+KLEE_FLAGS="$(echo "${KLEE_FLAGS:-}" | xargs)"
+
 CLANG_FLAGS_ARG=()
 if [[ -n "${CLANG_FLAGS:-}" ]]; then CLANG_FLAGS_ARG=( --clang-flags "${CLANG_FLAGS}" ); fi
+
 KLEE_FLAGS_ARG=()
 if [[ -n "${KLEE_FLAGS:-}" ]]; then KLEE_FLAGS_ARG=( --klee-flags "${KLEE_FLAGS}" ); fi
+
 QL_FILE_ARG=()
 if [[ -n "${QL_FILE}" ]]; then QL_FILE_ARG=( --ql-file "${QL_FILE}" ); fi
 

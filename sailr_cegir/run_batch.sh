@@ -20,7 +20,9 @@ WORKER_SCRIPT="${REPO_ROOT}/sailr_cegir/run_worker.sh"
 PROJECT_SLUG="$(basename "$PROJECT_ID")"
 
 # [FIX] Isolate summary file to the project's output directory
-OUTPUT_DIR="se_runs/sailr_cegir/${PROJECT_SLUG}"
+# [UPDATED] Respect SE_RUNS_ROOT for pipeline stages
+export SE_RUNS_ROOT="${SE_RUNS_ROOT:-se_runs}"
+OUTPUT_DIR="${SE_RUNS_ROOT}/sailr_cegir/${PROJECT_SLUG}"
 mkdir -p "$OUTPUT_DIR"
 export SUMMARY_TSV="$(realpath "${OUTPUT_DIR}/summary.tsv")"
 touch "$SUMMARY_TSV"
