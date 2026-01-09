@@ -18,6 +18,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Any
@@ -76,6 +77,13 @@ def run(cmd: List[str], cwd: Optional[Path] = None, check: bool = True) -> Tuple
         raise SystemExit(proc.returncode)
     return proc.returncode, proc.stdout, proc.stderr
 
+def run_timed(cmd: List[str], cwd: Optional[Path] = None, check: bool = True) -> Tuple[int, str, str, float]:
+    """Run a command and return (rc, stdout, stderr, wall_seconds)."""
+    t0 = time.perf_counter()
+    rc, out, err = run(cmd, cwd=cwd, check=check)
+    dt = time.perf_counter() - t0
+    return rc, out, err, dt
+
 def extend_common_flags(cmd: list[str], args: argparse.Namespace) -> list[str]:
     if args.search_path:
         cmd += ["--search-path", args.search_path]
@@ -89,6 +97,47 @@ def extend_common_flags(cmd: list[str], args: argparse.Namespace) -> list[str]:
     if getattr(args, "verbosity", 0):
         cmd += ["-" + "v" * int(args.verbosity)]
     return cmd
+
+
+def resolve_queries(query_specifiers: List[str], args: argparse.Namespace, additional_packs: List[Path]) -> List[str]:
+    """Expand suites/dirs/packs to a flat list of individual .ql files."""
+    cmd = ["codeql", "resolve", "queries", "--format=json"]
+    # resolve-queries has its own pack search options; threads/ram are not relevant here.
+    if getattr(args, "search_path", None):
+        cmd += ["--search-path", args.search_path]
+    if additional_packs:
+        cmd += ["--additional-packs", os.pathsep.join(str(p) for p in additional_packs)]
+    # per CLI docs, query specifiers come after "--" to avoid ambiguity.
+    cmd += ["--", *query_specifiers]
+
+    rc, out, err = run(cmd, check=True)
+    try:
+        data = json.loads(out or "[]")
+        if isinstance(data, list):
+            return [str(x) for x in data if isinstance(x, str)]
+    except Exception:
+        pass
+    # Fallback: treat line-oriented output as list.
+    return [ln.strip() for ln in (out or "").splitlines() if ln.strip()]
+
+
+def sarif_rule_ids(sarif_obj: Dict[str, Any]) -> List[str]:
+    rids: List[str] = []
+    for run_obj in sarif_obj.get("runs", []) or []:
+        tool = run_obj.get("tool", {}) or {}
+        driver = tool.get("driver", {}) or {}
+        for r in driver.get("rules", []) or []:
+            rid = r.get("id") or r.get("name")
+            if rid:
+                rids.append(str(rid))
+    # de-dup while preserving order
+    seen = set()
+    out = []
+    for x in rids:
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out
 
 
 # ---------- Pack & suite helpers ----------
@@ -359,6 +408,33 @@ def write_csv(findings: List[Dict[str, Any]], out_csv: Path):
             row = {k: fnd.get(k) for k in headers}
             row["cwe"] = ",".join(fnd.get("cwe") or [])
             w.writerow(row)
+
+
+def write_rule_timing_csv(rows: List[Dict[str, Any]], out_csv: Path) -> None:
+    """Write per-rule/per-query timing data.
+
+    Expected row keys:
+      ruleIds (list[str])
+      query (str)
+      suites (list[str])
+      wall_seconds (float)
+      sarif (str)
+      returncode (int)
+    """
+    headers = ["ruleIds", "query", "suites", "wall_seconds", "sarif", "returncode"]
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    with out_csv.open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=headers)
+        w.writeheader()
+        for r in rows:
+            w.writerow({
+                "ruleIds": ",".join(r.get("ruleIds") or []),
+                "query": r.get("query"),
+                "suites": ",".join(r.get("suites") or []),
+                "wall_seconds": f"{float(r.get('wall_seconds') or 0.0):.6f}",
+                "sarif": r.get("sarif"),
+                "returncode": int(r.get("returncode") or 0),
+            })
 
 # ---------- CodeQL version/pack info ----------
 
@@ -635,6 +711,9 @@ def main():
     ap.add_argument("-v", dest="verbosity", action="count", default=0,
                     help="Increase CodeQL CLI verbosity (-v/-vv/-vvv)")
 
+    ap.add_argument("--time-per-rule", action="store_true",
+                    help="Run CodeQL queries one-by-one (after expanding suites) and emit per-rule timing logs. Produces codeql_rule_time.(jsonl|csv) and a merged codeql-results.sarif.")
+
     args = ap.parse_args()
 
     setup_logging(args.loglevel)
@@ -698,19 +777,86 @@ def main():
     if args.also_run_cpp_queries:
         suites_to_run.append("codeql/cpp-queries")
 
-    analyze_cmd = [
-        "codeql","database","analyze", str(db_path),
-        *suites_to_run,
-        "--format=sarifv2.1.0",
-        "--output", str(sarif_path),
-    ]
-    if additional_packs:
-        analyze_cmd += ["--additional-packs", os.pathsep.join(str(p) for p in additional_packs)]
-    analyze_cmd = extend_common_flags(analyze_cmd, args)
+    if args.time_per_rule:
+        timing_dir = outputs_root / "timing"
+        timing_dir.mkdir(parents=True, exist_ok=True)
+        timing_jsonl = outputs_root / "codeql_rule_time.jsonl"
+        timing_csv = outputs_root / "codeql_rule_time.csv"
 
-    logging.info("==> Analyzing database with %d suite(s)...", len(suites_to_run))
-    run(analyze_cmd, check=True)
-    logging.info("✓ Analysis complete → %s", sarif_path)
+        # Expand suites to an ordered list of individual queries.
+        q_to_suites: Dict[str, List[str]] = {}
+        ordered_queries: List[str] = []
+        for suite in suites_to_run:
+            for q in resolve_queries([suite], args=args, additional_packs=additional_packs):
+                if q not in q_to_suites:
+                    q_to_suites[q] = [suite]
+                    ordered_queries.append(q)
+                elif suite not in q_to_suites[q]:
+                    q_to_suites[q].append(suite)
+
+        if not ordered_queries:
+            logging.warning("resolve-queries produced an empty query set; falling back to suite-level analysis")
+            args.time_per_rule = False
+
+        timing_rows: List[Dict[str, Any]] = []
+        merged: Dict[str, Any] = {"version": "2.1.0", "runs": []}
+
+        if args.time_per_rule:
+            logging.info("==> Analyzing %d queries (expanded from %d suite specifier(s))...",
+                         len(ordered_queries), len(suites_to_run))
+            for idx, q in enumerate(ordered_queries, start=1):
+                q_out = timing_dir / f"{idx:04d}_{Path(q).stem}.sarif"
+                one_cmd = [
+                    "codeql", "database", "analyze", str(db_path),
+                    q,
+                    "--format=sarifv2.1.0",
+                    "--output", str(q_out),
+                ]
+                if additional_packs:
+                    one_cmd += ["--additional-packs", os.pathsep.join(str(p) for p in additional_packs)]
+                one_cmd = extend_common_flags(one_cmd, args)
+
+                logging.info("==> [%d/%d] %s", idx, len(ordered_queries), q)
+                rc, _, _, wall = run_timed(one_cmd, check=True)
+
+                try:
+                    sarif_q = json.loads(q_out.read_text(encoding="utf-8"))
+                except Exception:
+                    sarif_q = {"runs": []}
+
+                merged["runs"].extend((sarif_q.get("runs") or []))
+                timing_rows.append({
+                    "ruleIds": sarif_rule_ids(sarif_q),
+                    "query": q,
+                    "suites": q_to_suites.get(q, []),
+                    "wall_seconds": float(wall),
+                    "sarif": str(q_out),
+                    "returncode": int(rc),
+                })
+
+            sarif_path.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+
+            with timing_jsonl.open("w", encoding="utf-8") as f:
+                for r in timing_rows:
+                    f.write(json.dumps(r, ensure_ascii=False) + "\n")
+            write_rule_timing_csv(timing_rows, timing_csv)
+            logging.info("✓ Analysis complete → %s", sarif_path)
+            logging.info("Wrote per-rule timing logs → %s / %s", timing_jsonl, timing_csv)
+
+    if not args.time_per_rule:
+        analyze_cmd = [
+            "codeql","database","analyze", str(db_path),
+            *suites_to_run,
+            "--format=sarifv2.1.0",
+            "--output", str(sarif_path),
+        ]
+        if additional_packs:
+            analyze_cmd += ["--additional-packs", os.pathsep.join(str(p) for p in additional_packs)]
+        analyze_cmd = extend_common_flags(analyze_cmd, args)
+
+        logging.info("==> Analyzing database with %d suite(s)...", len(suites_to_run))
+        run(analyze_cmd, check=True)
+        logging.info("✓ Analysis complete → %s", sarif_path)
 
 
     # 2b) Ensure compile_commands.json exists (for downstream tools like KLEE)
@@ -751,6 +897,7 @@ def main():
             "also_run_cpp_queries": args.also_run_cpp_queries,
             "context_lines": args.context_lines,
             "overwrite": args.overwrite,
+            "time_per_rule": bool(args.time_per_rule),
             "additional_packs": [str(p) for p in additional_packs],
         },
         "codeql_version": codeql_version(),
@@ -759,6 +906,8 @@ def main():
             "outputs_root": str(outputs_root),
             "db_path": str(db_path),
             "sarif": str(sarif_path),
+            "rule_timing_jsonl": str(outputs_root / "codeql_rule_time.jsonl") if args.time_per_rule else None,
+            "rule_timing_csv": str(outputs_root / "codeql_rule_time.csv") if args.time_per_rule else None,
             "json": str(json_out),
             "jsonl": str(jsonl_out),
             "csv": str(csv_out),
