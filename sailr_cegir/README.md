@@ -30,7 +30,8 @@ What it does (high-level):
 # Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> [RULE_ID]
 
 ```bash
-bash sailr_cegir/run_stailor.sh 19910/binutils_19910_vul oob-read
+export ENABLE_KLEE_POSIX=1
+bash sailr_cegir/run_robust_pipeline.sh "62911/libxml2_62911_vul" 
 ```
 
 ---
@@ -113,6 +114,26 @@ python3 sailr_cegir/collect_results.py \
 
 
 ---
+## Adding New Vulnerability Rules
+
+The pipeline automatically selects a verification strategy based on the **Rule ID** (CodeQL `@id`).
+You must follow these naming conventions to ensure the correct oracle is used.
+
+### 1. Memory Corruption Rules (Implicit Oracle)
+If your rule detects **Buffer Overflows, OOB Access, Use-After-Free, or Memory Corruption**, the Rule ID **MUST** contain one of these keywords:
+> **Keywords:** `oob`, `overflow`, `bounds`, `memfunc`
+
+* **Behavior:** The agent uses the "Safe Landing" strategy (`BUG_ASSERT(0)`), enables hash collision stubs, and inverts safety checks.
+* *Example IDs:* `cpp/oob-read`, `local/buffer-overflow`, `custom-memfunc-misuse`.
+
+### 2. Logic & State Rules (Explicit Oracle)
+Any rule ID **NOT** containing the keywords above defaults to the **Logic Error** strategy.
+
+* **Behavior:** The agent attempts to synthesize a precise predicate (e.g., `BUG_ASSERT(ret == -1)`).
+* *Example IDs:* `cpp/missing-check`, `local/bad-return-value`.
+
+**Important:** If you add a memory rule named `cpp/use-after-free` (without keywords), the agent will incorrectly treat it as a logic bug and fail. You must name it `cpp/oob-use-after-free` or similar to trigger the memory strategy.
+
 
 ## Troubleshooting
 

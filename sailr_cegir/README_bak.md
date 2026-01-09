@@ -86,7 +86,7 @@ SAILR assumes a frozen dataset snapshot under ./dataset/.
 
 Extract target project source (e.g., from CyberGym):
 ```
-python3 extract_from_cybergym.py arvo:19910 binutils
+python3 extract_from_cybergym.py arvo:62911 libxml2
 
 python3 extract_from_cybergym.py arvo:55980 libxml2
 # Produces: ./dataset/55980/libxml2_55980_vul/...
@@ -118,10 +118,10 @@ cd -
 2. Run scan
 ```
 ./codeql_scan.sh \
-  PROJECT_NAME=binutils_19910_vul \
-  SRC_ROOT=./dataset/19910/binutils_19910_vul \
-  BUILD_CMD="make -j$(nproc)" \
-  QUERY_SUITES="rules/oob-pack/suites/oob-read.qls" \
+  PROJECT_NAME=libxml2_62911_vul \
+  SRC_ROOT=./dataset/62911/libxml2_62911_vul \
+  BUILD_CMD="./build.sh" \
+  QUERY_SUITES="rules/stailor-queries/suites/stailor.qls" \
   CONTEXT_LINES=5 \
   ALSO_CPP=false
 ```
