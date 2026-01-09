@@ -1,13 +1,14 @@
 {
-  "timestamp_utc": "2026-01-02T02:09:07.013443+00:00",
+  "timestamp_utc": "2026-01-07T17:29:21.401708+00:00",
   "project": "libxml2_62911_vul",
   "args": {
     "query_suites": [
-      "rules/oob-pack/suites/oob-read.qls"
+      "rules/stailor-queries/suites/stailor.qls"
     ],
     "also_run_cpp_queries": false,
     "context_lines": 5,
     "overwrite": true,
+    "time_per_rule": true,
     "additional_packs": [
       "/media/shafi/Research/STAILOR/rules"
     ]
@@ -18,6 +19,8 @@
     "outputs_root": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul",
     "db_path": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul/codeql-db",
     "sarif": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul/codeql-results.sarif",
+    "rule_timing_jsonl": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul/codeql_rule_time.jsonl",
+    "rule_timing_csv": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul/codeql_rule_time.csv",
     "json": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul/findings.json",
     "jsonl": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul/findings.jsonl",
     "csv": "/media/shafi/Research/STAILOR/sa_outputs/libxml2_62911_vul/findings.csv",
