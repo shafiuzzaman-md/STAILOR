@@ -2,21 +2,22 @@
 dataset snapshot under ./dataset/.
 
 Extract target project source (e.g., from CyberGym):
-```
-python3 extract_from_cybergym.py arvo:62911 libxml2
-```
 
+1. python3 extract_from_cybergym.py arvo:62911 libxml2
 
-# Run CodeQL 
-chmod +x codeql_scan.sh 
+2. python3 extract_from_cybergym.py arvo:55980 libxml2
 
-1. Clean previous artifacts
+## Clean previous artifacts
 ```
 cd ./dataset/62911/libxml2_62911_vul
 make clean
 cd -
 ```
-2. Run scan
+# Run CodeQL 
+chmod +x codeql_scan.sh 
+
+1. 
+
 ```
 ./codeql_scan.sh \
   PROJECT_NAME=libxml2_62911_vul \
@@ -27,7 +28,17 @@ cd -
   ALSO_CPP=false \
   TIME_PER_RULE=true
 ```
-
+2. 
+```
+./codeql_scan.sh \
+  PROJECT_NAME=libxml2_55980_vul \
+  SRC_ROOT=./dataset/55980/libxml2_55980_vul \
+  BUILD_CMD="./build.sh" \
+  QUERY_SUITES="rules/stailor-queries/suites/stailor.qls" \
+  CONTEXT_LINES=5 \
+  ALSO_CPP=false \
+  TIME_PER_RULE=true
+```
 
 
 
