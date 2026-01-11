@@ -108,6 +108,12 @@ if [[ -n "${KLEE_FLAGS:-}" ]]; then KLEE_FLAGS_ARG=( --klee-flags "${KLEE_FLAGS}
 QL_FILE_ARG=()
 if [[ -n "${QL_FILE}" ]]; then QL_FILE_ARG=( --ql-file "${QL_FILE}" ); fi
 
+BUILD_PROJECT_BC_CMD_ARG=()
+if [[ -n "${BUILD_PROJECT_BC_CMD:-}" ]]; then
+  BUILD_PROJECT_BC_CMD_ARG=( --build-project-bc-cmd "${BUILD_PROJECT_BC_CMD}" )
+fi
+
+
 echo "[WORKER] Processing: ${STEM} (File: ${VUL_FILE}, Line: ${VUL_LINE})"
 
 # Call Python Driver
@@ -135,4 +141,5 @@ python3 "${SCRIPTS_DIR}/run_agent_for_spec.py" \
   --timeout "${TIMEOUT}" \
   --run-dir "${RUN_DIR}" \
   --project-bc "${PROJECT_BC}" \
+  "${BUILD_PROJECT_BC_CMD_ARG[@]}" \
   --summary-tsv "${SUMMARY_TSV}"
