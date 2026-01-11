@@ -4,20 +4,6 @@
 validate_plan_contract.py
 
 Deterministic Contract Validator (DCV) for the Planner output.
-
-Purpose
-- Reject plans that violate the Frozen-Plan contract (missing entrypoint, missing assertions, bad ordering, unsafe assumptions).
-- Provide actionable feedback so the Planner can repair the plan in the next turn.
-- Be backward compatible with older planner schemas.
-
-Accepted assertion schemas (per assertion object)
-A) Canonical:
-   { "id":"BUG_ASSERT", "kind":"bug", "condition":"<expr>", "placement_target":"..." }
-B) Legacy:
-   { "id":"BUG_ASSERT", "predicate":"<expr>", "placement_target":"..." }
-The validator normalizes both into a canonical internal form.
-
-This validator is intentionally conservative on *logic inference* (rule semantics) to avoid false rejections.
 """
 
 from __future__ import annotations
@@ -30,11 +16,6 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# Optional rule-plugin system (if present in repo)
-try:
-    from validators.registry import get_rule_validator
-except Exception:
-    get_rule_validator = None  # type: ignore
 
 MARK_BUG = "BUG_ASSERT"
 MARK_REACH = "REACH_ASSERT"
@@ -79,14 +60,18 @@ def _extract_assume_expr(s: str) -> Optional[str]:
 
 
 def normalize_assertions(assertions: Any) -> List[Dict[str, Any]]:
+    """
+    Normalize planner assertions into a canonical shape.
+    """
     out: List[Dict[str, Any]] = []
     if not isinstance(assertions, list):
         return out
+
     for a in assertions:
         if not isinstance(a, dict):
             continue
 
-        aa = dict(a)
+        aa = dict(a)  # preserve all extra keys
         kind = (aa.get("kind") or "").strip().lower()
         aid = (aa.get("id") or "").strip()
 
@@ -102,14 +87,21 @@ def normalize_assertions(assertions: Any) -> List[Dict[str, Any]]:
             elif kind == "reach":
                 aid = MARK_REACH
 
-        cond = (aa.get("condition") or aa.get("predicate") or aa.get("expr") or "").strip()
-        if not cond and kind == "reach":
+        # Prefer explicit condition/expr; fall back to legacy predicate if needed.
+        cond = (aa.get("condition") or aa.get("expr") or "").strip()
+        if not cond:
+            legacy_pred = (aa.get("predicate") or "").strip()
+            if legacy_pred:
+                cond = legacy_pred
+
+        if (not cond) and kind == "reach":
             cond = "1"
 
         aa["kind"] = kind
         aa["id"] = aid
         aa["condition"] = cond
         out.append(aa)
+
     return out
 
 
@@ -179,10 +171,25 @@ def validate_symbolic_setup(plan: Dict[str, Any]) -> List[str]:
                 errs.append(f"Input '{name}': concrete mode requires a 'value' field.")
     return errs
 
-
-def validate_assertions(plan: Dict[str, Any]) -> List[str]:
+def validate_assertions(plan: Dict[str, Any], strategy: str = None) -> List[str]:
+    """
+    Validate assertion schema and (optionally) strategy-specific oracle requirements.
+    """
     errs: List[str] = []
     assertions = normalize_assertions(plan.get("assertions", []))
+    strategy_u = (strategy or "").strip().upper()
+
+    # Frozen oracle enforcement (Phase I).
+    fm = plan.get("frozen_meta", {}) if isinstance(plan, dict) else {}
+    if isinstance(fm, dict) and fm.get("frozen_assertion_id"):
+        fid = str(fm.get("frozen_assertion_id"))
+        bugs = [a for a in assertions if isinstance(a, dict) and (a.get("kind") == "bug" or a.get("id") == MARK_BUG)]
+        if not bugs:
+            return [f"Plan must include the frozen bug oracle '{fid}' in 'assertions'."]
+        bad = [a for a in bugs if str(a.get("id") or "") != fid]
+        if bad or len(bugs) != 1:
+            return [f"Plan bug oracle must be exactly one assertion with id '{fid}' (frozen)."]
+
     if not assertions:
         return ["Plan must define a non-empty 'assertions' list."]
 
@@ -190,13 +197,47 @@ def validate_assertions(plan: Dict[str, Any]) -> List[str]:
     reach = [a for a in assertions if a.get("id") == MARK_REACH or a.get("kind") == "reach"]
 
     if not bugs:
-        errs.append("Plan is missing BUG_ASSERT (required).")
+        errs.append("Plan is missing BUG_ASSERT.")
     else:
-        bc = (bugs[0].get("condition") or "").strip()
-        if not bc:
-            errs.append("BUG_ASSERT must include a non-empty predicate/condition.")
-        if bc == "1" or bc.lower() == "true":
-            errs.append("BUG_ASSERT predicate cannot be a constant true; it must encode the bug condition.")
+        bug_node = bugs[0]
+        bid = (bug_node.get("id") or "").strip()
+        bc = (bug_node.get("condition") or "").strip()
+        bc_l = bc.lower()
+
+        if bid != MARK_BUG:
+            errs.append(f"Bug oracle id must be '{MARK_BUG}' (found '{bid or '<empty>'}').")
+
+        # Strategy-specific enforcement
+        if strategy_u == "OOB_READ":
+            # Must be a semantic predicate at the vuln site
+            if bc_l in {"0", "1", "true", "false"}:
+                errs.append("Strategy 'OOB_READ' requires a non-trivial predicate BUG_ASSERT(<expr>), not BUG_ASSERT(0/1).")
+            # Require instrumentation directive
+            inst = plan.get("instrumentation", [])
+            if not isinstance(inst, list) or not inst:
+                errs.append("Strategy 'OOB_READ' requires plan.instrumentation with a target-site BUG_ASSERT insertion.")
+            else:
+                # Basic sanity: at least one entry includes BUG_ASSERT
+                if not any(isinstance(x, dict) and "BUG_ASSERT" in str(x.get("code") or "") for x in inst):
+                    errs.append("plan.instrumentation must include code containing 'BUG_ASSERT(...)' for OOB_READ.")
+        elif strategy_u in {"OOB_WRITE", "UAF"}:
+            # Crash oracle: safe landing at BUG_ASSERT(0)
+            if bc_l not in {"0", "false"}:
+                errs.append(f"Strategy '{strategy_u}' requires a crash oracle: BUG_ASSERT condition must be '0' (or 'false').")
+        elif strategy_u == "LOGIC":
+            # Semantic predicate oracle
+            if bc_l in {"0", "false"}:
+                errs.append("Strategy 'LOGIC' requires a semantic predicate; BUG_ASSERT(0) is invalid here.")
+        else:
+            # Generic: require non-empty condition
+            if not bc:
+                errs.append("BUG_ASSERT must include a non-empty predicate/condition.")
+
+        if bc_l in {"1", "true"}:
+            errs.append(
+                "BUG_ASSERT(1) is invalid: it triggers an unconditional crash. "
+                "Use a meaningful predicate for semantic bugs, or BUG_ASSERT(0) only for crash-oracle strategies."
+            )
 
     if not reach:
         errs.append("Plan is missing REACH_ASSERT (required).")
@@ -205,7 +246,7 @@ def validate_assertions(plan: Dict[str, Any]) -> List[str]:
         if not rc:
             errs.append("REACH_ASSERT predicate/condition cannot be empty (use '1').")
 
-    # Ordering: if BUG and REACH share the same placement_target, BUG must appear first in list.
+    # Ordering check
     by_target: Dict[str, List[Tuple[int, Dict[str, Any]]]] = {}
     for idx, a in enumerate(assertions):
         tgt = (a.get("placement_target") or "").strip()
@@ -217,7 +258,7 @@ def validate_assertions(plan: Dict[str, Any]) -> List[str]:
         if bug_idxs and reach_idxs and min(reach_idxs) < min(bug_idxs):
             errs.append(
                 f"Assertion ordering violation at placement_target='{tgt}': "
-                "REACH_ASSERT appears before BUG_ASSERT. BUG_ASSERT must come first."
+                "REACH_ASSERT appears before BUG_ASSERT. The Bug Oracle must come first."
             )
 
     return errs
@@ -233,6 +274,9 @@ def validate_no_safety_assume(plan: Dict[str, Any]) -> List[str]:
         return errs
     bug = (bugs[0].get("condition") or "").strip()
     if not bug:
+        return errs
+
+    if bug == "1" or bug.lower() == "true":
         return errs
 
     inv = invert_simple_comparison(bug)
@@ -253,7 +297,6 @@ def validate_no_safety_assume(plan: Dict[str, Any]) -> List[str]:
             continue
         expr_n = _norm_ws(expr)
 
-        # Hard reject: explicit negation of bug predicate
         if bug_n and (expr_n == f"!({bug_n})" or expr_n == f"!(%s)" % bug_n):
             errs.append(
                 "Plan blocks the bug: it assumes the negation of the BUG_ASSERT predicate via klee_assume(!bug_pred). "
@@ -261,7 +304,6 @@ def validate_no_safety_assume(plan: Dict[str, Any]) -> List[str]:
             )
             continue
 
-        # Hard reject: assume matches an invertible negation of bug condition (simple comparisons)
         if inv_n and expr_n == inv_n:
             errs.append(
                 "Plan blocks the bug: it assumes the safety condition that is the logical negation of the BUG predicate "
@@ -293,6 +335,7 @@ def validate_plan_against_contract(
     fact_pack: Optional[Dict[str, Any]] = None,
     project_name: Optional[str] = None,
     rule_id: Optional[str] = None,
+    strategy: Optional[str] = None,  # FIX: thread strategy through DCV
 ) -> DCVReport:
     hard: List[str] = []
     warn: List[str] = []
@@ -311,31 +354,16 @@ def validate_plan_against_contract(
     # Hard checks
     hard.extend(validate_entrypoint(plan))
     hard.extend(validate_symbolic_setup(plan))
-    hard.extend(validate_assertions(plan))
+    
+    # FIX: enforce strategy-specific oracle rules
+    hard.extend(validate_assertions(plan, strategy=strategy))
+    
     hard.extend(validate_no_safety_assume(plan))
 
     # Soft guidance
     plan_text = json.dumps(plan_obj)
     if "klee_make_symbolic" not in plan_text:
         warn.append("Plan should mention 'klee_make_symbolic' (or equivalent) to ensure symbolic inputs are created.")
-
-    # Optional rule plugins
-    if get_rule_validator is not None and rule_id:
-        v = get_rule_validator(rule_id)
-        if v is not None:
-            try:
-                out = v.validate_plan(
-                    plan_obj,
-                    rule_id=rule_id,
-                    spec=spec,
-                    ctx={"spec": spec, "fact_pack": fact_pack, "src_root": str(src_root) if src_root else None},
-                )
-                hard.extend(list(out.hard_errors or []))
-                warn.extend(list(out.warnings or []))
-                if (out.reason or "").strip() and not out.hard_errors:
-                    warn.append(out.reason.strip())
-            except Exception as e:
-                warn.append(f"[Plugin Warning] Rule validator crashed: {e}")
 
     ok = len(hard) == 0
     feedback = ""
@@ -355,6 +383,7 @@ def main() -> int:
     ap.add_argument("--fact-pack", default=None)
     ap.add_argument("--project-name", default=None)
     ap.add_argument("--rule-id", default=None)
+    ap.add_argument("--strategy", default=None, help="Strategy name (OOB_READ, OOB_WRITE, UAF, LOGIC)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -372,6 +401,7 @@ def main() -> int:
         fact_pack=fact_pack,
         project_name=args.project_name,
         rule_id=args.rule_id,
+        strategy=args.strategy,  # FIX: pass CLI strategy into DCV core
     )
 
     if args.out:
