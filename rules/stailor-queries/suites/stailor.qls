@@ -1,17 +1,21 @@
 # rules/stailor-queries/suites/stailor.qls
-- description: Comprehensive Candidate Generation (Standard + Custom)
+- description: Comprehensive Candidate Generation (Standard + Custom + Integer Overflow)
   from: codeql/cpp-queries
   queries: '.'
   include:
     id:
-      - cpp/overflow-buffer                     # Standard: Buffer overflow
-      - cpp/invalid-pointer-deref               # Standard: Invalid deref
-      - cpp/static-buffer-overflow              # Standard: Fixed-size overflow
-      - cpp/offset-use-before-range-check       # Standard: Gap 1 Coverage (Index misuse)
-      - cpp/unbounded-write                     # Standard: Unbounded loops
+      - cpp/overflow-buffer                 # Standard: Buffer overflow
+      - cpp/invalid-pointer-deref           # Standard: Invalid deref
+      - cpp/static-buffer-overflow          # Standard: Fixed-size overflow
+      - cpp/offset-use-before-range-check   # Standard: Gap 1 Coverage
+      - cpp/unbounded-write                 # Standard: Unbounded loops
+      # --- NEW: Integer Overflow Rules ---
+      - cpp/integer-multiplication-overflow # CWE-190: Multiplication wrapping
+      - cpp/allocation-size-overflow        # CWE-190: Malloc size wrapping (Critical for libxml2)
+      - cpp/comparison-with-wider-type      # CWE-190: Implicit cast issues
+      - cpp/signed-overflow-check           # CWE-190: Signed arithmetic issues
 
 # Custom Feeder Rules for KLEE
 - query: queries/CWE-120_BufferOverflow.ql
 - query: queries/CWE-125_OutOfBoundsRead.ql
-- query: queries/CWE-787_OutOfBoundsWrite.ql
-- query: queries/CWE-787_OutOfBoundsWrite.ql
+- query: queries/CWE-787_OutOfBoundsWrite.ql 
