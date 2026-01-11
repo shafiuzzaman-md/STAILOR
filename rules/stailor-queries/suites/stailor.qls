@@ -1,21 +1,37 @@
 # rules/stailor-queries/suites/stailor.qls
-- description: Comprehensive Candidate Generation (Standard + Custom + Integer Overflow)
+- description: Comprehensive Candidate Generation (Standard + Custom + Integer Overflow + UAF)
   from: codeql/cpp-queries
   queries: '.'
   include:
     id:
-      - cpp/overflow-buffer                 # Standard: Buffer overflow
-      - cpp/invalid-pointer-deref           # Standard: Invalid deref
-      - cpp/static-buffer-overflow          # Standard: Fixed-size overflow
-      - cpp/offset-use-before-range-check   # Standard: Gap 1 Coverage
-      - cpp/unbounded-write                 # Standard: Unbounded loops
-      # --- NEW: Integer Overflow Rules ---
-      - cpp/integer-multiplication-overflow # CWE-190: Multiplication wrapping
-      - cpp/allocation-size-overflow        # CWE-190: Malloc size wrapping (Critical for libxml2)
-      - cpp/comparison-with-wider-type      # CWE-190: Implicit cast issues
-      - cpp/signed-overflow-check           # CWE-190: Signed arithmetic issues
+      # --- Memory Corruption (Standard) ---
+      - cpp/overflow-buffer
+      - cpp/invalid-pointer-deref
+      - cpp/static-buffer-overflow
+      - cpp/offset-use-before-range-check
+      - cpp/unbounded-write
+      - cpp/overrun-read
+      
+      # --- Integer Overflow ---
+      - cpp/integer-multiplication-overflow
+      - cpp/allocation-size-overflow
+      - cpp/comparison-with-wider-type
+      - cpp/signed-overflow-check
 
-# Custom Feeder Rules for KLEE
+      # --- Use-After-Free & Double Free (Standard) ---
+      - cpp/use-after-free                  # CWE-416: Standard UAF
+      - cpp/double-free                     # CWE-415: Standard Double Free
+      - cpp/return-stack-allocated-memory   # CWE-562: Return local stack address
+
+# --- Custom Feeder Rules (KLEE) ---
+# Buffer Issues
 - query: queries/CWE-120_BufferOverflow.ql
 - query: queries/CWE-125_OutOfBoundsRead.ql
-- query: queries/CWE-787_OutOfBoundsWrite.ql 
+- query: queries/CWE-787_OutOfBoundsWrite.ql
+
+# Use-After-Free (Standardized Custom Rules)
+- query: queries/CWE-416_UseAfterFree_FreeThenDeref.ql        # formerly cwe-416-free-then-deref-intra.ql
+- query: queries/CWE-416_UseAfterFree_FreeThenUse.ql          # formerly cwe-416-free-then-use-intra-fieldcollapse.ql
+- query: queries/CWE-416_UseAfterFree_FreeThenCallArg.ql      # formerly cwe-416-free-then-callarg-intra-fieldcollapse.ql
+- query: queries/CWE-416_UseAfterFree_LookupRemoveUse.ql      # formerly cwe-416-lookup-remove-use-intra.ql
+- query: queries/CWE-416_UseAfterFree_FreeThenReturn.ql       # formerly cwe-416-libxml2-free-then-use-intra-fieldcollapse.ql
