@@ -14,25 +14,34 @@ __pycache__/
 # --- Specs ---
 specs/**
 
-# =======================================================
-# ROBUST OUTPUT HANDLING (Fast Sweep / Deep Drill)
-# =======================================================
+# ===============
+#OUTPUT HANDLING
+# ===============
 
 # 1. Ignore ALL content in output directories by default
-se_runs*/
-sa_outputs*/
-stailor_report_pack_*/
+se_runs/
 
-# 2. WHITELIST: Re-include the folder structures
+# 2. Re-include directories so we can selectively unignore files
 # (Git cannot track files inside ignored folders unless the folder itself is un-ignored)
-!se_runs*/
-!sa_outputs*/
-!stailor_report_pack_*/
+!se_runs/**/
 
-# 3. WHITELIST: Critical Analysis Artifacts
-# Keep high-level summaries
-!**/summary.tsv
-!**/summary_report.csv
+# 3) Ignore all files under se_runs (after dirs are re-included)
+se_runs/**/*
+se_runs/**/.*
+
+# 4) Allow only the artifacts you want to track
+!se_runs/**/summary.tsv
+!se_runs/**/summary_agg.csv
+!se_runs/**/summary_agg.tsv
+!se_runs/**/summary_agg.html
+!se_runs/**/time.log
+!se_runs/**/errors.log
+!se_runs/**/counts.csv
+!se_runs/**/counts.tsv
+!se_runs/**/auto_validation_policy.yaml
+!se_runs/**/execution.log
+!se_runs/**/instrumentation.actions
+!se_runs/**/instrumented_build.stderr
 
 # Keep the Plan (Logic) & Policy
 !**/frozen_plan.json
