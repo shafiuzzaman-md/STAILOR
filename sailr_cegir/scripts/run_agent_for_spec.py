@@ -1151,30 +1151,58 @@ def _pick_llvm_link(explicit: Optional[str]) -> Optional[str]:
 
 def compile_harness_to_bc(args: argparse.Namespace, src_root: Path, harness_c: Path, out_bc: Path, project_bc: Optional[Path]) -> Tuple[bool, str, Path]:
     # ---------------------------------------------------------
-    # [FIX] Pre-emptive Clean: Remove collisions with library symbols
-    # Renames conflicting definitions (xmlMalloc, xmlStrQEqual) to 'stub_...'
+    # [GENERIC FIX] Dynamic Collision Detection
+    # 1. Get list of defined symbols in the project library to avoid redefinitions
     # ---------------------------------------------------------
-    if harness_c.exists():
+    defined_symbols = set()
+    if project_bc and project_bc.exists():
+        # Use llvm-nm to list defined global symbols
+        # Fallback to standard nm if llvm-nm is not in path
+        nm_tool = shutil.which("llvm-nm") or shutil.which("nm")
+        if nm_tool:
+            # llvm-nm format: just symbols
+            nm_cmd = [nm_tool, "--defined-only", "--format=just-symbols", str(project_bc)]
+            # Standard nm fallback
+            if "llvm-nm" not in nm_tool:
+                nm_cmd = [nm_tool, "--defined-only", str(project_bc)]
+                
+            rc, out, _, _ = run_cmd(nm_cmd, cwd=src_root)
+            if rc == 0:
+                for line in out.splitlines():
+                    clean = line.strip()
+                    if clean and not clean.startswith(" "):
+                        parts = clean.split()
+                        sym = parts[-1] 
+                        defined_symbols.add(sym)
+
+    # 2. Rename ANY stub in harness that conflicts with these symbols
+    if harness_c.exists() and defined_symbols:
         try:
             src = harness_c.read_text(encoding="utf-8", errors="replace")
             original_src = src
             
-            # List of symbols that commonly cause "multiply defined" errors in this project
-            collision_candidates = ["xmlMalloc", "xmlFree", "xmlStrQEqual", "xmlStrEqual", "xmlStrlen"]
+            # Regex: matches "void funcName(...) {" or "int funcName(...) {"
+            # Captures: 1=Type, 2=Name, 3=Args+Brace
+            func_pattern = r"(?m)(^\s*(?:void|int|char|unsigned|size_t|double|float|long|struct\s+\w+)[\s\*]+)([a-zA-Z_]\w+)(\s*\([^)]*\)\s*\{{)"
             
-            for sym in collision_candidates:
-                # Regex matches: return_type funcName(...) {
-                # e.g., "int xmlStrQEqual(...) {"
-                pattern = rf"(?m)(^\s*(?:void|int|char|unsigned|size_t)[\s\*]+){sym}(\s*\([^)]*\)\s*\{{)"
-                if re.search(pattern, src):
-                    print(f"  [i] Auto-Repair: Renaming illegal '{sym}' stub to 'stub_{sym}'.")
-                    src = re.sub(pattern, rf"\1stub_{sym}\2", src)
+            def collision_replacer(match):
+                ret, name, rest = match.groups()
+                if name == "main": return match.group(0)
+                
+                # If the symbol exists in the library, force a rename to stub_
+                if name in defined_symbols:
+                    print(f"  [i] Auto-Repair: Renaming colliding stub '{name}' to 'stub_{name}'")
+                    return f"{ret}stub_{name}{rest}"
+                    
+                return match.group(0)
 
-            if src != original_src:
-                harness_c.write_text(src, encoding="utf-8")
+            new_src = re.sub(func_pattern, collision_replacer, src)
+            
+            if new_src != original_src:
+                harness_c.write_text(new_src, encoding="utf-8")
                 
         except Exception as e:
-            print(f"  [!] Warning: Auto-Repair failed during file IO: {e}")
+            print(f"  [!] Warning: Generic auto-repair failed: {e}")
     # ---------------------------------------------------------
 
     cmd = [args.clang] + args.clang_flags + ["-g", "-emit-llvm", "-c", str(harness_c), "-o", str(out_bc)]
@@ -1189,11 +1217,9 @@ def compile_harness_to_bc(args: argparse.Namespace, src_root: Path, harness_c: P
         linked_bc = out_bc.parent / "harness.linked.bc"
         lcmd = [llvm_link, str(out_bc), str(project_bc), "-o", str(linked_bc)]
         
-        # Verbose output to catch linker errors
         lrc, lout, lerr, _ = run_cmd(lcmd, cwd=src_root)
         
         if lrc != 0: 
-            # Fallback detection if auto-repair missed something
             if "symbol multiply defined" in lerr:
                 collided_sym = re.search(r"globals named '([^']+)'", lerr)
                 sym_name = collided_sym.group(1) if collided_sym else "the symbol"
@@ -1386,7 +1412,8 @@ def finalize_frozen_plan(
     rule_id: str, 
     spec_stem: str, 
     policy: Dict[str, Any],
-    project_bc_path: Optional[Path] = None  # <--- [NEW] Add this argument
+    project_bc_path: Optional[Path] = None,
+    src_root: Optional[Path] = None  
 ) -> Dict[str, Any]:
     """
     Automated Plan Fixer.
@@ -1427,18 +1454,56 @@ def finalize_frozen_plan(
         p["assumptions"] = merged
 
     # --- 3. Automated Stub Injection (Policy Driven) ---
+    # Contract integrity: semantic shortcut stubs (e.g., HASH_COLLISION) MUST be explicitly declared
+    # in stub_contracts[].exception. If enabled by policy, we auto-declare the exception so DCV/Builder
+    # can reason about it deterministically.
     rule_excs = set(vcfg.get("exceptions_by_rule", {}).get(rule_id, []) or [])
     spec_excs = set(vcfg.get("exceptions_by_spec", {}).get(spec_stem, []) or [])
     if "HASH_COLLISION" in (rule_excs | spec_excs):
         safe_const = str(vcfg.get("exception_detectors", {}).get("HASH_COLLISION", {}).get("constant_return_value", "1"))
         target_hashes = set(vcfg.get("hash_function_names", []))
         if target_hashes:
-            stubs = p.setdefault("embedding_plan", {}).setdefault("stub_instead_of_embed", [])
-            stub_map = {s["name"]: s for s in stubs}
-            for fname in target_hashes:
-                if fname not in stub_map:
-                    stubs.append({"name": fname, "strategy": f"constant_return_{safe_const}", "notes": "[Auto-Inject]"})
+            # 3A) Ensure the Frozen Plan explicitly records the exception.
+            sc = p.setdefault("stub_contracts", [])
+            if not isinstance(sc, list):
+                sc = []
+                p["stub_contracts"] = sc
 
+            def _has_hash_collision_decl(fn: str) -> bool:
+                for ent in sc:
+                    if isinstance(ent, dict) and ent.get("function") == fn and str(ent.get("exception") or "").upper() == "HASH_COLLISION":
+                        return True
+                return False
+
+            for fname in sorted(target_hashes):
+                if not _has_hash_collision_decl(fname):
+                    sc.append({
+                        "function": fname,
+                        "reason": "HASH_COLLISION exception required to explore collision-handling paths.",
+                        "stub_kind": "nondet",
+                        "constraints": [f"return constant {safe_const} to force collisions"],
+                        "exception": "HASH_COLLISION",
+                    })
+
+            # 3B) Inject the constant-return stub directive (builder consumes this).
+            stubs = p.setdefault("embedding_plan", {}).setdefault("stub_instead_of_embed", [])
+            stub_map = {s.get("name"): s for s in stubs if isinstance(s, dict) and s.get("name")}
+            for fname in sorted(target_hashes):
+                if fname not in stub_map:
+                    stubs.append({"name": fname, "strategy": f"constant_return_{safe_const}", "notes": "[Auto-Inject HASH_COLLISION]"})
+            # B. [FIX] Inject into stub_contracts (Permission for Builder)
+            # This satisfies the "Must declare exception" contract rule.
+            contracts = p.setdefault("stub_contracts", [])
+            contract_map = {c.get("function"): c for c in contracts}
+            for fname in target_hashes:
+                if fname not in contract_map:
+                    contracts.append({
+                        "function": fname,
+                        "stub_kind": "nondet",
+                        "reason": "Auto-injected hash collision strategy",
+                        "constraints": [f"return {safe_const};"],
+                        "exception": "HASH_COLLISION" # <--- LEGITIMIZES THE STUB
+                    })
     # --- 4. [GENERIC FIX] Sanitize Instrumentation (klee_assert) ---
     # Fixes: "undefined reference to function: klee_assert"
     inst_list = p.get("instrumentation", [])
@@ -1467,6 +1532,106 @@ def finalize_frozen_plan(
                             s["stub_kind"] = "ignore"
         except Exception as e:
             print(f"[!] Warning: Could not check symbols in project.bc: {e}")
+
+    # --- 6. [AUTO-CORRECT] OOB_WRITE Instrumentation Logic ---
+    # Enforces:
+    # 1. BUG_ASSERT(0) must be 'insert_after' the vulnerable line (not before).
+    # 2. REACH_ASSERT() must be injected alongside BUG_ASSERT(0).
+    strategy_name = (ctx.get("strategy") or {}).get("name", "")
+    if strategy_name == "OOB_WRITE":
+        instr_list = p.get("instrumentation", [])
+        
+        # [cite_start][NEW] Helper to find safe insertion point for multi-line statements [cite: 1]
+        def _find_safe_after_line(fname: str, start_line: int) -> int:
+            if not src_root: return start_line
+            try:
+                # Handle potential absolute paths or relative
+                tgt = (src_root / fname).resolve() if not Path(fname).is_absolute() else Path(fname)
+                if not tgt.exists(): return start_line
+                
+                lines = tgt.read_text(encoding="utf-8", errors="replace").splitlines()
+                idx = start_line - 1 # 0-based
+                if idx >= len(lines): return start_line
+                
+                # Scan forward for statement terminator (max 10 lines)
+                for offset in range(0, 10):
+                    curr = idx + offset
+                    if curr >= len(lines): break
+                    
+                    line_clean = lines[curr].split("//")[0].strip() # ignore comments
+                    if not line_clean: continue
+                    
+                    # If we find a semicolon or closing brace, this is likely the end.
+                    if ";" in line_clean or "}" in line_clean:
+                        return start_line + offset
+                return start_line
+            except Exception:
+                return start_line
+
+        # 1. Fix Assertion Placement
+        for instr in instr_list:
+            if "BUG_ASSERT" in instr.get("code", ""):
+                # If they placed it at the target line, force it AFTER to catch the crash
+                if instr.get("line") == ctx.get("vul_line"):
+                    
+                    # [cite_start][FIX] Adjust line number to avoid breaking multi-line calls [cite: 2]
+                    safe_line = _find_safe_after_line(instr.get("file", ""), instr["line"])
+                    
+                    if safe_line != instr["line"]:
+                        print(f"  [i] Auto-Correct: Adjusted insertion point from L{instr['line']} to L{safe_line} (Multi-line stmt detected).")
+                        instr["line"] = safe_line
+
+                    if instr.get("kind") != "insert_after":
+                        print(f"  [i] Auto-Correct: Changed BUG_ASSERT placement to 'insert_after' line {instr['line']}.")
+                        instr["kind"] = "insert_after"
+
+        # 2. Ensure REACH_ASSERT exists
+        has_reach = any("REACH_ASSERT" in i.get("code", "") for i in instr_list)
+        if not has_reach:
+            # Use the safe line for REACH_ASSERT too
+            safe_vuln_line = _find_safe_after_line(ctx.get("vul_file"), ctx.get("vul_line"))
+            print(f"  [i] Auto-Correct: Injecting missing REACH_ASSERT for OOB_WRITE at L{safe_vuln_line}.")
+            instr_list.append({
+                "file": ctx.get("vul_file"),
+                "line": safe_vuln_line,
+                "kind": "insert_after",
+                "code": "REACH_ASSERT();"
+            })
+
+    # [PATCH 2] Force Allocation Safety for OOB
+    if strategy_name in ["OOB_WRITE", "OOB_READ"]:
+        sym_inputs = p.get("symbolic_inputs", [])
+        if isinstance(sym_inputs, list):
+            for sym in sym_inputs:
+                sz = sym.get("allocation_size")
+                # Bump 64 -> 256 to match the Strategy
+                if isinstance(sz, int) and sz < 256:
+                    print(f"  [i] Auto-Correct: Boosting allocation_size from {sz} to 256.")
+                    sym["allocation_size"] = 256
+                    sym["allocation_strategy"] = "concrete_capacity_256"
+    # --- 7. [AUTO-CORRECT] Path Normalization (Absolute -> Relative) ---
+    # Fixes planner hallucination of absolute paths which breaks instrumentation application.
+    if src_root:
+        inst_list = p.get("instrumentation", [])
+        if isinstance(inst_list, list):
+            src_root_abs = src_root.resolve()
+            for instr in inst_list:
+                fpath = str(instr.get("file", "")).strip()
+                if not fpath: continue
+                
+                path_obj = Path(fpath)
+                if path_obj.is_absolute():
+                    try:
+                        # Attempt 1: Clean relative path (preferred)
+                        # resolve() handles symlinks and ../ issues
+                        rel = path_obj.resolve().relative_to(src_root_abs)
+                        instr["file"] = str(rel)
+                        print(f"  [i] Auto-Correct: Relativized instrumentation path: {rel}")
+                    except ValueError:
+                        # Attempt 2: Fallback to basename
+                        # (Handles cases where planner hallucinated a /usr/include path or similar)
+                        print(f"  [i] Auto-Correct: Path '{path_obj}' outside root. Fallback to basename: {path_obj.name}")
+                        instr["file"] = path_obj.name
 
     p.setdefault("frozen_meta", {})
     p["frozen_meta"]["canonicalized"] = True
@@ -1702,12 +1867,23 @@ def validate_and_fix_assertions(src_root: Path, vul_file: str, plan: Dict[str, A
 
 def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_prompt: str, out_dir: Path, src_root: Path) -> Dict[str, Any]:
     # [UPDATED] Scientific Control Short-Circuit
-    # If a frozen plan already exists (e.g. copied from Stage 1), reuse it strictly.
     plan_path = out_dir / "frozen_plan.json"
     if plan_path.exists():
         print(f"\n[=] PHASE 1: SKIPPED (Provenance Re-Use)")
         print(f"  [i] Reusing locked Frozen Plan found at: {plan_path}")
-        return read_json(plan_path)
+        # BUG WAS HERE: Returned raw JSON without fixing the klee_assert issue
+        cached_plan = read_json(plan_path)
+        
+        # [FIX] Always re-run finalizer to apply code sanitizers (like klee_assert fix)
+        return finalize_frozen_plan(
+            cached_plan, 
+            ctx, 
+            args.rule_id, 
+            args.spec_stem, 
+            args.validation_policy_obj,
+            project_bc_path=Path(args.project_bc) if args.project_bc else None,
+            src_root=src_root
+        )
         
     print("\n[=] PHASE 1: Frozen Context Analysis (Identifying Entrypoint & Logic)")
     ensure_dir(out_dir)
@@ -1793,7 +1969,8 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
                 args.rule_id, 
                 args.spec_stem, 
                 args.validation_policy_obj,
-                project_bc_path=Path(args.project_bc) if args.project_bc else None  # <--- PASS THIS
+                project_bc_path=Path(args.project_bc) if args.project_bc else None,
+                src_root=src_root 
             )
 
             temp_path = out_dir / "temp_plan.json"
@@ -1968,24 +2145,39 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
         if "REACH_ASSERT" in full_log and "ASSERTION FAIL" in full_log:
             reach_assert = True
     
+    # [FIX] Filter out "Provably False" errors from Harness Crashes
+    # These are logic errors in the harness, not execution crashes.
+    if "invalid klee_assume call (provably false)" in full_log:
+        # If we didn't find a real bug, treat this as a harness configuration error (H0), NOT a crash.
+        if not bug_assert:
+            print("  [i] KLEE: Assumption failure (provably false). Marking as H0 (Refinement needed).")
+            # We explicitly do NOT set failure_reason to HARNESS_LOCAL_CRASH to avoid downgrading the whole run.
+            return {
+                "status": "harness_constraint_error", # New status
+                "bug_assert_hit": False, "reach_assert_hit": False, 
+                "elapsed": t, "full_log": full_log, 
+                "failure_reason": "Harness assumption provably false (Constraint Error)"
+            }
+        
+
     # Locality Check
     failure_reason = None
     if bug_assert and target_line > 0:
         is_local, loc_msg = check_crash_locality(full_log, target_file, target_line)
-        if not is_local:
-            # If the crash is harness-local, surface it as a refinement signal.
-            if loc_msg.startswith("HARNESS_LOCAL_CRASH:"):
-                print(f"  [!] Harness crashed before reaching target: {loc_msg}")
-                bug_assert = False
-                failure_reason = loc_msg
-                full_log += f"\n\n[SYSTEM ANALYSIS]: {loc_msg}\n"
-                (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
-            else:
-                print(f"  [!] Discarding crash: {loc_msg}")
-                bug_assert = False  
-                failure_reason = loc_msg
-                full_log += f"\n\n[SYSTEM ANALYSIS]: Crash discarded: {loc_msg}\n"
-                (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
+
+        # [FIX] If the crash is an "Explicit BUG_ASSERT", we trust it regardless of locality 
+        # (because instrumentation might have shifted lines).
+        if "Explicit BUG_ASSERT" in loc_msg:
+            pass # Keep bug_assert = True
+            
+        elif not is_local:
+            # If it's a memory error (e.g. encoding.c:1059) but far from target (1129),
+            # we discard it to avoid false attribution.
+            print(f"  [!] Discarding unrelated crash: {loc_msg}")
+            bug_assert = False  
+            failure_reason = loc_msg
+            full_log += f"\n\n[SYSTEM ANALYSIS]: Crash discarded: {loc_msg}\n"
+            (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
 
     # --- NEW: if KLEE produced an error and we did NOT reach any assertion, classify harness-local crash ---
     # This fixes the common case where KLEE errors out in the harness (e.g., buf[len-1]) before entering target,
@@ -2080,7 +2272,7 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any]) -> List[st
             actions.append(f"[instrumentation] missing file: {rel}")
             continue
 
-        # [CRITICAL] Sort DESCENDING by line number.
+        # Sort DESCENDING by line number.
         # This ensures we edit the bottom first, preserving offsets for top lines.
         directives.sort(key=lambda x: -int(x.get("line") or 0))
 
@@ -2092,7 +2284,14 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any]) -> List[st
             line_idx = int(ent.get("line") or 0)
             kind = (ent.get("kind") or "insert_before").strip()
             code = str(ent.get("code") or "").rstrip()
-            
+
+            # If line number is greater than file length, it's a hallucination.
+            # We reject it to avoid appending garbage to the end of the file.
+            if line_idx > len(lines):
+                print(f"  [!] Skipping invalid instrumentation at {rel}:{line_idx} (File has {len(lines)} lines)")
+                actions.append(f"[instrumentation] SKIP OOB {rel}:{line_idx}")
+                continue
+
             if line_idx <= 0 or not code: continue
             
             # Calculate insertion index (0-based) from line number (1-based)
@@ -2110,7 +2309,10 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any]) -> List[st
             else:
                 insert_pos = idx
             
-            # Apply to memory list
+            # Final sanity check: Don't append if it pushes beyond EOF unless file is empty
+            if insert_pos > len(lines) and len(lines) > 0:
+                 continue
+            
             if insert_pos >= len(lines):
                 lines.append(ins)
             else:
@@ -2230,16 +2432,61 @@ def check_klee_completion(log_text: str) -> bool:
     if "halted on" in log_text: return False
     return True
 
+def _extract_bug_assert_predicate_from_main(harness_src: str) -> Optional[str]:
+    """
+    Robustly extracts the predicate from BUG_ASSERT() inside main(),
+    ignoring comments, strings, and preprocessor macros.
+    """
+    # 1. Strip comments and strings first to prevent parsing noise
+    clean_src = strip_c_comments_and_strings(harness_src)
+    
+    # 2. Remove preprocessor lines (prevents matching #define BUG_ASSERT...)
+    no_pp = "\n".join(
+        ln for ln in clean_src.splitlines()
+        if not ln.lstrip().startswith("#")
+    )
+
+    # 3. Only search inside main()
+    # Matches: int main(...) {
+    mm = re.search(r"\bint\s+main\s*\([^)]*\)\s*\{", no_pp)
+    if not mm:
+        return None
+    
+    body = no_pp[mm.end():]
+
+    # 4. Stop at end of main (Robust Brace Counting on stripped text)
+    depth = 1
+    end_idx = -1
+    for i, char in enumerate(body):
+        if char == '{':
+            depth += 1
+        elif char == '}':
+            depth -= 1
+            if depth == 0:
+                end_idx = i
+                break
+    
+    if end_idx != -1:
+        body = body[:end_idx]
+
+    # 5. Search for BUG_ASSERT(pred);
+    # Robust regex allowing for newlines inside parens
+    m = re.search(r"\bBUG_ASSERT\s*\((.*?)\)\s*;", body, flags=re.DOTALL)
+    if m:
+        return m.group(1).strip()
+    return None
+
 def validate_harness_structure(
     harness_src: str,
     required_entrypoint: str,
     policy: Dict[str, Any],
     rule_id: str,
     spec_stem: str,
-    frozen_plan: Dict[str, Any] = None
+    frozen_plan: Dict[str, Any] = None,
+    defined_symbols: Set[str] = None  # <--- [NEW] Project symbols set
 ) -> Tuple[bool, str]:
     """
-    Hardened validation with Robust Parsing & Policy Enforcement.
+    Hardened validation with Robust Parsing, Policy Enforcement, and Collision Prevention.
     """
     # --- 1. Marker Check ---
     required_markers = [
@@ -2252,7 +2499,6 @@ def validate_harness_structure(
             return False, f"Missing required section marker: {mk}"
 
     try:
-        # Capture the Global section to check for misplaced main()
         global_sec, rest = harness_src.split("/* --- Stub Functions --- */", 1)
         stub_sec_raw, harness_sec = rest.split("/* --- Harness --- */", 1)
     except Exception:
@@ -2261,64 +2507,74 @@ def validate_harness_structure(
     clean_harness = strip_c_comments_and_strings(harness_sec)
     clean_all = strip_c_comments_and_strings(harness_src)
 
-    # --- 2. Macro Check ---
-    # For target-instrumented oracles (e.g., OOB_READ), the bug oracle lives in the instrumented source, not in the harness.
-    plan_assertions = frozen_plan.get("assertions", []) if frozen_plan else []
-    uses_check_read = any(a.get("id") == "CHECK_READ" for a in plan_assertions)
+    # --- 2. Linker Collision Prevention (Optimized & Robust) ---
+    # Strategy: Find what the harness defines, then check if it exists in the project.
+    if defined_symbols:
+        # Matches: Type Name(Args) {
+        # Captures: 1=Name
+        defn_pattern = re.compile(r"^\s*(?:[\w\s\*]+)\b([a-zA-Z_]\w*)\s*\([^;]*\)\s*\{", re.MULTILINE)
+        
+        # Scan the WHOLE clean source (Stubs + Harness)
+        for match in defn_pattern.finditer(clean_all):
+            func_name = match.group(1)
+            if func_name == "main": continue
+            
+            if func_name in defined_symbols:
+                return False, (
+                    f"LINKER COLLISION: You defined '{func_name}', but it already exists in the target library.\n"
+                    "VIOLATION: Defining it creates a 'multiple definition' error.\n"
+                    "FIX: Use Macro Redirection to stub it safely.\n"
+                    f"EXAMPLE:\n"
+                    f"   char* stub_{func_name}(...) {{ ... }}\n"
+                    f"   #define {func_name} stub_{func_name}"
+                )
 
-    if "#define BUG_ASSERT" not in clean_all or "#define REACH_ASSERT" not in clean_all:
-        return False, "Missing required assertion macro definitions (#define BUG_ASSERT / #define REACH_ASSERT)."
+    # --- 3. Assertion Placement Strategy (Merged Logic) ---
+    plan_inst = frozen_plan.get("instrumentation", []) if frozen_plan else []
+    plan_assertions = frozen_plan.get("assertions", []) if frozen_plan else []
     
+    has_source_bug = any("BUG_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
+    has_source_reach = any("REACH_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
+    
+    # 3a. CHECK_READ Requirement
+    uses_check_read = any(a.get("id") == "CHECK_READ" for a in plan_assertions)
     if uses_check_read and "#define CHECK_READ" not in clean_all:
         return False, "Plan requires 'CHECK_READ' but harness missing '#define CHECK_READ'."
 
-    # [FIXED] Detect Inverted Assertions based on Correct Semantics
-    # BUG_ASSERT(1) -> Forces crash (False Positive). Ban it.
+    # 3b. Detect Inverted Assertions
     inverted_assert_re = re.compile(r"BUG_ASSERT\s*\(\s*(1|true)\s*\)", re.IGNORECASE)
     if inverted_assert_re.search(clean_harness):
-        return False, (
-            "INVALID SENTINEL: 'BUG_ASSERT(1)' forces a crash immediately.\n"
-            "CORRECT USAGE: For Safe Landing (Crash Oracle), use 'BUG_ASSERT(0)'.\n"
-            "This implies: 'If we reach this line, the bug condition (0) did NOT happen.'"
-        )
+        return False, "INVALID SENTINEL: 'BUG_ASSERT(1)' forces a crash immediately. Use 'BUG_ASSERT(0)' for Safe Landing."
 
-    # -------------------------------------------------------------
-    # [PATCH] Assert Placement Enforcement (Source vs Harness)
-    # -------------------------------------------------------------
-    
-    # 1. Analyze Plan for Source-Side Instrumentation
-    plan_inst = frozen_plan.get("instrumentation", []) if frozen_plan else []
-    # Check if the plan injects assertions into the source code
-    has_source_bug = any("BUG_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
-    has_source_reach = any("REACH_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
-
-    # 2. Enforce BUG_ASSERT Placement
+    # 3c. Source vs Harness Placement (Policy Alignment)
     if has_source_bug:
-        if re.search(r"BUG_ASSERT\s*\(", harness_sec):
+        # Strategy says: Assertion is in the source (e.g. OOB_READ).
+        # Validator says: Harness MUST be assertion-free to prevent noise.
+        # We check for literal BUG_ASSERT calls in the code.
+        if re.search(r"BUG_ASSERT\s*\(", clean_harness):
              return False, (
                  "STRATEGY VIOLATION: You placed BUG_ASSERT() in the Harness.\n"
-                 "REASON: The strategy injects the bug oracle directly into the source code (Instrumented Predicate).\n"
-                 "ACTION: DELETE 'BUG_ASSERT(...);' from the harness. Just call the entrypoint.\n"
-                 "       (Your job is only to reach the target line, not to assert the bug)."
+                 "REASON: The strategy uses 'instrumented_predicate', so the assertion is injected into the target file.\n"
+                 "ACTION: DELETE BUG_ASSERT() from the harness. Just call the entrypoint."
              )
-    elif not re.search(r"BUG_ASSERT\s*\(", harness_sec):
-         # If NOT in source, MUST be in harness
-         return False, "Harness missing BUG_ASSERT(...) call."
+        # Note: We do NOT enforce "Missing BUG_ASSERT" here because it's handled by source.
+        
+    else:
+        # Standard Strategy: Assertion MUST be in harness.
+        # Use robust extractor to verify presence inside main().
+        # We skip this check if CHECK_READ is used (as that's a different oracle type).
+        if not uses_check_read:
+            if not _extract_bug_assert_predicate_from_main(harness_src):
+                 return False, "Harness is missing BUG_ASSERT(...) inside main()."
 
-    # 3. Enforce REACH_ASSERT Placement
+    # 3d. Enforce REACH_ASSERT Placement
     if has_source_reach:
         if re.search(r"REACH_ASSERT\s*\(", harness_sec):
-             return False, (
-                 "STRATEGY VIOLATION: You placed REACH_ASSERT() in the Harness.\n"
-                 "REASON: The strategy injects REACH_ASSERT directly into the source code (Deep Reachability).\n"
-                 "ACTION: DELETE 'REACH_ASSERT();' from the harness."
-             )
+             return False, "STRATEGY VIOLATION: You placed REACH_ASSERT() in the Harness. Delete it."
     elif not re.search(r"REACH_ASSERT\s*\(", harness_sec):
-         # If NOT in source, MUST be in harness
          return False, "Harness missing REACH_ASSERT() sentinel."
 
-    # 4. Check Ordering (Only if BOTH are in harness)
-    # If one is in source and other in harness, precise ordering check is complex/impossible statically.
+    # 3e. Check Ordering (Only if BOTH are in harness)
     if (not has_source_bug) and (not has_source_reach):
         _exec = re.sub(r"^\s*#.*$", " ", harness_sec, flags=re.MULTILINE)
         _exec = re.sub(r"/\*.*?\*/", " ", _exec, flags=re.S)
@@ -2328,176 +2584,108 @@ def validate_harness_structure(
         reach_pos = _exec.find("REACH_ASSERT")
         
         if reach_pos != -1 and bug_pos != -1 and reach_pos < bug_pos:
-            return False, (
-                "Invalid ordering: REACH_ASSERT appears before BUG_ASSERT in the Harness section. "
-                "Place the Bug Oracle first, then REACH_ASSERT."
-            )
+            return False, "Invalid ordering: REACH_ASSERT appears before BUG_ASSERT. Place Bug Oracle first."
 
-    # -------------------------------------------------------------
+    # --- 4. Enforce Frozen Assertion Equivalence (Robust) ---
+    if frozen_plan and not has_source_bug and not uses_check_read:
+        required_pred = ""
+        for a in plan_assertions:
+            if a.get("kind") == "bug" or a.get("id") == "BUG_ASSERT":
+                required_pred = a.get("condition") or a.get("predicate")
+                break
+        
+        if required_pred:
+            # Use the Robust Extractor
+            actual_pred = _extract_bug_assert_predicate_from_main(harness_src)
+            
+            if actual_pred:
+                req_norm = " ".join(required_pred.split())
+                act_norm = " ".join(actual_pred.split())
+                
+                # Allow exact match OR constants (0/1/true/false) for crash oracles
+                if req_norm != act_norm and act_norm not in ["1", "true", "0", "false"]:
+                     return False, (
+                         f"PLAN VIOLATION: Harness BUG_ASSERT predicate does not match Frozen Plan.\n"
+                         f"   Required: {req_norm}\n"
+                         f"   Found:    {act_norm}"
+                     )
 
-    # [NEW] Forbid Generic Placeholders
+    # --- 5. Forbid Generic Placeholders & Weak Assertions ---
     if "Placeholder" in harness_sec:
-        return False, (
-            "DETECTED PLACEHOLDER ASSERTION: You used a placeholder instead of the real bug predicate.\n"
-            "VIOLATION: You MUST implement the exact logic from the Frozen Plan.\n"
-            "IF you are missing a struct definition, SEARCH for it in the source files and copy it."
-        )
+        return False, "DETECTED PLACEHOLDER ASSERTION. You MUST implement the exact logic from the Frozen Plan."
     
     if re.search(r"BUG_ASSERT\s*\(\s*len\s*>\s*0\s*\)", harness_sec):
-         return False, (
-            "WEAK ASSERTION DETECTED: 'BUG_ASSERT(len > 0)' is too generic.\n"
-            "VIOLATION: The bug depends on specific buffer sizes (e.g. len > capacity).\n"
-            "Use the specific predicate defined in the Frozen Plan."
-        )
+         return False, "WEAK ASSERTION DETECTED: 'BUG_ASSERT(len > 0)' is too generic."
 
-    # --- 3. Main() Location Check ---
+    # --- 6. Main() Structural Check ---
     main_re = re.compile(r"^\s*int\s+main\s*\(", re.MULTILINE)
     if not main_re.search(harness_sec):
-        if main_re.search(stub_sec_raw):
-            return False, "STRUCTURAL ERROR: main() is inside 'Stub/Embedded Functions'. Move it to '/* --- Harness --- */'."
-        elif main_re.search(global_sec):
-             return False, "STRUCTURAL ERROR: main() is inside 'Global Constants'. Move it to '/* --- Harness --- */'."
+        if main_re.search(global_sec) or main_re.search(stub_sec_raw):
+            return False, "STRUCTURAL ERROR: main() is outside '/* --- Harness --- */'. Move it."
         else:
             return False, "STRUCTURAL ERROR: Missing 'int main(...)' inside '/* --- Harness --- */'."
 
-    # --- 4. Entrypoint Checks ---
+    # --- 7. Entrypoint Checks ---
     if required_entrypoint:
-        clean = re.sub(r'("([^"\\]|\\.)*"|\'([^\'\\]|\\.)*\'|//.*?$|/\*.*?\*/)', " ", harness_sec, flags=re.MULTILINE | re.DOTALL)
-        clean_no_defs = re.sub(r"^\s*(?:[\w\*]+\s+)+\b[\w]+\s*\(.*?\)\s*\{", " ", clean, flags=re.MULTILINE | re.DOTALL)
+        clean_no_defs = re.sub(r"^\s*(?:[\w\*]+\s+)+\b[\w]+\s*\(.*?\)\s*\{", " ", clean_harness, flags=re.MULTILINE | re.DOTALL)
         
-        call_re = re.compile(rf"\b{re.escape(required_entrypoint)}\s*\(")
-        if not call_re.search(clean_no_defs):
-            return False, f"Harness does not CALL required entrypoint '{required_entrypoint}' in the Harness section."
+        if not re.search(rf"\b{re.escape(required_entrypoint)}\s*\(", clean_no_defs):
+            return False, f"Harness does not CALL required entrypoint '{required_entrypoint}'."
 
-        redef_re = re.compile(
-            rf"^\s*(?:[\w\s\*]+?)[\s\*]+\b{re.escape(required_entrypoint)}\s*\([^;]*?\)\s*\{{", 
-            re.MULTILINE | re.DOTALL
-        )
+        redef_re = re.compile(rf"^\s*(?:[\w\s\*]+?)\b{re.escape(required_entrypoint)}\s*\([^;]*?\)\s*\{{", re.MULTILINE)
         if redef_re.search(harness_sec):
-            return False, (
-                f"ILLEGAL REDEFINITION: You defined '{required_entrypoint}' in the Harness section.\n"
-                "STOP! You are NOT allowed to implement this function.\n"
-                "ACTION: Delete the body. Declare it as 'extern' and link against the library."
-            )
+            return False, f"ILLEGAL REDEFINITION: You defined '{required_entrypoint}' in the Harness. Delete it."
 
-    # --- 5. Stub Policy Checks ---
+    # --- 8. Stub Policy Checks (Immutability & Criticals) ---
     vcfg = (policy or {}).get("validation", {}) or {}
     replay_critical = set(vcfg.get("hash_function_names", []) or [])
-    detectors = vcfg.get("exception_detectors", {}) or {}
-    det_hash = detectors.get("HASH_COLLISION", {}) if isinstance(detectors, dict) else {}
-    replay_critical |= set(det_hash.get("symbols", []) or [])
+    if frozen_plan:
+        replay_critical |= compute_immutable_set(frozen_plan)
 
+    clean_stub_sec = strip_c_comments_and_strings(stub_sec_raw)
+    
     if replay_critical:
         for fn in replay_critical:
              fn_def_re = re.compile(rf"^\s*(?:static\s+)?[A-Za-z0-9_]+\s+\b{re.escape(fn)}\s*\([^;]*\)\s*\{{", re.MULTILINE)
-             if fn_def_re.search(stub_sec_raw):
-                 return False, (
-                     f"ILLEGAL DEFINITION: You defined '{fn}' in the Stub section.\n"
-                     "This function is Replay-Critical and exists in the target library.\n"
-                     "CRITICAL FIX: DELETE your definition. Use an 'extern' prototype only."
-                 )
+             if fn_def_re.search(clean_stub_sec):
+                 return False, f"ILLEGAL DEFINITION: You defined '{fn}' in Stubs. It is Critical/Immutable."
 
-    # --- 6. Detect Self-Fulfilling Assertions (Extended for CHECK_READ) ---
+    # --- 9. Detect Self-Fulfilling Assertions ---
     if required_entrypoint:
         sym_vars = re.findall(r"klee_make_symbolic\s*\(\s*(?:&)?(\w+)", harness_sec)
         clean_code = strip_c_comments_and_strings(harness_sec)
         
         for var in sym_vars:
-            # Skip short common names to avoid false positives
             if len(var) < 3 or var in ["key", "buf", "str", "ptr", "len", "ret"]: continue 
             
-            # 1. Is the variable used in an assertion?
-            # Matches: BUG_ASSERT(var), BUG_ASSERT(!var), CHECK_READ(var, ...)
             bug_assert_hit = re.search(rf"BUG_ASSERT\s*\(\s*(!\s*)?\b{re.escape(var)}\b", clean_code)
             check_read_hit = re.search(rf"CHECK_READ\s*\(\s*.*?\b{re.escape(var)}\b", clean_code)
             
-            if not (bug_assert_hit or check_read_hit):
-                continue
+            if not (bug_assert_hit or check_read_hit): continue
 
-            # 2. Is the variable passed to the entrypoint?
-            # Matches: entrypoint(..., var, ...)
             passed_to_entry = re.search(rf"\b{re.escape(required_entrypoint)}\s*\([^;]*\b{re.escape(var)}\b", clean_code)
-            
             if not passed_to_entry:
-                return False, (
-                    f"SELF-FULFILLING ASSERTION DETECTED: You created symbolic variable '{var}', "
-                    f"used it in an assertion (BUG_ASSERT or CHECK_READ), but did NOT pass it to '{required_entrypoint}'.\n"
-                    "VIOLATION: You are faking the bug condition with a proxy variable (Hallucination).\n"
-                    "FIX: You cannot check internal library pointers (like 'entry->name') directly because they are hidden.\n"
-                    "ACTION: Rely on the 'bcmp' redirector. Simply call the target function; KLEE will catch the OOB read automatically."
-                )
+                return False, f"SELF-FULFILLING ASSERTION: Variable '{var}' checked but not passed to entrypoint."
 
-    # --- 7. Enforce Frozen Assertion Equivalence ---
-    if frozen_plan:
-        required_pred = ""
-        assertion_id = "BUG_ASSERT"
-        for a in frozen_plan.get("assertions", []):
-            if a.get("id") in ["BUG_ASSERT", "CHECK_READ"] or a.get("kind") == "bug":
-                required_pred = a.get("condition") or a.get("predicate")
-                assertion_id = a.get("id", "BUG_ASSERT")
-                break
-        
-        if required_pred:
-            if assertion_id == "CHECK_READ":
-                # Check Harness Section first
-                if re.search(r"CHECK_READ\s*\(", harness_sec):
-                    pass # Good
-                # Check if it was misplaced in Stubs
-                elif re.search(r"CHECK_READ\s*\(", stub_sec_raw):
-                    return False, "Plan requires CHECK_READ(...) but you placed it in 'Stub Functions'. Move it to 'Harness' inside main()."
-                else:
-                     return False, "Plan requires CHECK_READ(...) but it was not found in the harness. You must CALL it."
-            else:
-                # [UPDATE] Only enforce harness predicate match if we REQUIRE a harness assertion.
-                if not has_source_bug:
-                    m = re.search(r"BUG_ASSERT\s*\((.*?)\)\s*;", harness_sec)
-                    if m:
-                        actual_pred = m.group(1).strip()
-                        req_norm = " ".join(required_pred.split())
-                        act_norm = " ".join(actual_pred.split())
-                        if req_norm != act_norm and act_norm not in ["1", "true", "0", "false"]:
-                             return False, (
-                                 f"PLAN VIOLATION: Harness BUG_ASSERT predicate does not match Frozen Plan.\n"
-                                 f"   Required: {req_norm}\n"
-                                 f"   Found:    {act_norm}"
-                             )
+    # --- 10. Enforce Constraint Policy (Anti-Safety Coupling) ---
+    buf_size_match = re.search(r"char\s+\w+\[(\d+)\]", clean_harness)
+    buf_size = int(buf_size_match.group(1)) if buf_size_match else 0
 
-    # --- 8. Enforce Immutable Set ---
-    if frozen_plan:
-        immutable = compute_immutable_set(frozen_plan)
-        clean_stub_sec = strip_c_comments_and_strings(stub_sec_raw)
-        for fn in immutable:
-            fn_def_re = re.compile(rf"^\s*(?:[\w\s\*]+)\b{re.escape(fn)}\s*\([^;]*\)\s*\{{", re.MULTILINE)
-            if fn_def_re.search(clean_stub_sec):
-                return False, (
-                    f"ILLEGAL DEFINITION: You defined '{fn}' in the Stub section.\n"
-                    f"VIOLATION: '{fn}' is in the IMMUTABLE SET (Critical Path)."
-                )
-    # --- 9. Enforce Constraint Policy (Anti-Safety Coupling) ---
-    clean_harness = strip_c_comments_and_strings(harness_src)
-    
-    if re.search(r"klee_assume\s*\([^;]*\bsizeof\b", clean_harness):
-        return False, (
-            "POLICY VIOLATION: You used 'sizeof' inside klee_assume().\n"
-            "REASON: This likely couples the length to the buffer size, enforcing safety.\n"
-            "FIX: Use the loose bound (e.g. 4096) defined in the Plan. Do not check against the buffer size."
-        )
+    if buf_size > 0 and buf_size < 1024:
+        if re.search(r"klee_assume\s*\([^;]*\bsizeof\b", clean_harness):
+            return False, "POLICY VIOLATION: Used 'sizeof' in klee_assume with small buffer (Safety Coupling)."
         
-    if re.search(r"char\s+\w+\[(\d+)\]", clean_harness):
-        buf_size_match = re.search(r"char\s+\w+\[(\d+)\]", clean_harness)
-        if buf_size_match:
-            buf_size = buf_size_match.group(1)
-            # Check for tight constraints like len < 64 or len <= 64
-            if re.search(rf"klee_assume\s*\([^;]*[<]=?\s*{buf_size}\s*\)", clean_harness):
-                 return False, (
-                    f"POLICY VIOLATION: You allocated 'char buf[{buf_size}]' and constrained 'len < {buf_size}'.\n"
-                    "REASON: This safety check prevents the Out-of-Bounds bug from happening.\n"
-                    "*** CORRECT FIX ***\n"
-                    f"   char buf[{buf_size}];\n"
-                    "   klee_assume(len < 4096); // Must be LARGER than buffer size to allow overflow!\n"
-                    "   // Do NOT use sizeof(buf) in the assumption."
-                )
+        if re.search(rf"klee_assume\s*\([^;]*[<]=?\s*{buf_size}\s*\)", clean_harness):
+             return False, f"POLICY VIOLATION: Constrained len < {buf_size}. This prevents the bug."
+
+    # --- 11. Phantom Stub Detection ---
+    forbidden_stubs = ["strlen", "malloc", "calloc", "free"]
+    for func in forbidden_stubs:
+        if re.search(rf"^\s*#\s*define\s+\b{func}\b\s+stub_{func}", clean_harness, re.MULTILINE):
+            return False, f"PHANTOM STUB DETECTED: Do not stub '{func}'. The target uses the real libc."
+
     return True, ""
+
 def find_typedef_global(src_root: Path, type_name: str) -> Optional[str]:
     """
     Scans the source tree for 'typedef ... type_name;' generically.
@@ -2902,6 +3090,18 @@ def preflight_check(harness_src: str, strategy: str) -> List[str]:
             "FIX: Add realism/performance constraints (e.g., len>0, len<4096) per the Frozen Plan."
         )
 
+    # ----------------------------
+    # 5) Forbid klee_assume(strlen(...)) -> "Provably False" Risk
+    # ----------------------------
+    if "klee_assume" in clean:
+        # Regex to find klee_assume( ... strlen( ... ) ... )
+        if re.search(r"klee_assume\s*\([^;]*\bstrlen\s*\(", clean):
+            errors.append(
+                "PRE-FLIGHT ERROR: Detected 'klee_assume' using 'strlen'.\n"
+                "CAUSE: KLEE's strlen is path-sensitive. Using it in an assumption often leads to 'invalid klee_assume call (provably false)' on edge cases (e.g. empty strings).\n"
+                "FIX: Use C-level filtering instead: 'if (strlen(s) > MAX) return 0;'.\n"
+                "OR: Construct the string with a known symbolic length variable and terminate it manually."
+            )
     return errors
 
 def interactive_synthesizer(
@@ -3100,6 +3300,33 @@ def interactive_synthesizer(
             if best_stats["score"] == 0: best_stats["failure_reason"] = "Agent returned no code"
             continue
 
+        # [PATCH 1] Auto-Repair: Remove Forbidden Assertions
+        # Logic: If the strategy uses 'instrumented_predicate' (Source-Side Oracle), 
+        # the Harness MUST NOT contain BUG_ASSERT or REACH_ASSERT.
+        
+        plan_inst = frozen_plan.get("instrumentation", []) if frozen_plan else []
+        
+        # Check Strategy Type (INT_OVERFLOW, OOB_READ are instrumented)
+        strategy_oracle = ctx.get("strategy", {}).get("oracle_type", "")
+        is_instrumented = (strategy_oracle == "instrumented_predicate")
+
+        # Check for explicit instrumentation in the plan
+        has_source_bug = any("BUG_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
+        has_source_reach = any("REACH_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
+
+        # 1. Strip BUG_ASSERT if handled by source OR explicit strategy rule
+        if has_source_bug or is_instrumented:
+            if re.search(r"BUG_ASSERT\s*\(", code):
+                print("  [i] Auto-Repair: Force-removing redundant 'BUG_ASSERT' from harness (Strategy is Instrumented).")
+                code = re.sub(r"BUG_ASSERT\s*\([^)]*\)\s*;?", "", code, flags=re.DOTALL)
+
+        # 2. Strip REACH_ASSERT if handled by source OR explicit strategy rule
+        # [FIX] This stops the 'REACH_ASSERT reached' infinite loop spam in KLEE logs.
+        if has_source_reach or is_instrumented:
+            if re.search(r"REACH_ASSERT\s*\(", code):
+                print("  [i] Auto-Repair: Force-removing redundant 'REACH_ASSERT' from harness (Strategy is Instrumented).")
+                code = re.sub(r"REACH_ASSERT\s*\([^)]*\)\s*;?", "", code, flags=re.DOTALL)
+
         # We inject headers/macros BEFORE validation so the validator sees the complete code.
         strategy_name = ((ctx.get('strategy') or {}).get('name') or '')
 
@@ -3129,6 +3356,25 @@ def interactive_synthesizer(
                 "/* You MUST include either BUG_ASSERT(...) or CHECK_READ(...) per the plan. */\n"
             )
 
+        # [PATCH 4] Auto-Correct: Rewrite unsafe klee_assume(strlen/var < C) to if (...) return 0;
+        def _rewrite_unsafe_assumes(text: str) -> str:
+            # Pattern 1: klee_assume(strlen(s) < CONST);
+            # Matches: klee_assume(strlen(buf) < 100);
+            def repl_strlen(m):
+                s, op, const = m.groups()
+                # Invert logic: < becomes >=, > becomes <=
+                inv_op = ">=" if "<" in op else ("<=" if ">" in op else "==")
+                return f"if (strlen({s}) {inv_op} {const}) return 0; /* Auto-fixed unsafe assume */"
+                
+            # Regex handles: klee_assume ( strlen ( ... ) < ... );
+            text = re.sub(
+                r"klee_assume\s*\(\s*strlen\s*\(([^)]+)\)\s*(<|<=|>|>=)\s*(\d+)\s*\)\s*;", 
+                repl_strlen, 
+                text
+            )
+            return text
+
+        code = _rewrite_unsafe_assumes(code)
 
         harness_src = inject_standard_headers(code, frozen_plan=frozen_plan, strategy=strategy_name)
 

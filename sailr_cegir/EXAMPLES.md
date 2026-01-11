@@ -32,26 +32,44 @@ cd -
 
 
 # Run Single Spec
-
-# 1. clean environment
-unset KLEE_FLAGS
-unset KLEE_TRACE
-
-# 2. Enable the fix for undefined symbols
-export ENABLE_KLEE_POSIX=1
-
-# 3. Run
+1. 
 SA_OUT_DIR=sa_outputs \
 DATASET_ROOT=$(pwd)/dataset \
 CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I$(pwd)/dataset/62911/libxml2_62911_vul/build -I/home/shafi/tools/klee/include" \
-MAX_A=30 MAX_B=3 TIMEOUT=120 \
+MAX_A=30 MAX_B=3 TIMEOUT=600 \
+BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
 bash sailr_cegir/run_worker.sh \
-    "62911/libxml2_62911_vul" \
-    "oob-read" \
-    "specs/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read.json" \
-    "rules/stailor-queries/suites/stailor.qls"
+   "62911/libxml2_62911_vul" \
+   "oob-read" \
+   "specs/libxml2_62911_vul/172_dict.c_541_local_cpp_cwe-125-oob-read.json" \
+   "rules/stailor-queries/suites/stailor.qls"
 
-
+2. 
+```
+SA_OUT_DIR=sa_outputs \
+DATASET_ROOT=$(pwd)/dataset \
+CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I$(pwd)/dataset/62911/libxml2_62911_vul/build -I/home/shafi/tools/klee/include" \
+MAX_A=30 MAX_B=3 TIMEOUT=600 \
+BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
+bash sailr_cegir/run_worker.sh \
+   "62911/libxml2_62911_vul" \
+   "unbounded-write" \
+   "specs/libxml2_62911_vul/000_xmlmemory.c_484_cpp_unbounded-write.json" \
+   "rules/stailor-queries/suites/stailor.qls"
+```
+3.
+```
+SA_OUT_DIR=sa_outputs \
+DATASET_ROOT=$(pwd)/dataset \
+CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I$(pwd)/dataset/62911/libxml2_62911_vul/build -I/home/shafi/tools/klee/include" \
+MAX_A=30 MAX_B=3 TIMEOUT=600 \
+BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
+bash sailr_cegir/run_worker.sh \
+   "62911/libxml2_62911_vul" \
+   "unbounded-write" \
+   "specs/libxml2_62911_vul/018_encoding.c_1128_local_cpp_cwe-120-overflow.json" \
+   "rules/stailor-queries/suites/stailor.qls"
+```
 # Batch mode
 ```
 SA_OUT_DIR=sa_outputs \

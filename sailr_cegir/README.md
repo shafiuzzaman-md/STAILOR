@@ -27,11 +27,11 @@ What it does (high-level):
 - Installs Python dependencies used by the pipeline
 
 ### 2) Run the full pipeline (per project / rule)
-# Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> [RULE_ID]
+# Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> 
 
 ```bash
 export ENABLE_KLEE_POSIX=1
-bash sailr_cegir/run_robust_pipeline.sh "62911/libxml2_62911_vul" 
+bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
 ```
 
 ---
