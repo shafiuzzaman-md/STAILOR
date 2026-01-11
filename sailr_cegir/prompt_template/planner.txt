@@ -96,8 +96,36 @@ Hard requirements:
 3) If you require a semantic stub exception (e.g., HASH_COLLISION), you MUST mark it in stub_contracts with an "exception" field.
 4) Keep call_sequence minimal: only essential calls to reach the vulnerability.
 5) For pointer-like symbolic inputs, provide allocation_strategy or allocation_size; never use symbolic sizes for allocation.
-6) BUG_ASSERT must rely ONLY on observable state (return values, global variables,
-   or side-effects on pointer arguments). NEVER target local variables internal
-   to the function (e.g., 'lengths[0]' inside the library).
-   
+6) BUG_ASSERT must rely ONLY on observable state WHEN it is evaluated in the HARNESS.
+   - Never invent or reference target locals from the harness.
+   - Exception: If the strategy requires target-site instrumentation (e.g., OOB_READ instrumented_predicate),
+     the BUG_ASSERT predicate may reference locals because it is inserted and evaluated inside the target file.
+7) ASSERTION STRATEGY:
+   [SYSTEM WILL INJECT SPECIFIC STRATEGY HERE BASED ON VULNERABILITY TYPE]
+   Follow the "VULNERABILITY STRATEGY ENFORCEMENT" section at the bottom of this prompt.
+      
+8) STATE PRIMING (CONTAINER LOGIC):
+   - If the vulnerable function is a lookup/search/access operation (e.g. dict lookup, list traversal),
+     you MUST include prior calls in 'call_sequence' to POPULATE the container.
+   - A lookup on an empty container will NEVER trigger deep logic paths (collisions, traversals).
+   - Plan: Create -> Add Item (Setup) -> Lookup Item (Trigger).
+
+9) SMART STUBBING STRATEGY (Combating Path Explosion):
+   - PROBLEM: Helper functions with complex math (Hash, Crypto, Checksum) kill symbolic execution.
+   - SOLUTION: You must neutralize them. Choose the correct method based on visibility:
+     
+     [CASE A: Public/External Function] (e.g., 'MD5_Init', 'crc32')
+     > Action: Add to 'stub_contracts' with 'stub_kind': 'nondet'.
+     > Result: The Builder will create a C stub in the harness.
+
+     [CASE B: Private/Static Function] (e.g., 'static unsigned hash(...)')
+     > Action: YOU CANNOT STUB THIS IN THE HARNESS. It is invisible.
+     > Method: Use 'instrumentation' to inject a return statement directly into the source file.
+     > Directive: { "file": "...", "line": <start_of_body>, "kind": "insert_before", "code": "return 0; /* OPTIMIZED */" }
+
+10) MINIMAL SUFFICIENT SCOPE (SPEED OPTIMIZATION):
+    - Do NOT allocate 4096 bytes unless the bug relies on Integer Overflows (size > 2GB).
+    - For Logic bugs, set 'allocation_size' to 64 bytes.
+    - For OOB/Overflow bugs, set 'allocation_size' to 256 bytes (to allow room for overflow).
+
 Output JSON only (with the action protocol).

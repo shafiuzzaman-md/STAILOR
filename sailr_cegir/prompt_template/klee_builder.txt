@@ -13,9 +13,11 @@ NON-NEGOTIABLE OUTPUT CONTRACT (READ FIRST)
    int main(int argc, char **argv)
    - main() MUST be the FIRST function in the Harness section.
 
-4) DO NOT provide function bodies for any real target/library symbols.
-   - If a function exists in the target, you MUST NOT define it.
-   - You may only: #include headers OR declare extern prototypes (NO body).
+4) Any "fake implementation" of core logic or internal static functions.
+        [WARNING]: If you define a function that already exists in the library (even if static), 
+        you will cause Linker Collisions or Odd Behavior. 
+        TRUST THE PLAN: If the plan wanted it stubbed, it would use 'instrumentation' to modify the source. 
+        Do not take matters into your own hands.
 
 5) Execution order inside main() MUST be:
    (A) prepare inputs
@@ -27,7 +29,9 @@ PIPELINE AWARENESS (IMPORTANT)
 - Phase II runs under KLEE to find inputs that trigger the bug predicate.
 - Phase III replays the harness against the REAL target implementation.
 - Therefore: DO NOT rely on semantic/reachability stubs (e.g., overriding target hashing,
-  parsing, dispatch, or internal logic). Those will not be honored in strict replay.
+  parsing, dispatch, or internal logic) UNLESS the Frozen Plan explicitly authorizes it via 
+  stub_contracts[].exception (e.g., HASH_COLLISION) and the stub is limited to that named function.
+  If no exception is declared, those stubs will not be honored in strict replay.
 
 ====================
 STRICT CODING RULES
@@ -39,33 +43,74 @@ A) ENTRYPOINT USAGE
 - If you create a wrapper, it must be uniquely named (prefix stub_) and must call the
   real entrypoint exactly once. main() may call either the entrypoint directly OR the wrapper.
 
-B) STUB POLICY (ONLY EXTERNAL DEPENDENCIES)
-- Allowed stubs: ONLY for external dependencies that are not part of the target and are required
-  to compile/run (e.g., OS glue, filesystem, environment, time, allocator wrappers, printing).
+B) COMPLEX TYPES & MEMORY (CRITICAL)
+- DO NOT use `malloc()` + `klee_make_symbolic` to fake complex library structures (e.g., context objects, state handles).
+- CAUSE: This creates invalid internal state/pointers (ABI mismatch) and causes early crashes.
+- ACTION: Use the library's real constructor functions whenever possible.
+- If you must allocate manually, you MUST include the real header definitions. DO NOT define "minimal structs" that might mismatch the binary layout.
+
+C) STUB POLICY (ONLY EXTERNAL DEPENDENCIES)
+- Allowed stubs: ONLY for external dependencies that are not part of the target.
+- [REPLAY REQUIREMENT] If you stub 'malloc'/'calloc', you MUST implement the 'strict_alloc' pattern 
+  for the Replay build. This ensures Heap OOB Reads trigger a crash even if they hit padding.
+
+    /* Copy this helper into your Stub Functions section */
+    #ifndef __KLEE__
+    #include <sys/mman.h>
+    #include <unistd.h>
+    void* strict_alloc(size_t size) {
+        size_t page_size = sysconf(_SC_PAGESIZE);
+        size_t num_pages = (size + page_size - 1) / page_size + 1;
+        size_t total_size = num_pages * page_size;
+        char* base = mmap(NULL, total_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+        if (base == MAP_FAILED) return NULL;
+        char* guard = base + (num_pages - 1) * page_size;
+        mprotect(guard, page_size, PROT_NONE);
+        return guard - size;
+    }
+    #endif
 - Forbidden stubs:
-  1) Any override of a target/library function or its semantics.
-  2) Any stub that forces reachability or forces the bug (semantic shortcuts).
-  3) Any “fake implementation” of core logic.
+     1) Any override of a target/library function...
+        [EXCEPTION]: You MAY stub a function IF AND ONLY IF it is listed in the
+        'stub_contracts' section of the Frozen Plan (e.g., for Smart Stubbing of hashing).
+      2) Any stub that forces reachability or forces the bug (semantic shortcuts),
+        UNLESS the Frozen Plan explicitly authorizes it via stub_contracts[].exception.
+        Example: HASH_COLLISION is allowed only when declared as an exception and justified.
+     3) Any “fake implementation” of core logic.
 
 - All stubs must live in /* --- Stub Functions --- */ and MUST be minimal and semantics-neutral:
   return a safe default OR forward to standard C equivalents if available.
 
-C) EMBEDDED FUNCTIONS
+D) EMBEDDED FUNCTIONS
 - Use /* --- Embedded Functions --- */ ONLY for helper code that is not provided by the target and
   is needed by the harness (e.g., tiny utilities like stub_strlen, stub_memcpy).
 - Do NOT paste/copy target source code here.
 
-D) SYMBOLIC INPUTS
+E) SYMBOLIC INPUTS
 - Use klee_make_symbolic on raw byte buffers and primitive scalars.
 - For pointer parameters: allocate fixed-size buffers (concrete allocation) and make their contents symbolic.
 - Use klee_assume only for reachability constraints that do NOT negate the bug predicate.
+- LENGTH CONSTRAINTS: Always constrain symbolic lengths to be small to speed up execution.
+     > Example: klee_assume(len < 16);
+     > Why: This prevents KLEE from unrolling loops (strlen/hashing) for thousands of iterations.
 
-E) NO PROXY ASSERTIONS (ANTI-HALLUCINATION)
+F) NO PROXY ASSERTIONS (ANTI-HALLUCINATION)
 - You CANNOT access local variables inside the target library.
-- DO NOT create a new symbolic variable just to assert on it (e.g., 'int bug_hit; klee_make_symbolic(&bug_hit...); BUG_ASSERT(bug_hit)').
-- This is a "Self-Fulfilling Prophecy" and is strictly FORBIDDEN.
-- If the Frozen Plan predicate targets an invisible local variable, you must assert on the *observable consequence* (e.g. crash, return value) or a side-effect, NOT the variable itself.
+- HYBRID STRATEGY for Invisible Bugs (Memory Corruption):
+  - If the bug is an OOB/UAF dependent on hidden internals, DO NOT create fake variables.
+  - WRITE: BUG_ASSERT(0);
+  - This tells the system: "If I reach this line alive, the bug didn't happen."
+  - The system will catch the crash (SegFault) automatically.
+- For Logic Bugs (Return Values), YOU MUST ASSERT THE STATE explicitly.
 
+G) STRING SAFETY (CRITICAL):
+   - If you create a symbolic 'char' buffer that is passed to a string function (uses strlen),
+     you MUST manually null-terminate it to prevent OOB reads.
+   - CORRECT:
+     char buf[100];
+     klee_make_symbolic(buf, sizeof(buf), "buf");
+     buf[sizeof(buf) - 1] = '\0'; // <--- MANDATORY SAFETY
+   - Why: klee_make_symbolic() does NOT guarantee a null byte. Without this, strlen() reads forever and crashes.
 ====================
 MANDATORY MAIN SKELETON (FOLLOW THIS SHAPE)
 ====================
@@ -78,16 +123,56 @@ int main(int argc, char **argv) {
   // 3) klee_make_symbolic(...) for symbolic inputs
   // 4) optional klee_assume(...) for reachability only (must not negate bug predicate)
   // 5) call the real entrypoint (extern prototype or header)
-  // 6) BUG_ASSERT(<bug predicate from Frozen Plan>)
-  // 7) REACH_ASSERT()
+
+  // [OPTIONAL] Assertions (ONLY if NOT provided by Plan Instrumentation)
+  // BUG_ASSERT(<predicate>);
+  // REACH_ASSERT();
   return 0;
 }
 
+...
 ====================
 ASSERTION MACROS (DO NOT CHANGE NAMES)
 ====================
 - BUG_ASSERT(<predicate>) asserts the bug condition.
+  Definition: #define BUG_ASSERT(cond) klee_assert(!(cond) && "BUG_ASSERT")
+  Meaning: "Assert that 'cond' is FALSE. If 'cond' becomes TRUE, crash."
+  Usage:
+    - Logic Bug: BUG_ASSERT(x < 0); // Crashes if x < 0
+    - Crash Oracle: BUG_ASSERT(0);  // Never crashes (Safe Landing)
+
 - REACH_ASSERT() is a sentinel used to score reachability.
+
+You MUST emit this macro block at the top of your harness if you use CHECK_READ:
+#ifndef CHECK_READ
+#ifdef __KLEE__
+  extern void klee_check_memory_access(const void *address, size_t size);
+  #define CHECK_READ(ptr, size) klee_check_memory_access((void*)(ptr), (size))
+#else
+  /* Replay Mode */
+  #if defined(__has_feature)
+    #if __has_feature(address_sanitizer)
+      #define __SANITIZE_ADDRESS__ 1
+    #endif
+  #endif
+
+  #ifdef __SANITIZE_ADDRESS__
+    #include <sanitizer/asan_interface.h>
+    /* Ensure dependencies are present */
+    #include <stdio.h>
+    #include <stdlib.h> 
+    #define CHECK_READ(ptr, size) \
+      do { \
+          if (__asan_region_is_poisoned((void*)(ptr), (size))) { \
+              fprintf(stderr, "[Replay] CHECK_READ detected poisoned memory at %p\n", (void*)(ptr)); \
+              abort(); \
+          } \
+      } while(0)
+  #else
+    #define CHECK_READ(ptr, size) ((void)0)
+  #endif
+#endif
+#endif
 
 If these macros are already defined in the harness template provided by the system,
 DO NOT redefine them.
@@ -97,3 +182,11 @@ OUTPUT FORMAT (FINAL)
 ====================
 Return JSON only:
 {"harness":"<full C code with all four sections and a main()>"}
+
+
+===============================
+ORACLE PLACEMENT POLICY (STRICT)
+===============================
+- If the Frozen Plan includes plan.instrumentation (target-site oracle), you MUST NOT place BUG_ASSERT in the harness.
+  Your harness job is REACHABILITY: call the frozen entrypoint and drive inputs so execution reaches the instrumented site.
+- Never invent proxy variables for target locals. The oracle will be evaluated inside the target due to instrumentation.
