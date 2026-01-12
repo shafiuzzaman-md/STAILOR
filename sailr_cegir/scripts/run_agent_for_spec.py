@@ -1421,14 +1421,46 @@ def finalize_frozen_plan(
     """
     p = deepcopy(plan)
     vcfg = (policy or {}).get("validation", {}) or {}
-    
-    # --- 1. Automated Assertion Fix (Polarity) ---
+
+    # --- 1. Path Normalization (Robust) ---
+    if src_root:
+        inst_list = p.get("instrumentation", [])
+        if isinstance(inst_list, list):
+            src_root_abs = src_root.resolve()
+            name_map = {}
+            try:
+                for path in src_root_abs.rglob("*"):
+                    if path.is_file() and path.suffix in [".c", ".h", ".cpp", ".cc"]:
+                        name_map[path.name] = path.relative_to(src_root_abs)
+            except Exception: pass
+
+            for instr in inst_list:
+                fpath = str(instr.get("file", "")).strip()
+                if not fpath: continue
+                path_obj = Path(fpath)
+                
+                # Case A: Absolute -> Relative
+                if path_obj.is_absolute():
+                    try:
+                        instr["file"] = str(path_obj.resolve().relative_to(src_root_abs))
+                        continue
+                    except ValueError: pass
+                
+                # Case B: Bad Relative Prefix -> Suffix Match
+                check_path = src_root_abs / fpath
+                if not check_path.exists():
+                    candidate = name_map.get(path_obj.name)
+                    if candidate:
+                        print(f"  [i] Auto-Correct: Fixed broken path: '{fpath}' -> '{candidate}'")
+                        instr["file"] = str(candidate)
+
+    # --- 2. Automated Assertion Fix (Polarity) ---
     assertions = p.get("assertions") or []
     if isinstance(assertions, list) and assertions:
         norm = [fix_bug_polarity(deepcopy(a), ctx, rule_id) for a in assertions]
         p["assertions"] = sorted(norm, key=lambda x: _KIND_ORDER.get(x.get("kind", ""), 9))
 
-    # --- 2. Strategy Assumption Injection ---
+    # --- 3. Strategy Assumption Injection ---
     strategy_cfg = ctx.get("strategy", {})
     frozen_assumptions = strategy_cfg.get("frozen_assumptions", [])
 
@@ -1453,7 +1485,7 @@ def finalize_frozen_plan(
             merged.append(a)
         p["assumptions"] = merged
 
-    # --- 3. Automated Stub Injection (Policy Driven) ---
+    # --- 4. Automated Stub Injection (Policy Driven) ---
     # Contract integrity: semantic shortcut stubs (e.g., HASH_COLLISION) MUST be explicitly declared
     # in stub_contracts[].exception. If enabled by policy, we auto-declare the exception so DCV/Builder
     # can reason about it deterministically.
@@ -1463,35 +1495,24 @@ def finalize_frozen_plan(
         safe_const = str(vcfg.get("exception_detectors", {}).get("HASH_COLLISION", {}).get("constant_return_value", "1"))
         target_hashes = set(vcfg.get("hash_function_names", []))
         if target_hashes:
-            # 3A) Ensure the Frozen Plan explicitly records the exception.
+            # 4A) Ensure the Frozen Plan explicitly records the exception.
             sc = p.setdefault("stub_contracts", [])
-            if not isinstance(sc, list):
-                sc = []
-                p["stub_contracts"] = sc
-
-            def _has_hash_collision_decl(fn: str) -> bool:
-                for ent in sc:
-                    if isinstance(ent, dict) and ent.get("function") == fn and str(ent.get("exception") or "").upper() == "HASH_COLLISION":
-                        return True
-                return False
-
-            for fname in sorted(target_hashes):
-                if not _has_hash_collision_decl(fname):
+            contract_map = {c.get("function"): c for c in sc}
+            for fname in target_hashes:
+                if fname not in contract_map:
                     sc.append({
                         "function": fname,
-                        "reason": "HASH_COLLISION exception required to explore collision-handling paths.",
                         "stub_kind": "nondet",
-                        "constraints": [f"return constant {safe_const} to force collisions"],
-                        "exception": "HASH_COLLISION",
+                        "reason": "Auto-injected hash collision strategy",
+                        "constraints": [f"return {safe_const};"],
+                        "exception": "HASH_COLLISION"
                     })
-
-            # 3B) Inject the constant-return stub directive (builder consumes this).
             stubs = p.setdefault("embedding_plan", {}).setdefault("stub_instead_of_embed", [])
             stub_map = {s.get("name"): s for s in stubs if isinstance(s, dict) and s.get("name")}
             for fname in sorted(target_hashes):
                 if fname not in stub_map:
                     stubs.append({"name": fname, "strategy": f"constant_return_{safe_const}", "notes": "[Auto-Inject HASH_COLLISION]"})
-            # B. [FIX] Inject into stub_contracts (Permission for Builder)
+            # 4B. [FIX] Inject into stub_contracts (Permission for Builder)
             # This satisfies the "Must declare exception" contract rule.
             contracts = p.setdefault("stub_contracts", [])
             contract_map = {c.get("function"): c for c in contracts}
@@ -1504,7 +1525,7 @@ def finalize_frozen_plan(
                         "constraints": [f"return {safe_const};"],
                         "exception": "HASH_COLLISION" # <--- LEGITIMIZES THE STUB
                     })
-    # --- 4. [GENERIC FIX] Sanitize Instrumentation (klee_assert) ---
+    # --- 5. [GENERIC FIX] Sanitize Instrumentation (klee_assert) ---
     # Fixes: "undefined reference to function: klee_assert"
     inst_list = p.get("instrumentation", [])
     if isinstance(inst_list, list):
@@ -1515,9 +1536,8 @@ def finalize_frozen_plan(
                         "extern void klee_assert(int);", 
                         "#include <klee/klee.h>"
                     )
-
-    # --- 5. [GENERIC FIX] Prevent Allocator Collisions (Dynamic Lookup) ---
-    # Fixes: "symbol multiply defined" for xmlMalloc, apr_palloc, etc.
+    
+    # --- 5b. [GENERIC FIX] Prevent Allocator Collisions ---
     if project_bc_path and project_bc_path.exists():
         # Dynamically check what symbols exist in the project binary
         try:
@@ -1533,105 +1553,104 @@ def finalize_frozen_plan(
         except Exception as e:
             print(f"[!] Warning: Could not check symbols in project.bc: {e}")
 
-    # --- 6. [AUTO-CORRECT] OOB_WRITE Instrumentation Logic ---
-    # Enforces:
-    # 1. BUG_ASSERT(0) must be 'insert_after' the vulnerable line (not before).
-    # 2. REACH_ASSERT() must be injected alongside BUG_ASSERT(0).
+  # --- 6. [AUTO-CORRECT] Instrumentation Injection Logic ---
     strategy_name = (ctx.get("strategy") or {}).get("name", "")
-    if strategy_name == "OOB_WRITE":
-        instr_list = p.get("instrumentation", [])
+    
+    # Strategy Groups
+    crash_strategies = ["OOB_WRITE", "BUFFER_OVERFLOW", "UAF", "DOUBLE_FREE"]
+    predicate_strategies = ["OOB_READ", "BUFFER_OVERREAD", "INT_OVERFLOW"]
+
+    if strategy_name in crash_strategies or strategy_name in predicate_strategies:
+        # [FIX] Ensure instrumentation list exists
+        instr_list = p.setdefault("instrumentation", [])
         
-        # [cite_start][NEW] Helper to find safe insertion point for multi-line statements [cite: 1]
-        def _find_safe_after_line(fname: str, start_line: int) -> int:
+        # Helper to find safe insertion point
+        def _find_safe_line(fname: str, start_line: int, mode="after") -> int:
             if not src_root: return start_line
             try:
-                # Handle potential absolute paths or relative
                 tgt = (src_root / fname).resolve() if not Path(fname).is_absolute() else Path(fname)
                 if not tgt.exists(): return start_line
                 
-                lines = tgt.read_text(encoding="utf-8", errors="replace").splitlines()
-                idx = start_line - 1 # 0-based
+                content = tgt.read_text(encoding="utf-8", errors="replace")
+                lines = content.splitlines()
+                idx = start_line - 1 
                 if idx >= len(lines): return start_line
                 
-                # Scan forward for statement terminator (max 10 lines)
-                for offset in range(0, 10):
-                    curr = idx + offset
-                    if curr >= len(lines): break
-                    
-                    line_clean = lines[curr].split("//")[0].strip() # ignore comments
-                    if not line_clean: continue
-                    
-                    # If we find a semicolon or closing brace, this is likely the end.
-                    if ";" in line_clean or "}" in line_clean:
-                        return start_line + offset
+                if mode == "after":
+                    # Scan forward for statement terminator
+                    for offset in range(0, 15):
+                        curr = idx + offset
+                        if curr >= len(lines): break
+                        line_clean = lines[curr].split("//")[0].strip()
+                        if not line_clean: continue
+                        if ";" in line_clean or "}" in line_clean:
+                            return start_line + offset
+                    return start_line
                 return start_line
             except Exception:
                 return start_line
 
-        # 1. Fix Assertion Placement
-        for instr in instr_list:
-            if "BUG_ASSERT" in instr.get("code", ""):
-                # If they placed it at the target line, force it AFTER to catch the crash
-                if instr.get("line") == ctx.get("vul_line"):
-                    
-                    # [cite_start][FIX] Adjust line number to avoid breaking multi-line calls [cite: 2]
-                    safe_line = _find_safe_after_line(instr.get("file", ""), instr["line"])
-                    
-                    if safe_line != instr["line"]:
-                        print(f"  [i] Auto-Correct: Adjusted insertion point from L{instr['line']} to L{safe_line} (Multi-line stmt detected).")
-                        instr["line"] = safe_line
+        # 1. CRASH STRATEGIES (OOB_WRITE, UAF, etc.) -> insert_after
+        if strategy_name in crash_strategies:
+            safe_line = _find_safe_line(ctx.get("vul_file"), ctx.get("vul_line"), "after")
+            
+            # Goal: File Order = [REACH_ASSERT, BUG_ASSERT].
+            # Apply BUG first, then REACH (Last applied appears first in file).
+            
+            has_bug = any("BUG_ASSERT" in i.get("code", "") for i in instr_list)
+            if not has_bug:
+                print(f"  [i] Auto-Correct: Injecting missing BUG_ASSERT(0) for {strategy_name} at L{safe_line}.")
+                instr_list.append({
+                    "file": ctx.get("vul_file"), "line": safe_line, "kind": "insert_after", "code": "BUG_ASSERT(0);"
+                })
 
-                    if instr.get("kind") != "insert_after":
-                        print(f"  [i] Auto-Correct: Changed BUG_ASSERT placement to 'insert_after' line {instr['line']}.")
-                        instr["kind"] = "insert_after"
+            has_reach = any("REACH_ASSERT" in i.get("code", "") for i in instr_list)
+            if not has_reach:
+                print(f"  [i] Auto-Correct: Injecting missing REACH_ASSERT for {strategy_name} at L{safe_line}.")
+                instr_list.append({
+                    "file": ctx.get("vul_file"), "line": safe_line, "kind": "insert_after", "code": "REACH_ASSERT();"
+                })
 
-        # 2. Ensure REACH_ASSERT exists
-        has_reach = any("REACH_ASSERT" in i.get("code", "") for i in instr_list)
-        if not has_reach:
-            # Use the safe line for REACH_ASSERT too
-            safe_vuln_line = _find_safe_after_line(ctx.get("vul_file"), ctx.get("vul_line"))
-            print(f"  [i] Auto-Correct: Injecting missing REACH_ASSERT for OOB_WRITE at L{safe_vuln_line}.")
-            instr_list.append({
-                "file": ctx.get("vul_file"),
-                "line": safe_vuln_line,
-                "kind": "insert_after",
-                "code": "REACH_ASSERT();"
-            })
+        # 2. PREDICATE STRATEGIES (OOB_READ, etc.) -> insert_before
+        else:
+            safe_line = _find_safe_line(ctx.get("vul_file"), ctx.get("vul_line"), "before")
+            
+            # Goal: File Order = [BUG_ASSERT, REACH_ASSERT].
+            # Apply REACH first, then BUG (Last applied appears first in file).
+            
+            has_reach = any("REACH_ASSERT" in i.get("code", "") for i in instr_list)
+            if not has_reach:
+                instr_list.append({
+                    "file": ctx.get("vul_file"), "line": safe_line, "kind": "insert_before", "code": "REACH_ASSERT();"
+                })
 
-    # [PATCH 2] Force Allocation Safety for OOB
-    if strategy_name in ["OOB_WRITE", "OOB_READ"]:
+            # We don't auto-inject BUG_ASSERT for predicates (logic is complex), 
+            # but we ensure the macro definitions exist below.
+
+        # 3. Ensure Macros exist (Universal)
+        has_defs = any("#define BUG_ASSERT" in i.get("code", "") for i in instr_list)
+        if not has_defs:
+             instr_list.append({
+                 "file": ctx.get("vul_file"),
+                 "line": 1,
+                 "kind": "insert_before",
+                 "code": (
+                     "#include <stdlib.h>\n#include <assert.h>\n#include <klee/klee.h>\n"
+                     "#ifndef BUG_ASSERT\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\n#endif\n"
+                     "#ifndef REACH_ASSERT\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\n#endif\n"
+                 )
+             })
+
+    # [PATCH 2] Force Allocation Safety for OOB/Buffer bugs
+    if strategy_name in ["OOB_WRITE", "OOB_READ", "BUFFER_OVERFLOW", "BUFFER_OVERREAD"]:
         sym_inputs = p.get("symbolic_inputs", [])
         if isinstance(sym_inputs, list):
             for sym in sym_inputs:
                 sz = sym.get("allocation_size")
-                # Bump 64 -> 256 to match the Strategy
                 if isinstance(sz, int) and sz < 256:
                     print(f"  [i] Auto-Correct: Boosting allocation_size from {sz} to 256.")
                     sym["allocation_size"] = 256
                     sym["allocation_strategy"] = "concrete_capacity_256"
-    # --- 7. [AUTO-CORRECT] Path Normalization (Absolute -> Relative) ---
-    # Fixes planner hallucination of absolute paths which breaks instrumentation application.
-    if src_root:
-        inst_list = p.get("instrumentation", [])
-        if isinstance(inst_list, list):
-            src_root_abs = src_root.resolve()
-            for instr in inst_list:
-                fpath = str(instr.get("file", "")).strip()
-                if not fpath: continue
-                
-                path_obj = Path(fpath)
-                if path_obj.is_absolute():
-                    try:
-                        # Attempt 1: Clean relative path (preferred)
-                        # resolve() handles symlinks and ../ issues
-                        rel = path_obj.resolve().relative_to(src_root_abs)
-                        instr["file"] = str(rel)
-                        print(f"  [i] Auto-Correct: Relativized instrumentation path: {rel}")
-                    except ValueError:
-                        # Attempt 2: Fallback to basename
-                        # (Handles cases where planner hallucinated a /usr/include path or similar)
-                        print(f"  [i] Auto-Correct: Path '{path_obj}' outside root. Fallback to basename: {path_obj.name}")
-                        instr["file"] = path_obj.name
 
     p.setdefault("frozen_meta", {})
     p["frozen_meta"]["canonicalized"] = True
@@ -1865,16 +1884,17 @@ def validate_and_fix_assertions(src_root: Path, vul_file: str, plan: Dict[str, A
 
     return plan
 
-def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_prompt: str, out_dir: Path, src_root: Path) -> Dict[str, Any]:
-    # [UPDATED] Scientific Control Short-Circuit
+def run_frozen_analysis(
+    ctx: Dict[str, Any], args: argparse.Namespace, planner_prompt: str, 
+    out_dir: Path, src_root: Path
+) -> Dict[str, Any]:
+    
+    # 1. Check for Re-Use (Scientific Control)
     plan_path = out_dir / "frozen_plan.json"
     if plan_path.exists():
         print(f"\n[=] PHASE 1: SKIPPED (Provenance Re-Use)")
         print(f"  [i] Reusing locked Frozen Plan found at: {plan_path}")
-        # BUG WAS HERE: Returned raw JSON without fixing the klee_assert issue
         cached_plan = read_json(plan_path)
-        
-        # [FIX] Always re-run finalizer to apply code sanitizers (like klee_assert fix)
         return finalize_frozen_plan(
             cached_plan, 
             ctx, 
@@ -1884,15 +1904,53 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
             project_bc_path=Path(args.project_bc) if args.project_bc else None,
             src_root=src_root
         )
-        
-    print("\n[=] PHASE 1: Frozen Context Analysis (Identifying Entrypoint & Logic)")
+
+    print(f"\n[=] PHASE 1: Frozen Context Analysis (Identifying Entrypoint & Logic)")
     ensure_dir(out_dir)
-    history = ["STRATEGY: Analyze spec -> 'shell' to verify call paths -> 'final_plan'."]
     
-    for i in range(10): 
-        print(f"  --- [Analysis Turn {i+1}/10] ---")
-        hist_txt = "\n\n".join(history[-5:])
+    history = []
+    found_plan = None
+    
+    # [OPTIMIZATION] Run Smart Stub Analysis ONCE (Cached)
+    smart_stub_guidance = ""
+    try:
+        # [FIX] Robustly calculate relative path
+        # Handle cases where vul_file is relative ("encoding.c") vs absolute ("/path/to/encoding.c")
+        vpath = Path(ctx['vul_file'])
+        if vpath.is_absolute():
+            try:
+                vul_file_rel = str(vpath.relative_to(src_root))
+            except ValueError:
+                # Fallback: If it's absolute but somehow not under src_root, just use the filename
+                vul_file_rel = vpath.name
+        else:
+            # It's already relative
+            vul_file_rel = str(vpath)
+
+        stub_hints = auto_discover_stub_candidates(src_root, vul_file_rel, args.rule_id or "")
+        if stub_hints:
+            smart_stub_guidance = f"\n\n{stub_hints}"
+            print(f"  [i] Pre-computed Smart Stubbing Directives.")
+    except Exception as e:
+        print(f"  [!] Smart stub analysis warning: {e}")
+
+    # Initial Context Construction
+    files_context = f"SOURCE CODE CONTEXT:\n{ctx['enclosing_function']}\n"
+    
+    # Initial History State
+    history.append({"turn": 0, "content": "STRATEGY: Analyze spec -> 'shell' to verify call paths -> 'final_plan'."})
+
+    max_iters = 10
+    for i in range(max_iters):
+        print(f"  --- [Analysis Turn {i+1}/{max_iters}] ---")
         
+        # Build History Text
+        hist_txt = ""
+        for h in history[-5:]:
+            content = h if isinstance(h, str) else h.get("content", "")
+            hist_txt += f"{content}\n\n"
+
+        # Anti-Grep Guidance
         anti_grep_msg = ""
         if len(ctx['enclosing_function'].splitlines()) > 50:
             target_fname = Path(ctx['vul_file']).name
@@ -1903,63 +1961,72 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
                 "Proceed to 'final_plan' if you have identified the entrypoint."
             )
 
+        # Construct Prompt
         user_msg = (
             f"Spec: {json.dumps(ctx['spec'], indent=2)}\n"
-            f"SOURCE CODE CONTEXT:\n{ctx['enclosing_function']}\n" 
+            f"{files_context}\n"
             f"History:\n{hist_txt}\n"
             f"{anti_grep_msg}\n"
-            # [INSERT THIS BLOCK START]
             f"\n[CRITICAL INSTRUCTION]:\n"
-            f"1. STOP using 'grep' piped to 'head' (e.g. '| head -n'). It hides the function body you need.\n"
-            f"2. If you see a line number from a previous grep (e.g. '2479: void x...'), "
-            f"IMMEDIATELY use the 'read_file' tool to read 50-100 lines around that line.\n"
+            f"1. STOP using 'grep' piped to 'head'. It hides the function body.\n"
+            f"2. If you see a line number from a previous grep, IMMEDIATELY use 'read_file' (or assume context is above).\n"
             f"3. Do NOT search for the same term twice.\n"
-            # [INSERT THIS BLOCK END]
-            f"GOAL: Identify the Public Entrypoint and the bug-triggering (violating) predicate for BUG_ASSERT."
+            f"{smart_stub_guidance}" # [OPTIMIZATION] Injected once
+            f"\nGOAL: Identify the Public Entrypoint and the bug-triggering (violating) predicate for BUG_ASSERT."
         )
         
+        # Call LLM
         resp = call_llm_json(planner_prompt, user_msg, out_dir, f"frozen_iter{i:03d}")
-
+        
         action = resp.get("action")
         rationale = (resp.get("rationale") or "").strip()
         turn_hdr = f"ACTION: {action}\n" + (f"RATIONALE: {rationale}\n" if rationale else "")
         
+        # --- ACTION HANDLERS ---
+        
         if action == "shell":
             log = ""
             for cmd in get_commands_list(resp):
+                if any(x in cmd for x in ["rm ", "mv ", "wget", "curl", "ssh", "sudo"]):
+                    log += f"$ {cmd}\n[SECURITY BLOCK] Command forbidden.\n"
+                    continue
+
                 print(f"  [$] Executing: {cmd}")
                 try:
                     sanitize_shell_command(cmd)
                     rc, out, err, _ = run_cmd(cmd, cwd=src_root, timeout=10, use_shell=True)
-                    log += f"$ {cmd}\nRC={rc}\nSTDOUT:\n{out[:2000]}\nSTDERR:\n{err[:2000]}\n"
-                except Exception as e: log += f"Error: {e}\n"
-            history.append(turn_hdr + log)
+                    log += f"$ {cmd}\nRC={rc}\nSTDOUT:\n{out[:2000]}\nSTDERR:\n{err[:1000]}\n"
+                except Exception as e: 
+                    log += f"Error: {e}\n"
+            
+            history.append({"turn": i, "content": turn_hdr + log})
             
         elif action == "lookup_symbols":
             res = perform_smart_lookup(src_root, resp.get("symbols", []))
-            history.append(turn_hdr + f"LOOKUP:\n{res[:4000]}")
+            history.append({"turn": i, "content": turn_hdr + f"LOOKUP:\n{res[:4000]}"})
             
         elif action == "final_plan":
             raw_plan = resp.get("plan", {})
+            print("  [i] Received 'final_plan'. Validating...")
             
-            # Entrypoint Compliance
+            # Entrypoint Compliance Check
             required_entry = ctx["spec"].get("entrypoint")
             planned_entry = raw_plan.get("entrypoint", {}).get("name")
             
             if required_entry and planned_entry != required_entry:
-                print(f"  [!] Plan Rejected: Entrypoint Mismatch. Spec requires '{required_entry}', Plan has '{planned_entry}'.")
-                history.append(
-                    turn_hdr + f"CRITICAL PLAN ERROR: You selected '{planned_entry}' as the entrypoint, "
+                msg = (
+                    f"CRITICAL PLAN ERROR: You selected '{planned_entry}' as the entrypoint, "
                     f"but the mission specification STRICTLY REQUIRES '{required_entry}'.\n"
-                    f"You MUST use '{required_entry}' as the public API wrapper in your harness.\n"
                     f"Update your plan to call '{required_entry}'."
                 )
+                print(f"  [!] Plan Rejected: {msg}")
+                history.append({"turn": i, "content": turn_hdr + msg})
                 continue
 
             # [FIX 1] Auto-Switch Static Entrypoints
             raw_plan = fix_static_entrypoint(src_root, ctx['vul_file'], raw_plan)
 
-            # [FIX 2] QL-Driven Assertion Validation (NEW)
+            # [FIX 2] QL-Driven Assertion Validation
             raw_plan = validate_and_fix_assertions(src_root, ctx['vul_file'], raw_plan, args.rule_id or "")
 
             # 1) Canonicalize frozen plan
@@ -1973,21 +2040,27 @@ def run_frozen_analysis(ctx: Dict[str, Any], args: argparse.Namespace, planner_p
                 src_root=src_root 
             )
 
+            # 2) Validate the canonical plan
             temp_path = out_dir / "temp_plan.json"
             write_json(temp_path, frozen_plan)
-
-            # 2) Validate the canonical plan (not the raw LLM output)
+            
             valid, msg = run_dcv(temp_path, ctx, args)
+            
             if valid:
-                write_json(out_dir / "frozen_plan.json", frozen_plan)  # stable artifact for Phase 2
-                print("  [✓] Frozen Plan Locked.")
-                # Persist what the agent decided, so later turns don't "forget" the chosen plan.
-                history.append(turn_hdr + "FINAL_PLAN_ACCEPTED")
+                print("  [+] Plan Validated Successfully.")
+                # Save and Return
+                write_json(out_dir / "frozen_plan.json", frozen_plan)
+                history.append({"turn": i, "content": turn_hdr + "FINAL_PLAN_ACCEPTED"})
                 return frozen_plan
             else:
-                history.append(turn_hdr + f"VALIDATOR ERROR: {msg}")
+                print(f"  [!] Plan Validation Failed.")
+                history.append({"turn": i, "content": turn_hdr + f"VALIDATOR ERROR: {msg}"})
+                
+        else:
+            print(f"  [!] Unknown action: {action}")
+            history.append({"turn": i, "content": f"SYSTEM ERROR: Unknown action '{action}'. Use 'shell', 'lookup_symbols', or 'final_plan'."})
 
-            
+    print("[!] Phase 1 failed: No valid plan produced after max turns.")
     return {"plan_error": "Analysis Failed"}
 
 # ---------------- KLEE UTILS ----------------
@@ -2056,10 +2129,17 @@ def check_crash_locality(log_text: str, target_file: str, target_line: int, wind
 
     # --- 2. Handle Harness Errors (Refinement Signal) ---
     for fpath, lnum_str, msg in matches:
+        msg_s = (msg or "").strip()
+        
+        # [STRICT CRITERIA] KLEE API Misuse is ALWAYS a Harness Error
+        # Even if it happens inside a smart stub (dict.c), it's due to the harness/stub logic.
+        if "klee_make_symbolic" in msg_s or "klee_assume" in msg_s or "Wrong size" in msg_s:
+             return False, f"HARNESS_LOCAL_CRASH: {Path(fpath).name}:{lnum_str}: {msg_s}"
+
+        # Explicit harness file errors
         try:
             if Path(fpath).name == "harness.c":
                 lnum = int(lnum_str)
-                msg_s = (msg or "").strip()
                 return False, f"HARNESS_LOCAL_CRASH: harness.c:{lnum}: {msg_s}"
         except Exception:
             continue
@@ -2099,7 +2179,7 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
         "--only-output-states-covering-new", 
     ]
 
-    # Opt-in Tracing: Only enable if env var is set to avoid massive logs
+    # Opt-in Tracing
     if os.environ.get("KLEE_TRACE", "0") == "1":
         print("      [i] Enabling instruction trace (Expect slower execution)")
         cmd.append("-debug-print-instructions=src:stderr")
@@ -2111,12 +2191,12 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     print(f"      [>] Streaming KLEE output ({timeout}s max)...")
     print("      ---------------------------------------------------")
 
-    # Use the streaming runner
     rc, out, err, t = run_cmd_stream(cmd, timeout=timeout)
     
     print("      ---------------------------------------------------")
 
     full_log = f"{out}\n{err}"
+    # Initial write of the raw log
     (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
 
     # Trace Extraction
@@ -2128,77 +2208,97 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
              if ".c:" in line and (target_fname in line or "harness.c" in line):
                 trace_lines.append(line.split("/")[-1].strip())
         execution_trace = "\n".join(trace_lines[-30:]) if trace_lines else "(No relevant trace found)"
-    
 
     # Robust Log Parsing
     bug_assert, reach_assert = check_for_assert_files(out_dir)
     
-    # [FIX] Enhanced Detection for "Abort Failure" (used by our BUG_ASSERT macro) 
     if not bug_assert:
         if "BUG_ASSERT" in full_log and "ASSERTION FAIL" in full_log:
             bug_assert = True
         elif "abort failure" in full_log:
-            # KLEE reports abort() calls as "abort failure"
             bug_assert = True
 
     if not reach_assert:
         if "REACH_ASSERT" in full_log and "ASSERTION FAIL" in full_log:
             reach_assert = True
     
-    # [FIX] Filter out "Provably False" errors from Harness Crashes
-    # These are logic errors in the harness, not execution crashes.
-    if "invalid klee_assume call (provably false)" in full_log:
-        # If we didn't find a real bug, treat this as a harness configuration error (H0), NOT a crash.
-        if not bug_assert:
-            print("  [i] KLEE: Assumption failure (provably false). Marking as H0 (Refinement needed).")
-            # We explicitly do NOT set failure_reason to HARNESS_LOCAL_CRASH to avoid downgrading the whole run.
-            return {
-                "status": "harness_constraint_error", # New status
-                "bug_assert_hit": False, "reach_assert_hit": False, 
-                "elapsed": t, "full_log": full_log, 
-                "failure_reason": "Harness assumption provably false (Constraint Error)"
-            }
-        
-
-    # Locality Check
+    # -------------------------------------------------------------
+    # [NEW] Crash Classification Logic (Spec vs Opportunistic)
+    # -------------------------------------------------------------
+    bug_found = False
+    crash_type = "none"     # none, spec, opportunistic, harness, harness_constraint
+    crash_location = ""
     failure_reason = None
-    if bug_assert and target_line > 0:
-        is_local, loc_msg = check_crash_locality(full_log, target_file, target_line)
+    analysis_note = ""
 
-        # [FIX] If the crash is an "Explicit BUG_ASSERT", we trust it regardless of locality 
-        # (because instrumentation might have shifted lines).
-        if "Explicit BUG_ASSERT" in loc_msg:
-            pass # Keep bug_assert = True
-            
-        elif not is_local:
-            # If it's a memory error (e.g. encoding.c:1059) but far from target (1129),
-            # we discard it to avoid false attribution.
-            print(f"  [!] Discarding unrelated crash: {loc_msg}")
-            bug_assert = False  
-            failure_reason = loc_msg
-            full_log += f"\n\n[SYSTEM ANALYSIS]: Crash discarded: {loc_msg}\n"
-            (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
+    # 1. Handle Harness Constraints (Invalid Assume)
+    if "invalid klee_assume call (provably false)" in full_log and not bug_assert:
+        print("  [i] KLEE: Assumption failure (provably false). Marking as H0.")
+        return {
+            "status": "harness_constraint_error", 
+            "bug_found": False, "reach_assert_hit": False,
+            "elapsed": t, "full_log": full_log,
+            "failure_reason": "Harness assumption provably false",
+            "execution_trace": execution_trace
+        }
 
-    # --- NEW: if KLEE produced an error and we did NOT reach any assertion, classify harness-local crash ---
-    # This fixes the common case where KLEE errors out in the harness (e.g., buf[len-1]) before entering target,
-    # which previously returned status "ok" and did not drive refinement.
-    if (not bug_assert) and (not reach_assert) and ("KLEE: ERROR:" in full_log) and target_file:
-        # target_line may be 0 in some runs; we still want harness classification
-        _is_local, loc_msg = check_crash_locality(full_log, target_file, target_line or 0)
-        if loc_msg.startswith("HARNESS_LOCAL_CRASH:"):
-            failure_reason = loc_msg
-            full_log += f"\n\n[SYSTEM ANALYSIS]: {loc_msg}\n"
-            (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
-
-    status = (
-        "harness_error"
-        if (failure_reason or "").startswith("HARNESS_LOCAL_CRASH:")
-        else ("assertion_bug" if bug_assert else ("assertion_reach" if reach_assert else ("timeout" if rc == 124 else "ok")))
-    )
+    # 2. Analyze Crashes
+    if bug_assert:
+        # Explicit Oracle -> Trusted Spec Bug
+        bug_found = True
+        crash_type = "spec"
+        crash_location = f"{Path(target_file).name}:{target_line} (Oracle)"
         
+    elif "KLEE: ERROR" in full_log:
+        is_local, loc_msg = check_crash_locality(full_log, target_file, target_line)
+        
+        # Extract location string from message (e.g. "file.c:123")
+        match = re.search(r"at ([^ ]+:\d+)", loc_msg) or re.search(r"HARNESS_LOCAL_CRASH: ([^ ]+:\d+)", loc_msg)
+        found_loc = match.group(1) if match else "unknown"
+
+        if loc_msg.startswith("HARNESS_LOCAL_CRASH"):
+            crash_type = "harness"
+            crash_location = found_loc
+            failure_reason = loc_msg
+            analysis_note = f"[SYSTEM ANALYSIS]: {loc_msg}"
+        elif is_local:
+            bug_found = True
+            crash_type = "spec"
+            crash_location = found_loc
+        else:
+            # Valid crash in library, but NOT at target site
+            print(f"  [!] OPPORTUNISTIC BUG FOUND: {loc_msg}")
+            bug_found = True
+            crash_type = "opportunistic"
+            crash_location = found_loc
+            analysis_note = f"[SYSTEM ANALYSIS]: Opportunistic Bug Detected: {loc_msg}"
+
+    # [RESTORED] Write analysis back to log file for debugging
+    if analysis_note:
+        full_log += f"\n\n{analysis_note}\n"
+        (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
+
+    # Final Status Determination
+    status = "ok"
+    if crash_type == "harness":
+        status = "harness_error"
+    elif bug_found:
+        status = "bug_found"
+    elif reach_assert:
+        status = "assertion_reach"
+    elif rc == 124:
+        status = "timeout"
+
     return {
-        "status": status, "bug_assert_hit": bug_assert, "reach_assert_hit": reach_assert, 
-        "elapsed": t, "full_log": full_log, "failure_reason": failure_reason,
+        "status": status,
+        "bug_found": bug_found, 
+        "bug_assert_hit": bug_assert, 
+        "reach_assert_hit": reach_assert,
+        "crash_type": crash_type,       
+        "crash_location": crash_location, 
+        "elapsed": t, 
+        "full_log": full_log, 
+        "failure_reason": failure_reason,
         "execution_trace": execution_trace 
     }
 # ---------------- PHASE 2: REFINEMENT LOOP ----------------
@@ -3112,17 +3212,23 @@ def interactive_synthesizer(
     harness_src = ""
     history = []
     
+    # Track visited crashes to prevent loops
+    opportunistic_history = [] 
+    
     # Dynamic Constraints
     dynamic_constraints: List[str] = []
     current_timeout = args.timeout
     
+    # Track the best outcome. Priority: Spec Bug > Opportunistic Bug > Reach > Error
     best_stats = {
         "status": "none", 
         "score": 0, 
         "failure_reason": "No iterations completed",
         "final_harness": "",
         "best_ktest_path": "",
-        "best_turn": -1
+        "best_turn": -1,
+        "bug_site_type": "-",
+        "bug_location": "-"
     } 
     best_label = "E"
     
@@ -3146,7 +3252,7 @@ def interactive_synthesizer(
     immutable_funcs = compute_immutable_set(frozen_plan)
     immutable_str = ", ".join(sorted(immutable_funcs))
 
-    # [MOVED UP] Calculate Oracle Snippet BEFORE using it in sticky_constraints
+    # Calculate Oracle Snippet
     fm = (frozen_plan or {}).get("frozen_meta", {}) or {}
     oracle_id = str(fm.get("frozen_assertion_id") or "").strip()
     oracle_call = str(fm.get("frozen_assertion_call") or "").strip()
@@ -3167,16 +3273,14 @@ def interactive_synthesizer(
             f"{oracle_call if oracle_call else 'BUG_ASSERT(/*BUG_CONDITION*/);'}\n"
         )
     else:
-        # Backward compatible fallback
         oracle_snippet = (
             "/* FROZEN ORACLE (IMMUTABLE) */\n"
             "/* You MUST include either BUG_ASSERT(...) or CHECK_READ(...) per the plan. */\n"
         )
 
-    # ... (Plan constraints logic remains here) ...
+    # Plan Constraints
     plan_constraints = ""
     for asm in frozen_plan.get("assumptions", []):
-        # ... (keep existing loop logic) ...
         if asm.get("type") == "klee_assume":
             plan_constraints += (
                 f"- REQUIRED ASSUMPTION: {asm.get('constraint')}\n"
@@ -3194,7 +3298,7 @@ def interactive_synthesizer(
                 f"  * Reason: {asm.get('rationale')}\n"
             )
 
-    # ... (Strategy Oracle logic remains here) ...
+    # Strategy Oracle
     rule_oracle = ""
     strat_name = (ctx.get("strategy", {}).get("name") or str(args.rule_id)).upper()
     assertion_macro = ctx.get("strategy", {}).get("assertion_macro", "")
@@ -3207,7 +3311,6 @@ def interactive_synthesizer(
             "     (Do not rely on BUG_ASSERT(0) for OOB Reads. We need the memory check.)\n"
         )
 
-    # Now sticky_constraints will work because oracle_snippet is defined
     sticky_constraints = (
         "STICKY CONSTRAINTS (HARD):\n"
         "- Preserve section markers exactly and in order.\n"
@@ -3216,14 +3319,22 @@ def interactive_synthesizer(
         f"- IMMUTABLE FUNCTIONS (DO NOT STUB): {immutable_str}\n"
         f"{plan_constraints}"
         f"{rule_oracle}"
-        f"{oracle_snippet}"  # <--- No longer Unbound
+        f"{oracle_snippet}"
         "- You may only stub EXTERNAL dependencies or COMPUTATIONAL HOTSPOTS not in the list above.\n"
     )
 
     print("\n[=] PHASE 2: Iterative Refinement (Concrete -> Symbolic)")
 
-    for i in range(max_iters):
-        print(f"\n  --- [Refinement Turn {i+1}/{max_iters}] ---")
+    # [BUDGET LOGIC]
+    budget_used = 0
+    total_turns = 0
+    max_total_limit = max_iters * 3 # Safety brake against infinite free turns
+
+    while budget_used < max_iters and total_turns < max_total_limit:
+        # We use 'total_turns' for file naming to prevent overwrites, 
+        # but 'budget_used' for the user-facing progress.
+        i = total_turns 
+        print(f"\n  --- [Refinement Turn {i+1} (Budget {budget_used+1}/{max_iters})] ---")
         
         last_failure = _cap_text(history[-1], 2500) if history else "(none)"
         history_tail = "\n\n".join(_cap_text(h, 800) for h in history[-3:-1]) if len(history) > 1 else ""
@@ -3243,22 +3354,18 @@ def interactive_synthesizer(
             )
 
         warning_msg = ""
-        if i >= max_iters - 3:
-             warning_msg = (f"\n\n[SYSTEM CRITICAL]: You have used {i}/{max_iters} turns. You MUST stop analyzing and output a 'harness' NOW.")
+        if budget_used >= max_iters - 3:
+             warning_msg = (f"\n\n[SYSTEM CRITICAL]: You have used {budget_used}/{max_iters} budget. You MUST stop analyzing and output a 'harness' NOW.")
 
-        # [NEW] Inject Dynamic Constraints at the bottom
         dyn_constraints_text = ""
         if dynamic_constraints:
             dyn_constraints_text = "\n[!!! ACTIVE CONSTRAINT ENFORCEMENT - DO NOT IGNORE !!!]\n" + "\n".join(dynamic_constraints) + "\n"
 
-        # [NEW] Check for Pipeline Feedback (Hotspots)
         hotspots_env = os.environ.get("FORCE_STUB_CANDIDATES", "")
         hotspot_guidance = ""
         if hotspots_env:
-            # Clean up the list
             candidates = [x.strip() for x in hotspots_env.split() if x.strip()]
             valid_candidates = [c for c in candidates if c not in immutable_funcs]
-            
             if valid_candidates:
                 hotspot_guidance = (
                     f"\n[PERFORMANCE WARNING]: The following functions caused path explosion in previous runs:\n"
@@ -3298,174 +3405,124 @@ def interactive_synthesizer(
             print("  [!] Error: Agent returned no code.")
             history.append("System: You failed to provide a ```c code block.")
             if best_stats["score"] == 0: best_stats["failure_reason"] = "Agent returned no code"
+            # Compile errors consume budget
+            budget_used += 1
+            total_turns += 1
             continue
 
+        # AUTO-REPAIR: Linker Collision (The "Smart Fix")
+        # Automatically converts "void* xmlMalloc(...) {" -> "void* stub_xmlMalloc(...) {"
+        # and adds the #define redirect. This unblocks the Agent immediately.
+        
+        # 1. Identify collision candidates (functions defined in harness that look like library names)
+        # Matches: type Name(...) {
+        func_def_pattern = re.compile(r"^\s*(?:[\w\*]+\s+)+([a-zA-Z0-9_]+)\s*\([^;]*\)\s*\{", re.MULTILINE)
+        
+        # List of known library functions the agent often conflicts with
+        known_collisions = ["xmlMalloc", "xmlFree", "xmlRealloc", "xmlMemStrdup", "xmlInitParser", "xmlStrQEqual"]
+        
+        repaired_code = code
+        fixes_applied = []
+
+        for match in func_def_pattern.finditer(code):
+            func_name = match.group(1)
+            if func_name in known_collisions and f"stub_{func_name}" not in code:
+                # Rename the definition: "xmlMalloc" -> "stub_xmlMalloc"
+                # We use a naive replace for the definition line to avoid complex parsing
+                # (Replacing just the first occurrence of the definition signature)
+                def_line_regex = re.compile(rf"(\b){re.escape(func_name)}(\s*\()")
+                repaired_code = def_line_regex.sub(rf"\1stub_{func_name}\2", repaired_code, count=1)
+                
+                # Add the redirect macro if missing
+                if f"#define {func_name}" not in repaired_code:
+                    repaired_code = f"#define {func_name} stub_{func_name}\n" + repaired_code
+                
+                fixes_applied.append(func_name)
+        
+        if fixes_applied:
+            print(f"  [i] Auto-Repair: Fixed Linker Collisions for {fixes_applied}. (Renamed to stub_*)")
+            code = repaired_code
+            # Append feedback so the agent knows what happened (optional, but good for context)
+            history.append(f"[SYSTEM] Auto-repaired Linker Collisions: {fixes_applied}. Proceeding.")
+
         # [PATCH 1] Auto-Repair: Remove Forbidden Assertions
-        # Logic: If the strategy uses 'instrumented_predicate' (Source-Side Oracle), 
-        # the Harness MUST NOT contain BUG_ASSERT or REACH_ASSERT.
-        
         plan_inst = frozen_plan.get("instrumentation", []) if frozen_plan else []
-        
-        # Check Strategy Type (INT_OVERFLOW, OOB_READ are instrumented)
         strategy_oracle = ctx.get("strategy", {}).get("oracle_type", "")
         is_instrumented = (strategy_oracle == "instrumented_predicate")
-
-        # Check for explicit instrumentation in the plan
         has_source_bug = any("BUG_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
         has_source_reach = any("REACH_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
 
-        # 1. Strip BUG_ASSERT if handled by source OR explicit strategy rule
         if has_source_bug or is_instrumented:
             if re.search(r"BUG_ASSERT\s*\(", code):
                 print("  [i] Auto-Repair: Force-removing redundant 'BUG_ASSERT' from harness (Strategy is Instrumented).")
                 code = re.sub(r"BUG_ASSERT\s*\([^)]*\)\s*;?", "", code, flags=re.DOTALL)
 
-        # 2. Strip REACH_ASSERT if handled by source OR explicit strategy rule
-        # [FIX] This stops the 'REACH_ASSERT reached' infinite loop spam in KLEE logs.
         if has_source_reach or is_instrumented:
             if re.search(r"REACH_ASSERT\s*\(", code):
                 print("  [i] Auto-Repair: Force-removing redundant 'REACH_ASSERT' from harness (Strategy is Instrumented).")
                 code = re.sub(r"REACH_ASSERT\s*\([^)]*\)\s*;?", "", code, flags=re.DOTALL)
 
-        # We inject headers/macros BEFORE validation so the validator sees the complete code.
-        strategy_name = ((ctx.get('strategy') or {}).get('name') or '')
-
-        fm = (frozen_plan or {}).get("frozen_meta", {}) or {}
-        oracle_id = str(fm.get("frozen_assertion_id") or "").strip()
-        oracle_call = str(fm.get("frozen_assertion_call") or "").strip()
-
-        oracle_snippet = ""
-        if oracle_id == "CHECK_READ":
-            oracle_snippet = (
-                "/* FROZEN ORACLE (IMMUTABLE) */\n"
-                "#define CHECK_READ(ptr, len) klee_check_memory_access((void*)(ptr), (size_t)(len))\n"
-                "/* Must be placed immediately BEFORE the target statement */\n"
-                f"{oracle_call if oracle_call else 'CHECK_READ(/*ADDR_EXPR*/, /*SIZE_EXPR*/);'}\n"
-            )
-        elif oracle_id == "BUG_ASSERT":
-            oracle_snippet = (
-                "/* FROZEN ORACLE (IMMUTABLE) */\n"
-                "#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\n"
-                "/* Must be placed at the specified target location */\n"
-                f"{oracle_call if oracle_call else 'BUG_ASSERT(/*BUG_CONDITION*/);'}\n"
-            )
-        else:
-            # Backward compatible fallback
-            oracle_snippet = (
-                "/* FROZEN ORACLE (IMMUTABLE) */\n"
-                "/* You MUST include either BUG_ASSERT(...) or CHECK_READ(...) per the plan. */\n"
-            )
-
-        # [PATCH 4] Auto-Correct: Rewrite unsafe klee_assume(strlen/var < C) to if (...) return 0;
+        # [PATCH 2] Auto-Correct: Rewrite unsafe klee_assume(strlen/var < C)
         def _rewrite_unsafe_assumes(text: str) -> str:
-            # Pattern 1: klee_assume(strlen(s) < CONST);
-            # Matches: klee_assume(strlen(buf) < 100);
+            def repl_less(m):
+                var, const = m.groups()
+                return f"if ({var} >= {const}) return 0; /* Auto-fixed unsafe assume */"
+            text = re.sub(r"klee_assume\s*\(\s*([A-Za-z0-9_]+)\s*<\s*(\d+)\s*\)\s*;", repl_less, text)
             def repl_strlen(m):
                 s, op, const = m.groups()
-                # Invert logic: < becomes >=, > becomes <=
                 inv_op = ">=" if "<" in op else ("<=" if ">" in op else "==")
                 return f"if (strlen({s}) {inv_op} {const}) return 0; /* Auto-fixed unsafe assume */"
-                
-            # Regex handles: klee_assume ( strlen ( ... ) < ... );
-            text = re.sub(
-                r"klee_assume\s*\(\s*strlen\s*\(([^)]+)\)\s*(<|<=|>|>=)\s*(\d+)\s*\)\s*;", 
-                repl_strlen, 
-                text
-            )
+            text = re.sub(r"klee_assume\s*\(\s*strlen\s*\(([^)]+)\)\s*(<|<=|>|>=)\s*(\d+)\s*\)\s*;", repl_strlen, text)
             return text
 
         code = _rewrite_unsafe_assumes(code)
 
+        strategy_name = ((ctx.get('strategy') or {}).get('name') or '')
         harness_src = inject_standard_headers(code, frozen_plan=frozen_plan, strategy=strategy_name)
 
-        # --- [NEW] PRE-FLIGHT CHECK (Fail fast before compilation/KLEE) ---
+        # ---------------------------------------------------------------------
+        # [FIXED] PRE-FLIGHT CHECK (Non-Blocking Warnings)
+        # ---------------------------------------------------------------------
         pre_flight = preflight_check(harness_src, strategy_name)
         if pre_flight:
-            print(f"  [!] Pre-flight checks flagged {len(pre_flight)} issue(s). Skipping compile/KLEE for this turn.")
-            for msg in pre_flight:
-                # Pretty-print multi-line messages with indentation
-                print("      - " + msg.replace("\n", "\n        "))
-            feedback = "\n".join(pre_flight)
-            history.append(feedback)
-            # Any hard error short-circuits the turn to save time.
-            if "PRE-FLIGHT ERROR" in feedback:
-                if best_stats["score"] == 0:
-                    best_stats["failure_reason"] = "Pre-flight failure"
-                continue
-        # ---------------------------------------------------------------
-
-        # --- PRE-COMPILATION VALIDATION ---
-        clean_code = strip_c_comments_and_strings(harness_src) # Validate the INJECTED code
-
-        # Call Sequence Enforcement
-        if required_entrypoint:
-            # Count calls to entrypoint (ignoring declarations)
-            call_count = len(re.findall(rf"\b{re.escape(required_entrypoint)}\s*\(", clean_code))
+            print(f"  [!] Pre-flight checks flagged {len(pre_flight)} issue(s).")
+            for msg in pre_flight: print("      - " + msg.replace("\n", "\n        "))
+            history.append("\n".join(pre_flight))
             
-            if call_count < min_calls:
-                print(f"  [!] Plan Violation: Entrypoint called {call_count} times (Expected {min_calls}+).")
-                history.append(
-                    f"LOGIC ERROR: The Frozen Plan requires a sequence of {min_calls} calls to '{required_entrypoint}'.\n"
-                    f"You only have {call_count} potential calls.\n"
-                    "ACTION: You MUST implement the full 'call_sequence' from the Frozen Plan."
-                )
-                if best_stats["score"] == 0: best_stats["failure_reason"] = "Plan Deviation (Call Sequence)"
+            # BLOCK only on ERRORS. Allow WARNINGS to proceed.
+            if any("PRE-FLIGHT ERROR" in msg for msg in pre_flight):
+                print("      [!] Blocking Execution due to PRE-FLIGHT ERROR.")
+                if best_stats["score"] == 0: best_stats["failure_reason"] = "Pre-flight failure"
+                # Static error consumes budget
+                budget_used += 1
+                total_turns += 1
                 continue
+            else:
+                print("      [i] Proceeding with execution (Warnings only).")
+        # ---------------------------------------------------------------------
 
+        # PRE-COMPILATION VALIDATION
+        project_defined_symbols = set() 
+        if getattr(args, "project_bc", None) and Path(args.project_bc).exists():
+             try: project_defined_symbols = _project_defined_symbols(Path(args.project_bc), cwd=src_root)
+             except: pass
 
-        # Redefinition Check
-        if required_entrypoint:
-            redef_re = re.compile(
-                rf"^\s*(?:[\w\s\*]+?)[\s\*]+\b{re.escape(required_entrypoint)}\s*\([^;]*?\)\s*\{{", 
-                re.MULTILINE | re.DOTALL
-            )
-
-            if redef_re.search(clean_code):
-                msg = (
-                    f"SYSTEM ERROR: ILLEGAL REDEFINITION of '{required_entrypoint}'.\n"
-                    "STOP! You are trying to implement a function that already exists in the library.\n"
-                    "ACTION: Delete the body. Replace it with this EXACT declaration:\n"
-                    f"   {entry_sig}\n"
-                )
-                print(f"  [!] Harness Validation Failed: Redefinition of {required_entrypoint}")
-                history.append(msg)
-                constraint = (
-                    f"VIOLATION RECORDED: You previously tried to define '{required_entrypoint}'. "
-                    "PERMANENTLY FORBIDDEN. Use this declaration instead:\n"
-                    f"   {entry_sig}"
-                )
-                if constraint not in dynamic_constraints:
-                    dynamic_constraints.append(constraint)
-                continue
-            
         try:
             is_valid, err_msg = validate_harness_structure(
                 harness_src, required_entrypoint, args.validation_policy_obj, 
-                args.rule_id, args.spec_stem, frozen_plan
+                args.rule_id, args.spec_stem, frozen_plan, defined_symbols=project_defined_symbols
             )
         except Exception as e:
             history.append(f"SYSTEM ERROR: Validation crashed: {e}")
+            budget_used += 1
+            total_turns += 1
             continue
 
         if not is_valid:
             print(f"  [!] Harness Validation Failed: {err_msg}")
-            
-            # [FIX] Specialized feedback for the CHECK_READ loop
-            if "requires CHECK_READ" in err_msg:
-                history.append(
-                    f"SYSTEM ERROR: Plan Violation (Missing Assertion).\n"
-                    f"REASON: {err_msg}\n"
-                    f"DIAGNOSIS: You removed 'CHECK_READ' or failed to call it.\n"
-                    f"LIKELY CAUSE: You might have tried to check a hidden internal variable (like 'entry->name') "
-                    f"and hit a compilation error, so you deleted the line.\n"
-                    f"CRITICAL FIX: Do NOT remove the check. Instead, check the PUBLIC arguments you pass to the function.\n"
-                    f"SAFE EXAMPLE:\n"
-                    f"   // Don't check internal pointers. Check the args 'name' and 'len':\n"
-                    f"   CHECK_READ(name, len);\n"
-                    f"   xmlDictLookup(dict, name, len);\n"
-                )
-            else:
-                history.append(f"SYSTEM ERROR: Structure Invalid.\nREASON: {err_msg}")
+            history.append(f"SYSTEM ERROR: Structure Invalid.\nREASON: {err_msg}")
+            budget_used += 1
+            total_turns += 1
             continue
 
         print(f"  [>] Generated Harness ({len(harness_src)} bytes).")
@@ -3477,7 +3534,7 @@ def interactive_synthesizer(
              
         if not okc:
             summary = summarize_log(msg, "Clang Error")
-            print(f"  [!] Compilation Failed. Reason:\n{summary}") 
+            print(f"  [!] Compilation Failed.")
             
             feedback_buffer = []
 
@@ -3492,7 +3549,7 @@ def interactive_synthesizer(
                     f"FIX: Rename your function to 'stub_{sym}' and add '#define {sym} stub_{sym}' AFTER your includes."
                 )
 
-            # 2. Typedef Recovery (Project-Agnostic)
+            # 2. Typedef Recovery
             type_match = re.search(r"unknown type name '(.+?)'", msg)
             if type_match:
                 missing_type = type_match.group(1)
@@ -3513,7 +3570,6 @@ def interactive_synthesizer(
             struct_match = re.search(r"incomplete definition of type 'struct (.+?)'", msg) or re.search(r"incomplete type '(struct [A-Za-z0-9_]+)'", msg)
             if struct_match:
                 missing_struct = struct_match.group(1).replace("struct ", "")
-                # Avoid looping on the same hint
                 if f"struct {missing_struct}" not in str(history):
                     print(f"  [i] Opaque struct '{missing_struct}' detected. Scanning source tree...")
                     found_def = find_opaque_struct_global(src_root, missing_struct)
@@ -3549,7 +3605,7 @@ def interactive_synthesizer(
                         f"ACTION: Remove your definition of '{sym_name}'."
                     )
 
-            # 5. Missing Symbols (Restored Functionality)
+            # 5. Missing Symbols
             missing_syms = re.findall(r"undefined reference to `([^']+)'", msg)
             missing_syms += re.findall(r"implicit declaration of function '([^']+)'", msg)
             if missing_syms:
@@ -3560,61 +3616,137 @@ def interactive_synthesizer(
                     "SYSTEM OVERRIDE: You are granted permission to STUB these specific functions."
                 )
 
-            # Flush all accumulated feedback
+            # Flush feedback
             if feedback_buffer:
                 history.extend(feedback_buffer)
             else:
-                # Fallback if no specific handlers triggered
                 history.append(f"COMPILATION ERROR (Summarized):\n{summary}")
             
             if best_stats["score"] == 0:
                 best_stats["failure_reason"] = "Compilation/Linker Error"
+            
+            # Compilation failures consume budget
+            budget_used += 1
+            total_turns += 1
             continue
 
         print(f"  [*] Running KLEE...")
-        # [SCALING] Pass current_timeout instead of args.timeout
         stats = run_klee(bc, args.klee, args.klee_flags, current_timeout, logs_dir, i, ctx['vul_file'], ctx['vul_line'])
 
-        # --- [FIX START] Degenerate Path Detection ---
-        # Detects if KLEE avoided the bug by choosing len=0 or empty strings.
-        # Matches: "WARNING ONCE: calling external: bcmp(..., ..., 0)"
-        degenerate_pattern = re.search(r"calling external:\s*(bcmp|memcmp|strncmp).*?,\s*0\s*\)", stats['full_log'], re.IGNORECASE)
+        # ---------------------------------------------------------------------
+        # [NEW] 1. Premature Exit Detection (H0 / Silent Failure Fix)
+        # ---------------------------------------------------------------------
+        total_inst = 0
+        match_inst = re.search(r"total instructions = (\d+)", stats.get('full_log', ''))
+        if match_inst:
+            total_inst = int(match_inst.group(1))
         
+        if total_inst > 0 and total_inst < 25000 and not stats.get('bug_found') and not stats.get('reach_assert_hit') and stats['status'] != "timeout":
+             print(f"  [!] Detected Premature Exit (Instructions: {total_inst}). Injecting feedback.")
+             
+             setup_advice = "Use 'klee_assume(setup_call(...) == 0);' to force success."
+             if "if (" in code and "return 0" in code:
+                 setup_advice = "Replace 'if (err) return 0;' with 'klee_assume(!err);' (Force the solver to find a valid path)."
+
+             feedback_msg = (
+                 f"KLEE WARNING: Execution finished suspiciously fast ({total_inst} instructions).\n"
+                 "DIAGNOSIS: The harness likely hit a 'return 0;' error check during setup (e.g., malloc failed, API returned error).\n"
+                 "CRITICAL FIX: Do NOT handle setup errors with 'return'. You must FORCE the solver to find a successful path.\n"
+                 f"ACTION: {setup_advice}\n"
+             )
+             history.append(feedback_msg)
+             if best_stats["score"] == 0:
+                 best_stats["failure_reason"] = "Premature Exit (Setup Failed)"
+
+        # ---------------------------------------------------------------------
+        # [NEW] 2. Degenerate Path Detection
+        # ---------------------------------------------------------------------
+        degenerate_pattern = re.search(r"calling external:\s*(bcmp|memcmp|strncmp).*?,\s*0\s*\)", stats['full_log'], re.IGNORECASE)
         if degenerate_pattern:
             fn_name = degenerate_pattern.group(1)
-            print(f"  [!] Detected degenerate trivial path: {fn_name}(..., 0)")
             history.append(
                 f"KLEE WARNING: The harness reached the target, but used a degenerate length of 0 ({fn_name}).\n"
-                "CAUSE: comparing 0 bytes always returns Equal, but it skips the vulnerable OOB read.\n"
-                "CRITICAL FIX: You MUST add a constraint to force non-trivial paths:\n"
-                "   klee_assume(len > 0);\n"
-                "   klee_assume(name_buf[0] != 0); // Ensure string is not empty"
+                "CRITICAL FIX: Add constraints: klee_assume(len > 0); klee_assume(name_buf[0] != 0);"
             )
-        # --- [FIX END] ---
 
+        # -------------------------------------------------------------
+        # 3. Multi-Stage Success Handling (Validate & Resume)
+        # -------------------------------------------------------------
+        if stats.get("bug_found"):
+            ctype = stats.get("crash_type", "spec")
+            cloc = stats.get("crash_location", "unknown")
+            ktest_path = find_crash_ktest(logs_dir, i)
 
-        if stats["bug_assert_hit"]:
-            print("  [!] Bug Found! (Candidate H2) -> Exiting refinement to validate.")
-            best_stats = stats
-            best_stats["score"] = 3
-            best_stats["failure_reason"] = "None (Candidate)"
-            best_stats["final_harness"] = harness_src
-            best_stats["best_turn"] = i
-            best_stats["best_ktest_path"] = str(find_crash_ktest(logs_dir, i) or "")
-            return "H2_BUG", best_stats
+            # CASE A: Spec Bug Found (The Goal)
+            if ctype == "spec":
+                print(f"  [!] Spec-Guided Bug Found! (Candidate H2) -> {cloc}")
+                best_stats = stats
+                best_stats["score"] = 3
+                best_stats["failure_reason"] = f"Bug Found ({ctype})"
+                best_stats["final_harness"] = harness_src
+                best_stats["best_turn"] = i
+                best_stats["best_ktest_path"] = str(ktest_path or "")
+                best_stats["bug_site_type"] = ctype
+                best_stats["bug_location"] = cloc
+                return "H2_BUG_SPEC", best_stats
 
+            # CASE B: Opportunistic Bug Found (Early Crash)
+            elif ctype == "opportunistic":
+                print(f"  [!] Opportunistic Bug Found at {cloc}. Validating & Resuming...")
+                
+                # 1. FATIGUE CHECK (Validate ONCE per location)
+                is_new_location = (cloc not in opportunistic_history)
+                opportunistic_history.append(cloc)
+                
+                verdict = "SKIPPED (Repeat)"
+                vmsg = "Bug at this location already validated."
+
+                # 2. VALIDATE (Only if new)
+                if is_new_location and ktest_path and harness_src:
+                    verdict, vmsg = run_reproducer_suite(harness_src, src_root, out_dir, ktest_path, args)
+                    print(f"      Validation Verdict: {verdict}")
+                    
+                    # 3. REPORT (Update best_stats if this is the best finding so far)
+                    if best_label != "H2_BUG_SPEC":
+                        best_stats = stats
+                        best_stats["score"] = 2.5 
+                        best_stats["failure_reason"] = f"Opportunistic Bug ({cloc})"
+                        best_stats["final_harness"] = harness_src
+                        best_stats["best_ktest_path"] = str(ktest_path)
+                        best_stats["bug_site_type"] = "opportunistic"
+                        best_stats["bug_location"] = cloc
+                        best_label = "H2_BUG_OPPORTUNISTIC"
+                        
+                        (logs_dir / f"opportunistic_bug_{i}.txt").write_text(f"LOC: {cloc}\nVERDICT: {verdict}\nLOG:\n{vmsg}", encoding="utf-8")
+
+                # 4. FORCE FOCUS (Immediate Bypass Instruction)
+                history.append(
+                    f"OPPORTUNISTIC BUG FOUND at {cloc}.\n"
+                    f"Validation Verdict: {verdict}\n"
+                    "STATUS: Bug recorded. BUT this is NOT the Spec Target.\n"
+                    "CRITICAL INSTRUCTION: Do not get stuck fixing this. You must REACH the Spec Target.\n"
+                    "ACTION: Stub or bypass the crashing function immediately.\n"
+                    "   - If it's a library function (e.g. xmlMalloc), use Macro Redirection (#define) to stub it.\n"
+                    "   - If it's a logic crash, add 'return 0;' or 'klee_assume(0);' to kill this path."
+                )
+                
+                # [BUDGET LOGIC] FREE TURN
+                # We do NOT increment 'budget_used' here. This gives the agent a free retry.
+                total_turns += 1
+                continue # RESUME LOOP to find Spec Bug
+
+        # ---------------------------------------------------------------------
+        # 4. Standard Failure Handling (H1 / H2_REACH / H0)
+        # ---------------------------------------------------------------------
         # Cleanup KLEE
         klee_out_dir = logs_dir / f"klee-out-{i}"
-        if not stats["bug_assert_hit"] and not stats["reach_assert_hit"]:
-             if klee_out_dir.exists():
-                 shutil.rmtree(klee_out_dir, ignore_errors=True)
-                 
-        if (harness_dir / "harness.bc").exists():
-            (harness_dir / "harness.bc").unlink()
+        if not stats.get("bug_found") and not stats.get("reach_assert_hit"):
+             if klee_out_dir.exists(): shutil.rmtree(klee_out_dir, ignore_errors=True)
+        if (harness_dir / "harness.bc").exists(): (harness_dir / "harness.bc").unlink()
             
         log_summary = summarize_log(stats['full_log'], "KLEE Log")
-
-        # [SMART FEEDBACK] Build Trace Feedback Message
+        
+        # Build Trace Feedback
         trace_msg = ""
         if stats.get("execution_trace"):
             target_name = Path(ctx['vul_file']).name
@@ -3628,16 +3760,15 @@ def interactive_synthesizer(
                 f" - If you looped, check your loop conditions."
             )
 
+        # Opaque Struct Auto-Recovery
         incomplete_type_match = re.search(r"incomplete definition of type 'struct (.+?)'", stats['full_log'])
         if incomplete_type_match:
             struct_name = incomplete_type_match.group(1)
             target_file_name = frozen_plan.get('context_file', os.path.basename(args.vul_file))
             ctx_file_path = out_dir / "ctx" / target_file_name
             if ctx_file_path.exists():
-                print(f"  [!] Detected Opaque Struct Error: '{struct_name}'. Scanning {ctx_file_path.name}...")
                 try:
-                    with open(ctx_file_path, 'r') as f:
-                        src_content = f.read()
+                    with open(ctx_file_path, 'r') as f: src_content = f.read()
                     struct_regex = re.compile(rf"struct\s+{re.escape(struct_name)}\s*\{{([^}}]+?)\}};", re.DOTALL)
                     definition_match = struct_regex.search(src_content)
                     if definition_match:
@@ -3648,55 +3779,51 @@ def interactive_synthesizer(
                             f"```c\n{found_def}\n```\n"
                         )
                         log_summary += hint_msg
-                        print(f"  [+] Injected definition of 'struct {struct_name}' into prompt.")
-                except Exception as e:
-                    print(f"  [!] Failed to auto-recover struct: {e}")
+                except Exception: pass
 
         current_score = 0
         current_label = "E"
         current_reason = "Unknown"
         
-        if stats["reach_assert_hit"]:
+        if stats.get("reach_assert_hit"):
             current_score = 2
             current_label = "H2_REACH"
             current_reason = "Target Reached (No Bug)"
-            print(f"  [i] KLEE REACH Details:\n{log_summary}")
-            
-            plan_calls = frozen_plan.get("call_sequence", [])
-            setup_hint = ""
-            if len(plan_calls) > 1:
-                setup_steps = [f"- {c.get('function')}: {c.get('purpose', 'Setup')}" for c in plan_calls[:-1]]
-                setup_hint = "Review your 'call_sequence' from the Frozen Plan. Did you implement these SETUP steps?\n" + "\n".join(setup_steps)
-
             history.append(
                 f"KLEE: REACHED target (H2_REACH), but BUG_ASSERT did not fire.\n"
                 "ANALYSIS: Execution reached the target function, but the specific state required for the bug was not present.\n"
-                "COMMON CAUSE: The bug requires a specific state (e.g., populated cache, specific config) created by PRIOR calls.\n"
-                f"{setup_hint}\n"
-                f"{trace_msg}\n" # <--- [ADDED] Trace info
-                "ACTION: Ensure you strictly follow the 'call_sequence' to build the necessary state before the final trigger call."
+                "ACTION: Ensure you strictly follow the 'call_sequence' to build the necessary state.\n"
+                f"{trace_msg}"
             )
 
         elif stats["status"] == "timeout":
             current_score = 1
             current_label = "H1"
             current_reason = "Timeout"
-            
-            # [SCALING] Dynamic Scaling: Double timeout if stuck, cap at 300s
             new_timeout = min(300, current_timeout * 2)
             if new_timeout > current_timeout:
                 print(f"  [i] Timeout detected. Increasing limit: {current_timeout}s -> {new_timeout}s")
                 current_timeout = new_timeout
             
-            history.append(f"KLEE: Timeout ({stats['elapsed']:.1f}s).\nLog Summary:\n{log_summary}\n{trace_msg}")
+            history.append(
+                f"KLEE: Timeout reached ({stats['elapsed']:.1f}s). Exploration stuck.\n"
+                "POSSIBLE CAUSES:\n"
+                "1. Path Explosion: Loops with symbolic bounds?\n"
+                "2. Solver Stuck: Complex constraints (e.g. huge buffers, complex math)?\n"
+                "3. External Calls: Are you calling a complex library function that should be stubbed?\n"
+                "ACTION: Simplify the harness. Reduce buffer sizes (e.g. 256 -> 64). Stub complex functions.\n"
+                f"{trace_msg}"
+            )
 
         else:
-            current_score = 0.5
-            current_label = "H0"
-            current_reason = "Error / Not Reached"
-            # [ADDED] Trace info for early exits
-            history.append(f"KLEE: {stats['status']}\nLog Summary:\n{log_summary}\n{trace_msg}")
+            # H0 (Error / Not Reached) - Only append if Premature Exit check didn't already catch it
+            # [FIX] Guard against empty history
+            if not history or "Premature Exit" not in str(history[-1]):
+                current_score = 0.5
+                current_label = "H0"
+                history.append(f"KLEE: {stats['status']}\nLog Summary:\n{log_summary}\n{trace_msg}")
 
+        # Update best stats if no bug found yet
         if current_score >= best_stats.get("score", 0):
             best_stats = stats
             best_stats["score"] = current_score
@@ -3704,6 +3831,10 @@ def interactive_synthesizer(
             best_stats["final_harness"] = harness_src
             best_stats["best_turn"] = i
             best_label = current_label
+            
+        # [BUDGET LOGIC] Standard turns consume budget
+        budget_used += 1
+        total_turns += 1
 
     return best_label, best_stats
 
@@ -3811,6 +3942,7 @@ def _parse_c_args(arg_str: str) -> List[Dict[str, Any]]:
 def auto_discover_stub_candidates(src_root: Path, vul_file_rel: str, rule_id: str) -> str:
     """
     Scans for 'static' functions and generates SIDE-EFFECT AWARE stubs.
+    [FIXED] Handles void/pointer returns and prevents variable name collisions ('stub_ret' vs 'ret').
     """
     target_file = src_root / vul_file_rel
     if not target_file.exists(): return ""
@@ -3821,14 +3953,18 @@ def auto_discover_stub_candidates(src_root: Path, vul_file_rel: str, rule_id: st
     # Use existing helper to mask strings/comments
     masked = strip_c_comments_and_strings_preserve_lines(content)
 
-    # Regex: static [type] [stars] Name ( [args] )
-    pattern = re.compile(r'static\s+(?:[\w_]+\s+)+(?:[\*\s]+)?(\w+)\s*\(([^)]*)\)', re.MULTILINE | re.DOTALL)
+    # Regex to capture Return Type, Name, and Args
+    pattern = re.compile(
+        r'static\s+([a-zA-Z0-9_][a-zA-Z0-9_\s\*]*?)\s*\b(\w+)\s*\(([^)]*)\)', 
+        re.MULTILINE | re.DOTALL
+    )
 
     candidates = []
     
     for match in pattern.finditer(masked):
-        func_name = match.group(1)
-        arg_str = match.group(2)
+        ret_type_str = match.group(1).strip()
+        func_name = match.group(2)
+        arg_str = match.group(3)
         
         # --- 1. Locate Body ---
         idx = match.end()
@@ -3838,67 +3974,70 @@ def auto_discover_stub_candidates(src_root: Path, vul_file_rel: str, rule_id: st
         brace_pos = idx + next_sig.start()
         line_num = content.count('\n', 0, brace_pos) + 1
         
-        # --- 2. Analyze Semantics (Case Identification) ---
+        # --- 2. Analyze Types ---
         args = _parse_c_args(arg_str)
+        
+        # Check return type semantics
+        is_void_ret = (ret_type_str == "void") or (ret_type_str.endswith("void") and "*" not in ret_type_str)
+        is_ptr_ret = "*" in ret_type_str
+        
         is_hash = re.search(r"(?i)(hash|digest|checksum|sign|crypt)", func_name)
         is_cmp  = re.search(r"(?i)(cmp|compare|equal|same|match)", func_name)
         
-        # Identify Length Propagation Candidates (Scalar Input -> Pointer Output)
+        # Identify Length Propagation Candidates
         len_in = None
         len_out = None
         for arg in args:
             n = arg['name'].lower()
-            # Heuristic: Variable looks like a length/size
             if "len" in n or "size" in n or "count" in n or "max" in n:
                 if arg['is_ptr'] and not arg['is_const']: 
-                    len_out = arg['name'] # Output pointer
+                    len_out = arg['name'] 
                 elif not arg['is_ptr']: 
-                    len_in = arg['name']  # Input scalar
+                    len_in = arg['name']
 
         # --- 3. Synthesize Smart Stub Code ---
         stub_lines = []
         
-        # [Case 3: Safe Return Modeling]
-        # Default to symbolic return to maximize path exploration.
-        # This handles success/failure/error paths automatically.
-        stub_lines.append(f"unsigned ret; klee_make_symbolic(&ret, sizeof(ret), \"stub_{func_name}_ret\");")
-        
-        # [Case 2: Symbolic Side Effects]
-        # "If we are not sure... agent can leave it symbolic"
-        # We model the side effect of ANY output pointer by making its target symbolic.
-        for arg in args:
-            if arg['is_ptr'] and not arg['is_const']:
-                aname = arg['name']
-                # Guard against NULL derefs
-                stub_lines.append(f"if ({aname}) klee_make_symbolic({aname}, sizeof(*{aname}), \"stub_{func_name}_{aname}\");")
-
-        # [Case 1: Constrained Semantic Invariants]
-        # "Analyzing the bug site... agent will add constraints"
-        
-        if is_hash:
-            stub_lines.append("/* Case 1: Constrained (Force Collision) */")
-            # Adversarial: Force collision (non-zero to avoid 'empty' checks)
-            stub_lines.append("klee_assume(ret == 0x80000000u);")
-            
-            # Semantic Invariant: Propagate Lengths (The Fix for libxml2)
-            if len_in and len_out:
-                stub_lines.append(f"/* Case 1: Constrained (Propagate Length Invariant) */")
-                stub_lines.append(f"if ({len_out}) *{len_out} = {len_in};")
-                
-        elif is_cmp:
-            stub_lines.append("/* Case 1: Constrained (Force Match) */")
-            stub_lines.append("klee_assume(ret == 0);")
-            
-        else:
-            # Case 3 Fallback: General function.
-            # Symbolic return is already handled above.
+        # [Case 3: Return Value Modeling]
+        if is_void_ret:
+            # Void functions don't return anything
             pass
+        elif is_ptr_ret:
+            # Pointer functions: Return NULL (Safest default to avoid wild pointers)
+            stub_lines.append(f"/* Stub {func_name}: Pointer return default */")
+            stub_lines.append("return 0; /* NULL */")
+        else:
+            # Scalar functions: Symbolic return. [FIX] Use 'stub_ret' to avoid collision with local 'ret'
+            stub_lines.append(f"unsigned stub_ret; klee_make_symbolic(&stub_ret, sizeof(stub_ret), \"stub_{func_name}_ret\");")
 
-        stub_lines.append("return ret;")
-        
-        # Filter: Only generate for barriers relevant to the bug type
-        # (For OOB, we care about Hash/Cmp barriers)
-        if is_hash or is_cmp:
+        # [Case 2: Side Effects (Output Pointers)]
+        # for arg in args:
+        #     if arg['is_ptr'] and not arg['is_const']:
+        #         aname = arg['name']
+        #         btype = arg['base_type']
+                
+        #         # Do not dereference void* or incomplete types
+        #         if "void" in btype and "*" not in btype.replace("void", ""):
+        #             continue 
+                
+        #         # Guard against NULL derefs and symbolize the target
+        #         stub_lines.append(f"if ({aname}) klee_make_symbolic({aname}, sizeof(*{aname}), \"stub_{func_name}_{aname}\");")
+
+        # [Case 1: Semantic Constraints]
+        if not is_void_ret and not is_ptr_ret:
+            if is_hash:
+                stub_lines.append("/* Case 1: Constrained (Force Collision) */")
+                stub_lines.append("klee_assume(stub_ret == 0x80000000u);")
+                if len_in and len_out:
+                    stub_lines.append(f"if ({len_out}) *{len_out} = {len_in};")
+            elif is_cmp:
+                stub_lines.append("/* Case 1: Constrained (Force Match) */")
+                stub_lines.append("klee_assume(stub_ret == 0);")
+            
+            stub_lines.append("return stub_ret;")
+
+        # Only inject if we actually generated code or if it's a barrier we want to neutralize
+        if is_hash or is_cmp or stub_lines:
             candidates.append((func_name, line_num, stub_lines))
 
     if not candidates: return ""
@@ -3909,7 +4048,8 @@ def auto_discover_stub_candidates(src_root: Path, vul_file_rel: str, rule_id: st
         if func in seen: continue
         seen.add(func)
         
-        code_blk = " ".join(lines)
+        code_blk = " ".join(lines) if lines else "/* skipped void stub */"
+        
         directives.append(
             f"   - BARRIER: '{func}' (Line {line})\n"
             f"     ACTION: Inject Smart Stub (Side-Effect Model)\n"
@@ -4165,7 +4305,8 @@ def main():
     # ========================================================
     # PHASE 3: POST-LOOP VALIDATION (SYSTEM REPLAY)
     # ========================================================
-    if final_status == "H2_BUG":
+    # [FIX] Accept H2_BUG_SPEC and H2_BUG_OPPORTUNISTIC (if loop ended)
+    if final_status.startswith("H2_BUG"):
         print("\n[=] PHASE 3: System Validation (Replay)")
         
         # 1. Locate the harness and the crash input (ktest)
@@ -4217,9 +4358,14 @@ def main():
     write_json(run_dir / "run_meta.json", {"spec": str(args.spec), "class": final_status, "klee": stats, "tokens": _TOKEN_STATS})
 
     if args.summary_tsv:
+        # [FIX] Capture Bug Details
+        strat_name = ctx.get("strategy", {}).get("name", "unknown")
+        bug_site = stats.get("bug_site_type", "-")
+        bug_loc = stats.get("bug_location", "-")
+
         with open(args.summary_tsv, "a", encoding="utf-8") as f:
             fcntl.flock(f, fcntl.LOCK_EX)
-            # Columns: Spec | FinalStatus | KleeStatus | Time | BestTurn | PromptTokens | ComplTokens | TotalTokens
+            # Columns: Spec | FinalStatus | KleeStatus | Time | BestTurn | Prompt | Compl | Total | Strategy | BugType | BugLoc
             line = (
                 f"{args.spec_stem}\t"
                 f"{final_status}\t"
@@ -4228,7 +4374,10 @@ def main():
                 f"{stats.get('best_turn', -1)}\t"
                 f"{_TOKEN_STATS['prompt_tokens']}\t"
                 f"{_TOKEN_STATS['completion_tokens']}\t"
-                f"{_TOKEN_STATS['total_tokens']}\n"
+                f"{_TOKEN_STATS['total_tokens']}\t"
+                f"{strat_name}\t"
+                f"{bug_site}\t"     # <--- NEW
+                f"{bug_loc}\n"      # <--- NEW
             )
             f.write(line)
             fcntl.flock(f, fcntl.LOCK_UN)
