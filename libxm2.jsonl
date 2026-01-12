@@ -8,3 +8,4 @@
 {"arvo_id": 63157, "vulnerable": {"commit": "4fc5340ec55a12cd6819395030d5d132a219984a", "tag": "v2.11.0", "release": "2.11.0"}, "fixed": {"commit": "7dfcea03c37d17ca0d05d7a54f9245a8fde735cc", "tag": "v2.11.0", "release": "2.11.0"}}
 {"arvo_id": 66679, "vulnerable": {"commit": "e45a4d711500298dfc7ee8f630acc18c71f14795", "tag": "v2.12.0", "release": "2.12.0"}, "fixed": {"commit": "c444c96e20253e5996f4209a123b96a6c273dac6", "tag": "v2.12.0", "release": "2.12.0"}}
 {"arvo_id": 24055, "vulnerable": {"commit": "8da80951dd7eeeb3e3b5a3bcd36c485045f40274", "tag": null, "release": null}, "fixed": {"commit": "82b5e359463238d790cadbe2dd494d6a4928bff3", "tag": null, "release": null}}
+{"arvo_id": 26022, "vulnerable": {"commit": "82b5e359463238d790cadbe2dd494d6a4928bff3", "tag": null, "release": null}, "fixed": {"commit": "82b5e359463238d790cadbe2dd494d6a4928bff3", "tag": null, "release": null}}

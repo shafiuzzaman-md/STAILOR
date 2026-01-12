@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "2026-01-12T03:52:38.212266+00:00",
+  "project": "libxml2",
+  "args": {
+    "query_suites": [
+      "rules/stailor-queries/suites/stailor.qls"
+    ],
+    "also_run_cpp_queries": false,
+    "context_lines": 5,
+    "overwrite": true,
+    "time_per_rule": true,
+    "additional_packs": [
+      "/media/shafi/Research/STAILOR/rules"
+    ]
+  },
+  "codeql_version": "CodeQL command-line toolchain release 2.22.1.\nCopyright (C) 2019-2025 GitHub, Inc.\nUnpacked in: /home/shafi/codeql-cli/codeql\n   Analysis results depend critically on separately distributed query and\n   extractor modules. To list modules that are visible to the toolchain,\n   use 'codeql resolve packs' and 'codeql resolve languages'.",
+  "installed_packs": {},
+  "paths": {
+    "outputs_root": "/media/shafi/Research/STAILOR/sa_outputs/libxml2",
+    "db_path": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/codeql-db",
+    "sarif": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/codeql-results.sarif",
+    "rule_timing_jsonl": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/codeql_rule_time.jsonl",
+    "rule_timing_csv": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/codeql_rule_time.csv",
+    "json": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/findings.json",
+    "jsonl": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/findings.jsonl",
+    "csv": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/findings.csv",
+    "ccdb": "/media/shafi/Research/STAILOR/sa_outputs/libxml2/compile_commands.json"
+  }
+}
