@@ -8,6 +8,10 @@ Extract target project source (e.g., from CyberGym):
 3. python3 extract_from_cybergym.py arvo:66502 libxml2
 4. 
 
+# Fetch ground-truth metadata 
+1. python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911 
+2. python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:55980 
+
 # Pipeline
 1. bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
 2. bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul
@@ -122,6 +126,7 @@ bash sailr_cegir/run_worker.sh \
    "unbounded-write" \
    "specs/libxml2_62911_vul/018_encoding.c_1128_local_cpp_cwe-120-overflow.json" \
    "rules/stailor-queries/suites/stailor.qls"
+   
 ```
 # Batch mode
 ```
