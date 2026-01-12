@@ -1,12 +1,12 @@
 # Quick Start
 
-1. Environment setup (run once)
+## 1. Environment setup (run once)
 
 ```bash
 bash sailr_cegir/setup_env.sh
 ```
 
-2. Prepare the source under test
+## 2. Prepare the source under test
 Projects live under `./dataset/.`
 
 Example (extract from CyberGym):
@@ -14,13 +14,13 @@ Example (extract from CyberGym):
 ```
 python3 extract_from_cybergym.py arvo:62911 libxml2
 ```
-3. Configure the LLM key
+## 3. Configure the LLM key
 
 ```
 export DEEPSEEK_API_KEY=""
 ```
 
-3. Run the pipeline (per project)
+## 3. Run the pipeline (per project)
 
 Usage:
 ```
