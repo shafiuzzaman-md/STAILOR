@@ -2131,9 +2131,11 @@ def check_crash_locality(log_text: str, target_file: str, target_line: int, wind
     for fpath, lnum_str, msg in matches:
         msg_s = (msg or "").strip()
         
-        # [STRICT CRITERIA] KLEE API Misuse is ALWAYS a Harness Error
-        # Even if it happens inside a smart stub (dict.c), it's due to the harness/stub logic.
-        if "klee_make_symbolic" in msg_s or "klee_assume" in msg_s or "Wrong size" in msg_s:
+        # KLEE API Misuse is ALWAYS a Harness Error
+        if ("klee_make_symbolic" in msg_s or 
+            "klee_assume" in msg_s or 
+            "Wrong size" in msg_s or 
+            "concretized symbolic size" in msg_s): 
              return False, f"HARNESS_LOCAL_CRASH: {Path(fpath).name}:{lnum_str}: {msg_s}"
 
         # Explicit harness file errors
