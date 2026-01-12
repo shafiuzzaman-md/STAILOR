@@ -88,18 +88,30 @@ if [ ! -f "$PROJECT_BC" ]; then
 
   bash "${REPO_ROOT}/sailr_cegir/build_project_bc.sh" "$SRC_ROOT" "$PROJECT_BC"
 
-    # Robust validation: ensure the bitcode is valid LLVM IR
-    if ! llvm-dis-14 -o /dev/null "$PROJECT_BC" >/dev/null 2>&1; then
-        echo "[!] Error: project.bc is not valid LLVM bitcode (llvm-dis failed)."
-        exit 1
-    fi
+  # Robust validation: ensure the bitcode is valid LLVM IR
+  if ! llvm-dis-14 -o /dev/null "$PROJECT_BC" >/dev/null 2>&1; then
+    echo "[!] Error: project.bc is not valid LLVM bitcode (llvm-dis failed)."
+    exit 1
+  fi
 
-    # Optional sanity check: ensure at least one function definition exists
-    if ! llvm-dis-14 -o - "$PROJECT_BC" 2>/dev/null | grep -q '^define '; then
-        echo "[!] Error: project.bc contains no function definitions."
-        exit 1
-    fi
+  # Robust sanity check: ensure at least one *defined symbol* exists.
+  # This is more stable than grepping textual llvm-dis output for '^define'.
+  if ! command -v llvm-nm-14 >/dev/null 2>&1; then
+    echo "[!] Error: llvm-nm-14 not found, cannot sanity-check symbol table."
+    exit 1
+  fi
 
+  DEF_COUNT="$(llvm-nm-14 --defined-only "$PROJECT_BC" 2>/dev/null | wc -l | tr -d ' ')"
+  if [ "${DEF_COUNT:-0}" -le 0 ]; then
+    echo "[!] Error: project.bc contains no defined symbols (unexpected)."
+    echo "    Debug: file(1) says:"
+    file "$PROJECT_BC" || true
+    echo "    Debug: first 30 llvm-nm-14 --defined-only lines:"
+    llvm-nm-14 --defined-only "$PROJECT_BC" 2>/dev/null | head -n 30 || true
+    echo "    Debug: first 60 lines of llvm-dis-14:"
+    llvm-dis-14 -o - "$PROJECT_BC" 2>/dev/null | head -n 60 || true
+    exit 1
+  fi
 fi
 
 # --- Phase 2: Agent Execution ---
