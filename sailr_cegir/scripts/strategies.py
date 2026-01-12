@@ -49,11 +49,64 @@ IN_SOURCE_STUBBING = (
     "2. DIRECTIVE: { 'file': '...', 'line': <start_of_body>, 'kind': 'insert_before', 'code': 'return 0x80000000; /* Forced Collision */' }\n"
 )
 
-# STRATEGIES are strictly ordered. Specific matches (OOB) are prioritized over generic ones (LOGIC/OVERFLOW).
+# STRATEGIES are strictly ordered. Specific matches are prioritized over generic ones.
 STRATEGIES: Dict[str, Dict[str, Any]] = {
+    
+    # --- CWE-126: Buffer Over-read ---
+    "BUFFER_OVERREAD": {
+        "match": [
+            r"buffer-overread", 
+            r"overrun-read", 
+            r"read-overflow",
+            r"cwe-126"
+        ],
+        "suspect_calls": ["memcmp", "strcmp", "strncmp", "strchr", "strstr", "bcmp", "strlen", "strnlen"],
+        "oracle_type": "instrumented_predicate",
+        "assertion_macro": "BUG_ASSERT(condition)",
+        "planner_instruction": (
+            "This is a Buffer Overread (CWE-125/126).\n"
+            "*** STRICT PLACEMENT & LOGIC RULES ***\n"
+            "1. ORACLE: Use 'instrumentation' to place BUG_ASSERT() immediately BEFORE the vulnerable read.\n"
+            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_before', 'code': 'BUG_ASSERT(...);' }\n"
+            "2. INJECT DEFINITIONS (CRITICAL): Inject at TOP of target file:\n"
+            "   - Directive: {\n"
+            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
+            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
+            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
+            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif'\n"
+            "     }\n"
+            "3. CONTAINER LOGIC: If the bug is a read past the end of a string/buffer, ensure the input length exceeds the buffer size.\n"
+            "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX + "\n" + OOB_CONSTRAINT_GUIDE
+        ),
+        "frozen_assumptions": [
+            {
+                "type": "vulnerability_setup",
+                "instruction": "Allocate a SMALL fixed-size buffer (e.g. 'char buf[64]'). Do NOT allocate 4096 bytes.",
+                "rationale": "Force the read operations to go beyond the allocated boundary."
+            },
+            {
+                "type": "klee_assume",
+                "constraint": "{{LEN_VAR}} > 64",
+                "rationale": "Ensure length is sufficient to trigger overread on a 64-byte buffer."
+            },
+            {
+                "type": "constraint_policy",
+                "instruction": "Do NOT use sizeof() to constrain the read length unless protecting harness-local access.",
+                "rationale": "Avoid safety coupling that hides the overread."
+            }
+        ]
+    },
+
+    # --- CWE-125: Out-of-Bounds Read ---
     "OOB_READ": {
-        "match": [r"cwe-125", r"oob.*read", r"out-of-bounds.*read", r"buffer-overread", r"heap-inspection", r"length-misuse"],
-        "suspect_calls": ["memcmp", "strcmp", "strncmp", "strchr", "strstr", "bcmp", "memcpy", "memmove"],
+        "match": [
+            r"cwe-125", 
+            r"oob.*read", 
+            r"out-of-bounds.*read", 
+            r"heap-inspection", 
+            r"length-misuse"
+        ],
+        "suspect_calls": ["memcpy", "memmove", "bcopy"],
         # OOB_READ often does NOT crash. We confirm via an instrumented, rule-driven predicate at the vuln site.
         "oracle_type": "instrumented_predicate",
         "assertion_macro": "BUG_ASSERT(condition)",
@@ -66,30 +119,17 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             "3. TARGET ASSERTION (REACH): Use 'instrumentation' to place REACH_ASSERT() immediately AFTER the vulnerable line.\n"
             "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_after', 'code': 'REACH_ASSERT();' }\n"
             "4. INJECT DEFINITIONS (CRITICAL): You MUST inject these definitions at the TOP of the target file (Line 1).\n"
-            "   - Reason: The library file is compiled separately and does not see harness macros. We must fix visibility.\n"
             "   - Directive: {\n"
-            "       'file': '<target_file.c>',\n"
-            "       'line': 1,\n"
-            "       'kind': 'insert_before',\n"
-            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n"
-            "#include <klee/klee.h>\\n"
-            "#ifndef BUG_ASSERT\\n"
-            "#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n" # Match klee_builder.txt semantics
-            "#endif\\n"
-            "#ifndef REACH_ASSERT\\n"
-            "#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n"
-            "#endif'\n"
+            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
+            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
+            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
+            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif'\n"
             "     }\n"
             "5. SMART STUBBING: Identify static hash/crypto functions and stub them IN-SOURCE to return a CONSTANT to force collisions.\n"
             "   IMPORTANT: Prefer a NONZERO constant (e.g., 0x80000000) if the data structure treats 0 as an 'empty/sentinel' hash.\n"
             "6. CONTAINER LOGIC: Prime the state (concrete setup -> symbolic trigger).\n"
-            "   - LENGTH-MISMATCH REQUIREMENT (stored-key lookups): If the bug site reads `entry->name[len]` / `entry->name[len-1]`\n"
-            "     or compares a stored key against an external `(name, len)` (e.g., `memcmp(entry->name, name, len)` then `entry->name[len]`),\n"
-            "     you MUST construct TWO operations: first insert/prime with a SHORT key using len1 (1..16), then a second lookup with len2 > len1\n"
-            "     to force probing/compare of the short entry under the larger length. Repeating the same (name,len) will NOT reach the bug site.\n"
-            "7. LOOP POLICY (IMPORTANT):\n"
-            "   - Do NOT add new loops over symbolic arrays purely to constrain bytes (path explosion).\n"
-            "   - Preserving an existing program loop that is required to reach the vulnerable read is allowed.\n"
+            "   - LENGTH-MISMATCH REQUIREMENT: If checking `entry->name[len]`, insert short key first, then lookup with larger length.\n"
+            "7. LOOP POLICY (IMPORTANT): Do NOT add new loops over symbolic arrays purely to constrain bytes.\n"
             "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX + "\n" + OOB_CONSTRAINT_GUIDE
             + "\n" + IN_SOURCE_STUBBING
         ),
@@ -111,45 +151,84 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             },
             {
                 "type": "constraint_policy",
-                "instruction": "Do NOT add safety-coupling assumptions that constrain the bug-driving length in the target (e.g., '{{LEN_VAR}} < sizeof(target_buf)' or min(..., sizeof(target_buf))). Exception: If the HARNESS itself performs indexing like 'buf[{{LEN_VAR}}]' or 'buf[{{LEN_VAR}}-1]' (or equivalent), you MUST add a harness-safety bound such as '{{LEN_VAR}} < sizeof(buf)' (or '{{LEN_VAR}} <= sizeof(buf)-1') to prevent a harness-local OOB crash before reaching the target.",
-                "rationale": "Target safety-coupling can hide the bug and invalidate confirmation; harness-local bounds are permitted only to prevent premature harness crashes that block exploration."
+                "instruction": "Do NOT add safety-coupling assumptions that constrain the bug-driving length in the target (e.g., '{{LEN_VAR}} < sizeof(target_buf)'). Exception: Harness-local safety bounds (BUF[{{LEN_VAR}}]) are permitted.",
+                "rationale": "Target safety-coupling can hide the bug and invalidate confirmation."
             },
             {
                 "type": "constraint_policy",
-                "instruction": "Do NOT add new loops over symbolic arrays to enforce non-null characters. If you need a terminator, set 'buf[sizeof(buf)-1] = 0' or constrain only a small prefix.",
+                "instruction": "Do NOT add new loops over symbolic arrays to enforce non-null characters. If you need a terminator, set 'buf[sizeof(buf)-1] = 0'.",
                 "rationale": "New loops over symbolic arrays cause combinatorial path growth; preserve only program-required loops."
             }
         ]
     },
 
-    "OOB_WRITE": {
+    # --- CWE-120: Classic Buffer Overflow (Specific) ---
+    "BUFFER_OVERFLOW": {
         "match": [
-            r"cwe-120", r"cwe-787", r"cwe-805", r"cwe-121", r"cwe-122",
-            r"oob.*write", r"out-of-bounds.*write", r"heap-overflow",
-            r"stack-overflow", r"buffer-overflow", r"length-misuse"
+            r"cwe-120", 
+            r"buffer-overflow", 
+            r"classic-overflow"
         ],
-        "suspect_calls": ["memcpy", "memmove", "memset", "strcpy", "strncpy", "strcat", "sprintf", "snprintf", "gets"],
+        "suspect_calls": ["strcpy", "sprintf", "gets", "strcat"],
         "oracle_type": "crash",
         "assertion_macro": "BUG_ASSERT(0)",
         "planner_instruction": (
-            "This is a Memory Corruption bug (Write/Overflow: CWE-120/787/805).\n"
+            "This is a Classic Buffer Overflow (CWE-120).\n"
+            "Input is copied without checking its size (e.g. strcpy, sprintf).\n"
+            "*** ORACLE & PLACEMENT ***\n"
+            "1. ORACLE: Use 'BUG_ASSERT(0)' as a post-call landing marker *AFTER* the vulnerable call.\n"
+            "2. GOAL: Provide an input larger than the destination buffer to trigger a crash.\n"
+            "*** INJECT DEFINITIONS ***\n"
+            "You MUST inject definitions at the TOP of the target file (Line 1):\n"
+            "   - Directive: {\n"
+            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
+            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
+            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
+            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif\\n'\n"
+            "     }\n"
+            "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX
+        ),
+        "frozen_assumptions": [
+            {
+                "type": "vulnerability_setup",
+                "instruction": "Allocate a concrete input buffer (e.g., 'char buf[256]').",
+                "rationale": "Concrete buffers avoid symbolic-size allocation complexity."
+            },
+            {
+                "type": "constraint_policy",
+                "instruction": "Filter short strings: `if (strlen(buf) <= 64) return 0;`.",
+                "rationale": "Using klee_assume on strlen can cause infeasible paths; filtering is safer."
+            },
+            {
+                "type": "constraint_policy",
+                "instruction": "Filter overly-long strings for performance: `if (strlen(buf) >= 128) return 0;`.",
+                "rationale": "Keeps libc strlen loops tractable."
+            }
+        ]
+    },
+
+    # --- CWE-787: Generic OOB Write ---
+    "OOB_WRITE": {
+        "match": [
+            r"cwe-787", r"cwe-805", r"cwe-121", r"cwe-122",
+            r"oob.*write", r"out-of-bounds.*write", r"heap-overflow",
+            r"stack-overflow", r"length-misuse"
+        ],
+        "suspect_calls": ["memcpy", "memmove", "memset", "snprintf"],
+        "oracle_type": "crash",
+        "assertion_macro": "BUG_ASSERT(0)",
+        "planner_instruction": (
+            "This is a Memory Corruption bug (Write/Overflow: CWE-787/805).\n"
             "ORACLE: Use 'BUG_ASSERT(0)' as a post-call landing marker *AFTER* the vulnerable call.\n"
             "Logic: 'If I reach this line, the crash did NOT happen.' (KLEE/ASan will catch the crash automatically).\n"
             "HARNESS GOAL: Call the function with inputs that cause a write PAST the allocated buffer.\n"
             "*** CRITICAL: INJECT DEFINITIONS ***\n"
             "You MUST inject these definitions at the TOP of the target file (Line 1) to support the oracle:\n"
             "   - Directive: {\n"
-            "       'file': '<target_file.c>',\n"
-            "       'line': 1,\n"
-            "       'kind': 'insert_before',\n"
-            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n"
-            "#include <klee/klee.h>\\n"
-            "#ifndef BUG_ASSERT\\n"
-            "#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n" # Match klee_builder.txt semantics
-            "#endif\\n"
-            "#ifndef REACH_ASSERT\\n"
-            "#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n"
-            "#endif\\n'\n"
+            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
+            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
+            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
+            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif\\n'\n"
             "     }\n"
             "*** CRITICAL: PLACEMENT ***\n"
             "For OOB_WRITE, you MUST use 'insert_after' for the BUG_ASSERT(0) directive.\n"
@@ -181,18 +260,74 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
         ]
     },
 
+    # --- CWE-416: Use-After-Free ---
     "UAF": {
-        "match": [r"cwe-416", r"use-after-free", r"double-free"],
-        "suspect_calls": ["free"],
+        "match": [
+            r"cwe-416", 
+            r"use-after-free", 
+            r"free-then-use", 
+            r"free-then-deref", 
+            r"free-then-callarg",
+            r"free-then-return",
+            r"lookup-remove-use"
+        ],
+        "suspect_calls": ["free", "xmlFree", "xmlHashRemoveEntry", "xmlHashFree", "xmlDictFree"],
         "oracle_type": "crash",
         "assertion_macro": "BUG_ASSERT(0)",
         "planner_instruction": (
-            "This is a Use-After-Free (CWE-416). "
-            "You MUST use 'BUG_ASSERT(0)' as a post-use landing marker. "
-            "Ensure the object is freed *before* the vulnerable use in your call sequence."
+            "This is a Use-After-Free (CWE-416).\n"
+            "*** ORACLE & PLACEMENT ***\n"
+            "1. ORACLE: Use 'BUG_ASSERT(0)' as a post-use landing marker immediately AFTER the vulnerable use site.\n"
+            "   - Logic: If execution reaches this line, the UAF crash did NOT happen (or ASan missed it).\n"
+            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_after', 'code': 'BUG_ASSERT(0);' }\n"
+            "2. TRIGGER SEQUENCE: You must construct a path: Allocate -> Free -> Use.\n"
+            "   - Case A (Direct): free(p); use(p);\n"
+            "   - Case B (Lookup-Remove-Use): \n"
+            "       val = lookup(key); // Keep pointer to val\n"
+            "       remove(key);       // Frees the internal struct\n"
+            "       use(val);          // UAF Trigger\n"
+            "3. PRECONDITIONS: Ensure the object exists before freeing it. Do not double-free (unless testing CWE-415).\n"
+            "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX
         ),
+        "frozen_assumptions": [
+            {
+                "type": "vulnerability_setup",
+                "instruction": "Ensure the object is NOT NULL before freeing.",
+                "rationale": "Freeing NULL is a no-op and won't trigger UAF."
+            }
+        ]
     },
 
+    # --- CWE-415: Double Free ---
+    "DOUBLE_FREE": {
+        "match": [
+            r"cwe-415", 
+            r"double-free", 
+            r"free-then-free"
+        ],
+        "suspect_calls": ["free", "xmlFree", "xmlHashFree"],
+        "oracle_type": "crash",
+        "assertion_macro": "BUG_ASSERT(0)",
+        "planner_instruction": (
+            "This is a Double Free (CWE-415).\n"
+            "*** ORACLE & PLACEMENT ***\n"
+            "1. ORACLE: Use 'BUG_ASSERT(0)' immediately AFTER the SECOND free call.\n"
+            "   - Logic: If execution survives the second free, the bug failed to trigger.\n"
+            "2. TRIGGER SEQUENCE: Allocate -> Free -> Free.\n"
+            "   - Do NOT set the pointer to NULL between frees (that makes the second free safe).\n"
+            "   - Ensure the execution path actually hits both frees.\n"
+            "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX
+        ),
+        "frozen_assumptions": [
+            {
+                "type": "vulnerability_setup",
+                "instruction": "Do not nullify pointers after free().",
+                "rationale": "Setting p=NULL prevents the double-free crash."
+            }
+        ]
+    },
+
+    # --- CWE-190: Integer Overflow ---
     "INT_OVERFLOW": {
         "match": [
             r"integer[-_ ]overflow",
@@ -201,7 +336,6 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             r"overflow[-_ ]in[-_ ]alloc",
             r"alloc[-_ ]size[-_ ]overflow",
             r"size[-_ ]calculation[-_ ]overflow",
-            # Removed generic "cpp/.*overflow" to prevent stealing CWE-120
             r"cwe-190", r"cwe-191", r"cwe-680", r"cwe-681",
         ],
         "oracle_type": "instrumented_predicate",
