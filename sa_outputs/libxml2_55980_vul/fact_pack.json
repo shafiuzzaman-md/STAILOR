@@ -1,7 +1,7 @@
 {
   "schema": "llmse.factpack.v1",
   "project": "libxml2_55980_vul",
-  "generated_utc": "2026-01-11T19:47:43.528192+00:00",
+  "generated_utc": "2026-01-11T22:32:29.702038+00:00",
   "facts": [
     {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlmemory.c",
@@ -65,6 +65,46 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 705,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "memset",
+        "xmlMalloc"
+      ],
+      "pointer_vars": [
+        "sizeof"
+      ],
+      "length_vars": [
+        "main",
+        "return",
+        "run"
+      ],
+      "bounds_hints": [
+        {
+          "var": "main",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "run",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/SAX2.c",
       "line": 1884,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -97,6 +137,169 @@
         },
         {
           "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 601,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "__xmlRandom",
+        "memset",
+        "xmlMalloc"
+      ],
+      "pointer_vars": [
+        "sizeof"
+      ],
+      "length_vars": [
+        "DICT_RANDOMIZATION",
+        "MIN_DICT_SIZE"
+      ],
+      "bounds_hints": [
+        {
+          "var": "DICT_RANDOMIZATION",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "MIN_DICT_SIZE",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 358,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "fprintf",
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "namelen",
+        "plen"
+      ],
+      "bounds_hints": [
+        {
+          "var": "namelen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "plen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 361,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "namelen",
+        "plen",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "namelen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "plen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 290,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "fprintf",
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "namelen",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "namelen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/encoding.c",
+      "line": 1151,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "suspect_calls": [
+        "memmove",
+        "strcmp",
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -199,6 +402,58 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/encoding.c",
+      "line": 391,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy"
+      ],
+      "pointer_vars": [
+        "be",
+        "to"
+      ],
+      "length_vars": [
+        "Conversion",
+        "len",
+        "outlen",
+        "return",
+        "shouldn"
+      ],
+      "bounds_hints": [
+        {
+          "var": "Conversion",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "outlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "shouldn",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/buf.c",
       "line": 364,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -256,25 +511,191 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/encoding.c",
-      "line": 1151,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/hash.c",
+      "line": 259,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
-      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
       "suspect_calls": [
-        "memmove",
-        "strcmp",
-        "xmlFree"
+        "memset",
+        "xmlMalloc"
       ],
-      "pointer_vars": [],
+      "pointer_vars": [
+        "sizeof"
+      ],
       "length_vars": [
+        "main",
+        "return",
+        "run"
+      ],
+      "bounds_hints": [
+        {
+          "var": "main",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "run",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/hash.c",
+      "line": 191,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "__xmlRandom",
+        "memset",
+        "xmlMalloc"
+      ],
+      "pointer_vars": [
+        "sizeof"
+      ],
+      "length_vars": [
+        "HASH_RANDOMIZATION",
         "return"
       ],
       "bounds_hints": [
         {
+          "var": "HASH_RANDOMIZATION",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
           "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
+      "line": 1325,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "isspace",
+        "memcpy",
+        "strlen",
+        "xmlMalloc"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "envlen",
+        "function",
+        "return",
+        "strlen"
+      ],
+      "bounds_hints": [
+        {
+          "var": "envlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "function",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "strlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
+      "line": 1242,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlNanoHTTPRecv"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
+      "line": 1123,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "__xmlIOErr",
+        "htons",
+        "memcpy",
+        "records"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "h_length",
+        "return",
+        "sockin"
+      ],
+      "bounds_hints": [
+        {
+          "var": "h_length",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "sockin",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -413,92 +834,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/encoding.c",
-      "line": 391,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy"
-      ],
-      "pointer_vars": [
-        "be",
-        "to"
-      ],
-      "length_vars": [
-        "Conversion",
-        "len",
-        "outlen",
-        "return",
-        "shouldn"
-      ],
-      "bounds_hints": [
-        {
-          "var": "Conversion",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "outlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "shouldn",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/catalog.c",
-      "line": 997,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "fclose",
-        "fread",
-        "read"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
       "line": 4731,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -530,6 +865,43 @@
         },
         {
           "var": "strlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
+      "line": 527,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "suspect_calls": [
+        "memmove"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "in",
+        "inlen",
+        "len"
+      ],
+      "bounds_hints": [
+        {
+          "var": "in",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "inlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -590,22 +962,20 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/HTMLparser.c",
-      "line": 2325,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
+      "line": 550,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "message": "CWE-120: Potential Buffer Overflow via recv (unchecked length).",
       "suspect_calls": [
-        "memcpy",
-        "strlen"
+        "recv"
       ],
       "pointer_vars": [],
       "length_vars": [
         "in",
-        "len",
-        "strlen"
+        "return"
       ],
       "bounds_hints": [
         {
@@ -614,12 +984,7 @@
           "source": "heuristic"
         },
         {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "strlen",
+          "var": "return",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -651,6 +1016,106 @@
       "bounds_hints": [
         {
           "var": "c14n",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "strlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/catalog.c",
+      "line": 997,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "fclose",
+        "fread",
+        "read"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testThreads.c",
+      "line": 115,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "memset",
+        "pthread_create",
+        "xmlInitParser",
+        "xmlLoadCatalog"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "TEST_REPEAT_COUNT"
+      ],
+      "bounds_hints": [
+        {
+          "var": "TEST_REPEAT_COUNT",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/HTMLparser.c",
+      "line": 2325,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "strlen"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "in",
+        "len",
+        "strlen"
+      ],
+      "bounds_hints": [
+        {
+          "var": "in",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -813,34 +1278,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testThreads.c",
-      "line": 115,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "memset",
-        "pthread_create",
-        "xmlInitParser",
-        "xmlLoadCatalog"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "TEST_REPEAT_COUNT"
-      ],
-      "bounds_hints": [
-        {
-          "var": "TEST_REPEAT_COUNT",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
       "line": 3736,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -882,46 +1319,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/hash.c",
-      "line": 259,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "memset",
-        "xmlMalloc"
-      ],
-      "pointer_vars": [
-        "sizeof"
-      ],
-      "length_vars": [
-        "main",
-        "return",
-        "run"
-      ],
-      "bounds_hints": [
-        {
-          "var": "main",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "run",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
       "line": 3651,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -948,41 +1345,6 @@
         },
         {
           "var": "pattern",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/hash.c",
-      "line": 191,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "__xmlRandom",
-        "memset",
-        "xmlMalloc"
-      ],
-      "pointer_vars": [
-        "sizeof"
-      ],
-      "length_vars": [
-        "HASH_RANDOMIZATION",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "HASH_RANDOMIZATION",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -1061,65 +1423,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
-      "line": 705,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "memset",
-        "xmlMalloc"
-      ],
-      "pointer_vars": [
-        "sizeof"
-      ],
-      "length_vars": [
-        "main",
-        "return",
-        "run"
-      ],
-      "bounds_hints": [
-        {
-          "var": "main",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "run",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testchar.c",
-      "line": 602,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "memset"
-      ],
-      "pointer_vars": [
-        "the"
-      ],
-      "length_vars": [],
-      "bounds_hints": [],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
       "line": 3305,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -1174,41 +1477,6 @@
       "bounds_hints": [
         {
           "var": "in",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
-      "line": 601,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "__xmlRandom",
-        "memset",
-        "xmlMalloc"
-      ],
-      "pointer_vars": [
-        "sizeof"
-      ],
-      "length_vars": [
-        "DICT_RANDOMIZATION",
-        "MIN_DICT_SIZE"
-      ],
-      "bounds_hints": [
-        {
-          "var": "DICT_RANDOMIZATION",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "MIN_DICT_SIZE",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -1288,38 +1556,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
-      "line": 358,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "fprintf",
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "namelen",
-        "plen"
-      ],
-      "bounds_hints": [
-        {
-          "var": "namelen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "plen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
       "line": 2809,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -1372,76 +1608,56 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
-      "line": 361,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
+      "line": 628,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "message": "CWE-120: Potential Buffer Overflow via strncpy (unchecked length).",
       "suspect_calls": [
-        "memcpy"
+        "strncpy",
+        "strstr"
       ],
       "pointer_vars": [],
-      "length_vars": [
-        "namelen",
-        "plen",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "namelen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "plen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
+      "length_vars": [],
+      "bounds_hints": [],
       "extern_signatures": [],
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
-      "line": 1325,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
+      "line": 247,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
       "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
       "suspect_calls": [
-        "isspace",
+        "fprintf",
         "memcpy",
-        "strlen",
-        "xmlMalloc"
+        "strlen"
       ],
       "pointer_vars": [],
       "length_vars": [
-        "envlen",
-        "function",
+        "len",
         "return",
+        "rlen",
         "strlen"
       ],
       "bounds_hints": [
         {
-          "var": "envlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "function",
+          "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
         },
         {
           "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "rlen",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -1455,8 +1671,8 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
-      "line": 290,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
+      "line": 260,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
@@ -1464,44 +1680,15 @@
       "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
       "suspect_calls": [
         "fprintf",
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "namelen",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "namelen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
-      "line": 1242,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
         "memcpy",
-        "xmlNanoHTTPRecv"
+        "strlen"
       ],
       "pointer_vars": [],
       "length_vars": [
         "len",
-        "return"
+        "return",
+        "rlen",
+        "strlen"
       ],
       "bounds_hints": [
         {
@@ -1513,79 +1700,56 @@
           "var": "return",
           "relation": ">= 0",
           "source": "heuristic"
+        },
+        {
+          "var": "rlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "strlen",
+          "relation": ">= 0",
+          "source": "heuristic"
         }
       ],
       "extern_signatures": [],
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
-      "line": 1123,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testchar.c",
+      "line": 602,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "memset"
+      ],
+      "pointer_vars": [
+        "the"
+      ],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/uri.c",
+      "line": 2334,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
       "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
       "suspect_calls": [
-        "__xmlIOErr",
-        "htons",
-        "memcpy",
-        "records"
+        "memcpy"
       ],
       "pointer_vars": [],
       "length_vars": [
-        "h_length",
-        "return",
-        "sockin"
-      ],
-      "bounds_hints": [
-        {
-          "var": "h_length",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "sockin",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
-      "line": 527,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
-      "suspect_calls": [
-        "memmove"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "in",
-        "inlen",
         "len"
       ],
       "bounds_hints": [
-        {
-          "var": "in",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "inlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
         {
           "var": "len",
           "relation": ">= 0",
@@ -1596,24 +1760,92 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
-      "line": 550,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/uri.c",
+      "line": 2337,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
-      "message": "CWE-120: Potential Buffer Overflow via recv (unchecked length).",
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
       "suspect_calls": [
-        "recv"
+        "memcpy"
       ],
       "pointer_vars": [],
       "length_vars": [
-        "in",
+        "len"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 747,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "defined",
+        "free",
+        "open",
+        "read"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "open",
+        "return",
+        "st_size"
+      ],
+      "bounds_hints": [
+        {
+          "var": "open",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "st_size",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 710,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
+      "suspect_calls": [
+        "fprintf",
+        "memcmp",
+        "read"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "open",
         "return"
       ],
       "bounds_hints": [
         {
-          "var": "in",
+          "var": "open",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -1627,8 +1859,101 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
       "line": 628,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "read",
+        "write"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 648,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "open",
+        "read"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "open",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "open",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 649,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "open",
+        "read"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "open",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "open",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 583,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
@@ -1941,51 +2266,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
-      "line": 247,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "fprintf",
-        "memcpy",
-        "strlen"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return",
-        "rlen",
-        "strlen"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "rlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "strlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testlimits.c",
       "line": 202,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -2110,463 +2390,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
-      "line": 260,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "fprintf",
-        "memcpy",
-        "strlen"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return",
-        "rlen",
-        "strlen"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "rlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "strlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 747,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "defined",
-        "free",
-        "open",
-        "read"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "open",
-        "return",
-        "st_size"
-      ],
-      "bounds_hints": [
-        {
-          "var": "open",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "st_size",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 710,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
-      "suspect_calls": [
-        "fprintf",
-        "memcmp",
-        "read"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "open",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "open",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/uri.c",
-      "line": 2334,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/uri.c",
-      "line": 2337,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 628,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "read",
-        "write"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 648,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "open",
-        "read"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "open",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "open",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 649,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "open",
-        "read"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "open",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "open",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 583,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via strncpy (unchecked length).",
-      "suspect_calls": [
-        "strncpy",
-        "strstr"
-      ],
-      "pointer_vars": [],
-      "length_vars": [],
-      "bounds_hints": [],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlmemory.c",
-      "line": 448,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "Mem_Tag_Err",
-        "memset",
-        "xmlMallocBreakpoint",
-        "xmlMutexLock"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "debugMemSize",
-        "mh_size"
-      ],
-      "bounds_hints": [
-        {
-          "var": "debugMemSize",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "mh_size",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlcatalog.c",
-      "line": 81,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via fgets (unchecked length).",
-      "suspect_calls": [
-        "fflush",
-        "fgets",
-        "fprintf",
-        "malloc",
-        "strlen"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return",
-        "stdin",
-        "strlen"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "stdin",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "strlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlcatalog.c",
-      "line": 87,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "malloc",
-        "memcpy",
-        "strlen"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return",
-        "strlen"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "strlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
-      "line": 3566,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "PyErr_SetString",
-        "memset"
-      ],
-      "pointer_vars": [
-        "s"
-      ],
-      "length_vars": [
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
-      "line": 3512,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "PyErr_SetString",
-        "memset",
-        "xmlFree"
-      ],
-      "pointer_vars": [
-        "sizeof"
-      ],
-      "length_vars": [
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
       "line": 7688,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -2673,6 +2496,332 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 7635,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "suspect_calls": [
+        "memmove",
+        "xmlTreeErrMemory"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 7544,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "suspect_calls": [
+        "memmove",
+        "xmlRealloc"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "newSize"
+      ],
+      "bounds_hints": [
+        {
+          "var": "newSize",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 7572,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlFree",
+        "xmlMallocAtomic"
+      ],
+      "pointer_vars": [
+        "and"
+      ],
+      "length_vars": [
+        "allocation",
+        "newSize"
+      ],
+      "bounds_hints": [
+        {
+          "var": "allocation",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "newSize",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
+      "line": 3566,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "PyErr_SetString",
+        "memset"
+      ],
+      "pointer_vars": [
+        "s"
+      ],
+      "length_vars": [
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlcatalog.c",
+      "line": 81,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via fgets (unchecked length).",
+      "suspect_calls": [
+        "fflush",
+        "fgets",
+        "fprintf",
+        "malloc",
+        "strlen"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return",
+        "stdin",
+        "strlen"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "stdin",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "strlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlcatalog.c",
+      "line": 87,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "malloc",
+        "memcpy",
+        "strlen"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return",
+        "strlen"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "strlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 7338,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "suspect_calls": [
+        "memmove"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "on"
+      ],
+      "bounds_hints": [
+        {
+          "var": "on",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 7345,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "suspect_calls": [
+        "memmove"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
+      "line": 3512,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "PyErr_SetString",
+        "memset",
+        "xmlFree"
+      ],
+      "pointer_vars": [
+        "sizeof"
+      ],
+      "length_vars": [
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlmemory.c",
+      "line": 448,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "Mem_Tag_Err",
+        "memset",
+        "xmlMallocBreakpoint",
+        "xmlMutexLock"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "debugMemSize",
+        "mh_size"
+      ],
+      "bounds_hints": [
+        {
+          "var": "debugMemSize",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "mh_size",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
       "line": 6215,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -2750,38 +2899,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 7635,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
-      "suspect_calls": [
-        "memmove",
-        "xmlTreeErrMemory"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
       "line": 6060,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -2851,67 +2968,6 @@
         },
         {
           "var": "token",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 7544,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
-      "suspect_calls": [
-        "memmove",
-        "xmlRealloc"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "newSize"
-      ],
-      "bounds_hints": [
-        {
-          "var": "newSize",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 7572,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlFree",
-        "xmlMallocAtomic"
-      ],
-      "pointer_vars": [
-        "and"
-      ],
-      "length_vars": [
-        "allocation",
-        "newSize"
-      ],
-      "bounds_hints": [
-        {
-          "var": "allocation",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "newSize",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -3075,234 +3131,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 7338,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
-      "suspect_calls": [
-        "memmove"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "on"
-      ],
-      "bounds_hints": [
-        {
-          "var": "on",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 7345,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
-      "suspect_calls": [
-        "memmove"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
-      "line": 882,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlMallocAtomic",
-        "xmlUTF8Strsize"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return",
-        "xmlUTF8Strsize"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "xmlUTF8Strsize",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
-      "line": 509,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlMalloc",
-        "xmlStrndup"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
-      "line": 510,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlStrndup"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
-      "line": 469,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlRealloc"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
-      "line": 54,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlMallocAtomic"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlIO.c",
       "line": 3708,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -3322,63 +3150,6 @@
       "bounds_hints": [
         {
           "var": "strlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
-      "line": 4255,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "lenn",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "lenn",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
-      "line": 4257,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlRegCompactPushString"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "lenn"
-      ],
-      "bounds_hints": [
-        {
-          "var": "lenn",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -3469,6 +3240,63 @@
     },
     {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
+      "line": 4255,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "lenn",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "lenn",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
+      "line": 4257,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlRegCompactPushString"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "lenn"
+      ],
+      "bounds_hints": [
+        {
+          "var": "lenn",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
       "line": 4115,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
@@ -3485,6 +3313,136 @@
       ],
       "length_vars": [],
       "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
+      "line": 391,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "Py_DECREF",
+        "memcpy",
+        "printf"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
+      "line": 393,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "Py_DECREF",
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
+      "line": 326,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "Py_DECREF",
+        "memcpy",
+        "printf"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
+      "line": 328,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "Py_DECREF",
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
       "extern_signatures": [],
       "pointer_dependencies": []
     },
@@ -3660,6 +3618,45 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
+      "line": 882,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlMallocAtomic",
+        "xmlUTF8Strsize"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return",
+        "xmlUTF8Strsize"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "xmlUTF8Strsize",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmllint.c",
       "line": 492,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -3696,6 +3693,43 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
+      "line": 4995,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "maxLength",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "maxLength",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
       "line": 3241,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -3717,6 +3751,42 @@
       "bounds_hints": [
         {
           "var": "allocation",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlIO.c",
+      "line": 733,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
+      "suspect_calls": [
+        "read",
+        "xmlFdRead",
+        "xmlIOErr"
+      ],
+      "pointer_vars": [
+        "buffer",
+        "context"
+      ],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -3796,6 +3866,73 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
+      "line": 509,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlErrMemory",
+        "xmlMalloc",
+        "xmlStrndup"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
+      "line": 510,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlErrMemory",
+        "xmlStrndup"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
       "line": 3215,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -3824,17 +3961,17 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
-      "line": 391,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
+      "line": 469,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
       "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
       "suspect_calls": [
-        "Py_DECREF",
         "memcpy",
-        "printf"
+        "xmlErrMemory",
+        "xmlRealloc"
       ],
       "pointer_vars": [],
       "length_vars": [
@@ -3857,117 +3994,17 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
-      "line": 393,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
+      "line": 54,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
       "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
       "suspect_calls": [
-        "Py_DECREF",
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlIO.c",
-      "line": 733,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via read (unchecked length).",
-      "suspect_calls": [
-        "read",
-        "xmlFdRead",
-        "xmlIOErr"
-      ],
-      "pointer_vars": [
-        "buffer",
-        "context"
-      ],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
-      "line": 326,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "Py_DECREF",
         "memcpy",
-        "printf"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/python/libxml.c",
-      "line": 328,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "Py_DECREF",
-        "memcpy"
+        "xmlErrMemory",
+        "xmlMallocAtomic"
       ],
       "pointer_vars": [],
       "length_vars": [
@@ -3991,29 +4028,68 @@
     },
     {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
-      "line": 4995,
+      "line": 3719,
       "ruleId": "local/cpp/cwe-120-overflow",
       "cwe": [
         "CWE-120"
       ],
       "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
       "suspect_calls": [
-        "memcpy"
+        "memcpy",
+        "xmlErrMemory",
+        "xmlIsNameChar",
+        "xmlMallocAtomic"
       ],
       "pointer_vars": [],
       "length_vars": [
+        "XML_PARSER_CHUNK_SIZE",
         "len",
-        "maxLength",
         "return"
       ],
       "bounds_hints": [
+        {
+          "var": "XML_PARSER_CHUNK_SIZE",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
         {
           "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
         },
         {
-          "var": "maxLength",
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
+      "line": 3621,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlErrMemory",
+        "xmlIsNameChar",
+        "xmlMallocAtomic"
+      ],
+      "pointer_vars": [
+        "tmp"
+      ],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -4116,6 +4192,24 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlschemastypes.c",
+      "line": 5932,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
+      "suspect_calls": [
+        "memmove",
+        "memset"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/relaxng.c",
       "line": 1333,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -4139,24 +4233,6 @@
           "source": "heuristic"
         }
       ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlschemastypes.c",
-      "line": 5932,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memset (unchecked length).",
-      "suspect_calls": [
-        "memmove",
-        "memset"
-      ],
-      "pointer_vars": [],
-      "length_vars": [],
-      "bounds_hints": [],
       "extern_signatures": [],
       "pointer_dependencies": []
     },
@@ -4205,6 +4281,76 @@
       "pointer_vars": [],
       "length_vars": [],
       "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
+      "line": 2998,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlErrMemory",
+        "xmlMallocAtomic"
+      ],
+      "pointer_vars": [
+        "tmp"
+      ],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
+      "line": 3076,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy",
+        "xmlErrMemory",
+        "xmlMallocAtomic"
+      ],
+      "pointer_vars": [
+        "tmp"
+      ],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
       "extern_signatures": [],
       "pointer_dependencies": []
     },
@@ -4314,82 +4460,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
-      "line": 3719,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlIsNameChar",
-        "xmlMallocAtomic"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "XML_PARSER_CHUNK_SIZE",
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "XML_PARSER_CHUNK_SIZE",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
-      "line": 3621,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlIsNameChar",
-        "xmlMallocAtomic"
-      ],
-      "pointer_vars": [
-        "tmp"
-      ],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlschemas.c",
       "line": 24350,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -4408,6 +4478,107 @@
       "bounds_hints": [
         {
           "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 242,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "lenn",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "lenn",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 244,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
+      "suspect_calls": [
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "lenn",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "lenn",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
+      "line": 1232,
+      "ruleId": "local/cpp/cwe-120-overflow",
+      "cwe": [
+        "CWE-120"
+      ],
+      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
+      "suspect_calls": [
+        "memmove",
+        "strlen",
+        "xmlAttrNormalizeSpace"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return",
+        "strlen"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "strlen",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -4470,41 +4641,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
-      "line": 2998,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlMallocAtomic"
-      ],
-      "pointer_vars": [
-        "tmp"
-      ],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlschemas.c",
       "line": 23065,
       "ruleId": "local/cpp/cwe-120-overflow",
@@ -4526,142 +4662,6 @@
       "bounds_hints": [
         {
           "var": "an",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
-      "line": 3076,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy",
-        "xmlErrMemory",
-        "xmlMallocAtomic"
-      ],
-      "pointer_vars": [
-        "tmp"
-      ],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
-      "line": 1232,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memmove (unchecked length).",
-      "suspect_calls": [
-        "memmove",
-        "strlen",
-        "xmlAttrNormalizeSpace"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return",
-        "strlen"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "strlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 242,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "lenn",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "lenn",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 244,
-      "ruleId": "local/cpp/cwe-120-overflow",
-      "cwe": [
-        "CWE-120"
-      ],
-      "message": "CWE-120: Potential Buffer Overflow via memcpy (unchecked length).",
-      "suspect_calls": [
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "lenn",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "lenn",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -5402,6 +5402,67 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
+      "line": 680,
+      "ruleId": "local/cpp/cwe-125-oob-read",
+      "cwe": [
+        "CWE-125"
+      ],
+      "message": "CWE-125: Potential OOB Read via strncmp (unchecked length).",
+      "suspect_calls": [
+        "strncmp",
+        "xmlNanoHTTPScanAnswer"
+      ],
+      "pointer_vars": [
+        "cur",
+        "line"
+      ],
+      "length_vars": [
+        "return",
+        "version"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "version",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
+      "line": 440,
+      "ruleId": "local/cpp/cwe-125-oob-read",
+      "cwe": [
+        "CWE-125"
+      ],
+      "message": "CWE-125: Potential OOB Read via send (unchecked length).",
+      "suspect_calls": [
+        "SEND_ARG2_CAST",
+        "send"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "outlen"
+      ],
+      "bounds_hints": [
+        {
+          "var": "outlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
       "line": 11846,
       "ruleId": "local/cpp/cwe-125-oob-read",
@@ -5442,41 +5503,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
-      "line": 680,
-      "ruleId": "local/cpp/cwe-125-oob-read",
-      "cwe": [
-        "CWE-125"
-      ],
-      "message": "CWE-125: Potential OOB Read via strncmp (unchecked length).",
-      "suspect_calls": [
-        "strncmp",
-        "xmlNanoHTTPScanAnswer"
-      ],
-      "pointer_vars": [
-        "cur",
-        "line"
-      ],
-      "length_vars": [
-        "return",
-        "version"
-      ],
-      "bounds_hints": [
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "version",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
       "line": 11087,
       "ruleId": "local/cpp/cwe-125-oob-read",
@@ -5502,24 +5528,198 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/nanohttp.c",
-      "line": 440,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
+      "line": 201,
       "ruleId": "local/cpp/cwe-125-oob-read",
       "cwe": [
         "CWE-125"
       ],
-      "message": "CWE-125: Potential OOB Read via send (unchecked length).",
+      "message": "CWE-125: Potential OOB Read via strncmp (unchecked length).",
       "suspect_calls": [
-        "SEND_ARG2_CAST",
-        "send"
+        "hugeOpen",
+        "strlen",
+        "strncmp"
       ],
-      "pointer_vars": [],
+      "pointer_vars": [
+        "URI",
+        "hugeOpen"
+      ],
       "length_vars": [
-        "outlen"
+        "an",
+        "hugeOpen",
+        "in",
+        "return",
+        "rlen",
+        "strlen"
       ],
       "bounds_hints": [
         {
-          "var": "outlen",
+          "var": "an",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "hugeOpen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "in",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "rlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "strlen",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "hugeOpen",
+          "relation": "<= sizeof(hugeOpen)",
+          "source": "name-affinity"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
+      "line": 185,
+      "ruleId": "local/cpp/cwe-125-oob-read",
+      "cwe": [
+        "CWE-125"
+      ],
+      "message": "CWE-125: Potential OOB Read via strncmp (unchecked length).",
+      "suspect_calls": [
+        "hugeMatch",
+        "strncmp"
+      ],
+      "pointer_vars": [
+        "URI"
+      ],
+      "length_vars": [
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 688,
+      "ruleId": "local/cpp/cwe-125-oob-read",
+      "cwe": [
+        "CWE-125"
+      ],
+      "message": "CWE-125: Potential OOB Read via write (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "fprintf",
+        "open",
+        "stat",
+        "write"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "open",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "open",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 715,
+      "ruleId": "local/cpp/cwe-125-oob-read",
+      "cwe": [
+        "CWE-125"
+      ],
+      "message": "CWE-125: Potential OOB Read via memcmp (unchecked length).",
+      "suspect_calls": [
+        "fprintf",
+        "memcmp",
+        "read"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "position"
+      ],
+      "bounds_hints": [
+        {
+          "var": "position",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 632,
+      "ruleId": "local/cpp/cwe-125-oob-read",
+      "cwe": [
+        "CWE-125"
+      ],
+      "message": "CWE-125: Potential OOB Read via write (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "read",
+        "write"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 658,
+      "ruleId": "local/cpp/cwe-125-oob-read",
+      "cwe": [
+        "CWE-125"
+      ],
+      "message": "CWE-125: Potential OOB Read via memcmp (unchecked length).",
+      "suspect_calls": [
+        "close",
+        "memcmp"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -5652,99 +5852,6 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
-      "line": 201,
-      "ruleId": "local/cpp/cwe-125-oob-read",
-      "cwe": [
-        "CWE-125"
-      ],
-      "message": "CWE-125: Potential OOB Read via strncmp (unchecked length).",
-      "suspect_calls": [
-        "hugeOpen",
-        "strlen",
-        "strncmp"
-      ],
-      "pointer_vars": [
-        "URI",
-        "hugeOpen"
-      ],
-      "length_vars": [
-        "an",
-        "hugeOpen",
-        "in",
-        "return",
-        "rlen",
-        "strlen"
-      ],
-      "bounds_hints": [
-        {
-          "var": "an",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "hugeOpen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "in",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "rlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "strlen",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "hugeOpen",
-          "relation": "<= sizeof(hugeOpen)",
-          "source": "name-affinity"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testrecurse.c",
-      "line": 185,
-      "ruleId": "local/cpp/cwe-125-oob-read",
-      "cwe": [
-        "CWE-125"
-      ],
-      "message": "CWE-125: Potential OOB Read via strncmp (unchecked length).",
-      "suspect_calls": [
-        "hugeMatch",
-        "strncmp"
-      ],
-      "pointer_vars": [
-        "URI"
-      ],
-      "length_vars": [
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/testlimits.c",
       "line": 120,
       "ruleId": "local/cpp/cwe-125-oob-read",
@@ -5812,113 +5919,6 @@
       "pointer_vars": [
         "URI"
       ],
-      "length_vars": [
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 688,
-      "ruleId": "local/cpp/cwe-125-oob-read",
-      "cwe": [
-        "CWE-125"
-      ],
-      "message": "CWE-125: Potential OOB Read via write (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "fprintf",
-        "open",
-        "stat",
-        "write"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "open",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "open",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 715,
-      "ruleId": "local/cpp/cwe-125-oob-read",
-      "cwe": [
-        "CWE-125"
-      ],
-      "message": "CWE-125: Potential OOB Read via memcmp (unchecked length).",
-      "suspect_calls": [
-        "fprintf",
-        "memcmp",
-        "read"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "position"
-      ],
-      "bounds_hints": [
-        {
-          "var": "position",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 632,
-      "ruleId": "local/cpp/cwe-125-oob-read",
-      "cwe": [
-        "CWE-125"
-      ],
-      "message": "CWE-125: Potential OOB Read via write (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "read",
-        "write"
-      ],
-      "pointer_vars": [],
-      "length_vars": [],
-      "bounds_hints": [],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 658,
-      "ruleId": "local/cpp/cwe-125-oob-read",
-      "cwe": [
-        "CWE-125"
-      ],
-      "message": "CWE-125: Potential OOB Read via memcmp (unchecked length).",
-      "suspect_calls": [
-        "close",
-        "memcmp"
-      ],
-      "pointer_vars": [],
       "length_vars": [
         "return"
       ],
@@ -6172,31 +6172,51 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/buf.c",
-      "line": 823,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 725,
       "ruleId": "local/cpp/cwe-787-oob-write",
       "cwe": [
         "CWE-787"
       ],
       "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
       "suspect_calls": [
-        "UPDATE_COMPAT",
-        "memmove",
-        "xmlBufMemoryError"
+        "memcpy",
+        "xmlDictComputeKey"
       ],
       "pointer_vars": [],
       "length_vars": [
-        "len",
-        "return"
+        "len"
       ],
       "bounds_hints": [
         {
           "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
-        },
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 767,
+      "ruleId": "local/cpp/cwe-787-oob-write",
+      "cwe": [
+        "CWE-787"
+      ],
+      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
+      "suspect_calls": [
+        "memcpy",
+        "xmlDictComputeKey",
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len"
+      ],
+      "bounds_hints": [
         {
-          "var": "return",
+          "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -6232,6 +6252,39 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/buf.c",
+      "line": 823,
+      "ruleId": "local/cpp/cwe-787-oob-write",
+      "cwe": [
+        "CWE-787"
+      ],
+      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
+      "suspect_calls": [
+        "UPDATE_COMPAT",
+        "memmove",
+        "xmlBufMemoryError"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/hash.c",
       "line": 1129,
       "ruleId": "local/cpp/cwe-787-oob-write",
@@ -6248,47 +6301,6 @@
         "return"
       ],
       "bounds_hints": [
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
-      "line": 3895,
-      "ruleId": "local/cpp/cwe-787-oob-write",
-      "cwe": [
-        "CWE-787"
-      ],
-      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
-      "suspect_calls": [
-        "baseFilename",
-        "checkTestFile",
-        "fprintf",
-        "memcpy",
-        "snprintf"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "pattern",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "pattern",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
         {
           "var": "return",
           "relation": ">= 0",
@@ -6344,51 +6356,39 @@
       "pointer_dependencies": []
     },
     {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
-      "line": 725,
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 3895,
       "ruleId": "local/cpp/cwe-787-oob-write",
       "cwe": [
         "CWE-787"
       ],
       "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
       "suspect_calls": [
+        "baseFilename",
+        "checkTestFile",
+        "fprintf",
         "memcpy",
-        "xmlDictComputeKey"
+        "snprintf"
       ],
       "pointer_vars": [],
       "length_vars": [
-        "len"
+        "len",
+        "pattern",
+        "return"
       ],
       "bounds_hints": [
         {
           "var": "len",
           "relation": ">= 0",
           "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
-      "line": 767,
-      "ruleId": "local/cpp/cwe-787-oob-write",
-      "cwe": [
-        "CWE-787"
-      ],
-      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
-      "suspect_calls": [
-        "memcpy",
-        "xmlDictComputeKey",
-        "xmlFree"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len"
-      ],
-      "bounds_hints": [
+        },
         {
-          "var": "len",
+          "var": "pattern",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -6399,6 +6399,38 @@
     {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
       "line": 7708,
+      "ruleId": "local/cpp/cwe-787-oob-write",
+      "cwe": [
+        "CWE-787"
+      ],
+      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
+      "suspect_calls": [
+        "memmove",
+        "xmlTreeErrMemory"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 7635,
       "ruleId": "local/cpp/cwe-787-oob-write",
       "cwe": [
         "CWE-787"
@@ -6459,38 +6491,6 @@
         },
         {
           "var": "token",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
-      "line": 7635,
-      "ruleId": "local/cpp/cwe-787-oob-write",
-      "cwe": [
-        "CWE-787"
-      ],
-      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
-      "suspect_calls": [
-        "memmove",
-        "xmlTreeErrMemory"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
           "relation": ">= 0",
           "source": "heuristic"
         }
@@ -6614,6 +6614,103 @@
       "pointer_dependencies": []
     },
     {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlsave.c",
+      "line": 303,
+      "ruleId": "local/cpp/cwe-787-oob-write",
+      "cwe": [
+        "CWE-787"
+      ],
+      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
+      "suspect_calls": [
+        "memcpy",
+        "memset"
+      ],
+      "pointer_vars": [
+        "ctxt"
+      ],
+      "length_vars": [
+        "indent_size",
+        "len"
+      ],
+      "bounds_hints": [
+        {
+          "var": "indent_size",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
+      "line": 4257,
+      "ruleId": "local/cpp/cwe-787-oob-write",
+      "cwe": [
+        "CWE-787"
+      ],
+      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
+      "suspect_calls": [
+        "memcpy",
+        "xmlRegCompactPushString"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "lenn"
+      ],
+      "bounds_hints": [
+        {
+          "var": "lenn",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
+      "line": 4995,
+      "ruleId": "local/cpp/cwe-787-oob-write",
+      "cwe": [
+        "CWE-787"
+      ],
+      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
+      "suspect_calls": [
+        "memcpy"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "len",
+        "maxLength",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "len",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "maxLength",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
       "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlstring.c",
       "line": 510,
       "ruleId": "local/cpp/cwe-787-oob-write",
@@ -6667,103 +6764,6 @@
       "bounds_hints": [
         {
           "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "return",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlregexp.c",
-      "line": 4257,
-      "ruleId": "local/cpp/cwe-787-oob-write",
-      "cwe": [
-        "CWE-787"
-      ],
-      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
-      "suspect_calls": [
-        "memcpy",
-        "xmlRegCompactPushString"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "lenn"
-      ],
-      "bounds_hints": [
-        {
-          "var": "lenn",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/xmlsave.c",
-      "line": 303,
-      "ruleId": "local/cpp/cwe-787-oob-write",
-      "cwe": [
-        "CWE-787"
-      ],
-      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
-      "suspect_calls": [
-        "memcpy",
-        "memset"
-      ],
-      "pointer_vars": [
-        "ctxt"
-      ],
-      "length_vars": [
-        "indent_size",
-        "len"
-      ],
-      "bounds_hints": [
-        {
-          "var": "indent_size",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        }
-      ],
-      "extern_signatures": [],
-      "pointer_dependencies": []
-    },
-    {
-      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/parser.c",
-      "line": 4995,
-      "ruleId": "local/cpp/cwe-787-oob-write",
-      "cwe": [
-        "CWE-787"
-      ],
-      "message": "CWE-787: Potential OOB Write via unchecked pointer offset.",
-      "suspect_calls": [
-        "memcpy"
-      ],
-      "pointer_vars": [],
-      "length_vars": [
-        "len",
-        "maxLength",
-        "return"
-      ],
-      "bounds_hints": [
-        {
-          "var": "len",
-          "relation": ">= 0",
-          "source": "heuristic"
-        },
-        {
-          "var": "maxLength",
           "relation": ">= 0",
           "source": "heuristic"
         },
@@ -6862,6 +6862,698 @@
           "source": "heuristic"
         }
       ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 832,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 833,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 833,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 834,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 842,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.",
+      "suspect_calls": [
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 847,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.",
+      "suspect_calls": [
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 849,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.",
+      "suspect_calls": [
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 2256,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'free()' is later dereferenced.",
+      "suspect_calls": [
+        "compareFileMem",
+        "fprintf",
+        "htmlDocDumpMemory",
+        "xmlDocDumpMemory",
+        "xmlFree",
+        "xmlFreeDoc"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "in",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "in",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 1956,
+      "ruleId": "shafi/cpp/pattern/free-then-deref/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (direct dereference): value freed by 'free()' is later dereferenced.",
+      "suspect_calls": [
+        "compareFileMem",
+        "fprintf",
+        "htmlDocDumpMemory",
+        "xmlDocDumpMemory",
+        "xmlFree",
+        "xmlFreeDoc"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "in",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "in",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 832,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 833,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 833,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 834,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.",
+      "suspect_calls": [
+        "xmlDictFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 842,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.",
+      "suspect_calls": [
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 847,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.",
+      "suspect_calls": [
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/dict.c",
+      "line": 849,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.",
+      "suspect_calls": [
+        "xmlFree"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 2256,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'free()' flows to a later use.",
+      "suspect_calls": [
+        "compareFileMem",
+        "fprintf",
+        "htmlDocDumpMemory",
+        "xmlDocDumpMemory",
+        "xmlFree",
+        "xmlFreeDoc"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "in",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "in",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/runtest.c",
+      "line": 1956,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'free()' flows to a later use.",
+      "suspect_calls": [
+        "compareFileMem",
+        "fprintf",
+        "htmlDocDumpMemory",
+        "xmlDocDumpMemory",
+        "xmlFree",
+        "xmlFreeDoc"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "in",
+        "return"
+      ],
+      "bounds_hints": [
+        {
+          "var": "in",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/valid.c",
+      "line": 1825,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeEnumeration()' flows to a later use.",
+      "suspect_calls": [
+        "xmlFree",
+        "xmlFreeEnumeration"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "return",
+        "xmlFreeEnumeration"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "xmlFreeEnumeration",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/valid.c",
+      "line": 1825,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeEnumeration()' flows to a later use.",
+      "suspect_calls": [
+        "xmlFree",
+        "xmlFreeEnumeration"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "return",
+        "xmlFreeEnumeration"
+      ],
+      "bounds_hints": [
+        {
+          "var": "return",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "xmlFreeEnumeration",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 1248,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.",
+      "suspect_calls": [
+        "DICT_FREE",
+        "xmlFreeDtd",
+        "xmlFreeNodeList",
+        "xmlFreeNsList"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "children",
+        "version"
+      ],
+      "bounds_hints": [
+        {
+          "var": "children",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "version",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 1248,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.",
+      "suspect_calls": [
+        "DICT_FREE",
+        "xmlFreeDtd",
+        "xmlFreeNodeList",
+        "xmlFreeNsList"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "children",
+        "version"
+      ],
+      "bounds_hints": [
+        {
+          "var": "children",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "version",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 1250,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.",
+      "suspect_calls": [
+        "DICT_FREE",
+        "xmlDictFree",
+        "xmlFree",
+        "xmlFreeNodeList",
+        "xmlFreeNsList"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "children",
+        "version"
+      ],
+      "bounds_hints": [
+        {
+          "var": "children",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "version",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 1251,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.",
+      "suspect_calls": [
+        "DICT_FREE",
+        "xmlDictFree",
+        "xmlFree",
+        "xmlFreeNodeList",
+        "xmlFreeNsList"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "children",
+        "version"
+      ],
+      "bounds_hints": [
+        {
+          "var": "children",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "version",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 1252,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.",
+      "suspect_calls": [
+        "DICT_FREE",
+        "xmlDictFree",
+        "xmlFree",
+        "xmlFreeNodeList",
+        "xmlFreeNsList"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "children",
+        "version"
+      ],
+      "bounds_hints": [
+        {
+          "var": "children",
+          "relation": ">= 0",
+          "source": "heuristic"
+        },
+        {
+          "var": "version",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/tree.c",
+      "line": 1253,
+      "ruleId": "shafi/cpp/pattern/free-then-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.",
+      "suspect_calls": [
+        "DICT_FREE",
+        "xmlDictFree",
+        "xmlFree",
+        "xmlFreeNsList"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "version"
+      ],
+      "bounds_hints": [
+        {
+          "var": "version",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/valid.c",
+      "line": 3079,
+      "ruleId": "shafi/cpp/uaf/lookup-remove-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential UAF (lookup\u2192remove\u2192use): result of 'xmlHashLookup()' is used after a removal call.",
+      "suspect_calls": [
+        "xmlErrValid",
+        "xmlListAppend"
+      ],
+      "pointer_vars": [],
+      "length_vars": [
+        "insertion"
+      ],
+      "bounds_hints": [
+        {
+          "var": "insertion",
+          "relation": ">= 0",
+          "source": "heuristic"
+        }
+      ],
+      "extern_signatures": [],
+      "pointer_dependencies": []
+    },
+    {
+      "file": "/media/shafi/Research/STAILOR/dataset/55980/libxml2_55980_vul/valid.c",
+      "line": 1516,
+      "ruleId": "shafi/cpp/uaf/lookup-remove-use/intra",
+      "cwe": [
+        "CWE-416"
+      ],
+      "message": "Potential UAF (lookup\u2192remove\u2192use): result of 'xmlHashLookup2()' is used after a removal call.",
+      "suspect_calls": [
+        "xmlFreeElement",
+        "xmlHashLookup2",
+        "xmlHashRemoveEntry2"
+      ],
+      "pointer_vars": [],
+      "length_vars": [],
+      "bounds_hints": [],
       "extern_signatures": [],
       "pointer_dependencies": []
     }

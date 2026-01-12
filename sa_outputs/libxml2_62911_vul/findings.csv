@@ -90,39 +90,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     UPDATE_COMPAT(buf)
     return(len);
 }"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,760,13,760,20,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,755,765,"        if (cur < entry) {
-            /*
-             * If we traversed the end of the buffer, handle the part
-             * at the start of the buffer.
-             */
-            memmove(&dict->table[1], dict->table,
-                    (char *) cur - (char *) dict->table);
-            cur = end - 1;
-            dict->table[0] = *cur;
-        }
-"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,766,9,766,16,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,761,771,"                    (char *) cur - (char *) dict->table);
-            cur = end - 1;
-            dict->table[0] = *cur;
-        }
-
-        memmove(&entry[1], entry, (char *) cur - (char *) entry);
-    }
-
-    /*
-     * Populate entry
-     */"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,588,5,588,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,583,593,"    if ((size_t) size + 0 > SIZE_MAX / sizeof(table[0]))
-        return(-1);
-    table = xmlMalloc(size * sizeof(table[0]));
-    if (table == NULL)
-        return(-1);
-    memset(table, 0, size * sizeof(table[0]));
-
-    oldsize = dict->size;
-    if (oldsize == 0)
-        goto done;
-"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/c14n.c,327,2,327,8,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,322,332,"        cur->nodeTab = (xmlNodePtr*) xmlMalloc(XML_NAMESPACES_DEFAULT * sizeof(xmlNodePtr));
 	if ((cur->nsTab == NULL) || (cur->nodeTab == NULL)) {
 	    xmlC14NErrMemory(""adding node to stack"");
@@ -167,39 +134,17 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     memset(cur, 0, sizeof(xmlC14NVisibleNsStack));
     xmlFree(cur);
 "
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,232,5,232,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,227,237,"	pool->next = dict->strings;
-	dict->strings = pool;
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/error.c,219,5,219,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,214,224,"        if ((c < 0) || (n + len > sizeof(content)-1))
+            break;
+        cur += len;
+	n += len;
     }
-found_pool:
-    ret = pool->free;
-    memcpy(pool->free, prefix, plen);
-    pool->free += plen;
-    *(pool->free++) = ':';
-    memcpy(pool->free, name, namelen);
-    pool->free += namelen;
-    *(pool->free++) = 0;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,235,5,235,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,230,240,"found_pool:
-    ret = pool->free;
-    memcpy(pool->free, prefix, plen);
-    pool->free += plen;
-    *(pool->free++) = ':';
-    memcpy(pool->free, name, namelen);
-    pool->free += namelen;
-    *(pool->free++) = 0;
-    pool->nbStrings++;
-    return(ret);
-}"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,172,5,172,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,167,177,"	pool->next = dict->strings;
-	dict->strings = pool;
-    }
-found_pool:
-    ret = pool->free;
-    memcpy(pool->free, name, namelen);
-    pool->free += namelen;
-    *(pool->free++) = 0;
-    pool->nbStrings++;
-    return(ret);
-}"
+    memcpy(content, start, n);
+    content[n] = 0;
+    /* print out the selected text */
+    channel(data ,""%s\n"", content);
+    /* create blank line with problem pointer */
+    n = 0;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/encoding.c,1128,6,1128,13,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,1123,1133,"    for (i = 0;i < xmlCharEncodingAliasesNb;i++) {
 	if (!strcmp(xmlCharEncodingAliases[i].alias, alias)) {
 	    xmlFree((char *) xmlCharEncodingAliases[i].name);
@@ -211,17 +156,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	}
     }
     return(-1);"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/catalog.c,998,11,998,15,CWE-120: Potential Buffer Overflow via read (unchecked length).,,993,1003,"	fclose(fd);
-#endif
-        return (NULL);
-    }
-#ifdef HAVE_STAT
-    len = read(fd, content, size);
-    close(fd);
-#else
-    len = fread(content, 1, size, fd);
-    fclose(fd);
-#endif"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/hash.c,1134,9,1134,16,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,1129,1139,"    next = entry + 1;
 
     if (cur < entry) {
@@ -255,17 +189,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     *inlenb = len;
     return(*outlen);
 }"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/HTMLparser.c,2284,6,2284,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2279,2289,"		cp = ent->name;
-	    len = strlen(cp);
-	    if (outend - out < len + 2)
-		break;
-	    *out++ = '&';
-	    memcpy(out, cp, len);
-	    out += len;
-	    *out++ = ';';
-	}
-	processed = in;
-    }"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/hash.c,490,9,490,15,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,485,495,"        }
     } else {
         copy = xmlMalloc(lengths[0] + 1);
@@ -288,17 +211,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
         }
 
         if (key3 != NULL) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/HTMLparser.c,2185,6,2185,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2180,2190,"	      cp = ent->name;
-	    len = strlen(cp);
-	    if (out + 2 + len >= outend)
-		break;
-	    *out++ = '&';
-	    memcpy(out, cp, len);
-	    out += len;
-	    *out++ = ';';
-	}
-	processed = in;
-    }"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/hash.c,510,13,510,19,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,505,515,"            if (copy3 == NULL) {
                 xmlFree(copy);
                 xmlFree(copy2);
@@ -343,6 +255,105 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     if (oldsize == 0)
         goto done;
 "
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,760,13,760,20,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,755,765,"        if (cur < entry) {
+            /*
+             * If we traversed the end of the buffer, handle the part
+             * at the start of the buffer.
+             */
+            memmove(&dict->table[1], dict->table,
+                    (char *) cur - (char *) dict->table);
+            cur = end - 1;
+            dict->table[0] = *cur;
+        }
+"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,766,9,766,16,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,761,771,"                    (char *) cur - (char *) dict->table);
+            cur = end - 1;
+            dict->table[0] = *cur;
+        }
+
+        memmove(&entry[1], entry, (char *) cur - (char *) entry);
+    }
+
+    /*
+     * Populate entry
+     */"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,588,5,588,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,583,593,"    if ((size_t) size + 0 > SIZE_MAX / sizeof(table[0]))
+        return(-1);
+    table = xmlMalloc(size * sizeof(table[0]));
+    if (table == NULL)
+        return(-1);
+    memset(table, 0, size * sizeof(table[0]));
+
+    oldsize = dict->size;
+    if (oldsize == 0)
+        goto done;
+"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/catalog.c,998,11,998,15,CWE-120: Potential Buffer Overflow via read (unchecked length).,,993,1003,"	fclose(fd);
+#endif
+        return (NULL);
+    }
+#ifdef HAVE_STAT
+    len = read(fd, content, size);
+    close(fd);
+#else
+    len = fread(content, 1, size, fd);
+    fclose(fd);
+#endif"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,232,5,232,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,227,237,"	pool->next = dict->strings;
+	dict->strings = pool;
+    }
+found_pool:
+    ret = pool->free;
+    memcpy(pool->free, prefix, plen);
+    pool->free += plen;
+    *(pool->free++) = ':';
+    memcpy(pool->free, name, namelen);
+    pool->free += namelen;
+    *(pool->free++) = 0;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,235,5,235,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,230,240,"found_pool:
+    ret = pool->free;
+    memcpy(pool->free, prefix, plen);
+    pool->free += plen;
+    *(pool->free++) = ':';
+    memcpy(pool->free, name, namelen);
+    pool->free += namelen;
+    *(pool->free++) = 0;
+    pool->nbStrings++;
+    return(ret);
+}"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,172,5,172,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,167,177,"	pool->next = dict->strings;
+	dict->strings = pool;
+    }
+found_pool:
+    ret = pool->free;
+    memcpy(pool->free, name, namelen);
+    pool->free += namelen;
+    *(pool->free++) = 0;
+    pool->nbStrings++;
+    return(ret);
+}"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/HTMLparser.c,2284,6,2284,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2279,2289,"		cp = ent->name;
+	    len = strlen(cp);
+	    if (outend - out < len + 2)
+		break;
+	    *out++ = '&';
+	    memcpy(out, cp, len);
+	    out += len;
+	    *out++ = ';';
+	}
+	processed = in;
+    }"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/HTMLparser.c,2185,6,2185,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2180,2190,"	      cp = ent->name;
+	    len = strlen(cp);
+	    if (out + 2 + len >= outend)
+		break;
+	    *out++ = '&';
+	    memcpy(out, cp, len);
+	    out += len;
+	    *out++ = ';';
+	}
+	processed = in;
+    }"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/relaxng.c,9139,5,9139,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,9134,9144,"    list = (xmlNodePtr *) xmlMalloc(nbgroups * sizeof(xmlNodePtr));
     if (list == NULL) {
         xmlRngVErrMemory(ctxt, ""validating\n"");
@@ -365,72 +376,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
      * Walk the sequence of children finding the right group and
      * sorting them in sequences.
      */"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,507,5,507,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,502,512,"    ret = xmlMalloc(sizeof(*ret));
-    ret->num_entries = num_entries;
-    ret->num_keys = num_keys;
-    num_strings = num_entries * num_keys;
-    ret->strings = xmlMalloc(num_strings * sizeof(ret->strings[0]));
-    memset(ret->strings, 0, num_strings * sizeof(ret->strings[0]));
-    ret->num_strings = num_strings;
-    ret->index = 0;
-    ret->id = id;
-
-    return ret;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,402,5,402,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,397,407,"testall_dict(void) {
-    xmlDictPtr dict;
-    int ret = 0;
-
-    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
-    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
-    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
-    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
-    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
-    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
-    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,404,5,404,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,399,409,"    int ret = 0;
-
-    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
-    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
-    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
-    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
-    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
-    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
-    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
-    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
-"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,406,5,406,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,401,411,"    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
-    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
-    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
-    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
-    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
-    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
-    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
-    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
-
-    fill_string_pool(strings1, seeds1);
-    fill_string_pool(strings2, seeds2);"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,408,5,408,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,403,413,"    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
-    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
-    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
-    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
-    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
-    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
-
-    fill_string_pool(strings1, seeds1);
-    fill_string_pool(strings2, seeds2);
-#ifdef WITH_PRINT
-    print_strings();"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,1305,5,1305,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,1300,1310,"	return 0;
-
-    /* (Avoid strdup because it's not portable.) */
-    envlen = strlen(env) + 1;
-    cpy = xmlMalloc(envlen);
-    memcpy(cpy, env, envlen);
-    env = cpy;
-
-    /* The remainder of the function is basically a tokenizing: */
-    while (isspace(*env))
-    	++env;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,4729,12,4729,17,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,4724,4734,"	fclose(input);
 	return(-1);
     }
@@ -442,6 +387,39 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	len = strlen(expr);
 	len--;
 	while ((len >= 0) &&"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,4593,12,4593,17,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,4588,4598,"    if (output == NULL) {
+	fprintf(stderr, ""failed to open output file %s\n"", temp);
+        free(temp);
+	return(-1);
+    }
+    while (fgets(expression, 4500, input) != NULL) {
+	len = strlen(expression);
+	len--;
+	while ((len >= 0) &&
+	       ((expression[len] == '\n') || (expression[len] == '\t') ||
+		(expression[len] == '\r') || (expression[len] == ' '))) len--;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,1305,5,1305,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,1300,1310,"	return 0;
+
+    /* (Avoid strdup because it's not portable.) */
+    envlen = strlen(env) + 1;
+    cpy = xmlMalloc(envlen);
+    memcpy(cpy, env, envlen);
+    env = cpy;
+
+    /* The remainder of the function is basically a tokenizing: */
+    while (isspace(*env))
+    	++env;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,4299,5,4299,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,4294,4304,"    int ret = 0;
+
+    base = baseFilename(filename);
+    len = strlen(base);
+    len -= 4;
+    memcpy(prefix, base, len);
+    prefix[len] = 0;
+
+    if (snprintf(buf, 499, ""result/c14n/%s/%s"", subdir, prefix) >= 499)
+        buf[499] = 0;
+    result = strdup(buf);"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,1222,5,1222,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,1217,1227,"    while (ctxt->inptr - ctxt->inrptr < len) {
         if (xmlNanoHTTPRecv(ctxt) <= 0) break;
     }
@@ -464,61 +442,17 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 		sockin.sin_port = (unsigned short)htons ((unsigned short)port);
 		addr = (struct sockaddr *) &sockin;
 	    } else"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,4593,12,4593,17,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,4588,4598,"    if (output == NULL) {
-	fprintf(stderr, ""failed to open output file %s\n"", temp);
-        free(temp);
-	return(-1);
-    }
-    while (fgets(expression, 4500, input) != NULL) {
-	len = strlen(expression);
-	len--;
-	while ((len >= 0) &&
-	       ((expression[len] == '\n') || (expression[len] == '\t') ||
-		(expression[len] == '\r') || (expression[len] == ' '))) len--;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testThreads.c,106,9,106,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,101,111,"        int ret;
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,507,5,507,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,502,512,"    ret = xmlMalloc(sizeof(*ret));
+    ret->num_entries = num_entries;
+    ret->num_keys = num_keys;
+    num_strings = num_entries * num_keys;
+    ret->strings = xmlMalloc(num_strings * sizeof(ret->strings[0]));
+    memset(ret->strings, 0, num_strings * sizeof(ret->strings[0]));
+    ret->num_strings = num_strings;
+    ret->index = 0;
+    ret->id = id;
 
-	xmlLoadCatalog(catalog);
-
-#ifdef HAVE_PTHREAD_H
-        memset(tid, 0xff, sizeof(*tid)*num_threads);
-
-	for (i = 0; i < num_threads; i++) {
-	    ret = pthread_create(&tid[i], NULL, thread_specific_data,
-				 (void *) &threadParams[i]);
-	    if (ret != 0) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,4299,5,4299,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,4294,4304,"    int ret = 0;
-
-    base = baseFilename(filename);
-    len = strlen(base);
-    len -= 4;
-    memcpy(prefix, base, len);
-    prefix[len] = 0;
-
-    if (snprintf(buf, 499, ""result/c14n/%s/%s"", subdir, prefix) >= 499)
-        buf[499] = 0;
-    result = strdup(buf);"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,518,13,518,20,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,513,523,"        }
-        if (ctxt->inrptr > ctxt->in + XML_NANO_HTTP_CHUNK) {
-            int delta = ctxt->inrptr - ctxt->in;
-            int len = ctxt->inptr - ctxt->inrptr;
-
-            memmove(ctxt->in, ctxt->inrptr, len);
-            ctxt->inrptr -= delta;
-            ctxt->content -= delta;
-            ctxt->inptr -= delta;
-        }
-        if ((ctxt->in + ctxt->inlen) < (ctxt->inptr + XML_NANO_HTTP_CHUNK)) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,541,22,541,26,CWE-120: Potential Buffer Overflow via recv (unchecked length).,,536,546,"            }
-            ctxt->inptr = ctxt->in + d_inptr;
-            ctxt->content = ctxt->in + d_content;
-            ctxt->inrptr = ctxt->in + d_inrptr;
-        }
-        ctxt->last = recv(ctxt->fd, ctxt->inptr, XML_NANO_HTTP_CHUNK, 0);
-        if (ctxt->last > 0) {
-            ctxt->inptr += ctxt->last;
-            return (ctxt->last);
-        }
-        if (ctxt->last == 0) {"
+    return ret;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3932,5,3932,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3927,3937,"    xmlTextReaderPtr reader;
     xmlDocPtr doc;
 
@@ -541,6 +475,28 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	fprintf(stderr, ""Missing xml file %s\n"", xml);
 	return(-1);
     }"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,402,5,402,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,397,407,"testall_dict(void) {
+    xmlDictPtr dict;
+    int ret = 0;
+
+    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
+    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
+    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
+    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
+    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
+    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
+    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,404,5,404,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,399,409,"    int ret = 0;
+
+    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
+    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
+    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
+    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
+    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
+    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
+    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
+    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
+"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3963,6,3963,11,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,3958,3968,"    }
     while (1) {
 	/*
@@ -552,6 +508,50 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	/*
 	 * remove the ending spaces
 	 */"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,406,5,406,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,401,411,"    strings1 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings1[0]));
+    memset(strings1, 0, NB_STRINGS_MAX * sizeof(strings1[0]));
+    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
+    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
+    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
+    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
+    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
+    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
+
+    fill_string_pool(strings1, seeds1);
+    fill_string_pool(strings2, seeds2);"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testdict.c,408,5,408,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,403,413,"    strings2 = xmlMalloc(NB_STRINGS_MAX * sizeof(strings2[0]));
+    memset(strings2, 0, NB_STRINGS_MAX * sizeof(strings2[0]));
+    test1 = xmlMalloc(NB_STRINGS_MAX * sizeof(test1[0]));
+    memset(test1, 0, NB_STRINGS_MAX * sizeof(test1[0]));
+    test2 = xmlMalloc(NB_STRINGS_MAX * sizeof(test2[0]));
+    memset(test2, 0, NB_STRINGS_MAX * sizeof(test2[0]));
+
+    fill_string_pool(strings1, seeds1);
+    fill_string_pool(strings2, seeds2);
+#ifdef WITH_PRINT
+    print_strings();"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,518,13,518,20,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,513,523,"        }
+        if (ctxt->inrptr > ctxt->in + XML_NANO_HTTP_CHUNK) {
+            int delta = ctxt->inrptr - ctxt->in;
+            int len = ctxt->inptr - ctxt->inrptr;
+
+            memmove(ctxt->in, ctxt->inrptr, len);
+            ctxt->inrptr -= delta;
+            ctxt->content -= delta;
+            ctxt->inptr -= delta;
+        }
+        if ((ctxt->in + ctxt->inlen) < (ctxt->inptr + XML_NANO_HTTP_CHUNK)) {"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,541,22,541,26,CWE-120: Potential Buffer Overflow via recv (unchecked length).,,536,546,"            }
+            ctxt->inptr = ctxt->in + d_inptr;
+            ctxt->content = ctxt->in + d_content;
+            ctxt->inrptr = ctxt->in + d_inrptr;
+        }
+        ctxt->last = recv(ctxt->fd, ctxt->inptr, XML_NANO_HTTP_CHUNK, 0);
+        if (ctxt->last > 0) {
+            ctxt->inptr += ctxt->last;
+            return (ctxt->last);
+        }
+        if (ctxt->last == 0) {"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3777,5,3777,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3772,3782,"    if ((len > 499) || (len < 5)) {
 	fprintf(stderr, ""len(base) == %d !\n"", len);
 	return(-1);
@@ -574,6 +574,94 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     if (snprintf(pattern, 499, ""./test/relaxng/%s_?.xml"", prefix) >= 499)
         pattern[499] = 0;
 "
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3531,5,3531,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3526,3536,"        len -= 2; /* remove subtest number */
+    }
+    if (base[len - 2] == '_') {
+        len -= 2; /* remove subtest number */
+    }
+    memcpy(prefix, base, len);
+    prefix[len] = 0;
+
+    if (snprintf(pattern, 499, ""./test/schemas/%s_*.xml"", prefix) >= 499)
+        pattern[499] = 0;
+"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3539,2,3539,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3534,3544,"    if (snprintf(pattern, 499, ""./test/schemas/%s_*.xml"", prefix) >= 499)
+        pattern[499] = 0;
+
+    if (base[len] == '_') {
+        len += 2;
+	memcpy(prefix, base, len);
+	prefix[len] = 0;
+    }
+
+    globbuf.gl_offs = 0;
+    glob(pattern, GLOB_DOOFFS, NULL, &globbuf);"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3328,4,3328,10,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3323,3333,"
+   if ((context == NULL) || (buffer == NULL) || (len < 0))
+       return(-1);
+
+   if (len > urip_rlen) len = urip_rlen;
+   memcpy(buffer, ptr, len);
+   urip_rlen -= len;
+   return(len);
+}
+
+static int"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3139,6,3139,11,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,3134,3144,"
+    while (1) {
+	/*
+	 * read one line in string buffer.
+	 */
+	if (fgets (&str[0], sizeof (str) - 1, f) == NULL)
+	   break;
+
+	/*
+	 * remove the ending spaces
+	 */"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testrecurse.c,692,5,692,12,CWE-120: Potential Buffer Overflow via strncpy (unchecked length).,,687,697,"    if (suffix == NULL)
+        suffix = "".tmp"";
+    if (out == NULL)
+        out = """";
+
+    strncpy(suffixbuff,suffix,499);
+#ifdef VMS
+    if(strstr(base,""."") && suffixbuff[0]=='.')
+      suffixbuff[0]='_';
+#endif
+"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,2832,12,2832,17,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,2827,2837,"        xmlGenericError(xmlGenericErrorContext,
+		""Cannot open %s for reading\n"", filename);
+        free(temp);
+	return(-1);
+    }
+    while (fgets(expression, 4500, input) != NULL) {
+	len = strlen(expression);
+	len--;
+	while ((len >= 0) &&
+	       ((expression[len] == '\n') || (expression[len] == '\t') ||
+		(expression[len] == '\r') || (expression[len] == ' '))) len--;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testrecurse.c,307,2,307,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,302,312,"            rlen = 0;
+            return(0);
+        }
+        len = rlen;
+        rlen = 0;
+	memcpy(buffer, current, len);
+        curseg ++;
+        if (curseg == MAX_NODES) {
+            current = hugeDocParts->finish;
+	} else {
+            current = hugeDocParts->segment;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testrecurse.c,316,2,316,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,311,321,"	} else {
+            current = hugeDocParts->segment;
+	}
+        rlen = strlen(current);
+    } else {
+	memcpy(buffer, current, len);
+	rlen -= len;
+        current += len;
+    }
+    return (len);
+}"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testlimits.c,331,13,331,19,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,326,336,"    }
     if (instate == 0) {
         if (len >= rlen) {
@@ -629,17 +717,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
             rlen = strlen(crazy) - crazy_indx;
             current = &crazy[crazy_indx];
             instate = 2;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3531,5,3531,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3526,3536,"        len -= 2; /* remove subtest number */
-    }
-    if (base[len - 2] == '_') {
-        len -= 2; /* remove subtest number */
-    }
-    memcpy(prefix, base, len);
-    prefix[len] = 0;
-
-    if (snprintf(pattern, 499, ""./test/schemas/%s_*.xml"", prefix) >= 499)
-        pattern[499] = 0;
-"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testlimits.c,184,13,184,19,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,179,189,"
     if (instate == 0) {
         if (len >= rlen) {
@@ -651,17 +728,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
             dotlen = maxlen / 10;
         } else {
             memcpy(buffer, current, len);"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3539,2,3539,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3534,3544,"    if (snprintf(pattern, 499, ""./test/schemas/%s_*.xml"", prefix) >= 499)
-        pattern[499] = 0;
-
-    if (base[len] == '_') {
-        len += 2;
-	memcpy(prefix, base, len);
-	prefix[len] = 0;
-    }
-
-    globbuf.gl_offs = 0;
-    glob(pattern, GLOB_DOOFFS, NULL, &globbuf);"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testlimits.c,189,13,189,19,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,184,194,"            memcpy(buffer, current, len);
             instate = 1;
             curlen = 0;
@@ -706,17 +772,17 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
             rlen = strlen(hugeTests[currentTest].end);
             current = hugeTests[currentTest].end;
             instate = 2;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3328,4,3328,10,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3323,3333,"
-   if ((context == NULL) || (buffer == NULL) || (len < 0))
-       return(-1);
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,9351,9,9351,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,9346,9356,"            table = newTable;
+            ctxt->attrHash = newTable;
+            ctxt->attrHashMax = newSize;
+        }
 
-   if (len > urip_rlen) len = urip_rlen;
-   memcpy(buffer, ptr, len);
-   urip_rlen -= len;
-   return(len);
-}
+        memset(&table[size], 0, (newSize - size) * sizeof(table[0]));
 
-static int"
+        if (size > 0) {
+            /*
+             * We must search for the start of a probe sequence to make
+             * in-place operation work."
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/uri.c,2347,6,2347,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2342,2352,"     * Finish up with the end of the URI
      */
     if (uptr != NULL) {
@@ -739,83 +805,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     } else {
 	vptr[len - 1] = 0;
     }"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,3139,6,3139,11,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,3134,3144,"
-    while (1) {
-	/*
-	 * read one line in string buffer.
-	 */
-	if (fgets (&str[0], sizeof (str) - 1, f) == NULL)
-	   break;
-
-	/*
-	 * remove the ending spaces
-	 */"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,2832,12,2832,17,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,2827,2837,"        xmlGenericError(xmlGenericErrorContext,
-		""Cannot open %s for reading\n"", filename);
-        free(temp);
-	return(-1);
-    }
-    while (fgets(expression, 4500, input) != NULL) {
-	len = strlen(expression);
-	len--;
-	while ((len >= 0) &&
-	       ((expression[len] == '\n') || (expression[len] == '\t') ||
-		(expression[len] == '\r') || (expression[len] == ' '))) len--;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testrecurse.c,692,5,692,12,CWE-120: Potential Buffer Overflow via strncpy (unchecked length).,,687,697,"    if (suffix == NULL)
-        suffix = "".tmp"";
-    if (out == NULL)
-        out = """";
-
-    strncpy(suffixbuff,suffix,499);
-#ifdef VMS
-    if(strstr(base,""."") && suffixbuff[0]=='.')
-      suffixbuff[0]='_';
-#endif
-"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,9351,9,9351,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,9346,9356,"            table = newTable;
-            ctxt->attrHash = newTable;
-            ctxt->attrHashMax = newSize;
-        }
-
-        memset(&table[size], 0, (newSize - size) * sizeof(table[0]));
-
-        if (size > 0) {
-            /*
-             * We must search for the start of a probe sequence to make
-             * in-place operation work."
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testrecurse.c,307,2,307,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,302,312,"            rlen = 0;
-            return(0);
-        }
-        len = rlen;
-        rlen = 0;
-	memcpy(buffer, current, len);
-        curseg ++;
-        if (curseg == MAX_NODES) {
-            current = hugeDocParts->finish;
-	} else {
-            current = hugeDocParts->segment;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testrecurse.c,316,2,316,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,311,321,"	} else {
-            current = hugeDocParts->segment;
-	}
-        rlen = strlen(current);
-    } else {
-	memcpy(buffer, current, len);
-	rlen -= len;
-        current += len;
-    }
-    return (len);
-}"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/error.c,219,5,219,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,214,224,"        if ((c < 0) || (n + len > sizeof(content)-1))
-            break;
-        cur += len;
-	n += len;
-    }
-    memcpy(content, start, n);
-    content[n] = 0;
-    /* print out the selected text */
-    channel(data ,""%s\n"", content);
-    /* create blank line with problem pointer */
-    n = 0;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,3334,5,3334,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,3329,3339,"    if (strings == NULL) {
         PyErr_SetString(PyExc_MemoryError, """");
         return -1;
@@ -904,17 +893,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
       suffixbuff[0]='_';
 #endif
 "
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testchar.c,812,9,812,15,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,807,817,"     * Create a chunk longer than XML_PARSER_BIG_BUFFER_SIZE (300) ending
-     * with an incomplete UTF-8 sequence.
-     */
-    buf = xmlMalloc(1000 * 2 + 1);
-    for (i = 0; i < 2000; i += 2)
-        memcpy(buf + i, ""\xCE\xB1"", 2);
-    buf[i] = '\xCE';
-    xmlParseChunk(ctxt, buf, 2001, 0);
-    xmlFree(buf);
-
-    xmlParseChunk(ctxt, ""\xB1</d>"", 4, 0);"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,343,5,343,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,338,348,"        if ((c < 0) || (n + len > sizeof(content)-1))
             break;
         cur += len;
@@ -926,17 +904,39 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     chanl(data ,""%s\n"", content);
     /* create blank line with problem pointer */
     n = 0;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testchar.c,608,5,608,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,603,613,"    xmlParserCtxtPtr ctxt;
-    xmlParserInputBufferPtr buf;
-    xmlParserInputPtr input;
-    int test_ret = 0;
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testThreads.c,106,9,106,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,101,111,"        int ret;
 
-    memset(data, 0, 5);
+	xmlLoadCatalog(catalog);
 
-    /*
-     * Set up a parsing context using the above data buffer as
-     * the current input source.
-     */"
+#ifdef HAVE_PTHREAD_H
+        memset(tid, 0xff, sizeof(*tid)*num_threads);
+
+	for (i = 0; i < num_threads; i++) {
+	    ret = pthread_create(&tid[i], NULL, thread_specific_data,
+				 (void *) &threadParams[i]);
+	    if (ret != 0) {"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlcatalog.c,80,10,80,15,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,75,85,"    int len;
+
+    if (prompt != NULL)
+	fprintf(stdout, ""%s"", prompt);
+    fflush(stdout);
+    if (!fgets(line_read, 500, stdin))
+        return(NULL);
+    line_read[500] = 0;
+    len = strlen(line_read);
+    ret = (char *) malloc(len + 1);
+    if (ret != NULL) {"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlcatalog.c,86,2,86,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,81,91,"        return(NULL);
+    line_read[500] = 0;
+    len = strlen(line_read);
+    ret = (char *) malloc(len + 1);
+    if (ret != NULL) {
+	memcpy (ret, line_read, len + 1);
+    }
+    return(ret);
+#endif
+}
+"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,7471,13,7471,20,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,7466,7476,"	if (start_buf > (unsigned int) len) {
 	    /*
 	     * We can add it in the space previously shrunk
@@ -981,6 +981,17 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     return 0;
 }
 "
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testchar.c,812,9,812,15,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,807,817,"     * Create a chunk longer than XML_PARSER_BIG_BUFFER_SIZE (300) ending
+     * with an incomplete UTF-8 sequence.
+     */
+    buf = xmlMalloc(1000 * 2 + 1);
+    for (i = 0; i < 2000; i += 2)
+        memcpy(buf + i, ""\xCE\xB1"", 2);
+    buf[i] = '\xCE';
+    xmlParseChunk(ctxt, buf, 2001, 0);
+    xmlFree(buf);
+
+    xmlParseChunk(ctxt, ""\xB1</d>"", 4, 0);"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,7339,6,7339,13,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,7334,7344,"    if ((buf->alloc == XML_BUFFER_ALLOC_IO) && (buf->contentIO != NULL)) {
         start_buf = buf->content - buf->contentIO;
 
@@ -1014,6 +1025,17 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 		buf->size += start_buf;
 	    }
 	}"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testchar.c,608,5,608,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,603,613,"    xmlParserCtxtPtr ctxt;
+    xmlParserInputBufferPtr buf;
+    xmlParserInputPtr input;
+    int test_ret = 0;
+
+    memset(data, 0, 5);
+
+    /*
+     * Set up a parsing context using the above data buffer as
+     * the current input source.
+     */"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,7148,2,7148,9,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,7143,7153,"		buf->content[buf->use] = 0;
 		buf->size += start_buf;
 	    }
@@ -1058,17 +1080,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	atom->valuep = str;
     }
     atom->data = data;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,3679,5,3679,12,CWE-120: Potential Buffer Overflow via strncpy (unchecked length).,,3674,3684,"#   define IS_XMLPGD_SEP(ch) ((ch=='/')||(ch=='\\'))
-#else
-#   define IS_XMLPGD_SEP(ch) (ch=='/')
-#endif
-
-    strncpy(dir, filename, 1023);
-    dir[1023] = 0;
-    cur = &dir[strlen(dir)];
-    while (cur > dir) {
-         if (IS_XMLPGD_SEP(*cur)) break;
-	 cur --;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,5862,2,5862,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,5857,5867,"	lenp = strlen((char *) token);
 
 	str = (xmlChar *) xmlMallocAtomic(lenn + lenp + 2);
@@ -1091,6 +1102,50 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	atom->valuep = str;
     }
     atom->data = data;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,349,2,349,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,344,354,"	printf(""xmlPythonFileRead: result is not a String\n"");
+	Py_DECREF(ret);
+	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,351,2,351,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,346,356,"	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}
+
+/**"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,287,2,287,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,282,292,"	printf(""xmlPythonFileReadRaw: result is not a String\n"");
+	Py_DECREF(ret);
+	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,289,2,289,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,284,294,"	return(-1);
+    }
+    if (lenread > len)
+	memcpy(buffer, data, len);
+    else
+	memcpy(buffer, data, lenread);
+    Py_DECREF(ret);
+    return(lenread);
+}
+
+/**"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,5792,2,5792,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,5787,5797,"	str = (xmlChar *) xmlMallocAtomic(lenn + lenp + 2);
 	if (str == NULL) {
 	    xmlRegFreeAtom(atom);
@@ -1135,72 +1190,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	atom->valuep = str;
     }
 "
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,2925,5,2925,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2920,2930,"    size_t len;
-
-    zero = memchr(ctxt->str, 0, size);
-    len = zero ? zero - ctxt->str : size;
-
-    memcpy(buf, ctxt->str, len);
-    ctxt->str += len;
-
-    return(len);
-}
-"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlcatalog.c,80,10,80,15,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,75,85,"    int len;
-
-    if (prompt != NULL)
-	fprintf(stdout, ""%s"", prompt);
-    fflush(stdout);
-    if (!fgets(line_read, 500, stdin))
-        return(NULL);
-    line_read[500] = 0;
-    len = strlen(line_read);
-    ret = (char *) malloc(len + 1);
-    if (ret != NULL) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlcatalog.c,86,2,86,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,81,91,"        return(NULL);
-    line_read[500] = 0;
-    len = strlen(line_read);
-    ret = (char *) malloc(len + 1);
-    if (ret != NULL) {
-	memcpy (ret, line_read, len + 1);
-    }
-    return(ret);
-#endif
-}
-"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,2845,5,2845,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2840,2850,"    xmlMemIOCtxt *ctxt = vctxt;
-
-    if ((size_t) size > ctxt->size)
-        size = ctxt->size;
-
-    memcpy(buf, ctxt->mem, size);
-    ctxt->mem += size;
-    ctxt->size -= size;
-
-    return size;
-}"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,349,2,349,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,344,354,"	printf(""xmlPythonFileRead: result is not a String\n"");
-	Py_DECREF(ret);
-	return(-1);
-    }
-    if (lenread > len)
-	memcpy(buffer, data, len);
-    else
-	memcpy(buffer, data, lenread);
-    Py_DECREF(ret);
-    return(lenread);
-}"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,351,2,351,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,346,356,"	return(-1);
-    }
-    if (lenread > len)
-	memcpy(buffer, data, len);
-    else
-	memcpy(buffer, data, lenread);
-    Py_DECREF(ret);
-    return(lenread);
-}
-
-/**"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlstring.c,878,5,878,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,873,883,"    i = xmlUTF8Strsize(utf, len);
     ret = (xmlChar *) xmlMallocAtomic((size_t) i + 1);
     if (ret == NULL) {
@@ -1212,28 +1201,17 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 }
 
 /**"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,287,2,287,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,282,292,"	printf(""xmlPythonFileReadRaw: result is not a String\n"");
-	Py_DECREF(ret);
-	return(-1);
-    }
-    if (lenread > len)
-	memcpy(buffer, data, len);
-    else
-	memcpy(buffer, data, lenread);
-    Py_DECREF(ret);
-    return(lenread);
-}"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/python/libxml.c,289,2,289,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,284,294,"	return(-1);
-    }
-    if (lenread > len)
-	memcpy(buffer, data, len);
-    else
-	memcpy(buffer, data, lenread);
-    Py_DECREF(ret);
-    return(lenread);
-}
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,3679,5,3679,12,CWE-120: Potential Buffer Overflow via strncpy (unchecked length).,,3674,3684,"#   define IS_XMLPGD_SEP(ch) ((ch=='/')||(ch=='\\'))
+#else
+#   define IS_XMLPGD_SEP(ch) (ch=='/')
+#endif
 
-/**"
+    strncpy(dir, filename, 1023);
+    dir[1023] = 0;
+    cur = &dir[strlen(dir)];
+    while (cur > dir) {
+         if (IS_XMLPGD_SEP(*cur)) break;
+	 cur --;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,5096,3,5096,9,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,5091,5101,"			ctxt->instate = state;
 			return;
 		    }
@@ -1278,39 +1256,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 }
 
 /**"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlstring.c,53,5,53,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,48,58,"    if ((cur == NULL) || (len < 0)) return(NULL);
-    ret = (xmlChar *) xmlMallocAtomic((size_t) len + 1);
-    if (ret == NULL) {
-        return(NULL);
-    }
-    memcpy(ret, cur, len);
-    ret[len] = 0;
-    return(ret);
-}
-
-/**"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,4052,5,4052,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,4047,4057,"	    return(-1);
-	}
-    } else {
-	str = buf;
-    }
-    memcpy(&str[0], value, lenp);
-    str[lenp] = XML_REG_STRING_SEPARATOR;
-    memcpy(&str[lenp + 1], value2, lenn);
-    str[lenn + lenp + 1] = 0;
-
-    if (exec->comp->compact != NULL)"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,4054,5,4054,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,4049,4059,"    } else {
-	str = buf;
-    }
-    memcpy(&str[0], value, lenp);
-    str[lenp] = XML_REG_STRING_SEPARATOR;
-    memcpy(&str[lenp + 1], value2, lenn);
-    str[lenn + lenp + 1] = 0;
-
-    if (exec->comp->compact != NULL)
-	ret = xmlRegCompactPushString(exec, exec->comp, str, data);
-    else"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlsave.c,298,9,298,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,293,303,"    if (ctxt == NULL) return;
     if ((ctxt->encoding == NULL) && (ctxt->escape == NULL))
         ctxt->escape = xmlEscapeEntities;
@@ -1333,61 +1278,39 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     }
 
     if (xmlSaveNoEmptyTags) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3928,7,3928,13,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3923,3933,"		     */
-		    if (exec->errString != NULL)
-			xmlFree(exec->errString);
-		    exec->errString = xmlStrdup(value);
-		    exec->errState = exec->state;
-		    memcpy(exec->errCounts, exec->counts,
-			   exec->comp->nbCounters * sizeof(int));
-		}
-		exec->state = exec->comp->states[trans->to];
-		exec->transno = 0;
-		if (trans->atom != NULL) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,728,11,728,15,CWE-120: Potential Buffer Overflow via read (unchecked length).,,723,733," */
-static int
-xmlFdRead (void * context, char * buffer, int len) {
-    int ret;
-
-    ret = read((int) (ptrdiff_t) context, &buffer[0], len);
-    if (ret < 0) xmlIOErr(0, ""read()"");
-    return(ret);
-}
-
-#ifdef LIBXML_OUTPUT_ENABLED"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3968,21,3968,27,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3963,3973,"		if (exec->errString != NULL)
-		    xmlFree(exec->errString);
-		exec->errString = xmlStrdup(value);
-		exec->errState = exec->state;
-                if (exec->comp->nbCounters)
-                    memcpy(exec->errCounts, exec->counts,
-                           exec->comp->nbCounters * sizeof(int));
-	    }
-
-	    /*
-	     * Failed to find a way out"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c,761,10,761,15,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,756,766,"    int len;
-
-    if (prompt != NULL)
-	fprintf(stdout, ""%s"", prompt);
-    fflush(stdout);
-    if (!fgets(line_read, 500, stdin))
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlstring.c,53,5,53,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,48,58,"    if ((cur == NULL) || (len < 0)) return(NULL);
+    ret = (xmlChar *) xmlMallocAtomic((size_t) len + 1);
+    if (ret == NULL) {
         return(NULL);
-    line_read[500] = 0;
-    len = strlen(line_read);
-    ret = (char *) malloc(len + 1);
-    if (ret != NULL) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c,767,2,767,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,762,772,"        return(NULL);
-    line_read[500] = 0;
-    len = strlen(line_read);
-    ret = (char *) malloc(len + 1);
-    if (ret != NULL) {
-	memcpy (ret, line_read, len + 1);
     }
+    memcpy(ret, cur, len);
+    ret[len] = 0;
     return(ret);
-#endif
 }
-#endif /* LIBXML_XPATH_ENABLED */"
+
+/**"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,2925,5,2925,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2920,2930,"    size_t len;
+
+    zero = memchr(ctxt->str, 0, size);
+    len = zero ? zero - ctxt->str : size;
+
+    memcpy(buf, ctxt->str, len);
+    ctxt->str += len;
+
+    return(len);
+}
+"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,2845,5,2845,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,2840,2850,"    xmlMemIOCtxt *ctxt = vctxt;
+
+    if ((size_t) size > ctxt->size)
+        size = ctxt->size;
+
+    memcpy(buf, ctxt->mem, size);
+    ctxt->mem += size;
+    ctxt->size -= size;
+
+    return size;
+}"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/relaxng.c,1309,9,1309,15,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,1304,1314,"                return (ret);
             }
             ret->maxAttrs = state->maxAttrs;
@@ -1399,6 +1322,28 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     return (ret);
 }
 "
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,4052,5,4052,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,4047,4057,"	    return(-1);
+	}
+    } else {
+	str = buf;
+    }
+    memcpy(&str[0], value, lenp);
+    str[lenp] = XML_REG_STRING_SEPARATOR;
+    memcpy(&str[lenp + 1], value2, lenn);
+    str[lenn + lenp + 1] = 0;
+
+    if (exec->comp->compact != NULL)"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,4054,5,4054,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,4049,4059,"    } else {
+	str = buf;
+    }
+    memcpy(&str[0], value, lenp);
+    str[lenp] = XML_REG_STRING_SEPARATOR;
+    memcpy(&str[lenp + 1], value2, lenn);
+    str[lenn + lenp + 1] = 0;
+
+    if (exec->comp->compact != NULL)
+	ret = xmlRegCompactPushString(exec, exec->comp, str, data);
+    else"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/relaxng.c,1235,13,1235,19,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,1230,1240,"            ret->attrs = tmp;
             ret->maxAttrs = nbAttrs;
         }
@@ -1410,39 +1355,28 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
             nbAttrs = 0;
             while (attr != NULL) {
                 ret->attrs[nbAttrs++] = attr;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3474,9,3474,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,3469,3479,"	if (exec->counts == NULL) {
-	    xmlRegexpErrMemory(NULL, ""creating execution context"");
-	    xmlFree(exec);
-	    return(NULL);
-	}
-        memset(exec->counts, 0, comp->nbCounters * sizeof(int) * 2);
-	exec->errCounts = &exec->counts[comp->nbCounters];
-    } else {
-	exec->counts = NULL;
-	exec->errCounts = NULL;
-    }"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c,494,5,494,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,489,499,"    /*
-     * xmlEncodeEntitiesReentrant assumes valid UTF-8, but the buffer might
-     * end with a truncated UTF-8 sequence. This is a hack to at least avoid
-     * an out-of-bounds read.
-     */
-    memset(&buffer[sizeof(buffer)-4], 0, 4);
-    result = (char *) xmlEncodeEntitiesReentrant(NULL, BAD_CAST buffer);
-    if (result) {
-	xmlGenericError(xmlGenericErrorContext, ""%s"", result);
-	xmlFree(result);
-    }"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3163,9,3163,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,3158,3168,"	exec->counts = (int *) xmlMalloc(comp->nbCounters * sizeof(int));
-	if (exec->counts == NULL) {
-	    xmlRegexpErrMemory(NULL, ""running regexp"");
-	    return(XML_REGEXP_OUT_OF_MEMORY);
-	}
-        memset(exec->counts, 0, comp->nbCounters * sizeof(int));
-    } else
-	exec->counts = NULL;
-    while ((exec->status == XML_REGEXP_OK) && (exec->state != NULL) &&
-	   ((exec->inputString[exec->index] != 0) ||
-	    ((exec->state != NULL) &&"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3928,7,3928,13,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3923,3933,"		     */
+		    if (exec->errString != NULL)
+			xmlFree(exec->errString);
+		    exec->errString = xmlStrdup(value);
+		    exec->errState = exec->state;
+		    memcpy(exec->errCounts, exec->counts,
+			   exec->comp->nbCounters * sizeof(int));
+		}
+		exec->state = exec->comp->states[trans->to];
+		exec->transno = 0;
+		if (trans->atom != NULL) {"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3968,21,3968,27,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3963,3973,"		if (exec->errString != NULL)
+		    xmlFree(exec->errString);
+		exec->errString = xmlStrdup(value);
+		exec->errState = exec->state;
+                if (exec->comp->nbCounters)
+                    memcpy(exec->errCounts, exec->counts,
+                           exec->comp->nbCounters * sizeof(int));
+	    }
+
+	    /*
+	     * Failed to find a way out"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,3828,6,3828,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3823,3833,"	    buffer = (xmlChar *) xmlMallocAtomic(max);
 	    if (buffer == NULL) {
 	        xmlErrMemory(ctxt, NULL);
@@ -1465,6 +1399,72 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 		    xmlChar *tmp;
 
 		    max *= 2;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c,761,10,761,15,CWE-120: Potential Buffer Overflow via fgets (unchecked length).,,756,766,"    int len;
+
+    if (prompt != NULL)
+	fprintf(stdout, ""%s"", prompt);
+    fflush(stdout);
+    if (!fgets(line_read, 500, stdin))
+        return(NULL);
+    line_read[500] = 0;
+    len = strlen(line_read);
+    ret = (char *) malloc(len + 1);
+    if (ret != NULL) {"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c,767,2,767,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,762,772,"        return(NULL);
+    line_read[500] = 0;
+    len = strlen(line_read);
+    ret = (char *) malloc(len + 1);
+    if (ret != NULL) {
+	memcpy (ret, line_read, len + 1);
+    }
+    return(ret);
+#endif
+}
+#endif /* LIBXML_XPATH_ENABLED */"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3474,9,3474,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,3469,3479,"	if (exec->counts == NULL) {
+	    xmlRegexpErrMemory(NULL, ""creating execution context"");
+	    xmlFree(exec);
+	    return(NULL);
+	}
+        memset(exec->counts, 0, comp->nbCounters * sizeof(int) * 2);
+	exec->errCounts = &exec->counts[comp->nbCounters];
+    } else {
+	exec->counts = NULL;
+	exec->errCounts = NULL;
+    }"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3163,9,3163,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,3158,3168,"	exec->counts = (int *) xmlMalloc(comp->nbCounters * sizeof(int));
+	if (exec->counts == NULL) {
+	    xmlRegexpErrMemory(NULL, ""running regexp"");
+	    return(XML_REGEXP_OUT_OF_MEMORY);
+	}
+        memset(exec->counts, 0, comp->nbCounters * sizeof(int));
+    } else
+	exec->counts = NULL;
+    while ((exec->status == XML_REGEXP_OK) && (exec->state != NULL) &&
+	   ((exec->inputString[exec->index] != 0) ||
+	    ((exec->state != NULL) &&"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c,494,5,494,11,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,489,499,"    /*
+     * xmlEncodeEntitiesReentrant assumes valid UTF-8, but the buffer might
+     * end with a truncated UTF-8 sequence. This is a hack to at least avoid
+     * an out-of-bounds read.
+     */
+    memset(&buffer[sizeof(buffer)-4], 0, 4);
+    result = (char *) xmlEncodeEntitiesReentrant(NULL, BAD_CAST buffer);
+    if (result) {
+	xmlGenericError(xmlGenericErrorContext, ""%s"", result);
+	xmlFree(result);
+    }"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,728,11,728,15,CWE-120: Potential Buffer Overflow via read (unchecked length).,,723,733," */
+static int
+xmlFdRead (void * context, char * buffer, int len) {
+    int ret;
+
+    ret = read((int) (ptrdiff_t) context, &buffer[0], len);
+    if (ret < 0) xmlIOErr(0, ""read()"");
+    return(ret);
+}
+
+#ifdef LIBXML_OUTPUT_ENABLED"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,3125,6,3125,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3120,3130,"	    fprintf(stderr, ""exec save: allocation failed"");
 	    exec->status = XML_REGEXP_INTERNAL_ERROR;
 	    return;
@@ -1509,6 +1509,28 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     exec->nbRollbacks++;
 }
 "
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,3179,2,3179,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3174,3184,"	buffer = (xmlChar *) xmlMallocAtomic(max);
+	if (buffer == NULL) {
+	    xmlErrMemory(ctxt, NULL);
+	    return(NULL);
+	}
+	memcpy(buffer, buf, len);
+	while ((c != 0) && (c != ':')) { /* tested bigname.xml */
+	    if (len + 10 > max) {
+	        xmlChar *tmp;
+
+		max *= 2;"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,3257,6,3257,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3252,3262,"	    buffer = (xmlChar *) xmlMallocAtomic(max);
+	    if (buffer == NULL) {
+	        xmlErrMemory(ctxt, NULL);
+		return(NULL);
+	    }
+	    memcpy(buffer, buf, len);
+	    while (c != 0) { /* tested bigname2.xml */
+		if (len + 10 > max) {
+		    xmlChar *tmp;
+
+		    max *= 2;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/timsort.h,383,5,383,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,378,388,"  TIM_SORT_RESIZE(store, MIN(A, B));
   storage = store->storage;
 
@@ -1531,39 +1553,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
     k = curr + A + B;
 
     while (k > curr) {"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,3179,2,3179,8,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3174,3184,"	buffer = (xmlChar *) xmlMallocAtomic(max);
-	if (buffer == NULL) {
-	    xmlErrMemory(ctxt, NULL);
-	    return(NULL);
-	}
-	memcpy(buffer, buf, len);
-	while ((c != 0) && (c != ':')) { /* tested bigname.xml */
-	    if (len + 10 > max) {
-	        xmlChar *tmp;
-
-		max *= 2;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xzlib.c,745,13,745,19,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,740,750,"    got = 0;
-    do {
-        /* first just try copying data from the output buffer */
-        if (state->have) {
-            n = state->have > len ? len : state->have;
-            memcpy(buf, state->next, n);
-            state->next += n;
-            state->have -= n;
-        }
-
-        /* output buffer empty -- return if we're at the end of the input */"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,3257,6,3257,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,3252,3262,"	    buffer = (xmlChar *) xmlMallocAtomic(max);
-	    if (buffer == NULL) {
-	        xmlErrMemory(ctxt, NULL);
-		return(NULL);
-	    }
-	    memcpy(buffer, buf, len);
-	    while (c != 0) { /* tested bigname2.xml */
-		if (len + 10 > max) {
-		    xmlChar *tmp;
-
-		    max *= 2;"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c,6050,4,6050,11,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,6045,6055,"		    if (dec.frac != dec.total) {
 			int diff = dec.total - dec.frac;
 			/*
@@ -1597,6 +1586,17 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 		} else {
 		    /*
 		    * Append decimal point and zero."
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xzlib.c,745,13,745,19,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,740,750,"    got = 0;
+    do {
+        /* first just try copying data from the output buffer */
+        if (state->have) {
+            n = state->have > len ? len : state->have;
+            memcpy(buf, state->next, n);
+            state->next += n;
+            state->have -= n;
+        }
+
+        /* output buffer empty -- return if we're at the end of the input */"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xzlib.c,522,9,522,15,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,517,527,"     * input to output -- this assumes that the output buffer is larger than
      * the input buffer, which also assures space for gzungetc() */
     state->raw = state->pos;
@@ -1652,28 +1652,6 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 /**
  * xmlParserStartElement:
  * @nsdb: namespace database"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,447,9,447,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,442,452,"        (dim1 > SIZE_MAX / dim2 / elemSize))
-        return (NULL);
-    totalSize = dim1 * dim2 * elemSize;
-    ret = xmlMalloc(totalSize);
-    if (ret != NULL)
-        memset(ret, 0, totalSize);
-    return (ret);
-}
-
-/**
- * xmlRegEpxFromParse:"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,995,9,995,16,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,990,1000,"	xmlAttrNormalizeSpace(ret, ret);
-	*len = strlen((const char *)ret);
-        return(ret);
-    } else if (remove_head) {
-        *len -= remove_head;
-        memmove(src, src + remove_head, 1 + *len);
-	return(src);
-    }
-    return(NULL);
-}
-"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlschemas.c,24077,2,24077,8,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,24072,24082,"	if (vctxt->elemInfos == NULL) {
 	    xmlSchemaVErrMemory(vctxt,
 		""allocating the element info array"", NULL);
@@ -1685,28 +1663,28 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 	int i = vctxt->sizeElemInfos;
 
 	vctxt->sizeElemInfos *= 2;"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,237,5,237,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,232,242,"	    return(NULL);
-	}
-    } else {
-	ret = memory;
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,995,9,995,16,CWE-120: Potential Buffer Overflow via memmove (unchecked length).,,990,1000,"	xmlAttrNormalizeSpace(ret, ret);
+	*len = strlen((const char *)ret);
+        return(ret);
+    } else if (remove_head) {
+        *len -= remove_head;
+        memmove(src, src + remove_head, 1 + *len);
+	return(src);
     }
-    memcpy(&ret[0], prefix, lenp);
-    ret[lenp] = ':';
-    memcpy(&ret[lenp + 1], ncname, lenn);
-    ret[lenn + lenp + 1] = 0;
-    return(ret);
-}"
-local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,239,5,239,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,234,244,"    } else {
-	ret = memory;
-    }
-    memcpy(&ret[0], prefix, lenp);
-    ret[lenp] = ':';
-    memcpy(&ret[lenp + 1], ncname, lenn);
-    ret[lenn + lenp + 1] = 0;
-    return(ret);
+    return(NULL);
+}
+"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,447,9,447,15,CWE-120: Potential Buffer Overflow via memset (unchecked length).,,442,452,"        (dim1 > SIZE_MAX / dim2 / elemSize))
+        return (NULL);
+    totalSize = dim1 * dim2 * elemSize;
+    ret = xmlMalloc(totalSize);
+    if (ret != NULL)
+        memset(ret, 0, totalSize);
+    return (ret);
 }
 
-/**"
+/**
+ * xmlRegEpxFromParse:"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlschemas.c,23689,7,23689,13,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,23684,23694,"			xmlSchemaIDCFreeBinding(parBind);
 			goto internal_error;
 		    }
@@ -1740,6 +1718,28 @@ local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media
 create_key:
 		/*
 		* Create a key once per node only."
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,237,5,237,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,232,242,"	    return(NULL);
+	}
+    } else {
+	ret = memory;
+    }
+    memcpy(&ret[0], prefix, lenp);
+    ret[lenp] = ':';
+    memcpy(&ret[lenp + 1], ncname, lenn);
+    ret[lenn + lenp + 1] = 0;
+    return(ret);
+}"
+local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,239,5,239,11,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,234,244,"    } else {
+	ret = memory;
+    }
+    memcpy(&ret[0], prefix, lenp);
+    ret[lenp] = ':';
+    memcpy(&ret[lenp + 1], ncname, lenn);
+    ret[lenn + lenp + 1] = 0;
+    return(ret);
+}
+
+/**"
 local/cpp/cwe-120-overflow,local/cpp/cwe-120-overflow,warning,low,CWE-120,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xpath.c,9202,6,9202,12,CWE-120: Potential Buffer Overflow via memcpy (unchecked length).,,9197,9207,"            }
 	    buffer = (xmlChar *) xmlMallocAtomic(max);
 	    if (buffer == NULL) {
@@ -1905,6 +1905,17 @@ local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/sh
                         break;
                     }
                 } else {"
+local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,11894,11,11894,18,CWE-125: Potential OOB Read via strncmp (unchecked length).,,11889,11899,"			 * Special case to provide identical behaviour
+			 * between pull and push parsers on enpty CDATA
+			 * sections
+			 */
+			 if ((ctxt->input->cur - ctxt->input->base >= 9) &&
+			     (!strncmp((const char *)&ctxt->input->cur[-9],
+			               ""<![CDATA["", 9)))
+			     ctxt->sax->cdataBlock(ctxt->userData,
+			                           BAD_CAST """", 0);
+		    } else if ((ctxt->sax != NULL) && (base > 0) &&
+			(!ctxt->disableSAX)) {"
 local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,1657,6,1657,11,CWE-125: Potential OOB Read via write (unchecked length).,,1652,1662,"	}
     }
 
@@ -1927,28 +1938,6 @@ local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/sh
     }
 
     xmlNanoHTTPClose(ctxt);"
-local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,11894,11,11894,18,CWE-125: Potential OOB Read via strncmp (unchecked length).,,11889,11899,"			 * Special case to provide identical behaviour
-			 * between pull and push parsers on enpty CDATA
-			 * sections
-			 */
-			 if ((ctxt->input->cur - ctxt->input->base >= 9) &&
-			     (!strncmp((const char *)&ctxt->input->cur[-9],
-			               ""<![CDATA["", 9)))
-			     ctxt->sax->cdataBlock(ctxt->userData,
-			                           BAD_CAST """", 0);
-		    } else if ((ctxt->sax != NULL) && (base > 0) &&
-			(!ctxt->disableSAX)) {"
-local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,671,10,671,17,CWE-125: Potential OOB Read via strncmp (unchecked length).,,666,676,"xmlNanoHTTPScanAnswer(xmlNanoHTTPCtxtPtr ctxt, const char *line) {
-    const char *cur = line;
-
-    if (line == NULL) return;
-
-    if (!strncmp(line, ""HTTP/"", 5)) {
-        int version = 0;
-	int ret = 0;
-
-	cur += 5;
-	while ((*cur >= '0') && (*cur <= '9')) {"
 local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/parser.c,11212,9,11212,15,CWE-125: Potential OOB Read via memchr (unchecked length).,,11207,11217,"        cur = ctxt->input->cur + 1;
     } else {
         cur = ctxt->input->cur + ctxt->checkIndex;
@@ -1960,6 +1949,28 @@ local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/sh
         if (index > LONG_MAX) {
             ctxt->checkIndex = 0;
             return(1);"
+local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,671,10,671,17,CWE-125: Potential OOB Read via strncmp (unchecked length).,,666,676,"xmlNanoHTTPScanAnswer(xmlNanoHTTPCtxtPtr ctxt, const char *line) {
+    const char *cur = line;
+
+    if (line == NULL) return;
+
+    if (!strncmp(line, ""HTTP/"", 5)) {
+        int version = 0;
+	int ret = 0;
+
+	cur += 5;
+	while ((*cur >= '0') && (*cur <= '9')) {"
+local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,431,25,431,29,CWE-125: Potential OOB Read via send (unchecked length).,,426,436,"    fd_set wfd;
+#endif
+
+    if ((ctxt->state & XML_NANO_HTTP_WRITE) && (xmt_ptr != NULL)) {
+        while (total_sent < outlen) {
+            int nsent = send(ctxt->fd, SEND_ARG2_CAST (xmt_ptr + total_sent),
+                             outlen - total_sent, 0);
+
+            if (nsent > 0)
+                total_sent += nsent;
+            else if ((nsent == -1) &&"
 local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testlimits.c,1324,17,1324,24,CWE-125: Potential OOB Read via strncmp (unchecked length).,,1319,1329,"    }
     if (ret != 0) {
         if (fail)
@@ -1982,17 +1993,6 @@ local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/sh
             else
                 fprintf(stderr, ""Failed to get failure for '%s' %lu\n"",
                         filename, (unsigned long) limit);"
-local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/nanohttp.c,431,25,431,29,CWE-125: Potential OOB Read via send (unchecked length).,,426,436,"    fd_set wfd;
-#endif
-
-    if ((ctxt->state & XML_NANO_HTTP_WRITE) && (xmt_ptr != NULL)) {
-        while (total_sent < outlen) {
-            int nsent = send(ctxt->fd, SEND_ARG2_CAST (xmt_ptr + total_sent),
-                             outlen - total_sent, 0);
-
-            if (nsent > 0)
-                total_sent += nsent;
-            else if ((nsent == -1) &&"
 local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testlimits.c,278,27,278,34,CWE-125: Potential OOB Read via strncmp (unchecked length).,,273,283," *
  * Returns an Input context or NULL in case or error
  */
@@ -2103,17 +2103,6 @@ local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/sh
             goto error;
         }
     }"
-local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,2922,12,2922,18,CWE-125: Potential OOB Read via memchr (unchecked length).,,2917,2927,"xmlStringRead(void *vctxt, char *buf, int size) {
-    xmlStringIOCtxt *ctxt = vctxt;
-    const xmlChar *zero;
-    size_t len;
-
-    zero = memchr(ctxt->str, 0, size);
-    len = zero ? zero - ctxt->str : size;
-
-    memcpy(buf, ctxt->str, len);
-    ctxt->str += len;
-"
 local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmllint.c,2545,11,2545,16,CWE-125: Potential OOB Read via write (unchecked length).,,2540,2550,"	        xmlChar *result = NULL;
 		int size;
 
@@ -2157,6 +2146,17 @@ local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/sh
 		    }
 		    xmlFree(result);
 		}
+"
+local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,2922,12,2922,18,CWE-125: Potential OOB Read via memchr (unchecked length).,,2917,2927,"xmlStringRead(void *vctxt, char *buf, int size) {
+    xmlStringIOCtxt *ctxt = vctxt;
+    const xmlChar *zero;
+    size_t len;
+
+    zero = memchr(ctxt->str, 0, size);
+    len = zero ? zero - ctxt->str : size;
+
+    memcpy(buf, ctxt->str, len);
+    ctxt->str += len;
 "
 local/cpp/cwe-125-oob-read,local/cpp/cwe-125-oob-read,warning,,CWE-125,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlIO.c,749,8,749,13,CWE-125: Potential OOB Read via write (unchecked length).,,744,754,"static int
 xmlFdWrite (void * context, const char * buffer, int len) {
@@ -2235,17 +2235,6 @@ local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/
             /*
              * We must search for the start of a probe sequence to make
              * in-place operation work."
-local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testchar.c,812,9,812,15,CWE-787: Potential OOB Write via unchecked pointer offset.,,807,817,"     * Create a chunk longer than XML_PARSER_BIG_BUFFER_SIZE (300) ending
-     * with an incomplete UTF-8 sequence.
-     */
-    buf = xmlMalloc(1000 * 2 + 1);
-    for (i = 0; i < 2000; i += 2)
-        memcpy(buf + i, ""\xCE\xB1"", 2);
-    buf[i] = '\xCE';
-    xmlParseChunk(ctxt, buf, 2001, 0);
-    xmlFree(buf);
-
-    xmlParseChunk(ctxt, ""\xB1</d>"", 4, 0);"
 local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,7491,5,7491,12,CWE-787: Potential OOB Write via unchecked pointer offset.,,7486,7496,"	    xmlTreeErrMemory(""growing buffer"");
             return XML_ERR_NO_MEMORY;
         }
@@ -2268,6 +2257,17 @@ local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/
     return 0;
 }
 "
+local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/testchar.c,812,9,812,15,CWE-787: Potential OOB Write via unchecked pointer offset.,,807,817,"     * Create a chunk longer than XML_PARSER_BIG_BUFFER_SIZE (300) ending
+     * with an incomplete UTF-8 sequence.
+     */
+    buf = xmlMalloc(1000 * 2 + 1);
+    for (i = 0; i < 2000; i += 2)
+        memcpy(buf + i, ""\xCE\xB1"", 2);
+    buf[i] = '\xCE';
+    xmlParseChunk(ctxt, buf, 2001, 0);
+    xmlFree(buf);
+
+    xmlParseChunk(ctxt, ""\xB1</d>"", 4, 0);"
 local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,6037,2,6037,8,CWE-787: Potential OOB Write via unchecked pointer offset.,,6032,6042,"	str = (xmlChar *) xmlMallocAtomic(lenn + lenp + 2);
 	if (str == NULL)
 	    goto error;
@@ -2345,17 +2345,6 @@ local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/
 }
 
 /**"
-local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,4054,5,4054,11,CWE-787: Potential OOB Write via unchecked pointer offset.,,4049,4059,"    } else {
-	str = buf;
-    }
-    memcpy(&str[0], value, lenp);
-    str[lenp] = XML_REG_STRING_SEPARATOR;
-    memcpy(&str[lenp + 1], value2, lenn);
-    str[lenn + lenp + 1] = 0;
-
-    if (exec->comp->compact != NULL)
-	ret = xmlRegCompactPushString(exec, exec->comp, str, data);
-    else"
 local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlsave.c,303,6,303,12,CWE-787: Potential OOB Write via unchecked pointer offset.,,298,308,"        memset(&ctxt->indent[0], 0, MAX_INDENT + 1);
     } else {
 	ctxt->indent_size = len;
@@ -2367,6 +2356,17 @@ local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/
     }
 
     if (xmlSaveNoEmptyTags) {"
+local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlregexp.c,4054,5,4054,11,CWE-787: Potential OOB Write via unchecked pointer offset.,,4049,4059,"    } else {
+	str = buf;
+    }
+    memcpy(&str[0], value, lenp);
+    str[lenp] = XML_REG_STRING_SEPARATOR;
+    memcpy(&str[lenp + 1], value2, lenn);
+    str[lenn + lenp + 1] = 0;
+
+    if (exec->comp->compact != NULL)
+	ret = xmlRegCompactPushString(exec, exec->comp, str, data);
+    else"
 local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/xmlschemastypes.c,6060,8,6060,15,CWE-787: Potential OOB Write via unchecked pointer offset.,,6055,6065,"			* Insert missing zeroes behind the decimal point.
 			*/
 			while (*(offs + i) != 0)
@@ -2400,3 +2400,223 @@ local/cpp/cwe-787-oob-write,local/cpp/cwe-787-oob-write,warning,,CWE-787,/media/
 }
 
 /**"
+shafi/cpp/pattern/free-then-deref/intra,shafi/cpp/pattern/free-then-deref/intra,7.5,medium,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,341,9,341,13,Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.,,336,346,"
+    if (dict->subdict != NULL) {
+        xmlDictFree(dict->subdict);
+    }
+
+    if (dict->table) {
+	xmlFree(dict->table);
+    }
+    pool = dict->strings;
+    while (pool != NULL) {
+        nextp = pool->next;"
+shafi/cpp/pattern/free-then-deref/intra,shafi/cpp/pattern/free-then-deref/intra,7.5,medium,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,342,10,342,14,Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.,,337,347,"    if (dict->subdict != NULL) {
+        xmlDictFree(dict->subdict);
+    }
+
+    if (dict->table) {
+	xmlFree(dict->table);
+    }
+    pool = dict->strings;
+    while (pool != NULL) {
+        nextp = pool->next;
+	xmlFree(pool);"
+shafi/cpp/pattern/free-then-deref/intra,shafi/cpp/pattern/free-then-deref/intra,7.5,medium,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,344,12,344,16,Potential use-after-free (direct dereference): value freed by 'xmlDictFree()' is later dereferenced.,,339,349,"    }
+
+    if (dict->table) {
+	xmlFree(dict->table);
+    }
+    pool = dict->strings;
+    while (pool != NULL) {
+        nextp = pool->next;
+	xmlFree(pool);
+	pool = nextp;
+    }"
+shafi/cpp/pattern/free-then-deref/intra,shafi/cpp/pattern/free-then-deref/intra,7.5,medium,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,2278,34,2278,38,Potential use-after-free (direct dereference): value freed by 'free()' is later dereferenced.,,2273,2283,"	htmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    else
+#endif
+    xmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    xmlFreeDoc(doc);
+    res = compareFileMem(result, base, size);
+    if ((base == NULL) || (res != 0)) {
+	if (base != NULL)
+	    xmlFree((char *)base);
+        fprintf(stderr, ""Result for %s failed in %s\n"", filename, result);
+	return(-1);"
+shafi/cpp/pattern/free-then-deref/intra,shafi/cpp/pattern/free-then-deref/intra,7.5,medium,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,1978,34,1978,38,Potential use-after-free (direct dereference): value freed by 'free()' is later dereferenced.,,1973,1983,"	htmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    else
+#endif
+    xmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    xmlFreeDoc(doc);
+    res = compareFileMem(result, base, size);
+    if ((base == NULL) || (res != 0)) {
+	if (base != NULL)
+	    xmlFree((char *)base);
+        fprintf(stderr, ""Result for %s failed in %s\n"", filename, result);
+	return(-1);"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,341,9,341,13,Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.,,336,346,"
+    if (dict->subdict != NULL) {
+        xmlDictFree(dict->subdict);
+    }
+
+    if (dict->table) {
+	xmlFree(dict->table);
+    }
+    pool = dict->strings;
+    while (pool != NULL) {
+        nextp = pool->next;"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,342,10,342,14,Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.,,337,347,"    if (dict->subdict != NULL) {
+        xmlDictFree(dict->subdict);
+    }
+
+    if (dict->table) {
+	xmlFree(dict->table);
+    }
+    pool = dict->strings;
+    while (pool != NULL) {
+        nextp = pool->next;
+	xmlFree(pool);"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/dict.c,344,12,344,16,Potential use-after-free (intra): value freed by 'xmlDictFree()' flows to a later use.,,339,349,"    }
+
+    if (dict->table) {
+	xmlFree(dict->table);
+    }
+    pool = dict->strings;
+    while (pool != NULL) {
+        nextp = pool->next;
+	xmlFree(pool);
+	pool = nextp;
+    }"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,2278,34,2278,38,Potential use-after-free (intra): value freed by 'free()' flows to a later use.,,2273,2283,"	htmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    else
+#endif
+    xmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    xmlFreeDoc(doc);
+    res = compareFileMem(result, base, size);
+    if ((base == NULL) || (res != 0)) {
+	if (base != NULL)
+	    xmlFree((char *)base);
+        fprintf(stderr, ""Result for %s failed in %s\n"", filename, result);
+	return(-1);"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/runtest.c,1978,34,1978,38,Potential use-after-free (intra): value freed by 'free()' flows to a later use.,,1973,1983,"	htmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    else
+#endif
+    xmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    xmlFreeDoc(doc);
+    res = compareFileMem(result, base, size);
+    if ((base == NULL) || (res != 0)) {
+	if (base != NULL)
+	    xmlFree((char *)base);
+        fprintf(stderr, ""Result for %s failed in %s\n"", filename, result);
+	return(-1);"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/valid.c,1667,9,1667,12,Potential use-after-free (intra): value freed by 'xmlFreeEnumeration()' flows to a later use.,,1662,1672,"xmlFreeEnumeration(xmlEnumerationPtr cur) {
+    if (cur == NULL) return;
+
+    if (cur->next != NULL) xmlFreeEnumeration(cur->next);
+
+    if (cur->name != NULL) xmlFree((xmlChar *) cur->name);
+    xmlFree(cur);
+}
+
+#ifdef LIBXML_TREE_ENABLED
+/**"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/valid.c,1667,48,1667,51,Potential use-after-free (intra): value freed by 'xmlFreeEnumeration()' flows to a later use.,,1662,1672,"xmlFreeEnumeration(xmlEnumerationPtr cur) {
+    if (cur == NULL) return;
+
+    if (cur->next != NULL) xmlFreeEnumeration(cur->next);
+
+    if (cur->name != NULL) xmlFree((xmlChar *) cur->name);
+    xmlFree(cur);
+}
+
+#ifdef LIBXML_TREE_ENABLED
+/**"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,1213,9,1213,12,Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.,,1208,1218,"	cur->intSubset = NULL;
+	xmlFreeDtd(intSubset);
+    }
+
+    if (cur->children != NULL) xmlFreeNodeList(cur->children);
+    if (cur->oldNs != NULL) xmlFreeNsList(cur->oldNs);
+
+    DICT_FREE(cur->version)
+    DICT_FREE(cur->name)
+    DICT_FREE(cur->encoding)
+    DICT_FREE(cur->URL)"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,1213,43,1213,46,Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.,,1208,1218,"	cur->intSubset = NULL;
+	xmlFreeDtd(intSubset);
+    }
+
+    if (cur->children != NULL) xmlFreeNodeList(cur->children);
+    if (cur->oldNs != NULL) xmlFreeNsList(cur->oldNs);
+
+    DICT_FREE(cur->version)
+    DICT_FREE(cur->name)
+    DICT_FREE(cur->encoding)
+    DICT_FREE(cur->URL)"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,1215,15,1215,18,Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.,,1210,1220,"    }
+
+    if (cur->children != NULL) xmlFreeNodeList(cur->children);
+    if (cur->oldNs != NULL) xmlFreeNsList(cur->oldNs);
+
+    DICT_FREE(cur->version)
+    DICT_FREE(cur->name)
+    DICT_FREE(cur->encoding)
+    DICT_FREE(cur->URL)
+    xmlFree(cur);
+    if (dict) xmlDictFree(dict);"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,1216,15,1216,18,Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.,,1211,1221,"
+    if (cur->children != NULL) xmlFreeNodeList(cur->children);
+    if (cur->oldNs != NULL) xmlFreeNsList(cur->oldNs);
+
+    DICT_FREE(cur->version)
+    DICT_FREE(cur->name)
+    DICT_FREE(cur->encoding)
+    DICT_FREE(cur->URL)
+    xmlFree(cur);
+    if (dict) xmlDictFree(dict);
+}"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,1217,15,1217,18,Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.,,1212,1222,"    if (cur->children != NULL) xmlFreeNodeList(cur->children);
+    if (cur->oldNs != NULL) xmlFreeNsList(cur->oldNs);
+
+    DICT_FREE(cur->version)
+    DICT_FREE(cur->name)
+    DICT_FREE(cur->encoding)
+    DICT_FREE(cur->URL)
+    xmlFree(cur);
+    if (dict) xmlDictFree(dict);
+}
+"
+shafi/cpp/pattern/free-then-use/intra,shafi/cpp/pattern/free-then-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/tree.c,1218,15,1218,18,Potential use-after-free (intra): value freed by 'xmlFreeNodeList()' flows to a later use.,,1213,1223,"    if (cur->oldNs != NULL) xmlFreeNsList(cur->oldNs);
+
+    DICT_FREE(cur->version)
+    DICT_FREE(cur->name)
+    DICT_FREE(cur->encoding)
+    DICT_FREE(cur->URL)
+    xmlFree(cur);
+    if (dict) xmlDictFree(dict);
+}
+
+/**"
+shafi/cpp/uaf/lookup-remove-use/intra,shafi/cpp/uaf/lookup-remove-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/valid.c,2921,23,2921,31,Potential UAF (lookup→remove→use): result of 'xmlHashLookup()' is used after a removal call.,,2916,2926,"		    ""xmlAddRef: Reference list insertion failed!\n"",
+		    NULL);
+	    goto failed;
+        }
+    }
+    if (xmlListAppend(ref_list, ret) != 0) {
+	xmlErrValid(NULL, XML_ERR_INTERNAL_ERROR,
+		    ""xmlAddRef: Reference list insertion failed!\n"",
+		    NULL);
+        goto failed;
+    }"
+shafi/cpp/uaf/lookup-remove-use/intra,shafi/cpp/uaf/lookup-remove-use/intra,error,low,CWE-416,/media/shafi/Research/STAILOR/dataset/62911/libxml2_62911_vul/valid.c,1358,21,1358,24,Potential UAF (lookup→remove→use): result of 'xmlHashLookup2()' is used after a removal call.,,1353,1363,"	ret = xmlHashLookup2(dtd->doc->intSubset->elements, name, ns);
+	if ((ret != NULL) && (ret->etype == XML_ELEMENT_TYPE_UNDEFINED)) {
+	    oldAttributes = ret->attributes;
+	    ret->attributes = NULL;
+	    xmlHashRemoveEntry2(dtd->doc->intSubset->elements, name, ns, NULL);
+	    xmlFreeElement(ret);
+	}
+    }
+
+    /*
+     * The element may already be present if one of its attribute"
