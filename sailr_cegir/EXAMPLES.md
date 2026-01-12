@@ -1,23 +1,18 @@
-
-
-
-
-
 # Dataset
 dataset snapshot under ./dataset/.
 
 Extract target project source (e.g., from CyberGym):
 
 1. python3 extract_from_cybergym.py arvo:62911 libxml2
-
 2. python3 extract_from_cybergym.py arvo:55980 libxml2
-
 3. python3 extract_from_cybergym.py arvo:66502 libxml2
+4. 
 
 # Pipeline
 1. bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
 2. bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul
-
+3. bash sailr_cegir/run_stailor.sh 66502/libxml2_66502_vul
+4. bash sailr_cegir/run_stailor.sh 19910/binutils_19910_vul
 ## Clean previous artifacts
 ```
 cd ./dataset/55980/libxml2_55980_vul

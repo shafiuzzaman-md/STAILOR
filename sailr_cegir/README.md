@@ -1,40 +1,39 @@
-# Quick Start & Usage
+# Quick Start
 
-This repository ships utility scripts to (1) set up the analysis environment and (2) run the full pipeline end-to-end.  
-The README focuses on **how to run** the pipeline and **what artifacts to expect**.
+1. Environment setup (run once)
 
----
-
-## What the pipeline does
-
-1. **Static Analysis** (e.g., CodeQL) produces findings and fact packs.
-2. **Spec Generation** converts findings into per-vulnerability JSON specs.
-3. **Agent Verification** iteratively synthesizes and checks harnesses (KLEE) for reachability and bug triggering.
-4. **Result Packaging** aggregates runs and collects evidence into a verification pack.
-
----
-
-## Quick Start
-
-### 1) Environment setup (run once)
 ```bash
 bash sailr_cegir/setup_env.sh
 ```
 
-What it does (high-level):
-- Installs LLVM/Clang 14 toolchain and common build deps
-- Builds KLEE with uClibc support
-- Installs Python dependencies used by the pipeline
+2. Prepare the source under test
+Projects live under `./dataset/.`
 
-### 2) Run the full pipeline (per project / rule)
-# Usage: ./run_pipeline.sh <PROJECT_FOLDER_NAME> 
+Example (extract from CyberGym):
 
-```bash
-export ENABLE_KLEE_POSIX=1
-bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
+```
+python3 extract_from_cybergym.py arvo:62911 libxml2
+```
+3. Configure the LLM key
+
+```
+export DEEPSEEK_API_KEY=""
 ```
 
+3. Run the pipeline (per project)
+
+Usage:
+```
+ ./run_pipeline.sh <PROJECT_FOLDER_NAME> 
+```
+
+Example:
+```bash
+bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
+```
 ---
+
+
 
 ## Configuration
 
