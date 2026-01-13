@@ -70,3 +70,6 @@ se_runs/**/.*
 **/*.a
 **/*.gcno
 **/*.gcda
+
+# CodeQL output
+**/codeql-results.sarif
