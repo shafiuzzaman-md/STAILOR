@@ -2012,7 +2012,32 @@ def run_frozen_analysis(
             # Entrypoint Compliance Check
             required_entry = ctx["spec"].get("entrypoint")
             planned_entry = raw_plan.get("entrypoint", {}).get("name")
-            
+
+            # ------------------------------------------------------------------
+            # Entrypoint Hallucination Filter
+            # Reject C keywords ('if', 'while') incorrectly identified as functions.
+            # ------------------------------------------------------------------
+            banned_keywords = {
+                "if", "else", "while", "for", "do", "switch", "case", "default", 
+                "break", "continue", "return", "goto", "sizeof", "typeof", "void",
+                "int", "char", "float", "double", "struct", "union", "enum", "static",
+                "const", "unsigned", "signed", "volatile", "extern", "UNKNOWN"
+            }
+
+            # Check 1: Is it a keyword?
+            if planned_entry in banned_keywords:
+                msg = f"PLAN REJECTED: '{planned_entry}' is a C keyword, not a function. You likely misparsed the source code."
+                print(f"  [!] {msg}")
+                history.append({"turn": i, "content": turn_hdr + msg})
+                continue
+
+            # Check 2: Is it a valid C identifier? (Must start with letter/_, alphanum only)
+            if planned_entry and not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", planned_entry):
+                msg = f"PLAN REJECTED: '{planned_entry}' is not a valid C function name."
+                print(f"  [!] {msg}")
+                history.append({"turn": i, "content": turn_hdr + msg})
+                continue
+            # ------------------------------------------------------------------
             if required_entry and planned_entry != required_entry:
                 msg = (
                     f"CRITICAL PLAN ERROR: You selected '{planned_entry}' as the entrypoint, "
@@ -2023,10 +2048,10 @@ def run_frozen_analysis(
                 history.append({"turn": i, "content": turn_hdr + msg})
                 continue
 
-            # [FIX 1] Auto-Switch Static Entrypoints
+            # Auto-Switch Static Entrypoints
             raw_plan = fix_static_entrypoint(src_root, ctx['vul_file'], raw_plan)
 
-            # [FIX 2] QL-Driven Assertion Validation
+            # QL-Driven Assertion Validation
             raw_plan = validate_and_fix_assertions(src_root, ctx['vul_file'], raw_plan, args.rule_id or "")
 
             # 1) Canonicalize frozen plan
