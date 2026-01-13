@@ -14,12 +14,22 @@ python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
 ```
 
 ## Pipeline
+Example 1:
 ```
 bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
 ```
-3. bash sailr_cegir/run_stailor.sh 66502/libxml2_66502_vul
-5. bash sailr_cegir/run_stailor.sh 19910/binutils_19910_vul```
 
+Example 2:
+```
+bash sailr_cegir/run_stailor.sh libxml2
+```
+## Result Collection
+```
+python3 sailr_cegir/collect_verification_pack.py \
+  --mode-root se_runs/sailr_cegir/libxml2_55980_vul \
+  --output-dir verification_pack
+```
+------------------------------------------------------------
 
 # Debug Run
 

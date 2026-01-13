@@ -283,9 +283,10 @@ python3 sailr_cegir/collect_vulnerabilities.py \
 3. Collect Verification Pack Gather harnesses, logs, and reproduction artifacts for all H2 (Bug Found) results into a clean folder.
 ```
 python3 sailr_cegir/collect_verification_pack.py \
-  --mode-root se_runs/sailr_cegir/libxml2_62911_vul \
+  --mode-root se_runs/sailr_cegir/libxml2_55980_vul \
   --out-dir verification_pack \
-  --src-root dataset/62911/libxml2_62911_vul
+  --src-root dataset/55980/libxml2_55980_vul
+
 ```
 
 # Adding a new rule (new file per rule)

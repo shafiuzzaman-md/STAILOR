@@ -105,8 +105,7 @@ bash sailr_cegir/run_worker.sh \
 ```
 python3 sailr_cegir/collect_results.py \
   --mode-root se_runs/sailr_cegir/<project> \
-  --src-root "dataset/<project>" \
-  --out-dir stailor_report_pack_<project>
+  --output verification_pack
 ```
 
 
