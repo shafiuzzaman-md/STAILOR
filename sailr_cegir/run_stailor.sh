@@ -41,13 +41,13 @@ export BUILD_PROJECT_BC_CMD="bash ${REPO_ROOT}/sailr_cegir/build_project_bc.sh {
 # --- Helper: Auto-Detect Build System ---
 detect_build_cmd() {
   if [ -f "$SRC_ROOT/build.sh" ]; then
-    echo "cd \"$SRC_ROOT\" && ./build.sh"
+    echo "./build.sh"  
   elif [ -f "$SRC_ROOT/CMakeLists.txt" ]; then
-    echo "cd \"$SRC_ROOT\" && mkdir -p build && cd build && cmake .. && make -j\$(nproc)"
+    echo "mkdir -p build && cd build && cmake .. && make -j\$(nproc)"
   elif [ -f "$SRC_ROOT/configure" ]; then
-    echo "cd \"$SRC_ROOT\" && ./configure && make -j\$(nproc)"
+    echo "./configure && make -j\$(nproc)"
   else
-    echo "cd \"$SRC_ROOT\" && make -j\$(nproc)"
+    echo "make -j\$(nproc)"
   fi
 }
 
