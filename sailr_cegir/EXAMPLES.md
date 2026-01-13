@@ -6,7 +6,7 @@ Extract target project source (e.g., from CyberGym):
 1. python3 extract_from_cybergym.py arvo:62911 libxml2
 2. python3 extract_from_cybergym.py arvo:55980 libxml2
 3. python3 extract_from_cybergym.py arvo:66502 libxml2
-4. 
+4. python3 extract_from_cybergym.py arvo:19910 binutils
 
 # Fetch ground-truth metadata 
 1. python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911 
