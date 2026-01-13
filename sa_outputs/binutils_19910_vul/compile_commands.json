@@ -1,83 +1,5 @@
 [
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/host-ieee32.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-I.",
-      "-I.",
-      "-g",
-      "-O2",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wstrict-prototypes",
-      "-Wmissing-prototypes",
-      "-Wold-style-definition",
-      "-Wmissing-format-attribute",
-      "-Wcast-qual",
-      "-pedantic",
-      "-Wno-long-long",
-      "-fno-lto",
-      "-I.",
-      "-I.",
-      "-c",
-      "./bid/host-ieee32.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/decContext.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-I.",
-      "-I.",
-      "-g",
-      "-O2",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wstrict-prototypes",
-      "-Wmissing-prototypes",
-      "-Wold-style-definition",
-      "-Wmissing-format-attribute",
-      "-Wcast-qual",
-      "-pedantic",
-      "-Wno-long-long",
-      "-fno-lto",
-      "-I.",
-      "-I.",
-      "-c",
-      "decContext.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/decNumber.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-I.",
-      "-I.",
-      "-g",
-      "-O2",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wstrict-prototypes",
-      "-Wmissing-prototypes",
-      "-Wold-style-definition",
-      "-Wmissing-format-attribute",
-      "-Wcast-qual",
-      "-pedantic",
-      "-Wno-long-long",
-      "-fno-lto",
-      "-I.",
-      "-I.",
-      "-c",
-      "decNumber.c"
-    ]
-  },
-  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/bid2dpd_dpd2bid.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
     "arguments": [
@@ -101,32 +23,6 @@
       "-I.",
       "-c",
       "./bid/bid2dpd_dpd2bid.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/decimal64.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-I.",
-      "-I.",
-      "-g",
-      "-O2",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wstrict-prototypes",
-      "-Wmissing-prototypes",
-      "-Wold-style-definition",
-      "-Wmissing-format-attribute",
-      "-Wcast-qual",
-      "-pedantic",
-      "-Wno-long-long",
-      "-fno-lto",
-      "-I.",
-      "-I.",
-      "-c",
-      "./bid/decimal64.c"
     ]
   },
   {
@@ -182,32 +78,6 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/decimal32.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-I.",
-      "-I.",
-      "-g",
-      "-O2",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wstrict-prototypes",
-      "-Wmissing-prototypes",
-      "-Wold-style-definition",
-      "-Wmissing-format-attribute",
-      "-Wcast-qual",
-      "-pedantic",
-      "-Wno-long-long",
-      "-fno-lto",
-      "-I.",
-      "-I.",
-      "-c",
-      "./bid/decimal32.c"
-    ]
-  },
-  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/host-ieee128.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
     "arguments": [
@@ -234,297 +104,133 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/compress.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/decimal32.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
     "arguments": [
       "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
+      "-I.",
       "-I.",
       "-g",
       "-O2",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wstrict-prototypes",
+      "-Wmissing-prototypes",
+      "-Wold-style-definition",
+      "-Wmissing-format-attribute",
+      "-Wcast-qual",
+      "-pedantic",
+      "-Wno-long-long",
+      "-fno-lto",
+      "-I.",
+      "-I.",
       "-c",
-      "-o",
-      "libz_a-compress.o",
-      "compress.c"
+      "./bid/decimal32.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/adler32.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/decContext.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
     "arguments": [
       "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
+      "-I.",
       "-I.",
       "-g",
       "-O2",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wstrict-prototypes",
+      "-Wmissing-prototypes",
+      "-Wold-style-definition",
+      "-Wmissing-format-attribute",
+      "-Wcast-qual",
+      "-pedantic",
+      "-Wno-long-long",
+      "-fno-lto",
+      "-I.",
+      "-I.",
       "-c",
-      "-o",
-      "libz_a-adler32.o",
-      "adler32.c"
+      "decContext.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/zutil.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/decNumber.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
     "arguments": [
       "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
+      "-I.",
       "-I.",
       "-g",
       "-O2",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wstrict-prototypes",
+      "-Wmissing-prototypes",
+      "-Wold-style-definition",
+      "-Wmissing-format-attribute",
+      "-Wcast-qual",
+      "-pedantic",
+      "-Wno-long-long",
+      "-fno-lto",
+      "-I.",
+      "-I.",
       "-c",
-      "-o",
-      "libz_a-zutil.o",
-      "zutil.c"
+      "decNumber.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/crc32.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/host-ieee32.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
     "arguments": [
       "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
+      "-I.",
       "-I.",
       "-g",
       "-O2",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wstrict-prototypes",
+      "-Wmissing-prototypes",
+      "-Wold-style-definition",
+      "-Wmissing-format-attribute",
+      "-Wcast-qual",
+      "-pedantic",
+      "-Wno-long-long",
+      "-fno-lto",
+      "-I.",
+      "-I.",
       "-c",
-      "-o",
-      "libz_a-crc32.o",
-      "crc32.c"
+      "./bid/host-ieee32.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/gzwrite.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber/bid/decimal64.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libdecnumber",
     "arguments": [
       "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
+      "-I.",
       "-I.",
       "-g",
       "-O2",
-      "-c",
-      "-o",
-      "libz_a-gzwrite.o",
-      "gzwrite.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/uncompr.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wstrict-prototypes",
+      "-Wmissing-prototypes",
+      "-Wold-style-definition",
+      "-Wmissing-format-attribute",
+      "-Wcast-qual",
+      "-pedantic",
+      "-Wno-long-long",
+      "-fno-lto",
       "-I.",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "libz_a-uncompr.o",
-      "uncompr.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/trees.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
       "-I.",
-      "-g",
-      "-O2",
       "-c",
-      "-o",
-      "libz_a-trees.o",
-      "trees.c"
+      "./bid/decimal64.c"
     ]
   },
   {
@@ -570,7 +276,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/infback.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/crc32.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
     "arguments": [
       "/usr/bin/gcc",
@@ -607,12 +313,12 @@
       "-O2",
       "-c",
       "-o",
-      "libz_a-infback.o",
-      "infback.c"
+      "libz_a-crc32.o",
+      "crc32.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/gzclose.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/adler32.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
     "arguments": [
       "/usr/bin/gcc",
@@ -649,92 +355,8 @@
       "-O2",
       "-c",
       "-o",
-      "libz_a-gzclose.o",
-      "gzclose.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/gzread.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
-      "-I.",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "libz_a-gzread.o",
-      "gzread.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/inftrees.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DPACKAGE_NAME=\"zlib\"",
-      "-DPACKAGE_TARNAME=\"zlib\"",
-      "-DPACKAGE_VERSION=\"1.1.4\"",
-      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
-      "-DPACKAGE_BUGREPORT=\"\"",
-      "-DPACKAGE_URL=\"\"",
-      "-DPACKAGE=\"zlib\"",
-      "-DVERSION=\"1.1.4\"",
-      "-DSTDC_HEADERS=1",
-      "-DHAVE_SYS_TYPES_H=1",
-      "-DHAVE_SYS_STAT_H=1",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_STRING_H=1",
-      "-DHAVE_MEMORY_H=1",
-      "-DHAVE_STRINGS_H=1",
-      "-DHAVE_INTTYPES_H=1",
-      "-DHAVE_STDINT_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_DLFCN_H=1",
-      "-DLT_OBJDIR=\".libs/\"",
-      "-DHAVE_STDLIB_H=1",
-      "-DHAVE_UNISTD_H=1",
-      "-DHAVE_SYS_PARAM_H=1",
-      "-DHAVE_GETPAGESIZE=1",
-      "-DHAVE_MMAP=1",
-      "-DHAVE_MEMCPY=1",
-      "-DHAVE_STRERROR=1",
-      "-DHAVE_UNISTD_H=1",
-      "-I.",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "libz_a-inftrees.o",
-      "inftrees.c"
+      "libz_a-adler32.o",
+      "adler32.c"
     ]
   },
   {
@@ -780,6 +402,216 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/gzclose.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-gzclose.o",
+      "gzclose.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/infback.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-infback.o",
+      "infback.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/gzwrite.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-gzwrite.o",
+      "gzwrite.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/compress.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-compress.o",
+      "compress.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/gzread.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-gzread.o",
+      "gzread.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/inflate.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
     "arguments": [
@@ -819,6 +651,90 @@
       "-o",
       "libz_a-inflate.o",
       "inflate.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/trees.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-trees.o",
+      "trees.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/uncompr.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-uncompr.o",
+      "uncompr.c"
     ]
   },
   {
@@ -864,6 +780,90 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/inftrees.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-inftrees.o",
+      "inftrees.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib/zutil.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/zlib",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DPACKAGE_NAME=\"zlib\"",
+      "-DPACKAGE_TARNAME=\"zlib\"",
+      "-DPACKAGE_VERSION=\"1.1.4\"",
+      "-DPACKAGE_STRING=\"zlib 1.1.4\"",
+      "-DPACKAGE_BUGREPORT=\"\"",
+      "-DPACKAGE_URL=\"\"",
+      "-DPACKAGE=\"zlib\"",
+      "-DVERSION=\"1.1.4\"",
+      "-DSTDC_HEADERS=1",
+      "-DHAVE_SYS_TYPES_H=1",
+      "-DHAVE_SYS_STAT_H=1",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_STRING_H=1",
+      "-DHAVE_MEMORY_H=1",
+      "-DHAVE_STRINGS_H=1",
+      "-DHAVE_INTTYPES_H=1",
+      "-DHAVE_STDINT_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_DLFCN_H=1",
+      "-DLT_OBJDIR=\".libs/\"",
+      "-DHAVE_STDLIB_H=1",
+      "-DHAVE_UNISTD_H=1",
+      "-DHAVE_SYS_PARAM_H=1",
+      "-DHAVE_GETPAGESIZE=1",
+      "-DHAVE_MMAP=1",
+      "-DHAVE_MEMCPY=1",
+      "-DHAVE_STRERROR=1",
+      "-DHAVE_UNISTD_H=1",
+      "-I.",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "libz_a-zutil.o",
+      "zutil.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/bind.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
@@ -876,126 +876,6 @@
       "-g",
       "-O2",
       "bind.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/input.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "input.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/display.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "display.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/undo.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "undo.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/rltty.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "rltty.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/misc.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "misc.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/parens.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "parens.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/keymaps.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "keymaps.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/isearch.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "isearch.c"
     ]
   },
   {
@@ -1014,6 +894,36 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/nls.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "nls.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/rltty.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "rltty.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/readline.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
@@ -1026,81 +936,6 @@
       "-g",
       "-O2",
       "readline.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/signals.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "signals.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/search.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "search.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/kill.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "kill.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/funmap.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "funmap.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/text.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "text.c"
     ]
   },
   {
@@ -1119,36 +954,6 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/complete.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "complete.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/history.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "history.c"
-    ]
-  },
-  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/macro.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
@@ -1164,7 +969,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/util.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/kill.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
       "/usr/bin/gcc",
@@ -1175,11 +980,11 @@
       "-DRL_LIBRARY_VERSION=\"8.0\"",
       "-g",
       "-O2",
-      "util.c"
+      "kill.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/nls.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/isearch.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
       "/usr/bin/gcc",
@@ -1190,7 +995,37 @@
       "-DRL_LIBRARY_VERSION=\"8.0\"",
       "-g",
       "-O2",
-      "nls.c"
+      "isearch.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/complete.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "complete.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/misc.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "misc.c"
     ]
   },
   {
@@ -1209,6 +1044,51 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/util.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "util.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/display.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "display.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/parens.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "parens.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/terminal.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
@@ -1224,6 +1104,111 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/search.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "search.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/keymaps.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "keymaps.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/history.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "history.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/signals.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "signals.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/funmap.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "funmap.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/input.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "input.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/text.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "text.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/histfile.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
@@ -1236,6 +1221,21 @@
       "-g",
       "-O2",
       "histfile.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/undo.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
+      "-g",
+      "-O2",
+      "undo.c"
     ]
   },
   {
@@ -1300,21 +1300,6 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/parse-colors.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I.",
-      "-DRL_LIBRARY_VERSION=\"8.0\"",
-      "-g",
-      "-O2",
-      "parse-colors.c"
-    ]
-  },
-  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/colors.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
@@ -1330,7 +1315,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/compat.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/parse-colors.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
       "/usr/bin/gcc",
@@ -1341,7 +1326,7 @@
       "-DRL_LIBRARY_VERSION=\"8.0\"",
       "-g",
       "-O2",
-      "compat.c"
+      "parse-colors.c"
     ]
   },
   {
@@ -1375,411 +1360,18 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/alloca.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline/compat.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/readline/readline",
     "arguments": [
       "/usr/bin/gcc",
       "-c",
       "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I.",
+      "-DRL_LIBRARY_VERSION=\"8.0\"",
       "-g",
       "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "alloca.o",
-      "./alloca.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/cp-demangle.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "cp-demangle.o",
-      "./cp-demangle.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/concat.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "concat.o",
-      "./concat.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/getruntime.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "getruntime.o",
-      "./getruntime.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/crc32.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "crc32.o",
-      "./crc32.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/dyn-string.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "dyn-string.o",
-      "./dyn-string.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/filename_cmp.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "filename_cmp.o",
-      "./filename_cmp.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/fdmatch.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "fdmatch.o",
-      "./fdmatch.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/fibheap.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "fibheap.o",
-      "./fibheap.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/regex.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "regex.o",
-      "./regex.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/cplus-dem.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "cplus-dem.o",
-      "./cplus-dem.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/sha1.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "sha1.o",
-      "./sha1.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/choose-temp.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "choose-temp.o",
-      "./choose-temp.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/getopt1.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "getopt1.o",
-      "./getopt1.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/getpwd.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "getpwd.o",
-      "./getpwd.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/md5.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "md5.o",
-      "./md5.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/hashtab.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "hashtab.o",
-      "./hashtab.c"
+      "compat.c"
     ]
   },
   {
@@ -1807,7 +1399,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/dwarfnames.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/md5.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
       "/usr/bin/gcc",
@@ -1826,8 +1418,368 @@
       "-pedantic",
       "-D_GNU_SOURCE",
       "-o",
-      "dwarfnames.o",
-      "./dwarfnames.c"
+      "md5.o",
+      "./md5.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/alloca.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "alloca.o",
+      "./alloca.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/choose-temp.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "choose-temp.o",
+      "./choose-temp.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/floatformat.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "floatformat.o",
+      "./floatformat.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/cplus-dem.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "cplus-dem.o",
+      "./cplus-dem.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/cp-demint.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "cp-demint.o",
+      "./cp-demint.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/regex.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "regex.o",
+      "./regex.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/concat.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "concat.o",
+      "./concat.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/fdmatch.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "fdmatch.o",
+      "./fdmatch.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/sha1.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "sha1.o",
+      "./sha1.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/crc32.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "crc32.o",
+      "./crc32.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/fibheap.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "fibheap.o",
+      "./fibheap.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/getruntime.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "getruntime.o",
+      "./getruntime.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/hashtab.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "hashtab.o",
+      "./hashtab.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/dyn-string.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "dyn-string.o",
+      "./dyn-string.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/getpwd.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "getpwd.o",
+      "./getpwd.c"
     ]
   },
   {
@@ -1852,6 +1804,78 @@
       "-o",
       "fnmatch.o",
       "./fnmatch.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/filename_cmp.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "filename_cmp.o",
+      "./filename_cmp.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/dwarfnames.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "dwarfnames.o",
+      "./dwarfnames.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/cp-demangle.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "cp-demangle.o",
+      "./cp-demangle.c"
     ]
   },
   {
@@ -1903,7 +1927,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/cp-demint.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/getopt1.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
       "/usr/bin/gcc",
@@ -1922,56 +1946,8 @@
       "-pedantic",
       "-D_GNU_SOURCE",
       "-o",
-      "cp-demint.o",
-      "./cp-demint.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/fopen_unlocked.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "fopen_unlocked.o",
-      "./fopen_unlocked.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/floatformat.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "floatformat.o",
-      "./floatformat.c"
+      "getopt1.o",
+      "./getopt1.c"
     ]
   },
   {
@@ -1996,6 +1972,30 @@
       "-o",
       "hex.o",
       "./hex.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/fopen_unlocked.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "fopen_unlocked.o",
+      "./fopen_unlocked.c"
     ]
   },
   {
@@ -2071,30 +2071,6 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/make-temp-file.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "make-temp-file.o",
-      "./make-temp-file.c"
-    ]
-  },
-  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/make-relative-prefix.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
@@ -2116,6 +2092,30 @@
       "-o",
       "make-relative-prefix.o",
       "./make-relative-prefix.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/make-temp-file.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "make-temp-file.o",
+      "./make-temp-file.c"
     ]
   },
   {
@@ -2143,6 +2143,30 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/partition.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "partition.o",
+      "./partition.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/pexecute.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
@@ -2167,7 +2191,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/partition.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/physmem.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
       "/usr/bin/gcc",
@@ -2186,8 +2210,8 @@
       "-pedantic",
       "-D_GNU_SOURCE",
       "-o",
-      "partition.o",
-      "./partition.c"
+      "physmem.o",
+      "./physmem.c"
     ]
   },
   {
@@ -2239,30 +2263,6 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/physmem.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "physmem.o",
-      "./physmem.c"
-    ]
-  },
-  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/pex-one.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
@@ -2284,30 +2284,6 @@
       "-o",
       "pex-one.o",
       "./pex-one.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/rust-demangle.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "rust-demangle.o",
-      "./rust-demangle.c"
     ]
   },
   {
@@ -2335,7 +2311,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/simple-object.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/rust-demangle.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
       "/usr/bin/gcc",
@@ -2354,8 +2330,8 @@
       "-pedantic",
       "-D_GNU_SOURCE",
       "-o",
-      "simple-object.o",
-      "./simple-object.c"
+      "rust-demangle.o",
+      "./rust-demangle.c"
     ]
   },
   {
@@ -2380,6 +2356,30 @@
       "-o",
       "safe-ctype.o",
       "./safe-ctype.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/simple-object.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "simple-object.o",
+      "./simple-object.c"
     ]
   },
   {
@@ -2647,7 +2647,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/xatexit.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/strsignal.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
       "/usr/bin/gcc",
@@ -2666,8 +2666,8 @@
       "-pedantic",
       "-D_GNU_SOURCE",
       "-o",
-      "xatexit.o",
-      "./xatexit.c"
+      "strsignal.o",
+      "./strsignal.c"
     ]
   },
   {
@@ -2695,7 +2695,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/strsignal.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/xatexit.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
       "/usr/bin/gcc",
@@ -2714,8 +2714,8 @@
       "-pedantic",
       "-D_GNU_SOURCE",
       "-o",
-      "strsignal.o",
-      "./strsignal.c"
+      "xatexit.o",
+      "./xatexit.c"
     ]
   },
   {
@@ -2767,6 +2767,30 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/xmemdup.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-DHAVE_CONFIG_H",
+      "-g",
+      "-O2",
+      "-I.",
+      "-I./../include",
+      "-W",
+      "-Wall",
+      "-Wwrite-strings",
+      "-Wc++-compat",
+      "-Wstrict-prototypes",
+      "-Wshadow=local",
+      "-pedantic",
+      "-D_GNU_SOURCE",
+      "-o",
+      "xmemdup.o",
+      "./xmemdup.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/xstrdup.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
     "arguments": [
@@ -2812,30 +2836,6 @@
       "-o",
       "xstrerror.o",
       "./xstrerror.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty/xmemdup.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/libiberty",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-c",
-      "-DHAVE_CONFIG_H",
-      "-g",
-      "-O2",
-      "-I.",
-      "-I./../include",
-      "-W",
-      "-Wall",
-      "-Wwrite-strings",
-      "-Wc++-compat",
-      "-Wstrict-prototypes",
-      "-Wshadow=local",
-      "-pedantic",
-      "-D_GNU_SOURCE",
-      "-o",
-      "xmemdup.o",
-      "./xmemdup.c"
     ]
   },
   {
@@ -2911,6 +2911,22 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/stripslash.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "stripslash.o",
+      "stripslash.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/dirname-lgpl.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
@@ -2924,54 +2940,6 @@
       "-o",
       "dirname-lgpl.o",
       "dirname-lgpl.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/cloexec.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "cloexec.o",
-      "cloexec.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/localcharset.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "localcharset.o",
-      "localcharset.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/fd-safer.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "fd-safer.o",
-      "fd-safer.c"
     ]
   },
   {
@@ -2991,6 +2959,22 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/localcharset.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "localcharset.o",
+      "localcharset.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/basename-lgpl.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
@@ -3004,70 +2988,6 @@
       "-o",
       "basename-lgpl.o",
       "basename-lgpl.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/filenamecat-lgpl.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "filenamecat-lgpl.o",
-      "filenamecat-lgpl.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/dup-safer-flag.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "dup-safer-flag.o",
-      "dup-safer-flag.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/openat-die.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "openat-die.o",
-      "openat-die.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/getprogname.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "getprogname.o",
-      "getprogname.c"
     ]
   },
   {
@@ -3087,7 +3007,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/pipe-safer.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/fd-hook.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
       "/usr/bin/gcc",
@@ -3098,12 +3018,12 @@
       "-O2",
       "-c",
       "-o",
-      "pipe-safer.o",
-      "pipe-safer.c"
+      "fd-hook.o",
+      "fd-hook.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/math.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/dup-safer-flag.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
       "/usr/bin/gcc",
@@ -3114,136 +3034,8 @@
       "-O2",
       "-c",
       "-o",
-      "math.o",
-      "math.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/stat-time.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "stat-time.o",
-      "stat-time.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/sys_socket.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "sys_socket.o",
-      "sys_socket.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/wctype-h.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "wctype-h.o",
-      "wctype-h.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/unistd.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "unistd.o",
-      "unistd.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/chdir-long.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "chdir-long.o",
-      "chdir-long.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/malloca.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "malloca.o",
-      "malloca.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/dup-safer.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "dup-safer.o",
-      "dup-safer.c"
-    ]
-  },
-  {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/save-cwd.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "save-cwd.o",
-      "save-cwd.c"
+      "dup-safer-flag.o",
+      "dup-safer-flag.c"
     ]
   },
   {
@@ -3263,7 +3055,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/fd-hook.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/getprogname.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
       "/usr/bin/gcc",
@@ -3274,12 +3066,12 @@
       "-O2",
       "-c",
       "-o",
-      "fd-hook.o",
-      "fd-hook.c"
+      "getprogname.o",
+      "getprogname.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/stripslash.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/openat-die.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
       "/usr/bin/gcc",
@@ -3290,12 +3082,12 @@
       "-O2",
       "-c",
       "-o",
-      "stripslash.o",
-      "stripslash.c"
+      "openat-die.o",
+      "openat-die.c"
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/tempname.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/dup-safer.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
       "/usr/bin/gcc",
@@ -3306,8 +3098,72 @@
       "-O2",
       "-c",
       "-o",
-      "tempname.o",
-      "tempname.c"
+      "dup-safer.o",
+      "dup-safer.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/sys_socket.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "sys_socket.o",
+      "sys_socket.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/save-cwd.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "save-cwd.o",
+      "save-cwd.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/cloexec.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "cloexec.o",
+      "cloexec.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/malloca.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "malloca.o",
+      "malloca.c"
     ]
   },
   {
@@ -3327,6 +3183,54 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/filenamecat-lgpl.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "filenamecat-lgpl.o",
+      "filenamecat-lgpl.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/chdir-long.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "chdir-long.o",
+      "chdir-long.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/unistd.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "unistd.o",
+      "unistd.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/fcntl.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
@@ -3343,7 +3247,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/mbrtowc.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/pipe-safer.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
       "/usr/bin/gcc",
@@ -3354,8 +3258,104 @@
       "-O2",
       "-c",
       "-o",
-      "mbrtowc.o",
-      "mbrtowc.c"
+      "pipe-safer.o",
+      "pipe-safer.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/wctype-h.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "wctype-h.o",
+      "wctype-h.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/math.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "math.o",
+      "math.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/tempname.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "tempname.o",
+      "tempname.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/fd-safer.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "fd-safer.o",
+      "fd-safer.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/stat-time.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "stat-time.o",
+      "stat-time.c"
+    ]
+  },
+  {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/openat-proc.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "openat-proc.o",
+      "openat-proc.c"
     ]
   },
   {
@@ -3375,7 +3375,7 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/openat-proc.c",
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/mbrtowc.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
       "/usr/bin/gcc",
@@ -3386,8 +3386,8 @@
       "-O2",
       "-c",
       "-o",
-      "openat-proc.o",
-      "openat-proc.c"
+      "mbrtowc.o",
+      "mbrtowc.c"
     ]
   },
   {
@@ -3455,22 +3455,6 @@
     ]
   },
   {
-    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/malloc/scratch_buffer_set_array_size.c",
-    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-DHAVE_CONFIG_H",
-      "-I.",
-      "-I..",
-      "-g",
-      "-O2",
-      "-c",
-      "-o",
-      "malloc/scratch_buffer_set_array_size.o",
-      "malloc/scratch_buffer_set_array_size.c"
-    ]
-  },
-  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/glthread/threadlib.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
     "arguments": [
@@ -3487,6 +3471,22 @@
     ]
   },
   {
+    "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import/malloc/scratch_buffer_set_array_size.c",
+    "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/gnulib/import",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-DHAVE_CONFIG_H",
+      "-I.",
+      "-I..",
+      "-g",
+      "-O2",
+      "-c",
+      "-o",
+      "malloc/scratch_buffer_set_array_size.o",
+      "malloc/scratch_buffer_set_array_size.c"
+    ]
+  },
+  {
     "file": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/bfd/doc/chew.c",
     "directory": "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/bfd/doc",
     "arguments": [
@@ -3500,7 +3500,7 @@
       "-I./../../intl",
       "-I../../intl",
       "-o",
-      "chw1560660",
+      "chw2544862",
       "./chew.c"
     ]
   },
@@ -3576,7 +3576,7 @@
       "-x",
       "c",
       "-o",
-      "/tmp/_probe-4d80c4.o",
+      "/tmp/_probe-d579f3.o",
       "/home/shafi/STAILOR/dataset/19910/binutils_19910_vul/build/_probe.c"
     ]
   }
