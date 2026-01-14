@@ -27,7 +27,12 @@
 # Buffer Issues
 - query: queries/CWE-120_BufferOverflow.ql
 - query: queries/CWE-125_OutOfBoundsRead.ql
+  # Detects fixed-offset cursor lookahead reads (e.g., cur[i]) that lack a remaining-bytes guard such as (end - cur >= i+1)
+- query: queries/CWE-125_CursorLookaheadRead_MissingRemainingBytesCheck.ql 
 - query: queries/CWE-787_OutOfBoundsWrite.ql
+
+
+
 
 # Use-After-Free (Standardized Custom Rules)
 - query: queries/CWE-416_UseAfterFree_FreeThenDeref.ql        # formerly cwe-416-free-then-deref-intra.ql

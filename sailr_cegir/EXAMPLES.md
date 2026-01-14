@@ -5,7 +5,7 @@ dataset snapshot under ./dataset/.
 
 Extract target project source (e.g., from CyberGym):
 ```
-python3 extract_from_cybergym.py arvo:62911 libxml2
+python3 extract_from_cybergym.py arvo:55980 libxml2
 ```
 
 ## Fetch ground-truth metadata 
@@ -16,7 +16,7 @@ python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
 ## Pipeline
 Example 1:
 ```
-bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
+bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul
 ```
 
 Example 2:
@@ -45,8 +45,8 @@ chmod +x codeql_scan.sh
 
 ```
 ./codeql_scan.sh \
-  PROJECT_NAME=libxml2_62911_vul \
-  SRC_ROOT=./dataset/62911/libxml2_62911_vul \
+  PROJECT_NAME=libxml2_55980_vul \
+  SRC_ROOT=./dataset/55980/libxml2_55980_vul \
   BUILD_CMD="./build.sh" \
   QUERY_SUITES="rules/stailor-queries/suites/stailor.qls" \
   CONTEXT_LINES=5 \
