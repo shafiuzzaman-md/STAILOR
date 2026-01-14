@@ -5,7 +5,7 @@ python3 eval_scripts/format_cybergym_data.py \
   --data-root cybergym_data \
   --output cybergym_data.csv
 
-python3 eval_scripts//generate_final_report.py \
+python3 eval_scripts/generate_final_report.py \
   --runs-root se_runs/sailr_cegir \
   --src-root dataset \
   --ground-truth cybergym_data.csv \

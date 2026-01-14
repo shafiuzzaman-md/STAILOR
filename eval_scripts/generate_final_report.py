@@ -73,7 +73,6 @@ def parse_args():
 
 def get_ktest_path(spec_dir, meta_ktest_path):
     """Robustly finds the .ktest file, handling path changes or missing metadata."""
-    # 1. Try the path in metadata
     if meta_ktest_path:
         p = Path(meta_ktest_path)
         if p.exists(): return p
@@ -81,10 +80,9 @@ def get_ktest_path(spec_dir, meta_ktest_path):
         p_rel = spec_dir / p.name
         if p_rel.exists(): return p_rel
 
-    # 2. Deep Search in logs
+    # Deep Search in logs
     logs_dir = spec_dir / "refinement" / "logs"
     if logs_dir.exists():
-        # Prefer the last modified ktest
         ktests = sorted(logs_dir.rglob("*.ktest"), key=lambda f: f.stat().st_mtime, reverse=True)
         if ktests: return ktests[0]
         
@@ -112,6 +110,20 @@ def load_ground_truth(csv_path):
 def extract_cwe(spec_id):
     m = re.search(r"cwe-(\d+)", spec_id, re.IGNORECASE)
     return m.group(1) if m else "Other"
+
+def extract_file_line(spec_id):
+    """Parses file and line from spec ID (e.g., 008_encoding.c_1151_...)"""
+    parts = spec_id.split('_')
+    filename = "unknown"
+    line = "0"
+    
+    for i, p in enumerate(parts):
+        if p.endswith(('.c', '.cc', '.cpp', '.h')):
+            filename = p
+            if i+1 < len(parts) and parts[i+1].isdigit():
+                line = parts[i+1]
+            break
+    return filename, line
 
 def main():
     args = parse_args()
@@ -144,16 +156,15 @@ def main():
         if not project_dir.is_dir(): continue
         pid = project_dir.name
         
-        # Project Stats
         p_stats = {
             "entrypoints": 0, "confirmed": 0, "candidates": 0, "fp": 0,
             "harness_err": 0, "timeout": 0, "time": 0.0, "tokens": 0
         }
         proj_gt = gt_db.get(pid, [])
+        spec_rows = []
+        confirmed_vulns_rows = [] 
         
         # --- SPEC LEVEL ---
-        spec_rows = []
-        
         for spec_dir in sorted(project_dir.iterdir()):
             if not spec_dir.is_dir(): continue
             spec_id = spec_dir.name
@@ -169,7 +180,7 @@ def main():
                 klee = meta.get("klee", {})
                 tokens = meta.get("tokens", {})
                 
-                # Metrics
+                # [RESTORED] Robust Time/Token Extraction
                 time_sec = float(meta.get("total_analysis_time", klee.get("elapsed", 0)))
                 tok_cnt = int(tokens.get("total_tokens", 0))
                 
@@ -177,53 +188,53 @@ def main():
                 p_stats["time"] += time_sec
                 p_stats["tokens"] += tok_cnt
                 
-                # Status Counters
+                # [RESTORED] Helper Usage
+                cwe_key = extract_cwe(spec_id)
+                target_file, target_line_str = extract_file_line(spec_id)
+                
+                # Logic
                 if status in ["CONFIRMED", "CONFIRMED_MODEL"]:
                     p_stats["confirmed"] += 1
                     
-                    # --- Artifact Collection ---
+                    # [RESTORED] Add to Confirmed List
+                    confirmed_vulns_rows.append({
+                        "File": target_file,
+                        "Line": target_line_str,
+                        "Vuln_Type": f"CWE-{cwe_key}",
+                        "Spec_ID": spec_id
+                    })
+                    
+                    # Artifact Collection
                     harness_src = spec_dir / "refinement/harness/harness.c"
                     ktest_src = get_ktest_path(spec_dir, klee.get("best_ktest_path"))
                     
                     if harness_src.exists():
-                        # 1. Verification Pack
+                        # Verification Pack
                         dest = pack_dir / pid / spec_id
                         dest.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(harness_src, dest)
                         shutil.copy2(meta_path, dest)
                         if ktest_src: shutil.copy2(ktest_src, dest)
                         
-                        # 2. OSS-Fuzz Prep
+                        # OSS-Fuzz Prep
                         oss_dest = oss_dir / f"{pid}_{spec_id}"
                         oss_dest.mkdir(exist_ok=True)
                         shutil.copy2(harness_src, oss_dest / "driver.c")
                         if ktest_src: shutil.copy2(ktest_src, oss_dest / "reproducer.ktest")
                         
-                        # Metadata for Fuzzer
-                        cwe = extract_cwe(spec_id)
                         (oss_dest / "target.info").write_text(
-                            f"project={pid}\nspec={spec_id}\ncwe={cwe}\nstatus={status}\n", 
+                            f"project={pid}\nspec={spec_id}\ncwe={cwe_key}\nstatus={status}\n", 
                             encoding="utf-8"
                         )
 
-                    # Ground Truth Check
-                    target_file = spec_id.split('_')[1] if '_' in spec_id else ""
-                    # Naive line extraction for matching
-                    target_line = 0
-                    parts = spec_id.split('_')
-                    for i, pt in enumerate(parts):
-                        if pt.endswith('.c') and i+1 < len(parts) and parts[i+1].isdigit():
-                            target_line = int(parts[i+1])
-                            break
-                    
-                    # Match
+                    # Ground Truth Matching
+                    target_line = int(target_line_str)
                     matched_gt = False
                     for bug in proj_gt:
                         if bug['file'] == target_file and abs(bug['line'] - target_line) <= LINE_TOLERANCE:
                             bug['matched'] = True
                             matched_gt = True
                     
-                    cwe_key = extract_cwe(spec_id)
                     vuln_type_stats[cwe_key] += 1
 
                 elif status == "CANDIDATE":
@@ -235,10 +246,15 @@ def main():
                 elif status == "HARNESS_ERROR":
                     p_stats["harness_err"] += 1
                 
-                # Spec Row
+                # [RESTORED] Detailed Spec Row with File/Line
                 spec_rows.append({
-                    "Spec_ID": spec_id, "Status": status, "CWE": extract_cwe(spec_id),
-                    "Time": f"{time_sec:.1f}s", "Tokens": tok_cnt
+                    "Spec_ID": spec_id, 
+                    "File": target_file,
+                    "Line": target_line_str,
+                    "Status": status, 
+                    "CWE": cwe_key,
+                    "Time": f"{time_sec:.1f}s", 
+                    "Tokens": tok_cnt
                 })
 
             except Exception as e:
@@ -248,7 +264,8 @@ def main():
         gt_total = len(proj_gt)
         gt_found = sum(1 for b in proj_gt if b['matched'])
         recall = f"{gt_found/gt_total:.1%}" if gt_total > 0 else "0%"
-        precision = f"{p_stats['confirmed'] / (p_stats['confirmed'] + p_stats['fp']):.1%}" if (p_stats['confirmed'] + p_stats['fp']) > 0 else "0%"
+        precision_denom = p_stats['confirmed'] + p_stats['fp']
+        precision = f"{p_stats['confirmed'] / precision_denom:.1%}" if precision_denom > 0 else "0%"
 
         p_row = {
             "Project": pid,
@@ -265,7 +282,6 @@ def main():
         }
         project_rows.append(p_row)
         
-        # Add to Globals
         global_stats["Total_Specs"] += p_stats["entrypoints"]
         global_stats["Total_Confirmed"] += p_stats["confirmed"]
         global_stats["Total_Candidates"] += p_stats["candidates"]
@@ -274,12 +290,19 @@ def main():
         global_stats["GT_Known"] += gt_total
         global_stats["GT_Detected"] += gt_found
 
-        # Write Per-Project CSV
+        # Write Per-Project Detailed CSV
         if spec_rows:
             with open(out_dir / f"details_{pid}.csv", 'w') as f:
                 writer = csv.DictWriter(f, fieldnames=spec_rows[0].keys())
                 writer.writeheader()
                 writer.writerows(spec_rows)
+        
+        # [RESTORED] Write Confirmed Specs CSV
+        if confirmed_vulns_rows:
+            with open(out_dir / f"confirmed_vulns_{pid}.csv", 'w') as f:
+                writer = csv.DictWriter(f, fieldnames=["File", "Line", "Vuln_Type", "Spec_ID"])
+                writer.writeheader()
+                writer.writerows(confirmed_vulns_rows)
 
     # --- FINAL REPORTS ---
 
@@ -300,17 +323,17 @@ def main():
     # 3. HTML Report
     html_content = ""
     
-    # Global Card
+    # [RESTORED] Global Card with Time
     html_content += f"""
     <div class="summary-grid">
         <div class="card"><h3>Total Specs Analyzed</h3><div class="stat-val">{global_stats['Total_Specs']}</div></div>
         <div class="card"><h3>Confirmed Vulnerabilities</h3><div class="stat-val">{global_stats['Total_Confirmed']}</div></div>
         <div class="card"><h3>Global Recall</h3><div class="stat-val">{global_stats['GT_Detected']} / {global_stats['GT_Known']}</div></div>
         <div class="card"><h3>Total Cost</h3><div class="stat-val">{global_stats['Total_Tokens']:,} toks</div></div>
+        <div class="card"><h3>Total Time</h3><div class="stat-val">{global_stats['Total_Time']/60:.1f} min</div></div>
     </div>
     """
     
-    # Project Table
     if project_rows:
         rows_html = ""
         for r in project_rows:
@@ -324,7 +347,6 @@ def main():
         </table>
         """
 
-    # CWE Table
     if vuln_type_stats:
         cwe_html = ""
         for cwe, count in vuln_type_stats.most_common():
@@ -342,9 +364,9 @@ def main():
     print(f"\n[✓] CLEAN Report Generated in: {out_dir}")
     print(f"    - project_summary.csv")
     print(f"    - vuln_type_summary.csv")
+    print(f"    - confirmed_vulns_<pid>.csv")
+    print(f"    - details_<pid>.csv")
     print(f"    - report.html")
-    print(f"    - verification_pack/ ({global_stats['Total_Confirmed']} exploits)")
-    print(f"    - oss_fuzz_prep/ (Ready for Docker)")
 
 if __name__ == "__main__":
     main()
