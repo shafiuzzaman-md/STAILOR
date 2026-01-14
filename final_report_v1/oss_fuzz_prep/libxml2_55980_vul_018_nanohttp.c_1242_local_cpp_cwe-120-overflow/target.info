@@ -2,3 +2,4 @@ project=libxml2_55980_vul
 spec=018_nanohttp.c_1242_local_cpp_cwe-120-overflow
 cwe=120
 status=CONFIRMED
+entrypoint=xmlNanoHTTPRead

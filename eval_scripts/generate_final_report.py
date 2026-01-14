@@ -72,21 +72,33 @@ def parse_args():
     return parser.parse_args()
 
 def get_ktest_path(spec_dir, meta_ktest_path):
-    """Robustly finds the .ktest file, handling path changes or missing metadata."""
     if meta_ktest_path:
         p = Path(meta_ktest_path)
         if p.exists(): return p
-        # Try relative to spec_dir if absolute path failed
         p_rel = spec_dir / p.name
         if p_rel.exists(): return p_rel
 
-    # Deep Search in logs
     logs_dir = spec_dir / "refinement" / "logs"
     if logs_dir.exists():
         ktests = sorted(logs_dir.rglob("*.ktest"), key=lambda f: f.stat().st_mtime, reverse=True)
         if ktests: return ktests[0]
         
     return None
+
+def get_inferred_entrypoint(spec_dir):
+    """Reads the function name chosen by the agent from frozen_plan.json"""
+    plan_path = spec_dir / "frozen_analysis" / "frozen_plan.json"
+    if plan_path.exists():
+        try:
+            data = json.loads(plan_path.read_text())
+            if isinstance(data, dict):
+                ep = data.get("entrypoint", {})
+                if isinstance(ep, dict):
+                    return ep.get("name", "-")
+                return str(ep)
+        except:
+            pass
+    return "-"
 
 def load_ground_truth(csv_path):
     gt = defaultdict(list)
@@ -116,7 +128,6 @@ def extract_file_line(spec_id):
     parts = spec_id.split('_')
     filename = "unknown"
     line = "0"
-    
     for i, p in enumerate(parts):
         if p.endswith(('.c', '.cc', '.cpp', '.h')):
             filename = p
@@ -180,7 +191,6 @@ def main():
                 klee = meta.get("klee", {})
                 tokens = meta.get("tokens", {})
                 
-                # [RESTORED] Robust Time/Token Extraction
                 time_sec = float(meta.get("total_analysis_time", klee.get("elapsed", 0)))
                 tok_cnt = int(tokens.get("total_tokens", 0))
                 
@@ -188,23 +198,25 @@ def main():
                 p_stats["time"] += time_sec
                 p_stats["tokens"] += tok_cnt
                 
-                # [RESTORED] Helper Usage
                 cwe_key = extract_cwe(spec_id)
                 target_file, target_line_str = extract_file_line(spec_id)
                 
+                # [NEW] Extract Inferred Entrypoint from frozen plan
+                inferred_func = get_inferred_entrypoint(spec_dir)
+
                 # Logic
                 if status in ["CONFIRMED", "CONFIRMED_MODEL"]:
                     p_stats["confirmed"] += 1
                     
-                    # [RESTORED] Add to Confirmed List
                     confirmed_vulns_rows.append({
                         "File": target_file,
                         "Line": target_line_str,
                         "Vuln_Type": f"CWE-{cwe_key}",
+                        "Inferred_Entrypoint": inferred_func,
                         "Spec_ID": spec_id
                     })
                     
-                    # Artifact Collection
+                    # Artifacts
                     harness_src = spec_dir / "refinement/harness/harness.c"
                     ktest_src = get_ktest_path(spec_dir, klee.get("best_ktest_path"))
                     
@@ -223,7 +235,7 @@ def main():
                         if ktest_src: shutil.copy2(ktest_src, oss_dest / "reproducer.ktest")
                         
                         (oss_dest / "target.info").write_text(
-                            f"project={pid}\nspec={spec_id}\ncwe={cwe_key}\nstatus={status}\n", 
+                            f"project={pid}\nspec={spec_id}\ncwe={cwe_key}\nstatus={status}\nentrypoint={inferred_func}\n", 
                             encoding="utf-8"
                         )
 
@@ -246,11 +258,12 @@ def main():
                 elif status == "HARNESS_ERROR":
                     p_stats["harness_err"] += 1
                 
-                # [RESTORED] Detailed Spec Row with File/Line
+                # Detailed Row
                 spec_rows.append({
                     "Spec_ID": spec_id, 
                     "File": target_file,
                     "Line": target_line_str,
+                    "Inferred_Entrypoint": inferred_func,
                     "Status": status, 
                     "CWE": cwe_key,
                     "Time": f"{time_sec:.1f}s", 
@@ -260,7 +273,7 @@ def main():
             except Exception as e:
                 print(f"[!] Error processing {spec_id}: {e}")
 
-        # --- Aggregate Project Stats ---
+        # --- Aggregate ---
         gt_total = len(proj_gt)
         gt_found = sum(1 for b in proj_gt if b['matched'])
         recall = f"{gt_found/gt_total:.1%}" if gt_total > 0 else "0%"
@@ -293,14 +306,13 @@ def main():
         # Write Per-Project Detailed CSV
         if spec_rows:
             with open(out_dir / f"details_{pid}.csv", 'w') as f:
-                writer = csv.DictWriter(f, fieldnames=spec_rows[0].keys())
+                writer = csv.DictWriter(f, fieldnames=["Spec_ID", "File", "Line", "Inferred_Entrypoint", "Status", "CWE", "Time", "Tokens"])
                 writer.writeheader()
                 writer.writerows(spec_rows)
         
-        # [RESTORED] Write Confirmed Specs CSV
         if confirmed_vulns_rows:
             with open(out_dir / f"confirmed_vulns_{pid}.csv", 'w') as f:
-                writer = csv.DictWriter(f, fieldnames=["File", "Line", "Vuln_Type", "Spec_ID"])
+                writer = csv.DictWriter(f, fieldnames=["File", "Line", "Vuln_Type", "Inferred_Entrypoint", "Spec_ID"])
                 writer.writeheader()
                 writer.writerows(confirmed_vulns_rows)
 
@@ -322,8 +334,6 @@ def main():
 
     # 3. HTML Report
     html_content = ""
-    
-    # [RESTORED] Global Card with Time
     html_content += f"""
     <div class="summary-grid">
         <div class="card"><h3>Total Specs Analyzed</h3><div class="stat-val">{global_stats['Total_Specs']}</div></div>
@@ -338,23 +348,13 @@ def main():
         rows_html = ""
         for r in project_rows:
             rows_html += f"<tr><td>{r['Project']}</td><td>{r['#Entrypoints']}</td><td>{r['#Confirmed']}</td><td>{r['Recall']}</td><td>{r['Precision']}</td><td>{r['Total_Time_Min']} min</td></tr>"
-        
-        html_content += f"""
-        <h2>Project Breakdown</h2>
-        <table>
-            <thead><tr><th>Project</th><th>Specs</th><th>Confirmed</th><th>Recall</th><th>Precision</th><th>Time</th></tr></thead>
-            <tbody>{rows_html}</tbody>
-        </table>
-        """
+        html_content += f"<h2>Project Breakdown</h2><table><thead><tr><th>Project</th><th>Specs</th><th>Confirmed</th><th>Recall</th><th>Precision</th><th>Time</th></tr></thead><tbody>{rows_html}</tbody></table>"
 
     if vuln_type_stats:
         cwe_html = ""
         for cwe, count in vuln_type_stats.most_common():
             cwe_html += f"<tr><td>CWE-{cwe}</td><td>{count}</td></tr>"
-        html_content += f"""
-        <h2>Detected Vulnerabilities by Type</h2>
-        <table><thead><tr><th>CWE Type</th><th>Count</th></tr></thead><tbody>{cwe_html}</tbody></table>
-        """
+        html_content += f"<h2>Detected Vulnerabilities by Type</h2><table><thead><tr><th>CWE Type</th><th>Count</th></tr></thead><tbody>{cwe_html}</tbody></table>"
 
     (out_dir / "report.html").write_text(
         HTML_WRAPPER.format(date=str(datetime.datetime.now()), content=html_content), 
