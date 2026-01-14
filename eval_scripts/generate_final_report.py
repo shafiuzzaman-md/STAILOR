@@ -170,8 +170,8 @@ def main():
                 tokens = meta.get("tokens", {})
                 
                 # Metrics
-                time_sec = klee.get("elapsed", 0)
-                tok_cnt = tokens.get("total_tokens", 0)
+                time_sec = float(meta.get("total_analysis_time", klee.get("elapsed", 0)))
+                tok_cnt = int(tokens.get("total_tokens", 0))
                 
                 p_stats["entrypoints"] += 1
                 p_stats["time"] += time_sec

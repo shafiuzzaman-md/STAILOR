@@ -167,7 +167,7 @@ def llm_chat(
                 }
             )
 
-            return content
+            return content, usage
 
         except Exception as e:  # noqa: BLE001
             last_err = e

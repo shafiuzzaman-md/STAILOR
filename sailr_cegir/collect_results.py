@@ -31,13 +31,13 @@ def collect_run(spec_dir: Path, out_root: Path, src_root: Path):
     reason = stats.get("failure_reason", "Unknown")
     
     # Performance Metrics
-    duration = meta.get("total_duration_s", 0)
+    duration = meta.get("total_analysis_time", stats.get("elapsed", 0))
     # Tries to find total attempts (compile attempts or refinement loops)
     # Adjust "cycles" or "iterations" based on your exact run_agent_for_spec.py structure
     attempts = meta.get("cycles", 0) 
     
     # LLM Token Usage
-    llm_stats = meta.get("llm_usage", {})
+    llm_stats = meta.get("tokens", {})
     prompt_tok = llm_stats.get("prompt_tokens", 0)
     compl_tok = llm_stats.get("completion_tokens", 0)
     total_tok = llm_stats.get("total_tokens", 0)

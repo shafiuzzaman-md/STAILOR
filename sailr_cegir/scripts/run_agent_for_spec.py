@@ -919,8 +919,8 @@ def call_llm_json(system_prompt: str, user_prompt: str, out_dir: Path, tag: str)
     ensure_dir(out_dir)
     messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
     (out_dir / f"{tag}_messages.json").write_text(json.dumps(messages, indent=2), encoding="utf-8")
-    raw = llm_chat(messages)
-    update_token_stats(raw)
+    raw, usage = llm_chat(messages, spec_id=tag)
+    update_token_stats(usage)
     (out_dir / f"{tag}_raw_response.txt").write_text(str(raw), encoding="utf-8")
     if isinstance(raw, dict): return raw
     text = extract_json_block(str(raw))
@@ -4129,7 +4129,8 @@ def main():
     ap.add_argument("--reproduce-ktest", help="Path to .ktest file for reproduction")
     
     args = ap.parse_args()
-
+    
+    start_time = time.time()
     # --- Policy Loading / Auto-Generation ---
     if args.validation_policy and Path(args.validation_policy).exists():
         args.validation_policy_obj = load_validation_policy(args.validation_policy)
@@ -4381,7 +4382,18 @@ def main():
              print(f"  [!] Missing artifacts for replay. Harness={harness_path.exists()}, KTest={ktest_path.exists()}")
 
     # ========================================================
-
+    total_analysis_time = time.time() - start_time
+    
+    final_meta = {
+        "class": final_status,
+        "spec": args.spec,
+        
+        # [UPDATE 3] Add this field to the JSON
+        "total_analysis_time": total_analysis_time, 
+        
+        "klee": best_result if best_result else {},
+        "tokens": total_tokens
+    }
     write_json(run_dir / "run_meta.json", {"spec": str(args.spec), "class": final_status, "klee": stats, "tokens": _TOKEN_STATS})
 
     if args.summary_tsv:
