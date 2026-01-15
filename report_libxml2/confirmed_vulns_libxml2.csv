@@ -1,0 +1,6 @@
+File,Line,Vuln_Type,Inferred_Entrypoint,Spec_ID
+SAX2.c,2579,CWE-120,xmlSAX2Characters,001_SAX2.c_2579_local_cpp_cwe-120-overflow
+HTMLtree.c,245,CWE-120,htmlSetMetaEncoding,003_HTMLtree.c_245_local_cpp_cwe-120-overflow
+HTMLtree.c,247,CWE-120,htmlSetMetaEncoding,004_HTMLtree.c_247_local_cpp_cwe-120-overflow
+buf.c,1036,CWE-120,xmlBufferAddHead,064_buf.c_1036_local_cpp_cwe-120-overflow
+buf.c,1042,CWE-120,xmlBufferAddHead,065_buf.c_1042_local_cpp_cwe-120-overflow

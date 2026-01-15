@@ -1,0 +1,5 @@
+project=libxml2
+spec=004_HTMLtree.c_247_local_cpp_cwe-120-overflow
+cwe=120
+status=CONFIRMED
+entrypoint=htmlSetMetaEncoding
