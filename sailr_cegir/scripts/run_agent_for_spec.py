@@ -4385,16 +4385,13 @@ def main():
     total_analysis_time = time.time() - start_time
     
     final_meta = {
+        "spec": str(args.spec),
         "class": final_status,
-        "spec": args.spec,
-        
-        # [UPDATE 3] Add this field to the JSON
-        "total_analysis_time": total_analysis_time, 
-        
-        "klee": best_result if best_result else {},
-        "tokens": total_tokens
+        "total_analysis_time": total_analysis_time,  
+        "klee": stats if stats else {},              
+        "tokens": _TOKEN_STATS                       
     }
-    write_json(run_dir / "run_meta.json", {"spec": str(args.spec), "class": final_status, "klee": stats, "tokens": _TOKEN_STATS})
+    write_json(run_dir / "run_meta.json", final_meta)
 
     if args.summary_tsv:
         # [FIX] Capture Bug Details

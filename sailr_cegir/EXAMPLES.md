@@ -14,7 +14,7 @@ python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
 ```
 
 ## Pipeline
-Example 1:
+Example 1 (Cyber_gym):
 ```
 bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul
 ```
