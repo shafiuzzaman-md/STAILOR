@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import json
+from turtle import lt
 import yaml
 import os
 import re
@@ -2090,7 +2091,11 @@ def run_frozen_analysis(
 
 # ---------------- KLEE UTILS ----------------
 def check_for_assert_files(log_dir: Path) -> Tuple[bool, bool]:
-    """Scan KLEE output directory and discriminate between real bugs and noise."""
+    """
+    Scans KLEE output for EXPLICIT assertions (BUG_ASSERT/REACH_ASSERT).
+    [FIX] Ignores implicit crash files (.ptr.err, .free.err) here. 
+    They will be handled by check_crash_locality() to ensure they are NOT harness bugs.
+    """
     if not log_dir.exists(): return False, False
     
     bug_hit = False
@@ -2099,7 +2104,7 @@ def check_for_assert_files(log_dir: Path) -> Tuple[bool, bool]:
     for err_file in log_dir.glob("*.err"):
         content = err_file.read_text(errors="ignore").lower()
         
-        # 1. Explicit Logic Assertions
+        # 1. Explicit Logic Assertions (The Spec Oracle)
         if "bug_assert" in content: 
             bug_hit = True
             continue
@@ -2107,89 +2112,81 @@ def check_for_assert_files(log_dir: Path) -> Tuple[bool, bool]:
             reach_hit = True
             continue
 
-        # 2. Implicit Memory Errors (Hybrid Strategy)
-        if err_file.name.endswith(".ptr.err"):
-            # Filter Null Pointer noise from missing stubs
-            if "out of bound" in content:
-                bug_hit = True 
-            elif "null pointer" in content:
-                pass # Ignore likely noise from missing externals
-            else:
-                bug_hit = True # Other invalid access
-        
-        elif err_file.name.endswith((".free.err", ".overflow.err", ".abort.err", ".div.err")):
-            bug_hit = True
+        # [FIX] Do NOT auto-accept implicit memory errors (.ptr.err, .free.err, etc.)
+        # We leave bug_hit = False for these.
+        # run_klee() will pick them up from the log and validate them via check_crash_locality.
 
     return bug_hit, reach_hit
 
-def check_crash_locality(log_text: str, target_file: str, target_line: int, window: int = 5) -> Tuple[bool, str]:
+def check_crash_locality(log_text: str, target_file: str, target_line: int, window: int = 20) -> Tuple[bool, str]:
     """
-    Verifies that a crash (implicit bug) occurred near the target line.
+    Crash Analysis:
+    1. Rejects ALL crashes originating in the harness/stubs.
+    2. Accepts UAF/Double Free anywhere in the target library (High Signal).
+    3. Accepts OOB/Abort only if within 'window' lines of the target (Context Sensitive).
     """
-    target_name = Path(target_file).name
+    target_path = Path(target_file)
+    target_name = target_path.name
     
-    # Regex to capture "KLEE: ERROR: [file]:[line]: [message]"
+    # Regex: KLEE: ERROR: [file]:[line]: [message]
     regex = re.compile(r"KLEE: ERROR:\s*(.*?):(\d+):\s*(.*)", re.IGNORECASE)
     matches = regex.findall(log_text)
     
     if not matches:
         return False, "Could not determine crash source line from log."
-
-    # --- 1. TRUSTED SIGNALS (Assertions & Aborts) ---
-    # We explicitly injected BUG_ASSERT. If it fires, it is a True Positive.
-    # We do not check line distance for these because instrumentation (headers/stubs)
-    # shifts the line numbers, and we know we placed the assertion correctly.
     
-    if "ASSERTION FAIL" in log_text and "BUG_ASSERT" in log_text:
-        return True, "Explicit BUG_ASSERT triggered (confirmed by message)"
-
-    # Handle BUG_ASSERT(x) -> abort() macro
-    # KLEE reports this as "abort failure". 
-    if "abort failure" in log_text:
-        for fpath, lnum_str, msg in matches:
-            if "abort failure" in msg and target_name in Path(fpath).name:
-                # [FIX] Trust 'abort' in the target file unconditionally. 
-                # We assume the library logic does not randomly abort().
-                return True, f"Explicit BUG_ASSERT (abort) triggered at {fpath}:{lnum_str} (Trusted Signal)"
-
-    # --- 2. Handle Harness Errors (Refinement Signal) ---
+    # --- 1. FILTER HARNESS NOISE (The Gatekeeper) ---
     for fpath, lnum_str, msg in matches:
-        msg_s = (msg or "").strip()
+        fpath_obj = Path(fpath)
+        fname = fpath_obj.name
         
-        # KLEE API Misuse is ALWAYS a Harness Error
-        if ("klee_make_symbolic" in msg_s or 
-            "klee_assume" in msg_s or 
-            "Wrong size" in msg_s or 
-            "concretized symbolic size" in msg_s): 
-             return False, f"HARNESS_LOCAL_CRASH: {Path(fpath).name}:{lnum_str}: {msg_s}"
+        # Immediate rejection for harness errors
+        if fname in ["harness.c", "driver.c"] or "stub_" in fname:
+             return False, f"HARNESS_CRASH: Ignored crash in test driver ({fname}:{lnum_str})"
+             
+        # KLEE API misuse is always a harness bug
+        msg_s = (msg or "").strip().lower()
+        if any(x in msg_s for x in ["klee_make_symbolic", "klee_assume", "wrong size", "concretized symbolic"]):
+             return False, f"HARNESS_API_ERROR: {fname}:{lnum_str}: {msg_s}"
 
-        # Explicit harness file errors
-        try:
-            if Path(fpath).name == "harness.c":
-                lnum = int(lnum_str)
-                return False, f"HARNESS_LOCAL_CRASH: harness.c:{lnum}: {msg_s}"
-        except Exception:
-            continue
+    # --- 2. TRUSTED SIGNALS (Assertions) ---
+    lt = (log_text or "").lower()
+    if "assertion fail" in lt and "bug_assert" in lt:
+        return True, "Explicit BUG_ASSERT triggered (Oracle confirmed)"
 
-    # --- 3. Handle Implicit Crashes (Memory Errors, Segfaults) ---
-    # For implicit crashes, we MUST verify locality to avoid confirming unrelated bugs.
-    best_dist = float('inf')
-    crash_loc = "unknown"
 
+    # --- 3. ANALYZE CRASH TYPE & LOCATION ---
+    
+    # We iterate through all reported errors (usually just one, but KLEE can chain them)
     for fpath, lnum_str, msg in matches:
-        if target_name not in Path(fpath).name: continue
+        fpath_obj = Path(fpath)
+        fname = fpath_obj.name
+        msg_lower = (msg or "").lower()
+        
         try:
             lnum = int(lnum_str)
-            dist = abs(lnum - target_line)
-            if dist < best_dist:
-                best_dist = dist
-                crash_loc = f"{target_name}:{lnum}"
-        except ValueError: continue
+        except ValueError:
+            continue
 
-    if best_dist <= window:
-        return True, f"Crash at {crash_loc} is within {window} lines of target."
-    
-    return False, f"Crash Locality Violation: Best match {crash_loc} is {best_dist} lines away from target {target_line}. (Threshold: {window})"
+        # A. HIGH CONFIDENCE BUGS (UAF / Double Free)
+        # Policy: Accept anywhere in the library (Global), because these are rarely
+        # coincidental if we have already ruled out the harness above.
+        if any(x in msg_lower for x in ["use after free", "double free", "free of alloca"]):
+            return True, f"CRITICAL_HEAP_ERROR: {msg} at {fname}:{lnum} (Accepted Globally)"
+
+        # B. CONTEXT SENSITIVE BUGS (OOB, Invalid Ptr, Abort)
+        # Policy: Must be in the TARGET FILE and CLOSE to the target line.
+        
+        # Fix: Strict Name Matching (No substring matching)
+        if fname != target_name:
+            continue
+            
+        # Fix: Relaxed Window (20 lines) to catch delayed sinks/macros
+        dist = abs(lnum - target_line)
+        if dist <= window:
+            return True, f"LOCAL_CRASH: {msg} at {fname}:{lnum} (Dist {dist} <= {window})"
+
+    return False, f"REJECTED: Crash detected but outside locality window or in unrelated file."
 
 def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: Path, idx: int, 
              target_file: str = "", target_line: int = 0) -> Dict[str, Any]:
@@ -2293,12 +2290,12 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
             crash_type = "spec"
             crash_location = found_loc
         else:
-            # Valid crash in library, but NOT at target site
-            print(f"  [!] OPPORTUNISTIC BUG FOUND: {loc_msg}")
-            bug_found = True
-            crash_type = "opportunistic"
-            crash_location = found_loc
-            analysis_note = f"[SYSTEM ANALYSIS]: Opportunistic Bug Detected: {loc_msg}"
+            # [FIX] REMOVED OPPORTUNISTIC ACCEPTANCE per policy
+            # If it crashed elsewhere (and isn't a global UAF), treat as NOISE/FAILURE.
+            print(f"  [!] IGNORED NON-LOCAL CRASH: {loc_msg}")
+            bug_found = False
+            crash_type = "none" 
+            analysis_note = f"[SYSTEM ANALYSIS]: Ignored non-local crash: {loc_msg}"
 
     # [RESTORED] Write analysis back to log file for debugging
     if analysis_note:
