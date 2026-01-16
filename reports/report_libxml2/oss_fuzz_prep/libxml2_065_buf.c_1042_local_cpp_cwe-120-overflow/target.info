@@ -1,5 +1,0 @@
-project=libxml2
-spec=065_buf.c_1042_local_cpp_cwe-120-overflow
-cwe=120
-status=CONFIRMED
-entrypoint=xmlBufferAddHead

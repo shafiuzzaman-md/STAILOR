@@ -1,8 +1,0 @@
-File,Line,Vuln_Type,Inferred_Entrypoint,Spec_ID
-buf.c,823,CWE-120,xmlBufAdd,009_buf.c_823_local_cpp_cwe-120-overflow
-nanohttp.c,1242,CWE-120,xmlNanoHTTPRead,018_nanohttp.c_1242_local_cpp_cwe-120-overflow
-tree.c,7688,CWE-120,xmlBufferAddHead,067_tree.c_7688_local_cpp_cwe-120-overflow
-tree.c,7709,CWE-120,xmlBufferAddHead,069_tree.c_7709_local_cpp_cwe-120-overflow
-tree.c,7635,CWE-120,xmlBufferAdd,070_tree.c_7635_local_cpp_cwe-120-overflow
-tree.c,7338,CWE-120,xmlBufferShrink,076_tree.c_7338_local_cpp_cwe-120-overflow
-xmlmemory.c,448,CWE-120,xmlMemFree,079_xmlmemory.c_448_local_cpp_cwe-120-overflow

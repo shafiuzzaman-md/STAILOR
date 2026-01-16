@@ -1,5 +1,0 @@
-project=libxml2
-spec=001_SAX2.c_2579_local_cpp_cwe-120-overflow
-cwe=120
-status=CONFIRMED
-entrypoint=xmlSAX2Characters

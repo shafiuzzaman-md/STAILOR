@@ -1,5 +1,0 @@
-project=libxml2_55980_vul
-spec=070_tree.c_7635_local_cpp_cwe-120-overflow
-cwe=120
-status=CONFIRMED
-entrypoint=xmlBufferAdd

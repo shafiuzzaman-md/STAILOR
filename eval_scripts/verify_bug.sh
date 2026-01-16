@@ -35,13 +35,7 @@ echo "[*] Image:  $IMAGE"
 echo "[*] Pulling Docker image..."
 docker pull "$IMAGE" || { echo "[!] Failed to pull image $IMAGE."; exit 1; }
 
-# 4. Run Verification Container
-echo "[*] Starting Verification..."
-echo "---------------------------------------------------"
-
-# --rm: Clean up container after run
-# -v: Mount local bug dir to /verify in container
-# -w: Working directory inside container
+# 4. Run Verification Container (Capture exit code)
 docker run --rm \
     -v "$ABS_BUG_DIR":/verify \
     -w /verify \
@@ -53,9 +47,10 @@ EXIT_CODE=$?
 
 echo "---------------------------------------------------"
 if [ $EXIT_CODE -eq 0 ]; then
-    echo "[?] Container finished. Check logs above."
-    echo "    - Red ASan Output = VERIFIED BUG"
-    echo "    - No Error = Silent Run (Did not crash)"
+    echo "[?] Container finished successfully (Exit Code 0)."
+    echo "    - If you see no red text above, the bug did NOT trigger (Silent Run)."
 else
-    echo "[!] Build or Execution Failed (Exit Code: $EXIT_CODE)."
+    echo "[!] Container exited with code $EXIT_CODE."
+    echo "    - If you see 'AddressSanitizer' errors above -> VERIFIED BUG (Success!)"
+    echo "    - If you see 'compilation failed' errors -> Setup Issue."
 fi
