@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import fcntl
 import json
-from turtle import lt
 import yaml
 import os
 import re
@@ -4393,28 +4392,42 @@ def main():
     write_json(run_dir / "run_meta.json", final_meta)
 
     if args.summary_tsv:
-        # [FIX] Capture Bug Details
+        # Extract Strategy & Bug Details
         strat_name = ctx.get("strategy", {}).get("name", "unknown")
         bug_site = stats.get("bug_site_type", "-")
         bug_loc = stats.get("bug_location", "-")
 
+        # Open in Append Mode
         with open(args.summary_tsv, "a", encoding="utf-8") as f:
+            # Exclusive Lock to prevent race conditions on header writing
             fcntl.flock(f, fcntl.LOCK_EX)
-            # Columns: Spec | FinalStatus | KleeStatus | Time | BestTurn | Prompt | Compl | Total | Strategy | BugType | BugLoc
+
+            # Check if file is empty to write headers
+            if f.tell() == 0:
+                headers = (
+                    "Spec\tFinalStatus\tKleeStatus\tTotalTime\t"
+                    "BestTurn\tPromptTokens\tComplTokens\tTotalTokens\t"
+                    "Strategy\tBugType\tBugLoc\n"
+                )
+                f.write(headers)
+
+            # Write Data Row
             line = (
                 f"{args.spec_stem}\t"
                 f"{final_status}\t"
                 f"{stats.get('status','none')}\t"
-                f"{stats.get('elapsed',0):.2f}\t"
+                f"{total_analysis_time:.2f}\t" 
                 f"{stats.get('best_turn', -1)}\t"
                 f"{_TOKEN_STATS['prompt_tokens']}\t"
                 f"{_TOKEN_STATS['completion_tokens']}\t"
                 f"{_TOKEN_STATS['total_tokens']}\t"
                 f"{strat_name}\t"
-                f"{bug_site}\t"     # <--- NEW
-                f"{bug_loc}\n"      # <--- NEW
+                f"{bug_site}\t"
+                f"{bug_loc}\n"
             )
             f.write(line)
+            
+            # Release Lock
             fcntl.flock(f, fcntl.LOCK_UN)
 
     print(f"[✓] Finished {args.spec_stem}: {final_status}")
