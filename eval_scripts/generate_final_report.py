@@ -5,6 +5,7 @@ import json
 import shutil
 import os
 import re
+import struct
 from pathlib import Path
 from collections import defaultdict, Counter
 import datetime
@@ -63,6 +64,136 @@ HTML_WRAPPER = """
 </html>
 """
 
+# --- KTEST PARSER ---
+class KTestReader:
+    """Parses KLEE .ktest files to extract binary data."""
+    def __init__(self, path: Path):
+        self.path = path
+        self.objects = []
+        self.version = 0
+        try:
+            self._parse()
+        except Exception as e:
+            print(f"  [!] KTest Parse Error ({path.name}): {e}")
+
+    def _parse(self):
+        with open(self.path, 'rb') as f:
+            data = f.read()
+        if data[:5] != b'KTEST': raise ValueError("Invalid KTest magic")
+        offset = 5
+        self.version, = struct.unpack('>I', data[offset:offset+4])
+        offset += 4
+        num_args, = struct.unpack('>I', data[offset:offset+4])
+        offset += 4
+        for _ in range(num_args):
+            l, = struct.unpack('>I', data[offset:offset+4])
+            offset += 4 + l
+        if self.version >= 2:
+            offset += 8
+        num_objs, = struct.unpack('>I', data[offset:offset+4])
+        offset += 4
+        for _ in range(num_objs):
+            nl, = struct.unpack('>I', data[offset:offset+4])
+            offset += 4
+            name = data[offset:offset+nl].decode('utf-8', 'ignore')
+            offset += nl
+            dl, = struct.unpack('>I', data[offset:offset+4])
+            offset += 4
+            obj_data = data[offset:offset+dl]
+            offset += dl
+            self.objects.append({'name': name, 'data': obj_data})
+
+# --- HARNESS CONVERTER ---
+def parse_klee_vars(harness_body):
+    regex = re.compile(r'klee_make_symbolic\s*\(\s*(?:&)?([^,]+)\s*,\s*([^,]+)\s*,\s*"[^"]*"\s*\)\s*;')
+    vars_found = []
+    for match in regex.finditer(harness_body):
+        var_name = match.group(1).strip()
+        size_expr = match.group(2).strip()
+        vars_found.append({'var': var_name, 'size': size_expr})
+    return vars_found
+
+def generate_oss_fuzz_source(driver_src: str) -> str:
+    """Converts KLEE driver.c to OSS-Fuzz target.cc"""
+    parts = {}
+    current_section = "preamble"
+    buffer = []
+    
+    for line in driver_src.splitlines():
+        if "/* --- Global Constants --- */" in line:
+            parts[current_section] = "\n".join(buffer)
+            current_section = "globals"
+            buffer = []
+        elif "/* --- Stub Functions --- */" in line:
+            parts[current_section] = "\n".join(buffer)
+            current_section = "stubs"
+            buffer = []
+        elif "/* --- Embedded Functions --- */" in line:
+            parts[current_section] = "\n".join(buffer)
+            current_section = "embedded"
+            buffer = []
+        elif "/* --- Harness --- */" in line:
+            parts[current_section] = "\n".join(buffer)
+            current_section = "harness"
+            buffer = []
+        buffer.append(line)
+    parts[current_section] = "\n".join(buffer)
+
+    out = []
+    out.append("// [STAILOR] Auto-converted for OSS-Fuzz Verification")
+    out.append("#include <stdint.h>")
+    out.append("#include <stddef.h>")
+    out.append("#include <stdlib.h>")
+    out.append("#include <string.h>")
+    out.append("#include <assert.h>")
+    
+    if "globals" in parts:
+        out.append("\n/* --- Globals --- */")
+        out.append(parts["globals"].replace("#include <klee/klee.h>", ""))
+
+    if "embedded" in parts:
+        out.append("\n/* --- Embedded Helpers --- */")
+        out.append(parts["embedded"])
+
+    harness_raw = parts.get("harness", "")
+    main_pattern = re.compile(r"int\s+main\s*\([^)]*\)\s*\{(.*)\}", re.DOTALL)
+    m = main_pattern.search(harness_raw)
+    body = m.group(1) if m else harness_raw
+
+    klee_vars = parse_klee_vars(body)
+    
+    body = body.replace('#include <klee/klee.h>', '')
+    body = re.sub(r'#define BUG_ASSERT.*', '', body)
+    body = re.sub(r'#define REACH_ASSERT.*', '', body)
+    body = re.sub(r'klee_assume\s*\((.*)\)\s*;', r'if (!(\1)) return 0;', body)
+    body = re.sub(r'BUG_ASSERT\s*\((.*)\)\s*;', r'assert(\1);', body)
+    body = re.sub(r'REACH_ASSERT\s*\(\s*\)\s*;', r'', body)
+
+    input_logic = []
+    input_logic.append(f"    // [Fuzzer] Input Mapping (Requested {len(klee_vars)} vars)")
+    input_logic.append("    size_t consumed = 0;")
+    
+    for kv in klee_vars:
+        v = kv['var']
+        sz = kv['size']
+        call_regex = re.compile(rf'klee_make_symbolic\s*\(\s*(?:&)?{re.escape(v)}\s*,\s*{re.escape(sz)}[^;]*;\s*')
+        body = call_regex.sub(f'/* mapped {v} */ ', body)
+        input_logic.append(f"    if (Size < consumed + {sz}) return 0;")
+        input_logic.append(f"    memcpy(&{v}, Data + consumed, {sz});")
+        input_logic.append(f"    consumed += {sz};")
+
+    out.append("\n/* --- Fuzzer Entrypoint --- */")
+    out.append('extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {')
+    out.append("\n    /* --- Input Injection --- */")
+    out.append("\n".join(input_logic))
+    out.append("\n    /* --- Original Logic --- */")
+    out.append(body)
+    out.append("}")
+
+    return "\n".join(out)
+
+# --- MAIN REPORT LOGIC ---
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate Final Clean Report")
     parser.add_argument("--runs-root", required=True, help="Path to se_runs root")
@@ -77,16 +208,13 @@ def get_ktest_path(spec_dir, meta_ktest_path):
         if p.exists(): return p
         p_rel = spec_dir / p.name
         if p_rel.exists(): return p_rel
-
     logs_dir = spec_dir / "refinement" / "logs"
     if logs_dir.exists():
         ktests = sorted(logs_dir.rglob("*.ktest"), key=lambda f: f.stat().st_mtime, reverse=True)
         if ktests: return ktests[0]
-        
     return None
 
 def get_inferred_entrypoint(spec_dir):
-    """Reads the function name chosen by the agent from frozen_plan.json"""
     plan_path = spec_dir / "frozen_analysis" / "frozen_plan.json"
     if plan_path.exists():
         try:
@@ -96,14 +224,12 @@ def get_inferred_entrypoint(spec_dir):
                 if isinstance(ep, dict):
                     return ep.get("name", "-")
                 return str(ep)
-        except:
-            pass
+        except: pass
     return "-"
 
 def load_ground_truth(csv_path):
     gt = defaultdict(list)
-    if not csv_path or not os.path.exists(csv_path):
-        return gt
+    if not csv_path or not os.path.exists(csv_path): return gt
     with open(csv_path, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for i, row in enumerate(reader):
@@ -124,7 +250,6 @@ def extract_cwe(spec_id):
     return m.group(1) if m else "Other"
 
 def extract_file_line(spec_id):
-    """Parses file and line from spec ID (e.g., 008_encoding.c_1151_...)"""
     parts = spec_id.split('_')
     filename = "unknown"
     line = "0"
@@ -141,7 +266,6 @@ def main():
     runs_root = Path(args.runs_root)
     out_dir = Path(args.output_dir)
     
-    # Setup Directories
     if out_dir.exists(): shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
     pack_dir = out_dir / "verification_pack"
@@ -151,36 +275,25 @@ def main():
 
     gt_db = load_ground_truth(args.ground_truth)
     
-    # Data Aggregators
     project_rows = []
     vuln_type_stats = Counter()
-    global_stats = {
-        "Total_Specs": 0, "Total_Confirmed": 0, "Total_Candidates": 0,
-        "Total_Time": 0.0, "Total_Tokens": 0,
-        "GT_Known": 0, "GT_Detected": 0
-    }
+    global_stats = {"Total_Specs": 0, "Total_Confirmed": 0, "Total_Candidates": 0, "Total_Time": 0.0, "Total_Tokens": 0, "GT_Known": 0, "GT_Detected": 0}
 
     print(f"[*] Scanning {runs_root}...")
 
-    # --- PROJECT LEVEL ---
     for project_dir in sorted(runs_root.iterdir()):
         if not project_dir.is_dir(): continue
         pid = project_dir.name
         
-        p_stats = {
-            "entrypoints": 0, "confirmed": 0, "candidates": 0, "fp": 0,
-            "harness_err": 0, "timeout": 0, "time": 0.0, "tokens": 0
-        }
+        p_stats = {"entrypoints": 0, "confirmed": 0, "candidates": 0, "fp": 0, "harness_err": 0, "timeout": 0, "time": 0.0, "tokens": 0}
         proj_gt = gt_db.get(pid, [])
         spec_rows = []
         confirmed_vulns_rows = [] 
         
-        # --- SPEC LEVEL ---
         for spec_dir in sorted(project_dir.iterdir()):
             if not spec_dir.is_dir(): continue
             spec_id = spec_dir.name
             meta_path = spec_dir / "run_meta.json"
-            
             if not meta_path.exists(): continue
             
             try:
@@ -190,7 +303,6 @@ def main():
                 
                 klee = meta.get("klee", {})
                 tokens = meta.get("tokens", {})
-                
                 time_sec = float(meta.get("total_analysis_time", klee.get("elapsed", 0)))
                 tok_cnt = int(tokens.get("total_tokens", 0))
                 
@@ -200,80 +312,87 @@ def main():
                 
                 cwe_key = extract_cwe(spec_id)
                 target_file, target_line_str = extract_file_line(spec_id)
-                
-                # [NEW] Extract Inferred Entrypoint from frozen plan
                 inferred_func = get_inferred_entrypoint(spec_dir)
 
-                # Logic
                 if status in ["CONFIRMED", "CONFIRMED_MODEL"]:
                     p_stats["confirmed"] += 1
-                    
                     confirmed_vulns_rows.append({
-                        "File": target_file,
-                        "Line": target_line_str,
-                        "Vuln_Type": f"CWE-{cwe_key}",
-                        "Inferred_Entrypoint": inferred_func,
-                        "Spec_ID": spec_id
+                        "File": target_file, "Line": target_line_str, "Vuln_Type": f"CWE-{cwe_key}",
+                        "Inferred_Entrypoint": inferred_func, "Spec_ID": spec_id
                     })
                     
-                    # Artifacts
+                    # --- ARTIFACT COLLECTION ---
                     harness_src = spec_dir / "refinement/harness/harness.c"
                     ktest_src = get_ktest_path(spec_dir, klee.get("best_ktest_path"))
                     
                     if harness_src.exists():
-                        # Verification Pack
+                        # 1. Verification Pack
                         dest = pack_dir / pid / spec_id
                         dest.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(harness_src, dest)
                         shutil.copy2(meta_path, dest)
                         if ktest_src: shutil.copy2(ktest_src, dest)
                         
-                        # OSS-Fuzz Prep
+                        # 2. OSS-Fuzz Prep
                         oss_dest = oss_dir / f"{pid}_{spec_id}"
                         oss_dest.mkdir(exist_ok=True)
+                        
+                        # A. Copy Originals
                         shutil.copy2(harness_src, oss_dest / "driver.c")
                         if ktest_src: shutil.copy2(ktest_src, oss_dest / "reproducer.ktest")
                         
+                        # B. Generate C++ Fuzz Target
+                        try:
+                            c_content = harness_src.read_text(encoding="utf-8", errors="replace")
+                            cpp_target = generate_oss_fuzz_source(c_content)
+                            (oss_dest / "target.cc").write_text(cpp_target, encoding="utf-8")
+                        except Exception as e:
+                            print(f"[!] OSS-Fuzz Conversion Failed for {spec_id}: {e}")
+
+                        # C. Extract Binary Input (crash.bin)
+                        if ktest_src:
+                            try:
+                                ktr = KTestReader(ktest_src)
+                                with open(oss_dest / "crash.bin", "wb") as f:
+                                    for obj in ktr.objects:
+                                        f.write(obj['data'])
+                            except Exception as e:
+                                print(f"[!] KTest Extraction Failed for {spec_id}: {e}")
+                        
+                        # D. Build Script Helper
+                        (oss_dest / "build_helper.sh").write_text(
+                            f"#!/bin/bash\n"
+                            f"# Use inside OSS-Fuzz Docker\n"
+                            f"$CXX $CXXFLAGS -fsanitize=address -I/src/{pid}/include target.cc "
+                            f"/src/{pid}/.libs/lib{pid}.a $LIB_FUZZING_ENGINE -o reproducer\n"
+                            f"./reproducer crash.bin\n",
+                            encoding="utf-8"
+                        )
+
                         (oss_dest / "target.info").write_text(
                             f"project={pid}\nspec={spec_id}\ncwe={cwe_key}\nstatus={status}\nentrypoint={inferred_func}\n", 
                             encoding="utf-8"
                         )
 
-                    # Ground Truth Matching
+                    # GT Matching
                     target_line = int(target_line_str)
-                    matched_gt = False
                     for bug in proj_gt:
                         if bug['file'] == target_file and abs(bug['line'] - target_line) <= LINE_TOLERANCE:
                             bug['matched'] = True
-                            matched_gt = True
-                    
                     vuln_type_stats[cwe_key] += 1
 
-                elif status == "CANDIDATE":
-                    p_stats["candidates"] += 1
-                elif status == "REACHED_ONLY":
-                    p_stats["fp"] += 1
-                elif status == "TIMEOUT":
-                    p_stats["timeout"] += 1
-                elif status == "HARNESS_ERROR":
-                    p_stats["harness_err"] += 1
+                elif status == "CANDIDATE": p_stats["candidates"] += 1
+                elif status == "REACHED_ONLY": p_stats["fp"] += 1
+                elif status == "TIMEOUT": p_stats["timeout"] += 1
+                elif status == "HARNESS_ERROR": p_stats["harness_err"] += 1
                 
-                # Detailed Row
                 spec_rows.append({
-                    "Spec_ID": spec_id, 
-                    "File": target_file,
-                    "Line": target_line_str,
-                    "Inferred_Entrypoint": inferred_func,
-                    "Status": status, 
-                    "CWE": cwe_key,
-                    "Time": f"{time_sec:.1f}s", 
-                    "Tokens": tok_cnt
+                    "Spec_ID": spec_id, "File": target_file, "Line": target_line_str,
+                    "Inferred_Entrypoint": inferred_func, "Status": status, "CWE": cwe_key,
+                    "Time": f"{time_sec:.1f}s", "Tokens": tok_cnt
                 })
+            except Exception as e: print(f"[!] Error processing {spec_id}: {e}")
 
-            except Exception as e:
-                print(f"[!] Error processing {spec_id}: {e}")
-
-        # --- Aggregate ---
         gt_total = len(proj_gt)
         gt_found = sum(1 for b in proj_gt if b['matched'])
         recall = f"{gt_found/gt_total:.1%}" if gt_total > 0 else "0%"
@@ -281,17 +400,10 @@ def main():
         precision = f"{p_stats['confirmed'] / precision_denom:.1%}" if precision_denom > 0 else "0%"
 
         p_row = {
-            "Project": pid,
-            "#Entrypoints": p_stats["entrypoints"],
-            "#Confirmed": p_stats["confirmed"],
-            "#Candidates": p_stats["candidates"],
-            "#FP": p_stats["fp"],
-            "Recall": recall,
-            "Precision": precision,
-            "Total_Time_Min": f"{p_stats['time']/60:.1f}",
-            "#Tokens": p_stats["tokens"],
-            "#Harness_Errors": p_stats["harness_err"],
-            "#Timeouts": p_stats["timeout"]
+            "Project": pid, "#Entrypoints": p_stats["entrypoints"], "#Confirmed": p_stats["confirmed"],
+            "#Candidates": p_stats["candidates"], "#FP": p_stats["fp"], "Recall": recall, "Precision": precision,
+            "Total_Time_Min": f"{p_stats['time']/60:.1f}", "#Tokens": p_stats["tokens"],
+            "#Harness_Errors": p_stats["harness_err"], "#Timeouts": p_stats["timeout"]
         }
         project_rows.append(p_row)
         
@@ -303,36 +415,29 @@ def main():
         global_stats["GT_Known"] += gt_total
         global_stats["GT_Detected"] += gt_found
 
-        # Write Per-Project Detailed CSV
         if spec_rows:
             with open(out_dir / f"details_{pid}.csv", 'w') as f:
                 writer = csv.DictWriter(f, fieldnames=["Spec_ID", "File", "Line", "Inferred_Entrypoint", "Status", "CWE", "Time", "Tokens"])
                 writer.writeheader()
                 writer.writerows(spec_rows)
-        
         if confirmed_vulns_rows:
             with open(out_dir / f"confirmed_vulns_{pid}.csv", 'w') as f:
                 writer = csv.DictWriter(f, fieldnames=["File", "Line", "Vuln_Type", "Inferred_Entrypoint", "Spec_ID"])
                 writer.writeheader()
                 writer.writerows(confirmed_vulns_rows)
 
-    # --- FINAL REPORTS ---
-
-    # 1. Project Summary CSV
     if project_rows:
         with open(out_dir / "project_summary.csv", 'w') as f:
             writer = csv.DictWriter(f, fieldnames=project_rows[0].keys())
             writer.writeheader()
             writer.writerows(project_rows)
 
-    # 2. Vulnerability Type Summary CSV
     with open(out_dir / "vuln_type_summary.csv", 'w') as f:
         writer = csv.writer(f)
         writer.writerow(["CWE", "Count"])
         for cwe, count in vuln_type_stats.most_common():
             writer.writerow([f"CWE-{cwe}", count])
 
-    # 3. HTML Report
     html_content = ""
     html_content += f"""
     <div class="summary-grid">
@@ -345,28 +450,19 @@ def main():
     """
     
     if project_rows:
-        rows_html = ""
-        for r in project_rows:
-            rows_html += f"<tr><td>{r['Project']}</td><td>{r['#Entrypoints']}</td><td>{r['#Confirmed']}</td><td>{r['Recall']}</td><td>{r['Precision']}</td><td>{r['Total_Time_Min']} min</td></tr>"
+        rows_html = "".join([f"<tr><td>{r['Project']}</td><td>{r['#Entrypoints']}</td><td>{r['#Confirmed']}</td><td>{r['Recall']}</td><td>{r['Precision']}</td><td>{r['Total_Time_Min']} min</td></tr>" for r in project_rows])
         html_content += f"<h2>Project Breakdown</h2><table><thead><tr><th>Project</th><th>Specs</th><th>Confirmed</th><th>Recall</th><th>Precision</th><th>Time</th></tr></thead><tbody>{rows_html}</tbody></table>"
 
     if vuln_type_stats:
-        cwe_html = ""
-        for cwe, count in vuln_type_stats.most_common():
-            cwe_html += f"<tr><td>CWE-{cwe}</td><td>{count}</td></tr>"
+        cwe_html = "".join([f"<tr><td>CWE-{cwe}</td><td>{count}</td></tr>" for cwe, count in vuln_type_stats.most_common()])
         html_content += f"<h2>Detected Vulnerabilities by Type</h2><table><thead><tr><th>CWE Type</th><th>Count</th></tr></thead><tbody>{cwe_html}</tbody></table>"
 
-    (out_dir / "report.html").write_text(
-        HTML_WRAPPER.format(date=str(datetime.datetime.now()), content=html_content), 
-        encoding="utf-8"
-    )
+    (out_dir / "report.html").write_text(HTML_WRAPPER.format(date=str(datetime.datetime.now()), content=html_content), encoding="utf-8")
 
     print(f"\n[✓] CLEAN Report Generated in: {out_dir}")
     print(f"    - project_summary.csv")
-    print(f"    - vuln_type_summary.csv")
     print(f"    - confirmed_vulns_<pid>.csv")
-    print(f"    - details_<pid>.csv")
-    print(f"    - report.html")
+    print(f"    - oss_fuzz_prep/ (Ready for Verification)")
 
 if __name__ == "__main__":
     main()
