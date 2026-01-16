@@ -3,11 +3,16 @@
 ## Dataset
 dataset snapshot under ./dataset/.
 
-Extract target project source (e.g., from CyberGym):
+1. Extract target project source (e.g., from CyberGym):
 ```
 python3 extract_from_cybergym.py arvo:62911 libxml2
 ```
-
+2. Clone from github
+```
+mkdir dataset
+cd dataset
+git clone https://github.com/GNOME/libxml2.git
+```
 ## Fetch ground-truth metadata 
 ```
 python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911 
