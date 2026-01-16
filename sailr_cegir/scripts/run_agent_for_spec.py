@@ -2745,7 +2745,8 @@ def validate_harness_structure(
          return False, "WEAK ASSERTION DETECTED: 'BUG_ASSERT(len > 0)' is too generic."
 
     # --- 6. Main() Structural Check ---
-    main_re = re.compile(r"^\s*int\s+main\s*\(", re.MULTILINE)
+    # Allows 'void main', 'int main', and spaces before the parenthesis
+    main_re = re.compile(r"^\s*(?:int|void)\s+main\s*\(", re.MULTILINE)
     if not main_re.search(harness_sec):
         if main_re.search(global_sec) or main_re.search(stub_sec_raw):
             return False, "STRUCTURAL ERROR: main() is outside '/* --- Harness --- */'. Move it."
@@ -3416,7 +3417,8 @@ def interactive_synthesizer(
         messages = [{"role": "system", "content": builder_prompt}, {"role": "user", "content": user_msg}]
         (out_dir / f"refine_T{i:02d}_messages.json").write_text(json.dumps(messages, indent=2), encoding="utf-8")
         
-        raw_response = llm_chat(messages)
+        raw_response, usage = llm_chat(messages)
+        update_token_stats(usage)
         (out_dir / f"refine_T{i:02d}_raw_response.txt").write_text(str(raw_response), encoding="utf-8")
         
         # Shell Handling
