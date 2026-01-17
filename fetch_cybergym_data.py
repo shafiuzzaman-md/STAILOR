@@ -114,7 +114,7 @@ def extend_sparse_paths(repo_dir: Path, paths: List[str]) -> None:
         return
 
     run(
-        ["git", "-C", str(repo_dir), "sparse-checkout", "set", *unique_paths],
+        ["git", "-C", str(repo_dir), "sparse-checkout", "add", *unique_paths],
         check=False,
     )
 
