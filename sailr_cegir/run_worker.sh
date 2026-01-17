@@ -19,10 +19,10 @@ export SA_OUT_DIR="${SA_OUT_DIR:-sa_outputs}"
 export DATASET_ROOT="$(realpath "${DATASET_ROOT:-dataset}")"
 export LLM_MODEL="${LLM_MODEL:-deepseek-chat}"
 export LLM_API_BASE="${LLM_API_BASE:-https://api.deepseek.com}"
-export MAX_A="${MAX_A:-10}"
+export MAX_A="${MAX_A:-30}"
 export MAX_B="${MAX_B:-3}"
 export MAX_CYCLES="${MAX_CYCLES:-2}"
-export TIMEOUT="${TIMEOUT:-45}"
+export TIMEOUT="${TIMEOUT:-600}" # seconds
 export CLANG="${CLANG:-clang-14}"
 
 # Paths
@@ -95,6 +95,7 @@ append_klee_flag() {
 # This prevents "undefined reference" errors for malloc, pthread, etc.
 append_klee_flag "--libc=uclibc"
 append_klee_flag "--posix-runtime"
+append_klee_flag "--max-memory=4096"
 
 # Trim leading/trailing whitespace to keep KLEE happy
 KLEE_FLAGS="$(echo "${KLEE_FLAGS:-}" | xargs)"

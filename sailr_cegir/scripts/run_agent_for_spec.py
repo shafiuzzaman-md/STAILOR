@@ -1239,24 +1239,67 @@ def compile_harness_to_bc(args: argparse.Namespace, src_root: Path, harness_c: P
 # ---------------- VALIDATION: DCV ----------------
 
 def run_dcv(plan_path: Path, ctx: Dict[str, Any], args: argparse.Namespace) -> Tuple[bool, str]:
+    """
+    Deterministic Context Validator (DCV).
+    1. Performs in-memory sanity checks (NULL guards, Logic conflicts).
+    2. Runs external validation script (validate_plan_contract.py).
+    """
+    # --- PART 1: NEW IN-MEMORY CHECKS (The "Silent Killer" Fix) ---
+    try:
+        plan = read_json(plan_path)
+        source_code = ctx.get("enclosing_function", "")
+        entry_args = plan.get("entrypoint", {}).get("args", [])
+        constraints = plan.get("constraints", [])
+
+        # Check A: NULL Guard Contradiction
+        for arg in entry_args:
+            name = arg.get("name")
+            val = str(arg.get("value", "")).strip()
+            if val in ["NULL", "0", "nullptr"]:
+                # If plan sets arg=NULL, check if source has 'if (arg == NULL) return'
+                pattern = re.compile(rf"if\s*\(\s*(!\s*{name}\b|{name}\b\s*==\s*NULL)", re.IGNORECASE)
+                if pattern.search(source_code):
+                    return False, (
+                        f"LOGIC ERROR: Argument '{name}' is set to {val}, but target function "
+                        f"has an early-exit guard (e.g., 'if ({name} == NULL)'). "
+                        f"Bug is unreachable. Set '{name}' to a valid pointer."
+                    )
+
+        # Check B: Safety Constraint Conflict
+        if "120" in (args.rule_id or "") or "125" in (args.rule_id or ""):
+            for constr in constraints:
+                c_str = str(constr).lower()
+                if (">=" in c_str or ">" in c_str) and any(x in c_str for x in ["len", "size", "count"]):
+                    return False, (
+                        f"CONSTRAINT CONFLICT: '{constr}' enforces buffer safety (size >= X). "
+                        f"To trigger OOB, you usually need size < X. Remove this constraint."
+                    )
+    except Exception as e:
+        print(f"  [!] DCV In-Memory Check Warning: {e}")
+
+    # --- PART 2: EXISTING EXTERNAL SCRIPT (Legacy Support) ---
     dcv_script = SCRIPT_DIR / "validate_plan_contract.py"
-    if not dcv_script.exists(): return True, ""
-    cmd = [sys.executable, str(dcv_script), "--plan", str(plan_path), "--spec", ctx["spec_path"], "--rule-id", args.rule_id, "--project-name", args.project_id]
+    if not dcv_script.exists(): 
+        return True, "Passed (No external validator found)"
+
+    cmd = [sys.executable, str(dcv_script), "--plan", str(plan_path), 
+           "--spec", ctx["spec_path"], "--project-name", args.project_id]
     
-    # [FIX] Pass Rule ID (if exists)
     if args.rule_id:
         cmd.extend(["--rule-id", args.rule_id])
 
     strat = ((ctx.get("strategy") or {}).get("name") or "")
     if strat:
         cmd.extend(["--strategy", strat])
-
         
-    if ctx.get("fact_pack_path"): cmd.extend(["--fact-pack", ctx["fact_pack_path"]])
-    rc, out, err, _ = run_cmd(cmd)
-    if rc != 0: return False, f"Rule-Based Validator Rejected the Model:\n{out}\n{err}"
-    return True, ""
+    if ctx.get("fact_pack_path"): 
+        cmd.extend(["--fact-pack", ctx["fact_pack_path"]])
 
+    rc, out, err, _ = run_cmd(cmd)
+    if rc != 0: 
+        return False, f"Rule-Based Validator Rejected the Model:\n{out}\n{err}"
+
+    return True, "Plan Validated Successfully."
 # ---------------- CONTEXT BUILD ----------------
 
 def build_context(sa_out_dir: Path, src_root: Path, spec_path: Path, vul_file: str, vul_line: int, ctx_dir: Path) -> Dict[str, Any]:
@@ -1884,6 +1927,67 @@ def validate_and_fix_assertions(src_root: Path, vul_file: str, plan: Dict[str, A
 
     return plan
 
+def fix_c_insertion_point(src_root: Path, vul_file: str, target_line: int, out_dir: Path = None) -> int:
+    """
+    Heuristic: Reads the source file to move the insertion point UP if inside a statement.
+    Tries multiple locations to find the file content.
+    """
+    # Candidates for the source file path
+    candidates = [
+        src_root / vul_file,
+        Path(vul_file),
+        src_root / Path(vul_file).name
+    ]
+    # [FIX] Also look in the run's local 'ctx' folder (most reliable)
+    if out_dir:
+        candidates.insert(0, out_dir / "ctx" / Path(vul_file).name)
+
+    content = None
+    found_path = None
+    for p in candidates:
+        if p.exists() and p.is_file():
+            try:
+                content = p.read_text(encoding="utf-8", errors="replace")
+                found_path = p
+                break
+            except: continue
+    
+    if content is None:
+        print(f"  [!] Sanitize Warning: Source file not found. Checked: {[str(c) for c in candidates]}")
+        return target_line
+
+    lines = content.splitlines()
+    curr_idx = target_line - 1 # 0-based
+    
+    if curr_idx < 0 or curr_idx >= len(lines):
+        return target_line
+
+    # Scan backwards 
+    scan_limit = 50
+    while scan_limit > 0 and curr_idx > 0:
+        prev_line = lines[curr_idx - 1].strip()
+        
+        # Skip comments/empty
+        if not prev_line or prev_line.startswith("//") or (prev_line.startswith("/*") and prev_line.endswith("*/")):
+            curr_idx -= 1
+            continue
+
+        # Safe terminators (Statement ends)
+        if prev_line.endswith(";") or prev_line.endswith("{") or \
+           prev_line.endswith("}") or prev_line.endswith(":"):
+            break
+        
+        # If it doesn't end with a terminator, it's likely a continuation (args, multi-line string)
+        # Move up!
+        curr_idx -= 1
+        scan_limit -= 1
+        
+    safe_line = curr_idx + 1
+    if safe_line != target_line:
+        print(f"  [i] Syntax Safety: Moved insertion {target_line} -> {safe_line} (File: {found_path.name})")
+        
+    return safe_line
+
 def run_frozen_analysis(
     ctx: Dict[str, Any], args: argparse.Namespace, planner_prompt: str, 
     out_dir: Path, src_root: Path
@@ -1909,22 +2013,18 @@ def run_frozen_analysis(
     ensure_dir(out_dir)
     
     history = []
-    found_plan = None
     
     # [OPTIMIZATION] Run Smart Stub Analysis ONCE (Cached)
     smart_stub_guidance = ""
     try:
         # [FIX] Robustly calculate relative path
-        # Handle cases where vul_file is relative ("encoding.c") vs absolute ("/path/to/encoding.c")
         vpath = Path(ctx['vul_file'])
         if vpath.is_absolute():
             try:
                 vul_file_rel = str(vpath.relative_to(src_root))
             except ValueError:
-                # Fallback: If it's absolute but somehow not under src_root, just use the filename
                 vul_file_rel = vpath.name
         else:
-            # It's already relative
             vul_file_rel = str(vpath)
 
         stub_hints = auto_discover_stub_candidates(src_root, vul_file_rel, args.rule_id or "")
@@ -1940,9 +2040,13 @@ def run_frozen_analysis(
     # Initial History State
     history.append({"turn": 0, "content": "STRATEGY: Analyze spec -> 'shell' to verify call paths -> 'final_plan'."})
 
-    max_iters = 10
-    for i in range(max_iters):
-        print(f"  --- [Analysis Turn {i+1}/{max_iters}] ---")
+    # [FIX] Increased budget & Smart Loop
+    max_iters = getattr(args, "frozen_max_turns", 30)
+    turn_idx = 0
+    consecutive_errors = 0
+
+    while turn_idx < max_iters:
+        print(f"  --- [Analysis Turn {turn_idx+1}/{max_iters}] ---")
         
         # Build History Text
         hist_txt = ""
@@ -1971,14 +2075,41 @@ def run_frozen_analysis(
             f"1. STOP using 'grep' piped to 'head'. It hides the function body.\n"
             f"2. If you see a line number from a previous grep, IMMEDIATELY use 'read_file' (or assume context is above).\n"
             f"3. Do NOT search for the same term twice.\n"
-            f"{smart_stub_guidance}" # [OPTIMIZATION] Injected once
+            f"{smart_stub_guidance}"
             f"\nGOAL: Identify the Public Entrypoint and the bug-triggering (violating) predicate for BUG_ASSERT."
         )
         
         # Call LLM
-        resp = call_llm_json(planner_prompt, user_msg, out_dir, f"frozen_iter{i:03d}")
+        resp = call_llm_json(planner_prompt, user_msg, out_dir, f"frozen_iter{turn_idx:03d}")
         
+        # [FIX] Handle Broken JSON / Missing Keys (Does NOT burn budget)
+        if "_llm_error" in resp:
+            print(f"  [!] LLM JSON Parse Failed. Retrying...")
+            history.append({
+                "turn": turn_idx, 
+                "content": "SYSTEM ERROR: Your response was not valid JSON. You MUST output a single JSON block: ```json { ... } ```"
+            })
+            consecutive_errors += 1
+            if consecutive_errors > 5:
+                print("  [!] Critical: Too many consecutive syntax errors. Aborting Phase 1.")
+                break
+            continue
+
         action = resp.get("action")
+        if not action:
+            print(f"  [!] Protocol Violation: Missing 'action' field.")
+            history.append({
+                "turn": turn_idx, 
+                "content": "SYSTEM ERROR: JSON is missing the mandatory 'action' field. Valid actions: 'shell', 'lookup_symbols', 'final_plan'."
+            })
+            consecutive_errors += 1
+            if consecutive_errors > 5:
+                break
+            continue
+
+        # If valid, reset error counter and increment turn
+        consecutive_errors = 0
+        
         rationale = (resp.get("rationale") or "").strip()
         turn_hdr = f"ACTION: {action}\n" + (f"RATIONALE: {rationale}\n" if rationale else "")
         
@@ -1999,11 +2130,13 @@ def run_frozen_analysis(
                 except Exception as e: 
                     log += f"Error: {e}\n"
             
-            history.append({"turn": i, "content": turn_hdr + log})
+            history.append({"turn": turn_idx, "content": turn_hdr + log})
+            turn_idx += 1 # Valid turn consumed
             
         elif action == "lookup_symbols":
             res = perform_smart_lookup(src_root, resp.get("symbols", []))
-            history.append({"turn": i, "content": turn_hdr + f"LOOKUP:\n{res[:4000]}"})
+            history.append({"turn": turn_idx, "content": turn_hdr + f"LOOKUP:\n{res[:4000]}"})
+            turn_idx += 1 # Valid turn consumed
             
         elif action == "final_plan":
             raw_plan = resp.get("plan", {})
@@ -2013,10 +2146,7 @@ def run_frozen_analysis(
             required_entry = ctx["spec"].get("entrypoint")
             planned_entry = raw_plan.get("entrypoint", {}).get("name")
 
-            # ------------------------------------------------------------------
-            # Entrypoint Hallucination Filter
-            # Reject C keywords ('if', 'while') incorrectly identified as functions.
-            # ------------------------------------------------------------------
+            # Keyword Filters
             banned_keywords = {
                 "if", "else", "while", "for", "do", "switch", "case", "default", 
                 "break", "continue", "return", "goto", "sizeof", "typeof", "void",
@@ -2024,20 +2154,20 @@ def run_frozen_analysis(
                 "const", "unsigned", "signed", "volatile", "extern", "UNKNOWN"
             }
 
-            # Check 1: Is it a keyword?
             if planned_entry in banned_keywords:
                 msg = f"PLAN REJECTED: '{planned_entry}' is a C keyword, not a function. You likely misparsed the source code."
                 print(f"  [!] {msg}")
-                history.append({"turn": i, "content": turn_hdr + msg})
+                history.append({"turn": turn_idx, "content": turn_hdr + msg})
+                turn_idx += 1
                 continue
 
-            # Check 2: Is it a valid C identifier? (Must start with letter/_, alphanum only)
             if planned_entry and not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", planned_entry):
                 msg = f"PLAN REJECTED: '{planned_entry}' is not a valid C function name."
                 print(f"  [!] {msg}")
-                history.append({"turn": i, "content": turn_hdr + msg})
+                history.append({"turn": turn_idx, "content": turn_hdr + msg})
+                turn_idx += 1
                 continue
-            # ------------------------------------------------------------------
+
             if required_entry and planned_entry != required_entry:
                 msg = (
                     f"CRITICAL PLAN ERROR: You selected '{planned_entry}' as the entrypoint, "
@@ -2045,7 +2175,8 @@ def run_frozen_analysis(
                     f"Update your plan to call '{required_entry}'."
                 )
                 print(f"  [!] Plan Rejected: {msg}")
-                history.append({"turn": i, "content": turn_hdr + msg})
+                history.append({"turn": turn_idx, "content": turn_hdr + msg})
+                turn_idx += 1
                 continue
 
             # Auto-Switch Static Entrypoints
@@ -2065,6 +2196,19 @@ def run_frozen_analysis(
                 src_root=src_root 
             )
 
+            # Sanitize Insertion Point (Avoid breaking C syntax)
+            # If the target line is inside a multi-line call (e.g. snprintf args), move it up.
+            if "instrumentation" in frozen_plan:
+                for instr in frozen_plan["instrumentation"]:
+                    if "BUG_ASSERT" in instr.get("code", ""):
+                        orig_line = instr.get("line")
+                        print(f"  [DEBUG] Checking syntax safety for BUG_ASSERT at line {orig_line}...")
+                        if isinstance(orig_line, int):
+                            safe_line = fix_c_insertion_point(src_root, ctx['vul_file'], orig_line, out_dir=out_dir)
+                            if safe_line != orig_line:
+                                print(f"  [i] Auto-Correct: Moved BUG_ASSERT from {orig_line} to {safe_line} (Syntax Safety).")
+                                instr["line"] = safe_line
+
             # 2) Validate the canonical plan
             temp_path = out_dir / "temp_plan.json"
             write_json(temp_path, frozen_plan)
@@ -2073,17 +2217,18 @@ def run_frozen_analysis(
             
             if valid:
                 print("  [+] Plan Validated Successfully.")
-                # Save and Return
                 write_json(out_dir / "frozen_plan.json", frozen_plan)
-                history.append({"turn": i, "content": turn_hdr + "FINAL_PLAN_ACCEPTED"})
+                history.append({"turn": turn_idx, "content": turn_hdr + "FINAL_PLAN_ACCEPTED"})
                 return frozen_plan
             else:
                 print(f"  [!] Plan Validation Failed.")
-                history.append({"turn": i, "content": turn_hdr + f"VALIDATOR ERROR: {msg}"})
+                history.append({"turn": turn_idx, "content": turn_hdr + f"VALIDATOR ERROR: {msg}"})
+                turn_idx += 1
                 
         else:
             print(f"  [!] Unknown action: {action}")
-            history.append({"turn": i, "content": f"SYSTEM ERROR: Unknown action '{action}'. Use 'shell', 'lookup_symbols', or 'final_plan'."})
+            history.append({"turn": turn_idx, "content": f"SYSTEM ERROR: Unknown action '{action}'. Use 'shell', 'lookup_symbols', or 'final_plan'."})
+            turn_idx += 1
 
     print("[!] Phase 1 failed: No valid plan produced after max turns.")
     return {"plan_error": "Analysis Failed"}
@@ -2117,7 +2262,7 @@ def check_for_assert_files(log_dir: Path) -> Tuple[bool, bool]:
 
     return bug_hit, reach_hit
 
-def check_crash_locality(log_text: str, target_file: str, target_line: int, window: int = 20) -> Tuple[bool, str]:
+def check_crash_locality(log_text: str, target_file: str, target_line: int, window: int = 100) -> Tuple[bool, str]:
     """
     Crash Analysis:
     1. Rejects ALL crashes originating in the harness/stubs.

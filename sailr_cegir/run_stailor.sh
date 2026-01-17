@@ -125,7 +125,7 @@ bash "${REPO_ROOT}/sailr_cegir/run_batch.sh" \
   "$PROJECT_ID" \
   "auto" \
   "$SPECS_DIR" \
-  4
+  64
 
 # --- Phase 3: Results ---
 echo "[=] Phase 3: Collecting Results"
