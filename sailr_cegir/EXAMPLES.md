@@ -21,7 +21,7 @@ python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
 ## Pipeline
 Example 1 (Cyber_gym):
 ```
-bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
+bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul
 ```
 
 Example 2:
@@ -64,13 +64,13 @@ chmod +x codeql_scan.sh
 ```
 SA_OUT_DIR=sa_outputs \
 DATASET_ROOT=$(pwd)/dataset \
-CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I$(pwd)/dataset/62911/libxml2_62911_vul/build -I/home/shafi/tools/klee/include" \
+CLANG_FLAGS="-I$(pwd)/dataset/55980/libxml2_55980_vul/include -I$(pwd)/dataset/55980/libxml2_55980_vul/build -I/home/shafi/tools/klee/include" \
 MAX_A=30 MAX_B=3 TIMEOUT=600 \
 BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
 bash sailr_cegir/run_worker.sh \
-   "62911/libxml2_62911_vul" \
+   "55980/libxml2_55980_vul" \
    "oob-read" \
-   "specs/libxml2_62911_vul/172_dict.c_541_local_cpp_cwe-125-oob-read.json" \
+   "specs/libxml2_55980_vul/446_parser.c_12080_local_cpp_cwe-125-cursor-lookahead-missing-bytes-check.json" \
    "rules/stailor-queries/suites/stailor.qls"
 ```
 

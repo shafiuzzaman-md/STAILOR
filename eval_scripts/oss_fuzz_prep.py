@@ -80,18 +80,14 @@ class KTestReader:
 def generate_oss_fuzz_source_c(driver_src: str) -> str:
     """Generates a pure C file (target.c) with robust macro cleaning."""
     
-    # 1. Global Clean (Regex based to preserve #ifdefs)
     clean_lines = []
     for line in driver_src.splitlines():
         stripped = line.strip()
         
-        # Filter 1: Remove KLEE Include
         if re.search(r'^\s*#\s*include\s*[<"]klee/klee\.h[>"]', stripped):
             clean_lines.append("// " + line)
             continue
             
-        # Filter 2: Remove BAD definitions (starts with #define), but KEEP #ifdef/#ifndef
-        # This prevents the "stray #endif" error.
         if re.search(r'^\s*#\s*define\s+BUG_ASSERT', stripped):
             clean_lines.append("// " + line)
             continue
@@ -106,7 +102,6 @@ def generate_oss_fuzz_source_c(driver_src: str) -> str:
 
     driver_src_clean = "\n".join(clean_lines)
 
-    # 2. Section Parsing
     parts = {}
     current_section = "preamble"
     buffer = []
@@ -140,8 +135,6 @@ def generate_oss_fuzz_source_c(driver_src: str) -> str:
     out.append("#include <assert.h>")
     out.append("#include <stdio.h>")
     
-    # Inject Safe Macros (Shims)
-    # These replace the ones we deleted, ensuring code compiles even if #ifndef was present
     out.append("\n/* --- Safe Macro Shims --- */")
     out.append("#define klee_assert(x) assert(x)")
     out.append("#define BUG_ASSERT(x) assert(x)")
@@ -158,7 +151,6 @@ def generate_oss_fuzz_source_c(driver_src: str) -> str:
 
     harness_raw = parts.get("harness", "")
     
-    # 3. Extract Main Body
     main_match = re.search(r'(int\s+main\s*\([^)]*\)\s*\{)', harness_raw)
     if main_match:
         start_idx = main_match.start()
@@ -174,13 +166,11 @@ def generate_oss_fuzz_source_c(driver_src: str) -> str:
     out.append("\n/* --- Harness Preamble --- */")
     out.append(preamble)
 
-    # 4. Transform Logic (Legacy cleanups just in case)
     body = re.sub(r'klee_assume\s*\((.*)\)\s*;', r'if (!(\1)) return 0;', body)
     body = re.sub(r'BUG_ASSERT\s*\((.*)\)\s*;', r'assert(\1);', body)
     body = re.sub(r'REACH_ASSERT\s*\(\s*\)\s*;', r'', body)
     body = re.sub(r'klee_assert\s*\((.*)\)\s*;', r'assert(\1);', body)
 
-    # Input Mapping (Pure C memcpy)
     def input_replacer(match):
         dest = match.group(1).strip()
         size_expr = match.group(2).strip()
@@ -191,7 +181,6 @@ def generate_oss_fuzz_source_c(driver_src: str) -> str:
 
     body = re.sub(r'klee_make_symbolic\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*"[^"]*"\s*\)\s*;', input_replacer, body)
 
-    # 5. C Entrypoint (No extern "C")
     out.append("\n/* --- Fuzzer Entrypoint --- */")
     out.append('int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {')
     out.append("    size_t _consumed = 0;")
@@ -208,18 +197,6 @@ def get_ktest_path(spec_dir, meta_ktest_path):
         if ktests: return ktests[0]
     return None
 
-def get_inferred_entrypoint(spec_dir):
-    plan_path = spec_dir / "frozen_analysis" / "frozen_plan.json"
-    if plan_path.exists():
-        try:
-            data = json.loads(plan_path.read_text())
-            if isinstance(data, dict):
-                ep = data.get("entrypoint", {})
-                if isinstance(ep, dict): return ep.get("name", "-")
-                return str(ep)
-        except: pass
-    return "-"
-
 def main():
     parser = argparse.ArgumentParser(description="Prepare OSS-Fuzz Verification Artifacts")
     parser.add_argument("--runs-root", required=True)
@@ -234,13 +211,15 @@ def main():
 
     print(f"[*] Scanning {runs_root} for CONFIRMED bugs...")
     
-    root_items = list(runs_root.iterdir())
-    has_meta = any((x / "run_meta.json").exists() for x in root_items if x.is_dir())
-    scan_list = [runs_root] if has_meta else sorted([x for x in root_items if x.is_dir()])
+    scan_list = sorted([x for x in runs_root.iterdir() if x.is_dir()])
 
     count = 0
     for project_dir in scan_list:
         pid = project_dir.name
+        
+        # Extract base name (libxml2) from project ID (libxml2_55980_vul)
+        base_name = pid.split('_')[0]
+        
         spec_dirs = sorted([x for x in project_dir.iterdir() if x.is_dir()])
         
         for spec_dir in spec_dirs:
@@ -253,7 +232,7 @@ def main():
                 status = meta.get("class", "none")
                 
                 if status in STATUS_MAP.keys() and "CONFIRMED" in STATUS_MAP[status]:
-                    print(f"  [+] Processing: {spec_id}")
+                    print(f"  [+] Processing: {spec_id} (Project: {base_name})")
                     oss_dest = prep_dir / f"{pid}_{spec_id}"
                     oss_dest.mkdir(exist_ok=True)
                     
@@ -264,11 +243,8 @@ def main():
                         shutil.copy2(harness_src, oss_dest / "driver.c")
                         try:
                             c_content = harness_src.read_text(encoding="utf-8", errors="replace")
-                            # Convert to C (target.c)
                             c_target = generate_oss_fuzz_source_c(c_content)
                             (oss_dest / "target.c").write_text(c_target, encoding="utf-8")
-                            
-                            # Driver stays C++
                             (oss_dest / "standalone_driver.cc").write_text(STANDALONE_DRIVER_SRC, encoding="utf-8")
                         except Exception as e: print(f"      [!] Conversion Failed: {e}")
 
@@ -279,30 +255,32 @@ def main():
                                     for obj in ktr.objects: f.write(obj['data'])
                             except Exception as e: print(f"      [!] Binary Extract Failed: {e}")
                         
-                        # Build Script with correct Linker Logic
+                        # [FIX] Removed -lz -llzma -ldl to fix linker errors
+                        # If libxml2 needs them, it should have been built with them.
+                        # Since ld fails to find them, they are likely missing/disabled.
                         (oss_dest / "build_helper.sh").write_text(
                             f"#!/bin/bash\n"
                             f"echo '[*] Searching for library...'\n"
-                            f"LIB_PATH=$(find /src -name 'lib{pid}.a' -o -name '{pid}.a' | head -n 1)\n"
+                            f"LIB_PATH=$(find /src -name 'lib{base_name}.a' -o -name '{base_name}.a' -o -name 'lib{pid}.a' | head -n 1)\n"
                             f"if [ -z \"$LIB_PATH\" ] || [ ! -f \"$LIB_PATH\" ]; then\n"
                             f"  echo '[!] Library not found. Attempting build...'\n"
-                            f"  if [ -d \"/src/{pid}\" ]; then\n"
-                            f"    cd /src/{pid}\n"
+                            f"  if [ -d \"/src/{base_name}\" ]; then\n"
+                            f"    cd /src/{base_name}\n"
                             f"    [ -f autogen.sh ] && ./autogen.sh\n"
                             f"    [ -f configure ] && ./configure --disable-shared --without-python\n"
                             f"    make -j$(nproc)\n"
                             f"    cd -\n"
-                            f"    LIB_PATH=$(find /src -name 'lib{pid}.a' -o -name '{pid}.a' | head -n 1)\n"
+                            f"    LIB_PATH=$(find /src -name 'lib{base_name}.a' -o -name '{base_name}.a' | head -n 1)\n"
                             f"  fi\n"
                             f"fi\n"
                             f"if [ -z \"$LIB_PATH\" ]; then echo '[!] FAIL: Could not find/build library'; exit 1; fi\n"
                             f"echo \"    Using: $LIB_PATH\"\n"
                             f"echo '[*] Compiling...'\n"
-                            f"# Compile Target as C ($CC)\n"
-                            f"$CC $CFLAGS -fsanitize=address -I/src/{pid}/include -c target.c -o target.o\n"
-                            f"# Compile Driver as C++ ($CXX)\n"
+                            f"# Compile Target as C\n"
+                            f"$CC $CFLAGS -fsanitize=address -I/src/{base_name}/include -I/src/{pid}/include -c target.c -o target.o\n"
+                            f"# Compile Driver as C++\n"
                             f"$CXX $CXXFLAGS -fsanitize=address -c standalone_driver.cc -o driver.o\n"
-                            f"# Link together using C++ linker\n"
+                            f"# Link (Minimal Deps)\n"
                             f"$CXX $CXXFLAGS -fsanitize=address driver.o target.o \"$LIB_PATH\" -o reproducer -lm -lpthread\n\n"
                             f"[ -f ./reproducer ] && ./reproducer crash.bin\n",
                             encoding="utf-8"

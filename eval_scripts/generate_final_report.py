@@ -60,6 +60,7 @@ HTML_WRAPPER = """
 def parse_args():
     parser = argparse.ArgumentParser(description="Generate Final Report (HTML/CSV)")
     parser.add_argument("--runs-root", required=True, help="Path to se_runs root")
+    parser.add_argument("--src-root", required=False, help="Path to source root (dataset)")
     parser.add_argument("--ground-truth", help="Path to cybergym_data.csv")
     parser.add_argument("--output-dir", required=True, help="Output directory")
     return parser.parse_args()

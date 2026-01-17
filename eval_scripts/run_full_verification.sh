@@ -127,8 +127,12 @@ if [ ! -f "$REPORT_SCRIPT" ] || [ ! -f "$PREP_SCRIPT" ]; then
     exit 1
 fi
 
-# A. Generate Report
-python3 "$REPORT_SCRIPT" --runs-root "$LOCAL_RUNS_DIR" --ground-truth "cybergym_data.csv" --output-dir "$OUTPUT_DIR" > /dev/null
+# A. Generate Report (UPDATED WITH --src-root)
+python3 "$REPORT_SCRIPT" \
+    --runs-root "$LOCAL_RUNS_DIR" \
+    --src-root "$LOCAL_SRC_ROOT" \
+    --ground-truth "cybergym_data.csv" \
+    --output-dir "$OUTPUT_DIR" > /dev/null
 
 # B. Generate Prep Files
 python3 "$PREP_SCRIPT" --runs-root "$LOCAL_RUNS_DIR" --output-dir "$OUTPUT_DIR"
