@@ -1,0 +1,17 @@
+libxml2/004_HTMLtree.c_247_local_cpp_cwe-120-overflow
+libxml2/003_HTMLtree.c_245_local_cpp_cwe-120-overflow
+libxml2/076_buf.c_472_local_cpp_cwe-120-overflow
+libxml2/102_xmlregexp.c_5895_local_cpp_cwe-120-overflow
+libxml2/134_xmlregexp.c_3647_local_cpp_cwe-120-overflow
+libxml2/066_buf.c_1043_local_cpp_cwe-120-overflow
+libxml2/128_xmlregexp.c_4238_local_cpp_cwe-120-overflow
+libxml2/103_xmlregexp.c_5897_local_cpp_cwe-120-overflow
+libxml2/180_buf.c_1056_local_cpp_cwe-787-oob-write
+libxml2/197_dict.c_340_shafi_cpp_pattern_free-then-deref_intra
+libxml2/206_tree.c_964_shafi_cpp_pattern_free-then-use_intra
+libxml2/187_xmlsave.c_140_local_cpp_cwe-787-oob-write
+libxml2/203_tree.c_959_shafi_cpp_pattern_free-then-use_intra
+libxml2/199_dict.c_339_shafi_cpp_pattern_free-then-use_intra
+libxml2/209_tree.c_967_shafi_cpp_pattern_free-then-use_intra
+libxml2/183_buf.c_472_local_cpp_cwe-787-oob-write
+libxml2/145_xpath.c_2681_local_cpp_cwe-120-overflow

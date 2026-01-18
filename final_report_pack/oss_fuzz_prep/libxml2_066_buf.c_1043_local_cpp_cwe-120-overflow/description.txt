@@ -1,0 +1,11 @@
+Automated Crash Report
+----------------------
+Vulnerability Type: SEGV (Segmentation Fault) - Null Pointer Dereference
+Function:           Unknown Function
+Location:           Unknown Location
+
+Summary:
+A SEGV (Segmentation Fault) - Null Pointer Dereference was detected in function 'Unknown Function' at Unknown Location.
+The crash was reproduced using the attached 'crash.bin' input.
+
+See 'error.txt' for the full AddressSanitizer stack trace.

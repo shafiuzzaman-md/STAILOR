@@ -1,0 +1,19 @@
+VERIFICATION SUMMARY - Sat Jan 17 11:53:21 PM PST 2026
+---------------------------------------------------
+[FAILED]   libxml2_003_HTMLtree.c_245_local_cpp_cwe-120-overflow
+[FAILED]   libxml2_004_HTMLtree.c_247_local_cpp_cwe-120-overflow
+[VERIFIED] libxml2_066_buf.c_1043_local_cpp_cwe-120-overflow
+[FAILED]   libxml2_076_buf.c_472_local_cpp_cwe-120-overflow
+[FAILED]   libxml2_102_xmlregexp.c_5895_local_cpp_cwe-120-overflow
+[FAILED]   libxml2_103_xmlregexp.c_5897_local_cpp_cwe-120-overflow
+[FAILED]   libxml2_128_xmlregexp.c_4238_local_cpp_cwe-120-overflow
+[VERIFIED] libxml2_134_xmlregexp.c_3647_local_cpp_cwe-120-overflow
+[VERIFIED] libxml2_145_xpath.c_2681_local_cpp_cwe-120-overflow
+[VERIFIED] libxml2_180_buf.c_1056_local_cpp_cwe-787-oob-write
+[FAILED]   libxml2_183_buf.c_472_local_cpp_cwe-787-oob-write
+[FAILED]   libxml2_187_xmlsave.c_140_local_cpp_cwe-787-oob-write
+[FAILED]   libxml2_197_dict.c_340_shafi_cpp_pattern_free-then-deref_intra
+[FAILED]   libxml2_199_dict.c_339_shafi_cpp_pattern_free-then-use_intra
+[FAILED]   libxml2_203_tree.c_959_shafi_cpp_pattern_free-then-use_intra
+[FAILED]   libxml2_206_tree.c_964_shafi_cpp_pattern_free-then-use_intra
+[FAILED]   libxml2_209_tree.c_967_shafi_cpp_pattern_free-then-use_intra

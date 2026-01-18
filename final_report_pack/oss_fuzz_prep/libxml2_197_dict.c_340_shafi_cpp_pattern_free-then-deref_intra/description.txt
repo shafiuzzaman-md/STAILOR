@@ -1,0 +1,11 @@
+Automated Crash Report
+----------------------
+Vulnerability Type: Unknown Crash
+Function:           __interceptor_free
+Location:           asan_malloc_linux.cc:123
+
+Summary:
+A Unknown Crash was detected in function '__interceptor_free' at asan_malloc_linux.cc:123.
+The crash was reproduced using the attached 'crash.bin' input.
+
+See 'error.txt' for the full AddressSanitizer stack trace.

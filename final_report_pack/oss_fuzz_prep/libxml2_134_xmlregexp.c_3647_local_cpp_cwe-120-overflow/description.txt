@@ -1,0 +1,11 @@
+Automated Crash Report
+----------------------
+Vulnerability Type: SEGV (Segmentation Fault) - Null Pointer Dereference
+Function:           xmlRegNewExecCtxt
+Location:           xmlregexp.c:3533:22
+
+Summary:
+A SEGV (Segmentation Fault) - Null Pointer Dereference was detected in function 'xmlRegNewExecCtxt' at xmlregexp.c:3533:22.
+The crash was reproduced using the attached 'crash.bin' input.
+
+See 'error.txt' for the full AddressSanitizer stack trace.

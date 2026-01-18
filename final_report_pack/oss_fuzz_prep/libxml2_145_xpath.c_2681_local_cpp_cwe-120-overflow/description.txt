@@ -1,0 +1,11 @@
+Automated Crash Report
+----------------------
+Vulnerability Type: SEGV (Segmentation Fault)
+Function:           xmlXPathNodeSetCreate
+Location:           xpath.c:3546:22
+
+Summary:
+A SEGV (Segmentation Fault) was detected in function 'xmlXPathNodeSetCreate' at xpath.c:3546:22.
+The crash was reproduced using the attached 'crash.bin' input.
+
+See 'error.txt' for the full AddressSanitizer stack trace.

@@ -46,13 +46,42 @@ mkdir -p "$LOCAL_RUNS_DIR"
 RSYNC_BASE=(-avz --partial --append-verify)
 SOURCE=""
 
-if [[ "$MODE" == "remote" ]]; then
-    # -e takes multiple arguments, so we keep it as one string in the array logic
-    SSH_CMD="ssh -J $PROXY_USER@$PROXY_HOST"
-    SOURCE="$SERVER_USER@$SERVER_HOST:$REMOTE_PATH"
-elif [[ "$MODE" == "proxy" ]]; then
-    SSH_CMD="ssh"
-    SOURCE="$SERVER_USER@$SERVER_HOST:$REMOTE_PATH"
+# --- [NEW] SSH MULTIPLEXING SETUP ---
+# This creates a persistent socket so you only type your password ONCE.
+SSH_SOCKET_DIR="$HOME/.ssh/sockets"
+mkdir -p "$SSH_SOCKET_DIR"
+SSH_CONTROL_PATH="$SSH_SOCKET_DIR/stailor_mux_%h_%p_%r"
+
+start_ssh_multiplex() {
+    echo "[*] Establishing persistent SSH connection (Enter Password ONCE)..."
+    
+    if [[ "$MODE" == "remote" ]]; then
+        # Start the master connection in the background (-f -N)
+        ssh -M -S "$SSH_CONTROL_PATH" -f -N -J "$PROXY_USER@$PROXY_HOST" "$SERVER_USER@$SERVER_HOST"
+        
+        # Configure SSH command to use this socket
+        SSH_CMD="ssh -S $SSH_CONTROL_PATH"
+        SOURCE="$SERVER_USER@$SERVER_HOST:$REMOTE_PATH"
+        
+    elif [[ "$MODE" == "proxy" ]]; then
+        ssh -M -S "$SSH_CONTROL_PATH" -f -N "$SERVER_USER@$SERVER_HOST"
+        SSH_CMD="ssh -S $SSH_CONTROL_PATH"
+        SOURCE="$SERVER_USER@$SERVER_HOST:$REMOTE_PATH"
+    fi
+}
+
+# Cleanup the socket when script exits
+cleanup() {
+    if [[ -S "$SSH_CONTROL_PATH" ]]; then
+        echo ""
+        echo "[*] Closing persistent SSH connection..."
+        ssh -S "$SSH_CONTROL_PATH" -O exit "$SERVER_USER@$SERVER_HOST" 2>/dev/null
+    fi
+}
+trap cleanup EXIT
+
+if [[ "$MODE" == "remote" ]] || [[ "$MODE" == "proxy" ]]; then
+    start_ssh_multiplex
 elif [[ "$MODE" == "server" ]]; then
     SSH_CMD=""
     SOURCE="$REMOTE_PATH"
@@ -73,9 +102,6 @@ run_rsync() {
 # --- STEP 1: FETCH SUMMARIES ONLY ---
 echo ""
 echo "[1/3] Fetching summary.tsv files..."
-
-# Fetch structure and summaries (exclude everything else)
-# Note: quoting '*' prevents shell expansion
 run_rsync --include '*/' --include 'summary.tsv' --exclude '*' "$SOURCE" "$LOCAL_RUNS_DIR/"
 
 # --- STEP 2: PARSE CONFIRMED BUGS ---
@@ -83,13 +109,11 @@ echo "      Parsing summaries for CONFIRMED bugs..."
 TARGET_LIST="confirmed_targets.txt"
 > "$TARGET_LIST"
 
-# Find all downloaded summary.tsv files
 find "$LOCAL_RUNS_DIR" -name "summary.tsv" | while read summary_file; do
     PROJ_DIR=$(dirname "$summary_file")
     PROJ_NAME=$(basename "$PROJ_DIR")
-    
-    # Grep for Confirmed bugs
-    grep "H2_BUG_CONFIRMED" "$summary_file" | awk -v p="$PROJ_NAME" '{print p"/"$1"/"}' >> "$TARGET_LIST"
+    # Grep for Confirmed bugs (Grab the folder name)
+    grep "H2_BUG_CONFIRMED" "$summary_file" | awk -v p="$PROJ_NAME" '{print p"/"$1}' >> "$TARGET_LIST"
 done
 
 BUG_COUNT=$(wc -l < "$TARGET_LIST")
@@ -100,21 +124,37 @@ fi
 
 echo "      Found $BUG_COUNT confirmed bugs. Downloading artifacts..."
 
-# --- STEP 3: DOWNLOAD TARGETED DIRECTORIES ---
+# --- STEP 3: DOWNLOAD TARGETED DIRECTORIES (FIXED LOOP) ---
 echo ""
-echo "[2/3] Downloading bug artifacts..."
+echo "[2/3] Downloading bug artifacts (Iterative Sync)..."
 
-# Download only the folders listed in confirmed_targets.txt
-run_rsync \
-    --files-from="$TARGET_LIST" \
-    --exclude '**/*.ll' \
-    --exclude '**/*.bc' \
-    --exclude '**/*.istats' \
-    --exclude '**/*.stats' \
-    --exclude '**/*.pdf' \
-    --exclude '**/klee-out-*/assembly.ll' \
-    --exclude '**/klee-out-*/run.istats' \
-    "$SOURCE" "$LOCAL_RUNS_DIR/"
+# Exclusions to keep download fast
+EXCLUDES=(
+    --exclude '**/*.ll'
+    --exclude '**/*.bc'
+    --exclude '**/*.istats'
+    --exclude '**/*.stats'
+    --exclude '**/*.pdf'
+    --exclude '**/klee-out-*/assembly.ll'
+    --exclude '**/klee-out-*/run.istats'
+)
+
+while read -r REL_PATH; do
+    # Remove trailing slashes
+    REL_PATH=${REL_PATH%/}
+    
+    echo "      -> Syncing: $REL_PATH"
+    
+    # Ensure local parent directory exists
+    mkdir -p "$LOCAL_RUNS_DIR/$REL_PATH"
+    
+    # Sync content of this specific folder
+    run_rsync \
+        "${EXCLUDES[@]}" \
+        "$SOURCE$REL_PATH/" \
+        "$LOCAL_RUNS_DIR/$REL_PATH/"
+
+done < "$TARGET_LIST"
 
 echo "[✓] Smart Download complete."
 
@@ -127,14 +167,16 @@ if [ ! -f "$REPORT_SCRIPT" ] || [ ! -f "$PREP_SCRIPT" ]; then
     exit 1
 fi
 
-# A. Generate Report (UPDATED WITH --src-root)
+# A. Generate Report
 python3 "$REPORT_SCRIPT" \
     --runs-root "$LOCAL_RUNS_DIR" \
     --src-root "$LOCAL_SRC_ROOT" \
     --ground-truth "cybergym_data.csv" \
     --output-dir "$OUTPUT_DIR" > /dev/null
 
-# B. Generate Prep Files
+# B. Generate Prep Files (Force regeneration)
+echo "      Regenerating OSS-Fuzz Prep files..."
+rm -rf "$OUTPUT_DIR/oss_fuzz_prep"
 python3 "$PREP_SCRIPT" --runs-root "$LOCAL_RUNS_DIR" --output-dir "$OUTPUT_DIR"
 
 if [ ! -d "$OUTPUT_DIR/oss_fuzz_prep" ]; then
@@ -156,11 +198,19 @@ VERIFIED_COUNT=0
 shopt -s nullglob
 for bug_dir in "$OUTPUT_DIR/oss_fuzz_prep"/*/; do
     BUG_NAME=$(basename "$bug_dir")
+    
+    # Check for build script
+    if [ ! -f "$bug_dir/build_helper.sh" ]; then
+        echo "      [SKIP] Ignoring malformed directory: $BUG_NAME"
+        continue
+    fi
+
     echo "      Testing: $BUG_NAME..."
     
     LOG_FILE="$bug_dir/verification.log"
     chmod +x "$bug_dir/build_helper.sh"
 
+    # Capture Exit Code
     docker run --rm \
         -v "$(realpath "$bug_dir")":/verify \
         -w /verify \
@@ -168,6 +218,9 @@ for bug_dir in "$OUTPUT_DIR/oss_fuzz_prep"/*/; do
         "$DOCKER_IMAGE" \
         /bin/bash -c "./build_helper.sh" > "$LOG_FILE" 2>&1
     
+    EXIT_CODE=$?
+
+    # Check Log Content for Crash Signatures
     if grep -q "AddressSanitizer:.*overflow" "$LOG_FILE" || \
        grep -q "AddressSanitizer:.*use-after-free" "$LOG_FILE" || \
        grep -q "SEGV" "$LOG_FILE"; then
@@ -175,10 +228,13 @@ for bug_dir in "$OUTPUT_DIR/oss_fuzz_prep"/*/; do
         echo "[VERIFIED] $BUG_NAME" >> "$SUMMARY_LOG"
         VERIFIED_COUNT=$((VERIFIED_COUNT+1))
     else
-        echo "      [FAILED]   No crash detected. (See log below)"
+        echo "      [FAILED]   No crash detected. (Log below)"
         echo "[FAILED]   $BUG_NAME" >> "$SUMMARY_LOG"
-        # Print last 3 lines of failure to see WHY (Compilation error? Run error?)
-        tail -n 3 "$LOG_FILE" | sed 's/^/          /' 
+        
+        # Show log to debug issues immediately
+        echo "          --- VERIFICATION LOG START ---"
+        cat "$LOG_FILE" | sed 's/^/          /'
+        echo "          --- VERIFICATION LOG END ---"
     fi
 done
 
@@ -187,7 +243,6 @@ echo "[4/3] Generating Crash Reports (description.txt & error.txt)..."
 GEN_REPORT_SCRIPT="eval_scripts/generate_crash_report.py"
 
 if [ -f "$GEN_REPORT_SCRIPT" ]; then
-    # We pass the same OUTPUT_DIR defined at the top of your script
     python3 "$GEN_REPORT_SCRIPT" --output-dir "$OUTPUT_DIR"
 else
     echo "[!] Warning: $GEN_REPORT_SCRIPT not found. Skipping report generation."
