@@ -115,6 +115,14 @@ if [[ -n "${BUILD_PROJECT_BC_CMD:-}" ]]; then
 fi
 
 
+
+# [NEW] Provide compile_commands.json to enable TU-scoped Pre-Scan (faster, less noise).
+COMPILE_COMMANDS_JSON="${SA_PROJECT_DIR}/compile_commands.json"
+COMPILE_COMMANDS_ARG=()
+if [[ -f "${COMPILE_COMMANDS_JSON}" ]]; then
+  COMPILE_COMMANDS_ARG=( --compile-commands "${COMPILE_COMMANDS_JSON}" )
+fi
+
 echo "[WORKER] Processing: ${STEM} (File: ${VUL_FILE}, Line: ${VUL_LINE})"
 
 # Call Python Driver
@@ -140,6 +148,7 @@ python3 "${SCRIPTS_DIR}/run_agent_for_spec.py" \
   --max-b "${MAX_B}" \
   --max-cycles "${MAX_CYCLES}" \
   --timeout "${TIMEOUT}" \
+  "${COMPILE_COMMANDS_ARG[@]}" \
   --run-dir "${RUN_DIR}" \
   --project-bc "${PROJECT_BC}" \
   "${BUILD_PROJECT_BC_CMD_ARG[@]}" \
