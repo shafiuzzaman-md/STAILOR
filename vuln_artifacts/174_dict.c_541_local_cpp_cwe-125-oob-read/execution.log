@@ -1,0 +1,560 @@
+[i] Logging all output to: /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/execution.log
+  [i] Copied vulnerable file to: /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/ctx/dict.c
+  [i] Context: File 'dict.c' is 940 lines. Using FULL SOURCE.
+[+] Running Context Discovery on dict.c...
+    [i] No obvious static barriers found.
+[Strategy] Inferred: OOB_READ (Oracle: instrumented_predicate)
+  [i] Prompts saved to /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/prompts
+
+[=] PHASE 1: Frozen Context Analysis (Identifying Entrypoint & Logic)
+  --- [Analysis Turn 1/30] ---
+  --- [Analysis Turn 2/30] ---
+  [i] Received 'final_plan'. Validating...
+  [+] Entrypoint 'xmlDictLookup' verified linkable.
+  [i] Zero-Day Discovery: Tracing public reachability for 'xmlDictLookup'...
+  [+] Reachability Candidate: xmlSchematronFree -> xmlDictLookup
+  [i] Upgrading Entrypoint: xmlDictLookup -> xmlSchematronFree (Chain: xmlSchematronFree -> xmlDictLookup)
+  [i] QL-Validation: Identified Vulnerable Sink 'memcmp' at line 541.
+      Critical Argument (Length): 'len'
+  [i] Syntax Safety: Moved insertion 541 -> 534 (File: dict.c)
+  [DEBUG] Checking syntax safety for BUG_ASSERT at line 1...
+  [DEBUG] Checking syntax safety for BUG_ASSERT at line 541...
+  [i] Syntax Safety: Moved insertion 541 -> 534 (File: dict.c)
+  [i] Auto-Correct: Moved BUG_ASSERT from 541 to 534 (Syntax Safety).
+  [DEBUG] Checking syntax safety for BUG_ASSERT at line 541...
+  [i] Syntax Safety: Moved insertion 541 -> 534 (File: dict.c)
+  [i] Auto-Correct: Moved BUG_ASSERT from 541 to 534 (Syntax Safety).
+  [+] Plan Validated Successfully.
+  [i] Pipeline: Injected KLEE headers into /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/instrumented_source/include/klee to fix build dependencies.
+  [stubs] MUST_KEEP_FUNCS(6): xmlDictExists, xmlDictFindEntry, xmlDictLookup, xmlDictLookupHashed, xmlDictLookupInternal, xmlDictQLookup
+  [i] Switching to Instrumented Bitcode: /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/instrumented_source/project.bc
+
+[=] PHASE 2: Iterative Refinement (Concrete -> Symbolic)
+
+*** STATEMENT GRAPH (MISSION OBJECTIVE) ***
+[✓] xmlSchematronFree (harness.c:0)
+      ↓
+      ... (:0)
+        ↓
+    [!] TARGET (dict.c:541)
+          `if ((memcmp(entry->name, name, len) == 0) &&`
+*******************************************
+
+
+  --- [Refinement Turn 1 (Budget 1/30)] ---
+  [*] Compiling to Bitcode...
+  [*] Running KLEE...
+      [>] Output Dir:   /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-0
+      [>] Streaming KLEE output (600s max)...
+      ---------------------------------------------------
+      [KLEE] KLEE: NOTE: Using POSIX model: /home/shafi/tools/klee/build/runtime/lib/libkleeRuntimePOSIX64_Debug+Asserts.bca
+      [KLEE] KLEE: NOTE: Using klee-uclibc : /home/shafi/tools/klee/build/runtime/lib/klee-uclibc.bca
+      [KLEE] KLEE: output directory is "/media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-0"
+      [KLEE] KLEE: Using Z3 solver backend
+      [KLEE] KLEE: Deterministic allocator: Using quarantine queue size 8
+      [KLEE] KLEE: Deterministic allocator: globals (start-address=0x790ea6200000 size=10 GiB)
+      [KLEE] KLEE: Deterministic allocator: constants (start-address=0x790c26200000 size=10 GiB)
+      [KLEE] KLEE: Deterministic allocator: heap (start-address=0x780c26200000 size=1024 GiB)
+      [KLEE] KLEE: Deterministic allocator: stack (start-address=0x77ec26200000 size=128 GiB)
+      [KLEE] KLEE: WARNING ONCE: unsupported intrinsic llvm.load.relative.i64
+      [KLEE] KLEE: WARNING: undefined reference to function: __isoc99_sscanf
+      [KLEE] KLEE: WARNING: undefined reference to variable: __libc_single_threaded
+      [KLEE] KLEE: WARNING: undefined reference to function: bcmp
+      [KLEE] KLEE: WARNING: undefined reference to function: ceil
+      [KLEE] KLEE: WARNING: undefined reference to function: crc32
+      [KLEE] KLEE: WARNING: undefined reference to function: deflate
+      [KLEE] KLEE: WARNING: undefined reference to function: deflateEnd
+      [KLEE] KLEE: WARNING: undefined reference to function: deflateInit2_
+      [KLEE] KLEE: WARNING: undefined reference to function: dlclose
+      [KLEE] KLEE: WARNING: undefined reference to function: dlerror
+      [KLEE] KLEE: WARNING: undefined reference to function: dlopen
+      [KLEE] KLEE: WARNING: undefined reference to function: dlsym
+      [KLEE] KLEE: WARNING: undefined reference to function: fcntl64
+      [KLEE] KLEE: WARNING: undefined reference to function: floor
+      [KLEE] KLEE: WARNING: undefined reference to function: fmod
+      [KLEE] KLEE: WARNING: undefined reference to function: gzclose
+      [KLEE] KLEE: WARNING: undefined reference to function: gzdirect
+      [KLEE] KLEE: WARNING: undefined reference to function: gzdopen
+      [KLEE] KLEE: WARNING: undefined reference to function: gzopen64
+      [KLEE] KLEE: WARNING: undefined reference to function: gzread
+      [KLEE] KLEE: WARNING: undefined reference to function: gzwrite
+      [KLEE] KLEE: WARNING: undefined reference to function: inflate
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateEnd
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateInit2_
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateReset
+      [KLEE] KLEE: WARNING: undefined reference to function: log10
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_auto_decoder
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_code
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_end
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_properties_decode
+      [KLEE] KLEE: WARNING: undefined reference to function: mprotect
+      [KLEE] KLEE: WARNING: undefined reference to function: poll
+      [KLEE] KLEE: WARNING: undefined reference to function: pow
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_destroy
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_init
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_signal
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_wait
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_equal
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_getspecific
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_key_create
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_key_delete
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_destroy
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_init
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_lock
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_unlock
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_self
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_setspecific
+      [KLEE] KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 131901232775168) at runtime/POSIX/fd.c:997 10
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: calling __klee_posix_wrapped_main with extra arguments.
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_mutex_init(133110148628480, 0) at threads.c:140 1
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_key_create(133104981245952, 133095466467328) at globals.c:574 18
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_self() at globals.c:574 16
+      [KLEE] KLEE: WARNING ONCE: calling external: gettimeofday(131886200389632, 0) at runtime/POSIX/stubs.c:179 7
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: calling external: bcmp((ReadLSB w64 N0:(Extract w32 0 (Add w64 8
+      [KLEE]                                          (Mul w64 16
+      [KLEE]                                                   (ZExt w64 (And w32 (Or w32 (Add w32 (Xor w32 N1:(Add w32 (Xor w32 N2:(Add w32 (Xor w32 N3:(Add w32 (Xor w32 N4:(Mul w32 5
+      [KLEE]                                                                                                                                                                           (Extract w32 32 (Shl w64 (Concat w64 N5:(Add w32 171903535
+      [KLEE]                                                                                                                                                                                                                            N6:(Mul w32 9
+      [KLEE]                                                                                                                                                                                                                                        (Add w32 341716862
+      [KLEE]                                                                                                                                                                                                                                                 (ZExt w32 (Read w8 0 key)))))
+      [KLEE]                                                                                                                                                                                                                N5)
+      [KLEE]                                                                                                                                                                                                    7)))
+      [KLEE]                                                                                                                                                               N6)
+      [KLEE]                                                                                                                                                      (Extract w32 32 (Shl w64 (Concat w64 N4 N4) 14)))
+      [KLEE]                                                                                                                                          N4)
+      [KLEE]                                                                                                                                 (Extract w32 32 (Shl w64 (Concat w64 N3 N3) 26)))
+      [KLEE]                                                                                                                     N3)
+      [KLEE]                                                                                                            (Extract w32 32 (Shl w64 (Concat w64 N2 N2) 5)))
+      [KLEE]                                                                                                N2)
+      [KLEE]                                                                                       (Extract w32 32 (Shl w64 (Concat w64 N1 N1) 24)))
+      [KLEE]                                                                              2147483648)
+      [KLEE]                                                                      7))))) const_arr1), 131976394702848, (SExt w64 (Extract w32 0 (Select w64 (Slt 18446744073709551615
+      [KLEE]                                            N0:(SExt w64 (ReadLSB w32 0 len)))
+      [KLEE]                                       N0
+      [KLEE]                                       18446744073709551615)))) at dict.c:544 1
+      [KLEE] KLEE: ERROR: dict.c:544: ASSERTION FAIL: 0 && "REACH_ASSERT"
+      [KLEE] KLEE: NOTE: now ignoring this error at this location
+      [KLEE] KLEE: ERROR: EXITING ON ERROR:
+      [KLEE] Error: ASSERTION FAIL: 0 && "REACH_ASSERT"
+      [KLEE] File: dict.c
+      [KLEE] Line: 544
+      [KLEE] assembly.ll line: 44657
+      [KLEE] State: 7
+      [KLEE] Stack: 
+      [KLEE] 	#000044657 in xmlDictFindEntry(132371531694080, 131976394702848, symbolic, symbolic, 131872778616832) at dict.c:544
+      [KLEE] 	#100044176 in xmlDictLookupInternal(132371531694080, 0, 131976394702848, symbolic, 1) at dict.c:688
+      [KLEE] 	#200043437 in xmlDictLookup(132371531694080, 131976394702848, symbolic) at dict.c:805
+      [KLEE] 	#300110724 in __klee_posix_wrapped_main(1, 132234092740608) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:109
+      [KLEE] 	#400012103 in __user_main(1, 133111876681728, 133111876681744) at runtime/POSIX/klee_init_env.c:244
+      [KLEE] 	#500005516 in __uClibc_main(133096030601216, 1, 133111876681728, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
+      [KLEE] 	#600005681 in main(1, 133111876681728)
+      [KLEE] 
+      [KLEE] 
+      ---------------------------------------------------
+  [DIAG] exec: status=bug_found crash=local_valid  REACH_ASSERT loc=dict.c:544 reason=LOCAL_CRASH: ASSERTION FAIL: 0 && "REACH_ASSERT" at dict.c:544 (Dist 3 <= 100) (Target Crash)
+
+*** STATEMENT GRAPH (UPDATED) ***
+[✓] __uClibc_main (__uClibc_main.c:401)
+      `(Source unavailable in Instrumented)`
+      ↓
+  [✓] __user_main (klee_init_env.c:244)
+        `(Source unavailable in Instrumented)`
+        ↓
+    [✓] __klee_posix_wrapped_main (harness.c:109)
+          `(Source unavailable in Instrumented)`
+          ↓
+      [✓] xmlDictLookup (dict.c:805)
+            `entry = xmlDictLookupInternal(dict, NULL, name, len, 1);`
+            ↓
+        [✓] xmlDictLookupInternal (dict.c:688)
+              `entry = xmlDictFindEntry(dict, prefix, name, klen, hashValue, &found);`
+              ↓
+          [X] xmlDictFindEntry (dict.c:544)
+                `BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */`
+***********************************
+
+------------------------------------------------------------
+ [DIAGNOSIS & STRATEGY SENT TO AGENT]
+------------------------------------------------------------
+[DIAGNOSIS]: Execution BLOCKED by LOCAL_VALID crash.
+CRASH FUNCTION: `xmlDictFindEntry`
+CRASH STMT: `BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */`
+REASON: LOCAL_CRASH: ASSERTION FAIL: 0 && "REACH_ASSERT" at dict.c:544 (Dist 3 <= 100) (Target Crash)
+CRASH CONTEXT:
+   542:          */
+   543:         displ = 0;
+>> 544: BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */
+   545:         do {
+   546:             if (entry->hashValue == hashValue) {
+ACTION: Fix setup so this path is avoided or made safe.
+
+STATEMENT GRAPH (Execution Flow):
+-------------------------------------------------
+[✓] __uClibc_main (__uClibc_main.c:401)
+      `(Source unavailable in Instrumented)`
+      ↓
+  [✓] __user_main (klee_init_env.c:244)
+        `(Source unavailable in Instrumented)`
+        ↓
+    [✓] __klee_posix_wrapped_main (harness.c:109)
+          `(Source unavailable in Instrumented)`
+          ↓
+      [✓] xmlDictLookup (dict.c:805)
+            `entry = xmlDictLookupInternal(dict, NULL, name, len, 1);`
+            ↓
+        [✓] xmlDictLookupInternal (dict.c:688)
+              `entry = xmlDictFindEntry(dict, prefix, name, klen, hashValue, &found);`
+              ↓
+          [X] xmlDictFindEntry (dict.c:544)
+                `BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */`
+-------------------------------------------------
+
+
+[LOGS]:
+--- KLEE Log HIGHLIGHTS (Errors/Asserts) ---
+KLEE: ERROR: dict.c:544: ASSERTION FAIL: 0 && "REACH_ASSERT"
+KLEE: ERROR: EXITING ON ERROR:
+Error: ASSERTION FAIL: 0 && "REACH_ASSERT"
+--- KLEE Log TAIL ---
+File: dict.c
+Line: 544
+assembly.ll line: 44657
+State: 7
+Stack: 
+	#000044657 in xmlDictFindEntry(132371531694080, 131976394702848, symbolic, symbolic, 131872778616832) at dict.c:544
+	#100044176 in xmlDictLookupInternal(132371531694080, 0, 131976394702848, symbolic, 1) at dict.c:688
+	#200043437 in xmlDictLookup(132371531694080, 131976394702848, symbolic) at dict.c:805
+	#300110724 in __klee_posix_wrapped_main(1, 132234092740608) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:109
+	#400012103 in __user_main(1, 133111876681728, 133111876681744) at runtime/POSIX/klee_init_env.c:244
+	#500005516 in __uClibc_main(133096030601216, 1, 133111876681728, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
+	#600005681 in main(1, 133111876681728)
+
+
+
+------------------------------------------------------------
+
+  --- [Refinement Turn 2 (Budget 2/30)] ---
+  [*] Compiling to Bitcode...
+  [*] Running KLEE...
+      [>] Output Dir:   /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-1
+      [>] Streaming KLEE output (600s max)...
+      ---------------------------------------------------
+      [KLEE] KLEE: NOTE: Using POSIX model: /home/shafi/tools/klee/build/runtime/lib/libkleeRuntimePOSIX64_Debug+Asserts.bca
+      [KLEE] KLEE: NOTE: Using klee-uclibc : /home/shafi/tools/klee/build/runtime/lib/klee-uclibc.bca
+      [KLEE] KLEE: output directory is "/media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-1"
+      [KLEE] KLEE: Using Z3 solver backend
+      [KLEE] KLEE: Deterministic allocator: Using quarantine queue size 8
+      [KLEE] KLEE: Deterministic allocator: globals (start-address=0x7bcc6a400000 size=10 GiB)
+      [KLEE] KLEE: Deterministic allocator: constants (start-address=0x7bc9ea400000 size=10 GiB)
+      [KLEE] KLEE: Deterministic allocator: heap (start-address=0x7ac9ea400000 size=1024 GiB)
+      [KLEE] KLEE: Deterministic allocator: stack (start-address=0x7aa9ea400000 size=128 GiB)
+      [KLEE] KLEE: WARNING ONCE: unsupported intrinsic llvm.load.relative.i64
+      [KLEE] KLEE: WARNING: undefined reference to function: __isoc99_sscanf
+      [KLEE] KLEE: WARNING: undefined reference to variable: __libc_single_threaded
+      [KLEE] KLEE: WARNING: undefined reference to function: bcmp
+      [KLEE] KLEE: WARNING: undefined reference to function: ceil
+      [KLEE] KLEE: WARNING: undefined reference to function: crc32
+      [KLEE] KLEE: WARNING: undefined reference to function: deflate
+      [KLEE] KLEE: WARNING: undefined reference to function: deflateEnd
+      [KLEE] KLEE: WARNING: undefined reference to function: deflateInit2_
+      [KLEE] KLEE: WARNING: undefined reference to function: dlclose
+      [KLEE] KLEE: WARNING: undefined reference to function: dlerror
+      [KLEE] KLEE: WARNING: undefined reference to function: dlopen
+      [KLEE] KLEE: WARNING: undefined reference to function: dlsym
+      [KLEE] KLEE: WARNING: undefined reference to function: fcntl64
+      [KLEE] KLEE: WARNING: undefined reference to function: floor
+      [KLEE] KLEE: WARNING: undefined reference to function: fmod
+      [KLEE] KLEE: WARNING: undefined reference to function: gzclose
+      [KLEE] KLEE: WARNING: undefined reference to function: gzdirect
+      [KLEE] KLEE: WARNING: undefined reference to function: gzdopen
+      [KLEE] KLEE: WARNING: undefined reference to function: gzopen64
+      [KLEE] KLEE: WARNING: undefined reference to function: gzread
+      [KLEE] KLEE: WARNING: undefined reference to function: gzwrite
+      [KLEE] KLEE: WARNING: undefined reference to function: inflate
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateEnd
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateInit2_
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateReset
+      [KLEE] KLEE: WARNING: undefined reference to function: log10
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_auto_decoder
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_code
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_end
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_properties_decode
+      [KLEE] KLEE: WARNING: undefined reference to function: poll
+      [KLEE] KLEE: WARNING: undefined reference to function: pow
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_destroy
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_init
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_signal
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_wait
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_equal
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_getspecific
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_key_create
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_key_delete
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_destroy
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_init
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_lock
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_unlock
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_self
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_setspecific
+      [KLEE] KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 134915295281152) at runtime/POSIX/fd.c:997 10
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: calling __klee_posix_wrapped_main with extra arguments.
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_mutex_init(136124211134464, 0) at threads.c:140 1
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_key_create(136119043751936, 136109528973312) at globals.c:574 18
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_self() at globals.c:574 16
+      [KLEE] KLEE: WARNING ONCE: calling external: gettimeofday(134900262895616, 0) at runtime/POSIX/stubs.c:179 7
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: calling external: bcmp((ReadLSB w64 N0:(Extract w32 0 (Add w64 8
+      [KLEE]                                          (Mul w64 16
+      [KLEE]                                                   (ZExt w64 (And w32 (Or w32 (Add w32 (Xor w32 N1:(Add w32 (Xor w32 N2:(Add w32 (Xor w32 N3:(Add w32 (Xor w32 N4:(Mul w32 5
+      [KLEE]                                                                                                                                                                           (Extract w32 32 (Shl w64 (Concat w64 N5:(Add w32 1943049371
+      [KLEE]                                                                                                                                                                                                                            N6:(Mul w32 9
+      [KLEE]                                                                                                                                                                                                                                        (Add w32 691461281
+      [KLEE]                                                                                                                                                                                                                                                 (ZExt w32 (Read w8 0 key)))))
+      [KLEE]                                                                                                                                                                                                                N5)
+      [KLEE]                                                                                                                                                                                                    7)))
+      [KLEE]                                                                                                                                                               N6)
+      [KLEE]                                                                                                                                                      (Extract w32 32 (Shl w64 (Concat w64 N4 N4) 14)))
+      [KLEE]                                                                                                                                          N4)
+      [KLEE]                                                                                                                                 (Extract w32 32 (Shl w64 (Concat w64 N3 N3) 26)))
+      [KLEE]                                                                                                                     N3)
+      [KLEE]                                                                                                            (Extract w32 32 (Shl w64 (Concat w64 N2 N2) 5)))
+      [KLEE]                                                                                                N2)
+      [KLEE]                                                                                       (Extract w32 32 (Shl w64 (Concat w64 N1 N1) 24)))
+      [KLEE]                                                                              2147483648)
+      [KLEE]                                                                      7))))) const_arr1), 134990457208832, (SExt w64 (Extract w32 0 (Select w64 (Slt 18446744073709551615
+      [KLEE]                                            N0:(SExt w64 (ReadLSB w32 0 len)))
+      [KLEE]                                       N0
+      [KLEE]                                       18446744073709551615)))) at dict.c:544 1
+      [KLEE] KLEE: ERROR: dict.c:544: ASSERTION FAIL: 0 && "REACH_ASSERT"
+      [KLEE] KLEE: NOTE: now ignoring this error at this location
+      [KLEE] KLEE: ERROR: EXITING ON ERROR:
+      [KLEE] Error: ASSERTION FAIL: 0 && "REACH_ASSERT"
+      [KLEE] File: dict.c
+      [KLEE] Line: 544
+      [KLEE] assembly.ll line: 44657
+      [KLEE] State: 7
+      [KLEE] Stack: 
+      [KLEE] 	#000044657 in xmlDictFindEntry(135385594200064, 134990457208832, symbolic, symbolic, 134886841122816) at dict.c:544
+      [KLEE] 	#100044176 in xmlDictLookupInternal(135385594200064, 0, 134990457208832, symbolic, 1) at dict.c:688
+      [KLEE] 	#200043437 in xmlDictLookup(135385594200064, 134990457208832, symbolic) at dict.c:805
+      [KLEE] 	#300110656 in __klee_posix_wrapped_main(1, 135248155246592) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:96
+      [KLEE] 	#400012103 in __user_main(1, 136125939187712, 136125939187728) at runtime/POSIX/klee_init_env.c:244
+      [KLEE] 	#500005516 in __uClibc_main(136110093107200, 1, 136125939187712, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
+      [KLEE] 	#600005681 in main(1, 136125939187712)
+      [KLEE] 
+      [KLEE] 
+      ---------------------------------------------------
+  [DIAG] exec: status=bug_found crash=local_valid  REACH_ASSERT loc=dict.c:544 reason=LOCAL_CRASH: ASSERTION FAIL: 0 && "REACH_ASSERT" at dict.c:544 (Dist 3 <= 100) (Target Crash)
+
+*** STATEMENT GRAPH (UPDATED) ***
+[✓] __uClibc_main (__uClibc_main.c:401)
+      `(Source unavailable in Instrumented)`
+      ↓
+  [✓] __user_main (klee_init_env.c:244)
+        `(Source unavailable in Instrumented)`
+        ↓
+    [✓] __klee_posix_wrapped_main (harness.c:96)
+          `(Source unavailable in Instrumented)`
+          ↓
+      [✓] xmlDictLookup (dict.c:805)
+            `entry = xmlDictLookupInternal(dict, NULL, name, len, 1);`
+            ↓
+        [✓] xmlDictLookupInternal (dict.c:688)
+              `entry = xmlDictFindEntry(dict, prefix, name, klen, hashValue, &found);`
+              ↓
+          [X] xmlDictFindEntry (dict.c:544)
+                `BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */`
+***********************************
+
+------------------------------------------------------------
+ [DIAGNOSIS & STRATEGY SENT TO AGENT]
+------------------------------------------------------------
+[DIAGNOSIS]: Execution BLOCKED by LOCAL_VALID crash.
+CRASH FUNCTION: `xmlDictFindEntry`
+CRASH STMT: `BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */`
+REASON: LOCAL_CRASH: ASSERTION FAIL: 0 && "REACH_ASSERT" at dict.c:544 (Dist 3 <= 100) (Target Crash)
+CRASH CONTEXT:
+   542:          */
+   543:         displ = 0;
+>> 544: BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */
+   545:         do {
+   546:             if (entry->hashValue == hashValue) {
+ACTION: Fix setup so this path is avoided or made safe.
+[ESCALATION]: You have failed to fix this error 2 times. IGNORE all other goals. FIX THIS CRASH.
+
+STATEMENT GRAPH (Execution Flow):
+-------------------------------------------------
+[✓] __uClibc_main (__uClibc_main.c:401)
+      `(Source unavailable in Instrumented)`
+      ↓
+  [✓] __user_main (klee_init_env.c:244)
+        `(Source unavailable in Instrumented)`
+        ↓
+    [✓] __klee_posix_wrapped_main (harness.c:96)
+          `(Source unavailable in Instrumented)`
+          ↓
+      [✓] xmlDictLookup (dict.c:805)
+            `entry = xmlDictLookupInternal(dict, NULL, name, len, 1);`
+            ↓
+        [✓] xmlDictLookupInternal (dict.c:688)
+              `entry = xmlDictFindEntry(dict, prefix, name, klen, hashValue, &found);`
+              ↓
+          [X] xmlDictFindEntry (dict.c:544)
+                `BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */`
+-------------------------------------------------
+
+
+[LOGS]:
+--- KLEE Log HIGHLIGHTS (Errors/Asserts) ---
+KLEE: ERROR: dict.c:544: ASSERTION FAIL: 0 && "REACH_ASSERT"
+KLEE: ERROR: EXITING ON ERROR:
+Error: ASSERTION FAIL: 0 && "REACH_ASSERT"
+--- KLEE Log TAIL ---
+File: dict.c
+Line: 544
+assembly.ll line: 44657
+State: 7
+Stack: 
+	#000044657 in xmlDictFindEntry(135385594200064, 134990457208832, symbolic, symbolic, 134886841122816) at dict.c:544
+	#100044176 in xmlDictLookupInternal(135385594200064, 0, 134990457208832, symbolic, 1) at dict.c:688
+	#200043437 in xmlDictLookup(135385594200064, 134990457208832, symbolic) at dict.c:805
+	#300110656 in __klee_posix_wrapped_main(1, 135248155246592) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:96
+	#400012103 in __user_main(1, 136125939187712, 136125939187728) at runtime/POSIX/klee_init_env.c:244
+	#500005516 in __uClibc_main(136110093107200, 1, 136125939187712, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
+	#600005681 in main(1, 136125939187712)
+
+
+
+------------------------------------------------------------
+
+  --- [Refinement Turn 3 (Budget 3/30)] ---
+  [!] Harness Validation Failed: STRUCTURAL ERROR: Missing 'int main(...)' inside '/* --- Harness --- */'.
+
+  --- [Refinement Turn 4 (Budget 4/30)] ---
+  [*] Compiling to Bitcode...
+  [*] Running KLEE...
+      [>] Output Dir:   /media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-3
+      [>] Streaming KLEE output (600s max)...
+      ---------------------------------------------------
+      [KLEE] KLEE: NOTE: Using POSIX model: /home/shafi/tools/klee/build/runtime/lib/libkleeRuntimePOSIX64_Debug+Asserts.bca
+      [KLEE] KLEE: NOTE: Using klee-uclibc : /home/shafi/tools/klee/build/runtime/lib/klee-uclibc.bca
+      [KLEE] KLEE: output directory is "/media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-3"
+      [KLEE] KLEE: Using Z3 solver backend
+      [KLEE] KLEE: Deterministic allocator: Using quarantine queue size 8
+      [KLEE] KLEE: Deterministic allocator: globals (start-address=0x7bfa7fc00000 size=10 GiB)
+      [KLEE] KLEE: Deterministic allocator: constants (start-address=0x7bf7ffc00000 size=10 GiB)
+      [KLEE] KLEE: Deterministic allocator: heap (start-address=0x7af7ffc00000 size=1024 GiB)
+      [KLEE] KLEE: Deterministic allocator: stack (start-address=0x7ad7ffc00000 size=128 GiB)
+      [KLEE] KLEE: WARNING ONCE: unsupported intrinsic llvm.load.relative.i64
+      [KLEE] KLEE: WARNING: undefined reference to function: __isoc99_sscanf
+      [KLEE] KLEE: WARNING: undefined reference to variable: __libc_single_threaded
+      [KLEE] KLEE: WARNING: undefined reference to function: bcmp
+      [KLEE] KLEE: WARNING: undefined reference to function: ceil
+      [KLEE] KLEE: WARNING: undefined reference to function: crc32
+      [KLEE] KLEE: WARNING: undefined reference to function: deflate
+      [KLEE] KLEE: WARNING: undefined reference to function: deflateEnd
+      [KLEE] KLEE: WARNING: undefined reference to function: deflateInit2_
+      [KLEE] KLEE: WARNING: undefined reference to function: dlclose
+      [KLEE] KLEE: WARNING: undefined reference to function: dlerror
+      [KLEE] KLEE: WARNING: undefined reference to function: dlopen
+      [KLEE] KLEE: WARNING: undefined reference to function: dlsym
+      [KLEE] KLEE: WARNING: undefined reference to function: fcntl64
+      [KLEE] KLEE: WARNING: undefined reference to function: floor
+      [KLEE] KLEE: WARNING: undefined reference to function: fmod
+      [KLEE] KLEE: WARNING: undefined reference to function: gzclose
+      [KLEE] KLEE: WARNING: undefined reference to function: gzdirect
+      [KLEE] KLEE: WARNING: undefined reference to function: gzdopen
+      [KLEE] KLEE: WARNING: undefined reference to function: gzopen64
+      [KLEE] KLEE: WARNING: undefined reference to function: gzread
+      [KLEE] KLEE: WARNING: undefined reference to function: gzwrite
+      [KLEE] KLEE: WARNING: undefined reference to function: inflate
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateEnd
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateInit2_
+      [KLEE] KLEE: WARNING: undefined reference to function: inflateReset
+      [KLEE] KLEE: WARNING: undefined reference to function: log10
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_auto_decoder
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_code
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_end
+      [KLEE] KLEE: WARNING: undefined reference to function: lzma_properties_decode
+      [KLEE] KLEE: WARNING: undefined reference to function: mprotect
+      [KLEE] KLEE: WARNING: undefined reference to function: poll
+      [KLEE] KLEE: WARNING: undefined reference to function: pow
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_destroy
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_init
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_signal
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_cond_wait
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_equal
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_getspecific
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_key_create
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_key_delete
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_destroy
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_init
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_lock
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_mutex_unlock
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_self
+      [KLEE] KLEE: WARNING: undefined reference to function: pthread_setspecific
+      [KLEE] KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 135113224486912) at runtime/POSIX/fd.c:997 10
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: calling __klee_posix_wrapped_main with extra arguments.
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_mutex_init(136322140340224, 0) at threads.c:140 1
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_key_create(136316972957696, 136307458179072) at globals.c:574 18
+      [KLEE] KLEE: WARNING ONCE: calling external: pthread_self() at globals.c:574 16
+      [KLEE] KLEE: WARNING ONCE: calling external: gettimeofday(135098192101376, 0) at runtime/POSIX/stubs.c:179 7
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+      [KLEE] KLEE: WARNING ONCE: calling external: bcmp(135720962359336, 135188386414592, 0) at dict.c:544 1
+      [KLEE] KLEE: ERROR: dict.c:544: ASSERTION FAIL: !(memcmp(entry->name, name, len) == 0) && "BUG_ASSERT"
+      [KLEE] KLEE: NOTE: now ignoring this error at this location
+      [KLEE] KLEE: ERROR: EXITING ON ERROR:
+      [KLEE] Error: ASSERTION FAIL: !(memcmp(entry->name, name, len) == 0) && "BUG_ASSERT"
+      [KLEE] File: dict.c
+      [KLEE] Line: 544
+      [KLEE] assembly.ll line: 44653
+      [KLEE] State: 1
+      [KLEE] Stack: 
+      [KLEE] 	#000044653 in xmlDictFindEntry(135583523405824, 135188386414592, 0, 4294830525, 135084770328576) at dict.c:544
+      [KLEE] 	#100044176 in xmlDictLookupInternal(135583523405824, 0, 135188386414592, symbolic, 1) at dict.c:688
+      [KLEE] 	#200043437 in xmlDictLookup(135583523405824, 135188386414592, symbolic) at dict.c:805
+      [KLEE] 	#300110724 in __klee_posix_wrapped_main(1, 135446084452352) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:109
+      [KLEE] 	#400012103 in __user_main(1, 136323868393472, 136323868393488) at runtime/POSIX/klee_init_env.c:244
+      [KLEE] 	#500005516 in __uClibc_main(136308022312960, 1, 136323868393472, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
+      [KLEE] 	#600005681 in main(1, 136323868393472)
+      [KLEE] 
+      [KLEE] 
+      ---------------------------------------------------
+  [DIAG] exec: status=bug_found crash=spec BUG_ASSERT  loc=dict.c:541 (Oracle) reason=Oracle BUG_ASSERT triggered
+
+*** STATEMENT GRAPH (UPDATED) ***
+[✓] __uClibc_main (__uClibc_main.c:401)
+      `(Source unavailable in Instrumented)`
+      ↓
+  [✓] __user_main (klee_init_env.c:244)
+        `(Source unavailable in Instrumented)`
+        ↓
+    [✓] __klee_posix_wrapped_main (harness.c:109)
+          `(Source unavailable in Instrumented)`
+          ↓
+      [✓] xmlDictLookup (dict.c:805)
+            `entry = xmlDictLookupInternal(dict, NULL, name, len, 1);`
+            ↓
+        [✓] xmlDictLookupInternal (dict.c:688)
+              `entry = xmlDictFindEntry(dict, prefix, name, klen, hashValue, &found);`
+              ↓
+          [X] xmlDictFindEntry (dict.c:544)
+                `BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */`
+***********************************
+
+  [+] TARGET BUG REPRODUCED: Oracle BUG_ASSERT triggered
+
+[=] VALIDATION: Concrete replay of all saved bugs (target + non-target)
+  [*] Attempting System Replay (Real Code)...
+  [i] Auto-Linker: Detected missing symbols. Injecting flags: ['-lpthread', '-lz', '-llzma']
+  [*] Attempting System Replay (Real Code)...
+[✓] Finished 174_dict.c_541_local_cpp_cwe-125-oob-read: SPEC_BUG

@@ -1,0 +1,108 @@
+KLEE: NOTE: Using POSIX model: /home/shafi/tools/klee/build/runtime/lib/libkleeRuntimePOSIX64_Debug+Asserts.bca
+KLEE: NOTE: Using klee-uclibc : /home/shafi/tools/klee/build/runtime/lib/klee-uclibc.bca
+KLEE: output directory is "/media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-0"
+KLEE: Using Z3 solver backend
+KLEE: Deterministic allocator: Using quarantine queue size 8
+KLEE: Deterministic allocator: globals (start-address=0x790ea6200000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x790c26200000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x780c26200000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x77ec26200000 size=128 GiB)
+KLEE: WARNING ONCE: unsupported intrinsic llvm.load.relative.i64
+KLEE: WARNING: undefined reference to function: __isoc99_sscanf
+KLEE: WARNING: undefined reference to variable: __libc_single_threaded
+KLEE: WARNING: undefined reference to function: bcmp
+KLEE: WARNING: undefined reference to function: ceil
+KLEE: WARNING: undefined reference to function: crc32
+KLEE: WARNING: undefined reference to function: deflate
+KLEE: WARNING: undefined reference to function: deflateEnd
+KLEE: WARNING: undefined reference to function: deflateInit2_
+KLEE: WARNING: undefined reference to function: dlclose
+KLEE: WARNING: undefined reference to function: dlerror
+KLEE: WARNING: undefined reference to function: dlopen
+KLEE: WARNING: undefined reference to function: dlsym
+KLEE: WARNING: undefined reference to function: fcntl64
+KLEE: WARNING: undefined reference to function: floor
+KLEE: WARNING: undefined reference to function: fmod
+KLEE: WARNING: undefined reference to function: gzclose
+KLEE: WARNING: undefined reference to function: gzdirect
+KLEE: WARNING: undefined reference to function: gzdopen
+KLEE: WARNING: undefined reference to function: gzopen64
+KLEE: WARNING: undefined reference to function: gzread
+KLEE: WARNING: undefined reference to function: gzwrite
+KLEE: WARNING: undefined reference to function: inflate
+KLEE: WARNING: undefined reference to function: inflateEnd
+KLEE: WARNING: undefined reference to function: inflateInit2_
+KLEE: WARNING: undefined reference to function: inflateReset
+KLEE: WARNING: undefined reference to function: log10
+KLEE: WARNING: undefined reference to function: lzma_auto_decoder
+KLEE: WARNING: undefined reference to function: lzma_code
+KLEE: WARNING: undefined reference to function: lzma_end
+KLEE: WARNING: undefined reference to function: lzma_properties_decode
+KLEE: WARNING: undefined reference to function: mprotect
+KLEE: WARNING: undefined reference to function: poll
+KLEE: WARNING: undefined reference to function: pow
+KLEE: WARNING: undefined reference to function: pthread_cond_destroy
+KLEE: WARNING: undefined reference to function: pthread_cond_init
+KLEE: WARNING: undefined reference to function: pthread_cond_signal
+KLEE: WARNING: undefined reference to function: pthread_cond_wait
+KLEE: WARNING: undefined reference to function: pthread_equal
+KLEE: WARNING: undefined reference to function: pthread_getspecific
+KLEE: WARNING: undefined reference to function: pthread_key_create
+KLEE: WARNING: undefined reference to function: pthread_key_delete
+KLEE: WARNING: undefined reference to function: pthread_mutex_destroy
+KLEE: WARNING: undefined reference to function: pthread_mutex_init
+KLEE: WARNING: undefined reference to function: pthread_mutex_lock
+KLEE: WARNING: undefined reference to function: pthread_mutex_unlock
+KLEE: WARNING: undefined reference to function: pthread_self
+KLEE: WARNING: undefined reference to function: pthread_setspecific
+KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 131901232775168) at runtime/POSIX/fd.c:997 10
+KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling __klee_posix_wrapped_main with extra arguments.
+KLEE: WARNING ONCE: calling external: pthread_mutex_init(133110148628480, 0) at threads.c:140 1
+KLEE: WARNING ONCE: calling external: pthread_key_create(133104981245952, 133095466467328) at globals.c:574 18
+KLEE: WARNING ONCE: calling external: pthread_self() at globals.c:574 16
+KLEE: WARNING ONCE: calling external: gettimeofday(131886200389632, 0) at runtime/POSIX/stubs.c:179 7
+KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
+KLEE: WARNING ONCE: calling external: bcmp((ReadLSB w64 N0:(Extract w32 0 (Add w64 8
+                                         (Mul w64 16
+                                                  (ZExt w64 (And w32 (Or w32 (Add w32 (Xor w32 N1:(Add w32 (Xor w32 N2:(Add w32 (Xor w32 N3:(Add w32 (Xor w32 N4:(Mul w32 5
+                                                                                                                                                                          (Extract w32 32 (Shl w64 (Concat w64 N5:(Add w32 171903535
+                                                                                                                                                                                                                           N6:(Mul w32 9
+                                                                                                                                                                                                                                       (Add w32 341716862
+                                                                                                                                                                                                                                                (ZExt w32 (Read w8 0 key)))))
+                                                                                                                                                                                                               N5)
+                                                                                                                                                                                                   7)))
+                                                                                                                                                              N6)
+                                                                                                                                                     (Extract w32 32 (Shl w64 (Concat w64 N4 N4) 14)))
+                                                                                                                                         N4)
+                                                                                                                                (Extract w32 32 (Shl w64 (Concat w64 N3 N3) 26)))
+                                                                                                                    N3)
+                                                                                                           (Extract w32 32 (Shl w64 (Concat w64 N2 N2) 5)))
+                                                                                               N2)
+                                                                                      (Extract w32 32 (Shl w64 (Concat w64 N1 N1) 24)))
+                                                                             2147483648)
+                                                                     7))))) const_arr1), 131976394702848, (SExt w64 (Extract w32 0 (Select w64 (Slt 18446744073709551615
+                                           N0:(SExt w64 (ReadLSB w32 0 len)))
+                                      N0
+                                      18446744073709551615)))) at dict.c:544 1
+KLEE: ERROR: dict.c:544: ASSERTION FAIL: 0 && "REACH_ASSERT"
+KLEE: NOTE: now ignoring this error at this location
+KLEE: ERROR: EXITING ON ERROR:
+Error: ASSERTION FAIL: 0 && "REACH_ASSERT"
+File: dict.c
+Line: 544
+assembly.ll line: 44657
+State: 7
+Stack: 
+	#000044657 in xmlDictFindEntry(132371531694080, 131976394702848, symbolic, symbolic, 131872778616832) at dict.c:544
+	#100044176 in xmlDictLookupInternal(132371531694080, 0, 131976394702848, symbolic, 1) at dict.c:688
+	#200043437 in xmlDictLookup(132371531694080, 131976394702848, symbolic) at dict.c:805
+	#300110724 in __klee_posix_wrapped_main(1, 132234092740608) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:109
+	#400012103 in __user_main(1, 133111876681728, 133111876681744) at runtime/POSIX/klee_init_env.c:244
+	#500005516 in __uClibc_main(133096030601216, 1, 133111876681728, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
+	#600005681 in main(1, 133111876681728)
+
+
+

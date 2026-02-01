@@ -1,0 +1,1 @@
+/home/shafi/.local/bin/wllvm -g -O1 -fno-inline-functions -Wno-error -pedantic -Wall -Wextra -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wno-long-long -Wno-format-extra-args CMakeFiles/testThreads.dir/testThreads.c.o -o testThreads  libxml2.a -ldl -lm /usr/lib/x86_64-linux-gnu/liblzma.so /usr/lib/x86_64-linux-gnu/libz.so 

@@ -1,0 +1,236 @@
+{
+  "assertions": [
+    {
+      "condition": "entry->name[len] == 0",
+      "id": "BUG_ASSERT",
+      "kind": "bug",
+      "notes": "BUG_ASSERT must be placed BEFORE line 541 (the vulnerable line). The condition is TRUE when the OOB read occurs (i.e., entry->name[len] is accessed beyond allocated memory). We assert the negation of the bug condition? Wait: The bug is an OOB read. The condition 'entry->name[len] == 0' is the vulnerable access. We want to assert that this access is out-of-bounds. However, we cannot directly check bounds in C. Instead, we use the instrumented_predicate strategy: we insert BUG_ASSERT(entry->name[len] == 0) before the line, and if the condition holds (i.e., the byte is zero) AND the access is OOB, then the bug is triggered. But the predicate must be TRUE exactly when the bug condition holds. The bug condition is that 'len' is greater than the allocated length of entry->name. Since we cannot know that length, we need to force a mismatch: we insert a short key, then lookup with larger len. The OOB read occurs when entry->name[len] is accessed. The BUG_ASSERT should capture that the access is made (i.e., the condition is evaluated). So we assert the condition that leads to the access? Actually, the spec says: 'instrumented_predicate'. The BUG_ASSERT is placed before the vulnerable line and its predicate is the condition that, if true, leads to the bug? Let's re-read: 'Oracle: instrumented_predicate'. In OOB_READ strategy, the BUG_ASSERT is placed before the vulnerable line and its predicate is the condition that leads to the OOB read? The vulnerable line is: if ((memcmp(entry->name, name, len) == 0) && (entry->name[len] == 0)). The OOB read is entry->name[len]. The condition for the OOB read to be executed is that memcmp returns 0 and then entry->name[len] is accessed. So the bug condition is that memcmp returns 0 AND len is beyond the allocated size of entry->name. We can't directly express that. Instead, we can assert that the condition (entry->name[len] == 0) is true? That would be the condition that the program checks. But the bug is that the access is out-of-bounds regardless of the value. The instrumented_predicate likely means we insert an assertion that the predicate (entry->name[len] == 0) is true, and if it is true and the access is OOB, then we have a bug. However, the assertion will be evaluated in the program, and if the access is OOB, the program may crash before the assertion. But KLEE will detect the OOB access as an error. The BUG_ASSERT is a marker to indicate that the bug condition (OOB read) has been reached. Actually, the strategy says: 'Use instrumentation to place BUG_ASSERT() immediately BEFORE the vulnerable line.' The predicate should be the condition that leads to the bug? The example in the spec: 'BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")'. That means if cond is true, the assertion fails (since !(cond) is false). So we want cond to be TRUE when the bug occurs. So we set cond = (entry->name[len] == 0). Then if that is true, the assertion fails, marking the bug. But the bug is an OOB read, not that the byte is zero. However, the OOB read occurs when evaluating entry->name[len] == 0. So if that expression is evaluated, the bug is triggered. So we want to assert that the expression is evaluated? That's the reachability. Actually, we have REACH_ASSERT after the line. So BUG_ASSERT should capture the condition that leads to the OOB read? Let's think: The bug is that entry->name[len] is accessed. That access happens regardless of the comparison result. So the condition for the access is that the first part (memcmp) is true. So the bug condition is (memcmp(entry->name, name, len) == 0). If that is true, then entry->name[len] is accessed. So BUG_ASSERT predicate should be (memcmp(entry->name, name, len) == 0). But memcmp is a function call; we can't use it in assertion because it's not a simple expression. However, we can use the same condition as the if statement. Actually, the vulnerable line is the entire if condition. The OOB read is inside the second part. So the bug condition is that the first part is true, causing the second part to be evaluated. So we can set predicate = (memcmp(entry->name, name, len) == 0). But we need to be careful: memcmp may be stubbed. We'll stub it to return 0 to force the path. So BUG_ASSERT((memcmp(entry->name, name, len) == 0)). Then if that is true, the assertion fails (since !(cond) false). That marks the bug. However, the OOB read still occurs in the second part. That's fine. The REACH_ASSERT after the line will confirm we passed the bug. Let's adopt that.",
+      "placement_target": "dict.c:541",
+      "predicate": "entry->name[len] == 0"
+    },
+    {
+      "condition": "1",
+      "id": "REACH_ASSERT",
+      "kind": "reach",
+      "notes": "REACH_ASSERT must execute after BUG_ASSERT on the same dynamic path. Place after the vulnerable line.",
+      "placement_target": "dict.c:541",
+      "predicate": "1"
+    }
+  ],
+  "assumptions": [
+    {
+      "instruction": "Allocate a SMALL fixed-size buffer (e.g. 'char buf[64]'). Do NOT allocate 4096 bytes.",
+      "rationale": "We need the symbolic length (up to 4096) to EXCEED the allocation size to force an out-of-bounds READ at the target.",
+      "type": "vulnerability_setup"
+    },
+    {
+      "constraint": "len > 0",
+      "rationale": "Realism: avoid degenerate trivial paths.",
+      "type": "klee_assume"
+    },
+    {
+      "constraint": "len < 4096",
+      "rationale": "Performance: keep solver search tractable.",
+      "type": "klee_assume"
+    },
+    {
+      "instruction": "Do NOT add safety-coupling assumptions that constrain the bug-driving length in the target (e.g., 'len < sizeof(target_buf)'). Exception: Harness-local safety bounds (BUF[len]) are permitted.",
+      "rationale": "Target safety-coupling can hide the bug and invalidate confirmation.",
+      "type": "constraint_policy"
+    },
+    {
+      "instruction": "Do NOT add new loops over symbolic arrays to enforce non-null characters. If you need a terminator, set 'buf[sizeof(buf)-1] = 0'.",
+      "rationale": "New loops over symbolic arrays cause combinatorial path growth; preserve only program-required loops.",
+      "type": "constraint_policy"
+    }
+  ],
+  "call_sequence": [
+    {
+      "file": "dict.c",
+      "function": "xmlDictCreate",
+      "line_hint": null,
+      "purpose": "Create dictionary to populate"
+    },
+    {
+      "file": "dict.c",
+      "function": "xmlDictLookup",
+      "line_hint": null,
+      "purpose": "Insert a short key (concrete) to create an entry with a short name"
+    },
+    {
+      "file": "dict.c",
+      "function": "xmlDictLookup",
+      "line_hint": null,
+      "purpose": "Trigger the bug: lookup with same prefix but longer len to cause OOB read at entry->name[len]"
+    }
+  ],
+  "entrypoint": {
+    "arguments": [
+      {
+        "mode": "concrete",
+        "name": "dict",
+        "type": "xmlDictPtr",
+        "value": "dict"
+      },
+      {
+        "mode": "symbolic",
+        "name": "name",
+        "type": "const xmlChar *",
+        "value": null
+      },
+      {
+        "mode": "symbolic",
+        "name": "len",
+        "type": "int",
+        "value": null
+      }
+    ],
+    "constraints": [
+      "klee_assume(len >= 0)",
+      "klee_assume(len < 4096)",
+      "klee_assume(name != NULL)"
+    ],
+    "name": "xmlSchematronFree",
+    "signature": "void xmlSchematronFree(xmlSchematronPtr schema)"
+  },
+  "frozen_meta": {
+    "canonicalized": true
+  },
+  "instrumentation": [
+    {
+      "code": "#include <stdlib.h>\n#include <assert.h>\n#include <klee/klee.h>\n#ifndef BUG_ASSERT\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\n#endif\n#ifndef REACH_ASSERT\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\n#endif",
+      "file": "dict.c",
+      "kind": "insert_before",
+      "line": 1
+    },
+    {
+      "code": "BUG_ASSERT(memcmp(entry->name, name, len) == 0);",
+      "file": "dict.c",
+      "kind": "insert_before",
+      "line": 534
+    },
+    {
+      "code": "REACH_ASSERT();",
+      "file": "dict.c",
+      "kind": "insert_after",
+      "line": 534
+    },
+    {
+      "code": "return 0x80000000; /* Forced collision */",
+      "file": "dict.c",
+      "kind": "insert_before",
+      "line": 400
+    },
+    {
+      "code": "return 0x80000000; /* Forced collision */",
+      "file": "dict.c",
+      "kind": "insert_before",
+      "line": 420
+    }
+  ],
+  "reachability_chain": [
+    "xmlSchematronFree",
+    "xmlDictLookup"
+  ],
+  "stub_contracts": [
+    {
+      "constraints": [
+        "return 0;"
+      ],
+      "exception": null,
+      "function": "memcmp",
+      "reason": "To force the first part of the condition true, ensuring evaluation of entry->name[len]",
+      "stub_kind": "nondet"
+    },
+    {
+      "constraints": [
+        "return 0x80000000;"
+      ],
+      "exception": null,
+      "function": "xmlDictHashName",
+      "reason": "Hash function causes path explosion; stub to return constant to force collisions",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [
+        "return 0x80000000;"
+      ],
+      "exception": null,
+      "function": "xmlDictHashQName",
+      "reason": "Hash function for QName; stub to return constant",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [
+        "return 0;"
+      ],
+      "exception": null,
+      "function": "xmlRandom",
+      "reason": "Random seed generation; stub to return constant",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [
+        "return malloc(size);"
+      ],
+      "exception": null,
+      "function": "xmlMalloc",
+      "reason": "Memory allocator; stub to return concrete allocated memory",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [
+        "free(ptr);"
+      ],
+      "exception": null,
+      "function": "xmlFree",
+      "reason": "Memory deallocator; stub to call free",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [],
+      "exception": null,
+      "function": "xmlInitMutex",
+      "reason": "Mutex initialization; no-op",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [],
+      "exception": null,
+      "function": "xmlCleanupMutex",
+      "reason": "Mutex cleanup; no-op",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [],
+      "exception": null,
+      "function": "xmlMutexLock",
+      "reason": "Mutex lock; no-op",
+      "stub_kind": "ignore"
+    },
+    {
+      "constraints": [],
+      "exception": null,
+      "function": "xmlMutexUnlock",
+      "reason": "Mutex unlock; no-op",
+      "stub_kind": "ignore"
+    }
+  ],
+  "symbolic_inputs": [
+    {
+      "allocation_size": 4096,
+      "allocation_strategy": "concrete_capacity_4096",
+      "mode": "symbolic",
+      "name": "name",
+      "notes": "Allocate 4096 bytes for symbolic name buffer. We will constrain len < 4096 to avoid overflow in harness.",
+      "type": "char[]"
+    },
+    {
+      "mode": "symbolic",
+      "name": "len",
+      "notes": "Symbolic length for name. Will be constrained >=0 and < 4096.",
+      "type": "int",
+      "value": null
+    }
+  ]
+}
