@@ -1754,59 +1754,50 @@ def extract_call_arguments(stmt: str, func_name: str) -> List[str]:
     return args
 
 def validate_and_fix_assertions(src_root: Path, vul_file: str, plan: Dict[str, Any], rule_id: str) -> Dict[str, Any]:
+    """
+    Validates assertions but is PERMISSIVE.
+    It does NOT rewrite assertion logic (e.g. memcmp vs len) because specific bugs 
+    often require content checks. It only fixes structural issues (line placement).
+    """
     inst_list = plan.get("instrumentation", [])
     if not inst_list: return plan
-    try:
-        fpath = find_source_file(src_root, vul_file)
-        content = fpath.read_text(errors="replace").splitlines()
-    except Exception: return plan
 
-    for instr in inst_list:
-        if "BUG_ASSERT" not in instr.get("code", ""): continue
-        line_num = int(instr.get("line", 0))
-        if line_num <= 0 or line_num > len(content): continue
-        target_stmt = content[line_num - 1].strip()
-        detected_sink = None
-        critical_idx = -1
-        for func, idx in QL_SEMANTICS.items():
-            if re.search(rf"\b{re.escape(func)}\s*\(", target_stmt):
-                detected_sink = func
-                critical_idx = idx
-                break
-        if detected_sink:
-            print(f"  [i] QL-Validation: Identified Vulnerable Sink '{detected_sink}' at line {line_num}.")
-            args = extract_call_arguments(target_stmt, detected_sink)
-            if len(args) > critical_idx:
-                len_var_raw = args[critical_idx]
-                len_var_clean = re.sub(r"\([^\)]+\)", "", len_var_raw).strip()
-                if len_var_clean:
-                    print(f"      Critical Argument (Length): '{len_var_clean}'")
-                    current_code = instr["code"]
-                    deref_pattern = re.search(rf"\[\s*{re.escape(len_var_clean)}", current_code)
-                    if deref_pattern:
-                        print(f"  [!] REJECTED: Assertion checks CONTENT at index '{len_var_clean}' (Fragile).")
-                        print(f"      Violation of {rule_id}: OOB bugs must be detected by BOUNDS, not VALUES.")
-                        new_pred = f"BUG_ASSERT({len_var_clean} > 1);"
-                        instr["code"] = new_pred
-                        print(f"      [Auto-Fix] Rewrote assertion to QL-compliant bounds check: '{new_pred}'")
-                    elif len_var_clean not in current_code and "0" not in current_code:
-                         print(f"  [!] WARNING: Assertion does not reference the critical length variable '{len_var_clean}'.")
-
+    # [FIX] REMOVED the "detected_sink" and "rewrite to len > 1" logic entirely.
+    # We trust the LLM's logic (whether it uses memcmp or array access).
+    
+    # 1. Structural Alignment Only (Move out of comments/braces)
     for instr in inst_list:
         if "BUG_ASSERT" in instr.get("code", ""):
             orig_line = int(instr.get("line", 0))
             if orig_line <= 0: continue
-            target_text = content[orig_line - 1].strip()
-            is_weak = (not target_text) or target_text.startswith(("//", "/*", "*")) or target_text in ["}", "{", "else", "do {"]
-            if is_weak:
-                best_line = orig_line
-                for offset in range(1, 6):
-                    if orig_line + offset <= len(content) and ";" in content[orig_line + offset - 1]:
-                        best_line = orig_line + offset
-                        break
-                if best_line != orig_line:
-                    instr["line"] = best_line
-                    print(f"  [i] Auto-Align: Moved assertion from L{orig_line} to L{best_line}")
+            
+            try:
+                fpath = find_source_file(src_root, vul_file)
+                content = fpath.read_text(errors="replace").splitlines()
+                # Check bounds
+                if orig_line - 1 >= len(content): continue
+                
+                target_text = content[orig_line - 1].strip()
+                
+                # Check if line is a comment or structural token
+                # This ensures we don't inject assertions into invalid C syntax contexts
+                is_weak = (not target_text) or target_text.startswith(("//", "/*", "*")) or target_text in ["}", "{", "else", "do {"]
+                
+                if is_weak:
+                    best_line = orig_line
+                    # Scan forward up to 6 lines for a real statement (ending in ;)
+                    for offset in range(1, 7):
+                        idx = orig_line + offset - 1
+                        if idx < len(content) and ";" in content[idx] and not content[idx].strip().startswith("//"):
+                            best_line = orig_line + offset
+                            break
+                    
+                    if best_line != orig_line:
+                        instr["line"] = best_line
+                        print(f"  [i] Auto-Align: Moved assertion from L{orig_line} to L{best_line} (Better Context)")
+            except Exception:
+                pass
+
     return plan
 
 def fix_c_insertion_point(src_root: Path, vul_file: str, target_line: int, out_dir: Path = None) -> int:
@@ -2903,62 +2894,168 @@ def _default_return_expr(ret_type: str, func_name: str = "") -> str:
         return "0"  # NULL (safe compile); reachability-friendly pointer needs modeling elsewhere
     return "0"
 
+def _stailor_sanitize_orig_snippet(raw: str) -> str:
+    """
+    Produce a comment-safe, single-line snippet of `raw` for logging/debug.
+    Project-agnostic: length is configurable via STAILOR_ORIG_SNIPPET_MAX (default: 120).
+    """
+    s = raw.strip()
+    # Avoid nested comment terminators and confusing // sequences inside our annotations.
+    s = s.replace("/*", "/ *").replace("*/", "* /").replace("//", "/ /")
+    # Avoid NULs and very long lines.
+    max_len = 120
+    try:
+        max_len = int(os.getenv("STAILOR_ORIG_SNIPPET_MAX", "120"))
+    except Exception:
+        max_len = 120
+    max_len = max(0, min(max_len, 1000))
+    if max_len == 0:
+        return ""
+    if len(s) > max_len:
+        # leave room for ellipsis without hardcoding magic numbers
+        keep = max(0, max_len - 3)
+        s = s[:keep] + "..."
+    return s
+
+
+def _infer_return_type_from_signature(sig_text: str, func: str) -> str:
+    """
+    Best-effort return type inference from a (possibly multi-line) signature string
+    like '<ret> func(args) {'.
+
+    Returns the textual return-type portion, normalized, or "" if unknown.
+    """
+    line = " ".join(sig_text.replace("\n", " ").split())
+    idx = line.find(func)
+    if idx <= 0:
+        return ""
+    ret = line[:idx].strip()
+    # Drop common qualifiers/attrs (best-effort, project-agnostic)
+    ret = re.sub(r"\b(static|inline|extern|__inline__|__inline|__attribute__\s*\(\([^)]*\)\)|__declspec\([^)]+\))\b", "", ret)
+    ret = re.sub(r"\s+", " ", ret).strip()
+    return ret
+
+
+def _looks_like_local_decl(stmt: str) -> bool:
+    """
+    Heuristic: detect simple local variable declarations (optionally with initializer),
+    so we avoid injecting a stub in front of them (would break compilation if we "return"
+    before declarations that introduce identifiers later used in the function).
+    """
+    s = stmt.strip()
+    if not s.endswith(";"):
+        return False
+    head = s[:-1].strip()
+    # Skip if this "declaration" looks like a call or macro invocation.
+    if "(" in head:
+        return False
+    # Common control keywords that can also end with ';'
+    if re.match(r"^(return|goto|break|continue)\b", head):
+        return False
+    # Very conservative C-decl shape:
+    #   <type-ish> <name> [= init] (, <name> [= init])*
+    # We allow pointers and qualifiers in the type-ish part.
+    decl_rx = re.compile(
+        r"^[A-Za-z_]\w*(?:\s+[\w\*\(\)]+)*\s+\**\s*[A-Za-z_]\w*(?:\s*=\s*[^;]+)?(?:\s*,\s*\**\s*[A-Za-z_]\w*(?:\s*=\s*[^;]+)?)*\s*$"
+    )
+    return bool(decl_rx.match(head))
+
+
+def _is_unsafe_insertion_target(stmt: str) -> bool:
+    """
+    Statements we must NOT prepend with 'return' on the same line (syntax would break):
+      - case/default labels
+      - arbitrary labels (foo:)
+    """
+    s = stmt.lstrip()
+    if re.match(r"^(case\b|default\b)\b", s):
+        return True
+    # label:
+    if re.match(r"^[A-Za-z_]\w*\s*:\s*(//.*)?$", s):
+        return True
+    return False
+
+
 def _apply_stub_function_body_inplace(content: str, func: str, reason: str = "", *, force_return: Optional[str] = None) -> Tuple[str, bool, str]:
     """
-    Rewrite the first executable line in function body to an early return, preserving line count.
-    - Comments out the original line with '//' and places the return on the same line when possible.
-    - Does NOT insert new lines.
+    Reachability-friendly, compilation-safe in-place stubbing.
+
+    Goal:
+      - Make the function return early (to bypass expensive/irrelevant behavior),
+        WITHOUT breaking parsing/compilation, and WITHOUT shifting line numbers.
+
+    Strategy:
+      - Find the function body opening brace.
+      - Skip over local declarations, preprocessor lines, and comment-only lines.
+      - Find the first *executable* statement that is safe to prefix on the same line.
+      - Prefix that line with a `return ...;` statement.
+        (We do NOT delete the original code; it stays on the same line after the return.)
+
+    This avoids earlier failures like:
+      - "void function should not return a value"
+      - undeclared identifiers due to removing local decls
+      - "case statement not in switch statement" due to touching 'case:' labels
     """
     lines = content.splitlines()
     masked = _strip_c_comments_and_strings_preserve_lines(content)
     span = _find_function_def_span(masked, func)
     if not span:
         return content, False, f"function '{func}' not found"
-    _, brace_line = span
+
+    start_line, brace_line = span
     brace_idx = brace_line - 1
-    # Find first line after opening brace that is not blank/comment/preprocessor
-    i = brace_idx
-    # If brace is on same line, start search at next line
-    i += 1
-    # track block comment state not necessary because masked already.
+
+    # Build a robust signature string (may span multiple lines).
+    sig_lo = max(0, start_line - 1)
+    sig_hi = min(len(lines), brace_line)
+    sig_text = "\n".join(lines[sig_lo:sig_hi])
+    ret_type = _infer_return_type_from_signature(sig_text, func) or _infer_return_type_from_def_line(lines[brace_idx] if brace_idx < len(lines) else "", func)
+
+    # Find first injectable statement after opening brace.
+    i = brace_idx + 1
+    masked_lines = masked.splitlines()
     while i < len(lines):
-        mline = masked.splitlines()[i] if i < len(masked.splitlines()) else ""
         raw = lines[i]
-        if raw.strip() == "":
+        mline = masked_lines[i] if i < len(masked_lines) else ""
+
+        if raw.strip() == "" or raw.lstrip().startswith("#") or mline.strip() == "":
             i += 1
             continue
-        if raw.lstrip().startswith("#"):
+
+        # Avoid breaking control-structure headers and labels.
+        if _is_unsafe_insertion_target(raw):
             i += 1
             continue
-        if mline.strip() == "":  # likely comment-only
+
+        # Avoid injecting before declarations (including "char *x = NULL;").
+        if _looks_like_local_decl(raw):
             i += 1
             continue
-        # Skip simple C declarations to avoid removing local var declarations (keeps compilation).
-        decl = raw.strip()
-        if re.match(r"^[A-Za-z_][\w\s\*\(\)]+?\s+[A-Za-z_]\w*(\s*,\s*[A-Za-z_]\w*)*\s*;\s*$", decl) and "(" not in decl.split(";")[0]:
+
+        # Avoid injecting on a bare '{' / '}' line.
+        if raw.strip() in ("{", "}"):
             i += 1
             continue
-        # Found candidate executable line
-        def_line = lines[brace_idx] if brace_idx < len(lines) else ""
-        ret_type = _infer_return_type_from_def_line(def_line, func)
-        # If function returns void (non-pointer), do not return a value even if force_return is provided.
+
+        # Compute return expression.
         if "void" in ret_type and "*" not in ret_type:
             ret_expr = ""
         else:
             ret_expr = force_return if force_return is not None else _default_return_expr(ret_type, func)
-        if ret_expr == "":
-            new_stmt = f"return; // [STAILOR] stubbed {func} {reason}".rstrip()
-        else:
-            new_stmt = f"return {ret_expr}; // [STAILOR] stubbed {func} {reason}".rstrip()
-        # Replace this line with stub return, and preserve original as comment on next? can't add line.
-        # So embed original as a trailing comment (trim to avoid huge lines)
-        orig_trim = raw.strip().replace("/*", "/ *").replace("*/", "* /")
-        if len(orig_trim) > 160:
-            orig_trim = orig_trim[:157] + "..."
-        lines[i] = f"{new_stmt} /* ORIG: {orig_trim} */"
-        return "\n".join(lines) + ("\n" if content.endswith("\n") else ""), True, f"stubbed {func} at line {i+1}"
-    return content, False, f"no executable line found in '{func}'"
 
+        new_stmt = (f"return; // [STAILOR] stubbed {func} {reason}".rstrip()
+                    if ret_expr == "" else
+                    f"return {ret_expr}; // [STAILOR] stubbed {func} {reason}".rstrip())
+
+        orig_snip = _stailor_sanitize_orig_snippet(raw)
+        if orig_snip:
+            lines[i] = f"{new_stmt} {raw.rstrip()} /* ORIG: {orig_snip} */"
+        else:
+            lines[i] = f"{new_stmt} {raw.rstrip()}"
+
+        return "\n".join(lines) + ("\n" if content.endswith("\n") else ""), True, f"stubbed {func} at line {i+1}"
+
+    return content, False, f"no safe executable line found in '{func}'"
 def _find_first_path_with_basename(root: Path, base: str) -> Optional[Path]:
     """Find first file under root whose basename matches base."""
     try:
