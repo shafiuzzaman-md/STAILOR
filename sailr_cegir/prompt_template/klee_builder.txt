@@ -22,8 +22,6 @@ NON-NEGOTIABLE OUTPUT CONTRACT (READ FIRST)
 5) Execution order inside main() MUST be:
    (A) prepare inputs
    (B) call the real entrypoint
-   (C) BUG_ASSERT(<bug predicate>)
-   (D) REACH_ASSERT()
 
 PIPELINE AWARENESS (IMPORTANT)
 - Phase II runs under KLEE to find inputs that trigger the bug predicate.
@@ -123,10 +121,6 @@ int main(int argc, char **argv) {
   // 3) klee_make_symbolic(...) for symbolic inputs
   // 4) optional klee_assume(...) for reachability only (must not negate bug predicate)
   // 5) call the real entrypoint (extern prototype or header)
-
-  // [OPTIONAL] Assertions (ONLY if NOT provided by Plan Instrumentation)
-  // BUG_ASSERT(<predicate>);
-  // REACH_ASSERT();
   return 0;
 }
 

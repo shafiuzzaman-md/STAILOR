@@ -16,6 +16,7 @@ import os
 import re
 import shlex
 import shutil
+import datetime
 import struct
 import subprocess
 import sys
@@ -595,6 +596,9 @@ def find_libkleeRuntest(args: argparse.Namespace) -> Optional[Path]:
         if (Path(p) / "libkleeRuntest.so").exists(): return Path(p)
     return None
 
+# [NEW] Global cache to remember flags across different bug replays
+_LEARNED_LINKER_FLAGS: List[str] = []
+
 def run_system_replay(
     harness_src: str,
     src_root: Path,
@@ -619,16 +623,19 @@ def run_system_replay(
     sanitizer_flags = ["-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-D_GNU_SOURCE"]
 
     project_o = work_dir / "project.o"
-    cc_bc = [args.clang, "-c", str(project_bc), "-o", str(project_o)] + args.clang_flags + sanitizer_flags
-    rc, out, err, _ = run_cmd(cc_bc, cwd=src_root)
-    if rc != 0:
-        (work_dir / "system_replay_project_compile.stderr").write_text(err, encoding="utf-8", errors="replace")
-        return "FAIL", f"Replay failed: project.bc -> project.o compile failed. See system_replay_project_compile.stderr", assumptions
+    # Only compile project.o once
+    if not project_o.exists():
+        cc_bc = [args.clang, "-c", str(project_bc), "-o", str(project_o)] + args.clang_flags + sanitizer_flags
+        rc, out, err, _ = run_cmd(cc_bc, cwd=src_root)
+        if rc != 0:
+            (work_dir / "system_replay_project_compile.stderr").write_text(err, encoding="utf-8", errors="replace")
+            return "FAIL", f"Replay failed: project.bc -> project.o compile failed. See system_replay_project_compile.stderr", assumptions
 
     base_flags = ["-L", str(lib_dir), "-lkleeRuntest", f"-Wl,-rpath,{lib_dir}"] + args.clang_flags + sanitizer_flags
 
     def _link_driver(driver_c: Path, out_bin: Path, extra_flags: List[str]) -> Tuple[int, str, str]:
-        cmd = [args.clang, "-O0", "-g", str(driver_c), str(project_o)] + base_flags + extra_flags + ["-o", str(out_bin)]
+        # Put extra_flags AT THE END to satisfy dependency order
+        cmd = [args.clang, "-O0", "-g", str(driver_c), str(project_o)] + base_flags + ["-o", str(out_bin)] + extra_flags
         rc, o, e, _ = run_cmd(cmd, cwd=src_root)
         return rc, o, e
 
@@ -657,13 +664,19 @@ def run_system_replay(
     strict_driver_bin = work_dir / "system_driver_strict.exe"
     strict_driver_c.write_text(strict_src, encoding="utf-8")
 
-    extra_flags: List[str] = []
+    # Start with flags learned from previous runs to avoid re-discovery loop
+    extra_flags: List[str] = list(_LEARNED_LINKER_FLAGS)
     link_err_last = ""
     
     for attempt in range(6):
         rc_link, o_link, e_link = _link_driver(strict_driver_c, strict_driver_bin, extra_flags)
         
         if rc_link == 0:
+            # Success: Persist any new flags we used
+            for f in extra_flags:
+                if f not in _LEARNED_LINKER_FLAGS:
+                    _LEARNED_LINKER_FLAGS.append(f)
+
             (work_dir / "system_replay_link_strict.stderr").write_text(e_link, encoding="utf-8", errors="replace")
             assumptions.append("REPLAY_MODE=STRICT")
             
@@ -683,6 +696,7 @@ def run_system_replay(
         err_lower = (e_link or "").lower()
         new_flags = []
         
+        # Heuristics to auto-add flags
         if ("pthread" in err_lower) and ("-lpthread" not in extra_flags): new_flags.append("-lpthread")
         if (re.search(r"undefined reference to `(pow|floor|ceil|sin|cos|sqrt|log|exp)", err_lower)) and ("-lm" not in extra_flags): new_flags.append("-lm")
         if (re.search(r"undefined reference to `(inflate|deflate|crc32|gz)", err_lower)) and ("-lz" not in extra_flags): new_flags.append("-lz")
@@ -690,7 +704,13 @@ def run_system_replay(
         if ("dlopen" in err_lower or "dlsym" in err_lower) and ("-ldl" not in extra_flags): new_flags.append("-ldl")
         if ("clock_gettime" in err_lower) and ("-lrt" not in extra_flags): new_flags.append("-lrt")
 
-        if not new_flags: break 
+        if not new_flags:
+            # We failed, and we have no idea what else to add.
+            # Print the error so the user knows WHY -lz didn't work (e.g. library missing).
+            if extra_flags:
+                print(f"  [!] Replay Link Failed despite flags {extra_flags}. Error snippet:\n      {e_link.strip().splitlines()[-1]}")
+            break 
+        
         print(f"  [i] Auto-Linker: Detected missing symbols. Injecting flags: {new_flags}")
         extra_flags.extend(new_flags)
 
@@ -1031,52 +1051,63 @@ def _has_macro_define(hsrc: str, name: str) -> bool:
     return re.search(rf"(?m)^\s*#\s*define\s+{re.escape(name)}\b", clean) is not None
 
 def inject_standard_headers(hsrc: str, frozen_plan: Optional[Dict[str, Any]] = None, strategy: str = "") -> str:
-    # ---------------------------------------------------------
-    # [FIX] Inject KLEE includes at the VERY TOP
-    # ---------------------------------------------------------
+    # Standard inclusions
     top_injections = []
     if "<klee/klee.h>" not in hsrc:
         top_injections.append("#include <klee/klee.h>")
-
-    # Deterministic KLEE shim: some harnesses call these APIs without proper prototypes.
-    if ("klee_make_symbolic" in hsrc) or ("klee_assume" in hsrc):
-        shim = (
-            "/* KLEE shim: ensure core APIs are declared */\n"
-            "#ifdef __KLEE__\n"
-            "extern void klee_make_symbolic(void *addr, size_t nbytes, const char *name);\n"
-            "extern void klee_assume(uintptr_t condition);\n"
-            "#endif\n"
-        )
-        if "KLEE shim: ensure core APIs are declared" not in hsrc:
-            top_injections.append(shim)
+        
         
     forced_headers = ["<stddef.h>", "<string.h>", "<stdlib.h>", "<stdint.h>", "<assert.h>", "<stdbool.h>", "<stdio.h>"]
     for h in forced_headers:
         if h not in hsrc:
             top_injections.append(f"#include {h}")
 
+    top_injections.append("#include <pthread.h>")
     injections = []
 
+   # ---------------------------------------------------------
+    # [CRITICAL FIX] Robust pthread_once Shim
     # ---------------------------------------------------------
-    # [CRITICAL FIX] Threading Shim for KLEE
-    # libxml2 calls pthread_once during init. KLEE fails on this.
-    # We force it to execute the init routine linearly.
+    # 1. Defines a real function 'pthread_once' to satisfy the linker.
+    # 2. Uses a simple address cache to ensure init_routine runs exactly once.
+    # 3. Avoids dereferencing the opaque pthread_once_t* pointer (preventing type errors).
+    # 4. [FIX] Removed #ifdef __KLEE__ guard so it is ALWAYS compiled.
     # ---------------------------------------------------------
     injections.append("""
-/* [Auto-Fix] Stub pthread for KLEE single-threaded execution */
-#ifdef __KLEE__
-#include <pthread.h>
-/* Override pthread_once to just call the init_routine once (simplified) */
-static int stub_pthread_once(pthread_once_t *once_control, void (*init_routine)(void)) {
-    if (*once_control == 0) {
-        init_routine();
-        *once_control = 1;
+/* [Auto-Fix] Concrete pthread_once for KLEE linking */
+/* #ifdef __KLEE__ (Removed to ensure linkage) */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef KLEE_ONCE_CACHE_SIZE
+#define KLEE_ONCE_CACHE_SIZE 64
+#endif
+
+static void* _klee_once_seen[KLEE_ONCE_CACHE_SIZE];
+static int _klee_once_count = 0;
+
+/* Strong definition to override library/POSIX weak symbols */
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void)) {
+    // Check cache for this control pointer
+    for (int i = 0; i < _klee_once_count; i++) {
+        if (_klee_once_seen[i] == (void*)once_control) {
+            return 0; // Already initialized
+        }
+    }
+    // Not found: Run init
+    if (init_routine) init_routine();
+
+    // Mark seen
+    if (_klee_once_count < KLEE_ONCE_CACHE_SIZE) {
+        _klee_once_seen[_klee_once_count++] = (void*)once_control;
     }
     return 0;
 }
-/* Redirect the symbol */
-#define pthread_once stub_pthread_once
+#ifdef __cplusplus
+}
 #endif
+/* #endif */
 """)
 
     # 1. Inject klee_int helper if used
@@ -1119,7 +1150,7 @@ static int klee_int(const char *name) {
     # 4. bcmp Redirector
     if "bcmp" in hsrc and "int bcmp" not in hsrc and "#define bcmp" not in hsrc:
         injections.append("""
-/* [Auto-Fix] Redirect bcmp to memcmp */
+/* [Auto-Fix] Concrete bcmp for KLEE linking */
 #ifndef bcmp
 int bcmp(const void *s1, const void *s2, size_t n) {
     return memcmp(s1, s2, n);
@@ -1131,144 +1162,30 @@ int bcmp(const void *s1, const void *s2, size_t n) {
     return "\n".join(top_injections) + "\n" + "\n".join(injections) + "\n" + hsrc
 
 
-# ------------------------------
-# Phase-2 deterministic repairs
-# ------------------------------
+def ensure_klee_api_decls(hsrc: str) -> str:
+    """Deterministically ensure harness compiles when it uses KLEE APIs.
 
-_RX_MALLOC = re.compile(r"\bmalloc\s*\(\s*(?P<expr>[^\)]+?)\s*\)")
-_RX_CALLOC = re.compile(r"\bcalloc\s*\(\s*(?P<n>[^,]+?)\s*,\s*(?P<sz>[^\)]+?)\s*\)")
-_RX_REALLOC = re.compile(r"\brealloc\s*\(\s*(?P<ptr>[^,]+?)\s*,\s*(?P<expr>[^\)]+?)\s*\)")
-
-def _looks_constant_size_expr(expr: str) -> bool:
-    e = expr.strip()
-    if re.fullmatch(r"0x[0-9a-fA-F]+", e) or re.fullmatch(r"\d+", e):
-        return True
-    if re.fullmatch(r"sizeof\s*\([^\)]+\)\s*(?:[\*\+\-/\s]*\s*\d+)?", e):
-        return True
-    if re.fullmatch(r"[A-Z_][A-Z0-9_]*", e):
-        return True
-    return False
-
-def ensure_klee_shim(hsrc: str) -> str:
-    if "klee_make_symbolic" not in hsrc and "klee_assume" not in hsrc:
+    We prefer including <klee/klee.h> (works when include paths are correct).
+    As a fallback, we also inject minimal prototypes guarded by __KLEE__ to avoid
+    conflicting with the real header if it is present.
+    """
+    if ("klee_make_symbolic" not in hsrc) and ("klee_assume" not in hsrc) and ("klee_assert" not in hsrc):
         return hsrc
-    if "KLEE shim: ensure core APIs are declared" in hsrc:
+
+    # If already has the header or our shim, do nothing.
+    if ("<klee/klee.h>" in hsrc) or ("/* STAILOR: KLEE API shim */" in hsrc):
         return hsrc
-    return inject_standard_headers(hsrc)
 
-def repair_symbolic_allocations(hsrc: str, max_alloc: int = 4096) -> str:
-    hsrc = ensure_klee_shim(hsrc)
-    assume_lines: list[str] = []
-    temp_i = 0
-
-    def add_assume(expr: str) -> None:
-        nonlocal temp_i
-        temp_i += 1
-        var = f"__stailor_sz_{temp_i}"
-        assume_lines.append(
-            f"size_t {var} = (size_t)({expr});\n"
-            f"klee_assume({var} <= (size_t){max_alloc});\n"
-        )
-
-    def sub_malloc(mm: re.Match) -> str:
-        expr = mm.group("expr").strip()
-        if _looks_constant_size_expr(expr):
-            return mm.group(0)
-        add_assume(expr)
-        return f"malloc({max_alloc})"
-
-    def sub_calloc(mm: re.Match) -> str:
-        n = mm.group("n").strip()
-        sz = mm.group("sz").strip()
-        if _looks_constant_size_expr(n) and _looks_constant_size_expr(sz):
-            return mm.group(0)
-        add_assume(f"(({n})*({sz}))")
-        return f"calloc(1, {max_alloc})"
-
-    def sub_realloc(mm: re.Match) -> str:
-        ptr = mm.group("ptr").strip()
-        expr = mm.group("expr").strip()
-        if _looks_constant_size_expr(expr):
-            return mm.group(0)
-        add_assume(expr)
-        return f"realloc({ptr}, {max_alloc})"
-
-    new_body = _RX_MALLOC.sub(sub_malloc, hsrc)
-    new_body = _RX_CALLOC.sub(sub_calloc, new_body)
-    new_body = _RX_REALLOC.sub(sub_realloc, new_body)
-
-    if assume_lines:
-        main_m = re.search(r"\bint\s+main\s*\(.*?\)\s*\{", new_body)
-        blob = "".join(assume_lines)
-        if main_m:
-            ins = main_m.end()
-            prefix = "\n  /* STAILOR: cap symbolic-dependent allocations */\n"
-            prefix += "\n".join("  " + ln for ln in blob.splitlines())
-            prefix += "\n"
-            new_body = new_body[:ins] + prefix + new_body[ins:]
-        else:
-            new_body = "/* STAILOR: cap symbolic-dependent allocations */\n" + blob + "\n" + new_body
-    return new_body
-
-def strip_redefined_type_bodies(hsrc: str, type_name: str) -> str:
-    rx1 = re.compile(rf"typedef\s+struct\s+{re.escape(type_name)}\s*\{{.*?\}}\s*{re.escape(type_name)}\s*;", re.DOTALL)
-    rx2 = re.compile(rf"struct\s+{re.escape(type_name)}\s*\{{.*?\}}\s*;", re.DOTALL)
-    out = rx1.sub("", hsrc)
-    out = rx2.sub("", out)
-    return out
-
-def extract_func_params_from_file(src_path: Path, func_name: str) -> list[str] | None:
-    try:
-        txt = src_path.read_text(encoding="utf-8", errors="replace")
-    except Exception:
-        return None
-    rx = re.compile(rf"\b{re.escape(func_name)}\s*\((?P<params>[^\)]*)\)\s*\{{", re.MULTILINE)
-    mm = rx.search(txt)
-    if not mm:
-        rx2 = re.compile(rf"\b{re.escape(func_name)}\s*\((?P<params>[^\)]*)\)\s*;", re.MULTILINE)
-        mm = rx2.search(txt)
-        if not mm:
-            return None
-    params = mm.group("params").strip()
-    if not params or params == "void":
-        return []
-    return [p.strip() for p in params.split(",") if p.strip()]
-
-def _default_arg_for_param(p: str) -> str:
-    pl = p.lower()
-    if "*" in p:
-        if "char" in pl:
-            return "(char*)buf"
-        return "NULL"
-    return "0"
-
-def enforce_entrypoint_call(hsrc: str, entrypoint: str, vul_src_path: Path | None) -> str:
-    if re.search(rf"\b{re.escape(entrypoint)}\s*\(", hsrc):
-        return hsrc
-    if vul_src_path is None:
-        return hsrc
-    params = extract_func_params_from_file(vul_src_path, entrypoint)
-    if params is None:
-        return hsrc
-    args_list = [_default_arg_for_param(p) for p in params]
-    mmain = re.search(r"\bint\s+main\s*\(.*?\)\s*\{", hsrc)
-    if not mmain:
-        return hsrc
-    ins = mmain.end()
-    inject = (
-        "\n  /* STAILOR: enforce required entrypoint call */\n"
-        "  unsigned char buf[256];\n"
-        "  klee_make_symbolic(buf, sizeof(buf), \"input_buf\");\n"
-        f"  (void){entrypoint}({', '.join(args_list)});\n"
+    shim = (
+        "/* STAILOR: KLEE API shim */\n"
+        "#include <klee/klee.h>\n"
+        "#ifdef __KLEE__\n"
+        "extern void klee_make_symbolic(void *addr, size_t nbytes, const char *name);\n"
+        "extern void klee_assume(uintptr_t condition);\n"
+        "extern void klee_assert(uintptr_t condition);\n"
+        "#endif\n\n"
     )
-    return hsrc[:ins] + inject + hsrc[ins:]
-
-def stderr_snippet(stderr: str, max_lines: int = 60) -> str:
-    lines = stderr.splitlines()
-    if len(lines) <= max_lines:
-        return "\n".join(lines)
-    return "\n".join(lines[:max_lines] + ["... (truncated) ..."])
-
+    return inject_at_top(hsrc, shim)
 
 def _pick_llvm_link(explicit: Optional[str]) -> Optional[str]:
     if explicit and shutil.which(explicit): return explicit
@@ -1279,13 +1196,6 @@ def _pick_llvm_link(explicit: Optional[str]) -> Optional[str]:
     return None
 
 def compile_harness_to_bc(args: argparse.Namespace, src_root: Path, harness_c: Path, out_bc: Path, project_bc: Optional[Path]) -> Tuple[bool, str, Path]:
-    try:
-        _hsrc = harness_c.read_text(encoding='utf-8', errors='replace')
-        _patched = ensure_klee_shim(_hsrc)
-        if _patched != _hsrc:
-            harness_c.write_text(_patched, encoding='utf-8')
-    except Exception:
-        pass
     defined_symbols = set()
     if project_bc and project_bc.exists():
         nm_tool = shutil.which("llvm-nm") or shutil.which("nm")
@@ -1306,7 +1216,7 @@ def compile_harness_to_bc(args: argparse.Namespace, src_root: Path, harness_c: P
         try:
             src = harness_c.read_text(encoding="utf-8", errors="replace")
             original_src = src
-            func_pattern = r"(?m)(^\s*(?:void|int|char|unsigned|size_t|double|float|long|struct\s+\w+)[\s\*]+)([a-zA-Z_]\w+)(\s*\([^)]*\)\s*\{{)"
+            func_pattern = re.compile(r"(?m)(^\s*(?:[\w\*]+\s+)+)(\w+)(\s*\([^)]*\)\s*\{)")
             def collision_replacer(match):
                 ret, name, rest = match.groups()
                 if name == "main": return match.group(0)
@@ -1904,22 +1814,36 @@ def fix_c_insertion_point(src_root: Path, vul_file: str, target_line: int, out_d
     Robust insertion point finder. 
     Moves the insertion cursor UPWARDS until it finds a safe break point 
     (End of previous statement or block).
-    Handles multi-line function calls (like split snprintf) by checking for unbalanced parens/commas.
+    Handles multi-line function calls and conditions by checking for line-continuation tokens.
     """
-    candidates = [src_root / vul_file, Path(vul_file), src_root / Path(vul_file).name]
-    if out_dir: candidates.insert(0, out_dir / "ctx" / Path(vul_file).name)
-    content = None
+    # 1. Robust File Resolution
     found_path = None
+    
+    # Search order: Explicit path -> Context cache -> Recursive search
+    candidates = [src_root / vul_file, Path(vul_file)]
+    if out_dir: candidates.insert(0, out_dir / "ctx" / Path(vul_file).name)
+    
     for p in candidates:
         if p.exists() and p.is_file():
-            try:
-                content = p.read_text(encoding="utf-8", errors="replace")
-                found_path = p
-                break
-            except: continue
-    
-    if content is None:
-        print(f"  [!] Sanitize Warning: Source file not found. Checked: {[str(c) for c in candidates]}")
+            found_path = p
+            break
+            
+    # Fallback: Recursive search in src_root (handles 'dict.c' vs 'src/dict.c' mismatches)
+    if not found_path and src_root.exists():
+        fname = Path(vul_file).name
+        matches = list(src_root.rglob(fname))
+        if matches:
+            # Prefer exact match or shortest path
+            found_path = sorted(matches, key=lambda x: len(str(x)))[0]
+
+    if not found_path:
+        print(f"  [!] Sanitize Warning: Source file '{vul_file}' not found. Cannot adjust insertion point.")
+        return target_line
+
+    try:
+        content = found_path.read_text(encoding="utf-8", errors="replace")
+    except Exception as e:
+        print(f"  [!] Sanitize Warning: Could not read {found_path}: {e}")
         return target_line
 
     lines = content.splitlines()
@@ -1928,27 +1852,41 @@ def fix_c_insertion_point(src_root: Path, vul_file: str, target_line: int, out_d
     if curr_idx < 0 or curr_idx >= len(lines):
         return target_line
 
-    # Scan backwards to find the end of the PREVIOUS statement
+    # 2. Backward Scan for Safe Insertion Point
     scan_limit = 50
     while scan_limit > 0 and curr_idx > 0:
-        prev_line = lines[curr_idx - 1].strip()
+        prev_line_raw = lines[curr_idx - 1]
         
-        # Skip comments/empty
-        if not prev_line or prev_line.startswith("//") or (prev_line.startswith("/*") and prev_line.endswith("*/")):
+        # Strip C comments (//... and /*...*/) and whitespace
+        # Note: Simple regex, doesn't handle strings like " // " perfectly but sufficient for code structure
+        prev_line_clean = re.sub(r'//.*', '', prev_line_raw)
+        prev_line_clean = re.sub(r'/\*.*?\*/', '', prev_line_clean).strip()
+        
+        # If line is empty after cleaning, keep going up
+        if not prev_line_clean:
             curr_idx -= 1
+            scan_limit -= 1
             continue
 
-        # Check for statement terminators
-        # [FIX] Added check for comma at end (indicates continuation)
-        ends_with_comma = prev_line.endswith(",")
+        # Check for Line Continuations
+        # If the previous line ends with any of these, the statement is NOT finished.
+        # Operators: , . -> ( [ { = + - * / % & | ^ ! ? : < >
+        # Logical: && ||
+        continuation_regex = r'(?:[,\.\->(\[\{=+\-*/%&|^!?:<>]|&&|\|\|)\s*$'
         
-        if (prev_line.endswith(";") or prev_line.endswith("{") or 
-            prev_line.endswith("}") or prev_line.endswith(":")) and not ends_with_comma:
-            break
-        
-        # If not a terminator, it's likely a continuation. Move UP.
-        curr_idx -= 1
-        scan_limit -= 1
+        if re.search(continuation_regex, prev_line_clean):
+            curr_idx -= 1
+            continue
+            
+        # Check for Control Flow headers (if/while/for) that don't have a body start yet
+        # e.g., "if (condition)" (without { or ;) -> implies next line is body/continuation
+        if re.match(r'^\s*(if|while|for|switch|else)\b', prev_line_clean):
+            if not prev_line_clean.endswith((';', '{', '}')):
+                curr_idx -= 1
+                continue
+
+        # If none of the above, we found a stable break point (e.g., ends in ; or })
+        break
         
     safe_line = curr_idx + 1
     if safe_line != target_line:
@@ -2344,6 +2282,32 @@ def run_frozen_analysis(
             
             # If we get here, the entrypoint is valid and linkable. Proceed.
             print(f"  [+] Entrypoint '{raw_plan['entrypoint']['name']}' verified linkable.")
+            # Even if linkable, prefer a more public wrapper (API-level) when available.
+            link_cb = lambda name: verify_entrypoint_linkage(src_root, name, args, out_dir)
+
+            planned_entry = raw_plan.get("entrypoint", {}).get("name")
+            discovery = trace_public_entrypoint(
+                src_root,
+                planned_entry,
+                depth_limit=4,
+                verify_callback=link_cb,
+                candidate_files=candidate_files if candidate_files else None
+            )
+
+            if discovery:
+                new_ep = discovery["name"]
+                # Heuristic: switch if wrapper looks "more public" than the current one
+                # (declared in header OR located in include/ OR common API naming)
+                def _looks_public(fn: str) -> bool:
+                    return fn.startswith("xml") and ("TryOrFinish" not in fn)
+
+                if new_ep != planned_entry and _looks_public(new_ep):
+                    chain_str = " -> ".join(discovery["chain"])
+                    print(f"  [i] Upgrading Entrypoint: {planned_entry} -> {new_ep} (Chain: {chain_str})")
+                    raw_plan["entrypoint"]["name"] = new_ep
+                    raw_plan["entrypoint"]["signature"] = discovery.get("signature", raw_plan["entrypoint"].get("signature", ""))
+                    raw_plan["reachability_chain"] = discovery["chain"]
+
 
             raw_plan = validate_and_fix_assertions(src_root, ctx['vul_file'], raw_plan, args.rule_id or "")
 
@@ -2351,7 +2315,7 @@ def run_frozen_analysis(
 
             if "instrumentation" in frozen_plan:
                 for instr in frozen_plan["instrumentation"]:
-                    if "BUG_ASSERT" in instr.get("code", ""):
+                    if "BUG_ASSERT" in instr.get("code", "") or "REACH_ASSERT" in instr.get("code", ""):
                         orig_line = instr.get("line")
                         print(f"  [DEBUG] Checking syntax safety for BUG_ASSERT at line {orig_line}...")
                         if isinstance(orig_line, int):
@@ -2432,11 +2396,15 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     ensure_dir(log_dir)
     out_dir = log_dir / f"klee-out-{idx}"
     if out_dir.exists(): shutil.rmtree(out_dir, ignore_errors=True)
-    cmd = [klee] + flags + ["--output-dir", str(out_dir), "--only-output-states-covering-new"]
+    
+    # [CONFIG] Added --exit-on-error to fail fast on intrinsics
+    cmd = [klee] + flags + ["--output-dir", str(out_dir), "--only-output-states-covering-new", "--exit-on-error","--max-solver-time=30s",]
+    
     if os.environ.get("KLEE_TRACE", "0") == "1":
         print("      [i] Enabling instruction trace (Expect slower execution)")
         cmd.append("-debug-print-instructions=src:stderr")
     cmd.append(str(bc_path))
+    
     print(f"      [>] Output Dir:   {out_dir}")
     print(f"      [>] Streaming KLEE output ({timeout}s max)...")
     print("      ---------------------------------------------------")
@@ -2444,6 +2412,8 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     print("      ---------------------------------------------------")
     full_log = f"{out}\n{err}"
     (log_dir / f"klee_{idx}.log").write_text(full_log, encoding="utf-8")
+
+    # Trace Extraction
     execution_trace = ""
     if "-debug-print-instructions" in cmd:
         trace_lines = []
@@ -2466,6 +2436,7 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
     failure_reason = None
     analysis_note = ""
 
+    # [1] H0 Detection
     if "invalid klee_assume call (provably false)" in full_log and not bug_assert:
         print("  [i] KLEE: Assumption failure (provably false). Marking as H0.")
         return {
@@ -2473,28 +2444,53 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
             "elapsed": t, "full_log": full_log, "failure_reason": "Harness assumption provably false",
             "execution_trace": execution_trace
         }
+    
+    # [2] Crash Detection
     if bug_assert:
         bug_found = True
         crash_type = "spec"
         crash_location = f"{Path(target_file).name}:{target_line} (Oracle)"
+        failure_reason = "Oracle BUG_ASSERT triggered"
+
     elif "KLEE: ERROR" in full_log:
-        is_local, loc_msg = check_crash_locality(full_log, target_file, target_line)
-        match = re.search(r"at ([^ ]+:\d+)", loc_msg) or re.search(r"HARNESS_LOCAL_CRASH: ([^ ]+:\d+)", loc_msg)
-        found_loc = match.group(1) if match else "unknown"
-        if loc_msg.startswith("HARNESS_LOCAL_CRASH"):
-            crash_type = "harness"
-            crash_location = found_loc
-            failure_reason = loc_msg
-            analysis_note = f"[SYSTEM ANALYSIS]: {loc_msg}"
-        elif is_local:
-            bug_found = True
-            crash_type = "spec"
-            crash_location = found_loc
+        bug_found = True
+        
+        # [NEW] Priority Check for Intrinsics (Critical for Diagnosis)
+        if "unimplemented intrinsic" in full_log:
+             crash_type = "intrinsic"
+             failure_reason = "Unimplemented Intrinsic (LLVM/KLEE limitation)"
+             # Try to find the specific intrinsic name
+             m = re.search(r"unimplemented intrinsic: ([\w\.]+)", full_log)
+             if m: failure_reason += f": {m.group(1)}"
+        
         else:
-            print(f"  [!] IGNORED NON-LOCAL CRASH: {loc_msg}")
-            bug_found = False
-            crash_type = "none" 
-            analysis_note = f"[SYSTEM ANALYSIS]: Ignored non-local crash: {loc_msg}"
+            is_local, loc_msg = check_crash_locality(full_log, target_file, target_line)
+            match = re.search(r"at ([^ ]+:\d+)", loc_msg) or re.search(r"HARNESS_LOCAL_CRASH: ([^ ]+:\d+)", loc_msg)
+            found_loc = match.group(1) if match else "unknown"
+            
+            if loc_msg.startswith("HARNESS_LOCAL_CRASH"):
+                crash_type = "harness"
+                crash_location = found_loc
+                failure_reason = loc_msg
+            elif is_local:
+                # Local Valid (Blocker)
+                crash_type = "local_valid"
+                crash_location = found_loc
+                failure_reason = f"{loc_msg} (Target Crash)"
+            else:
+                # Opportunistic (Library)
+                crash_type = "opportunistic" 
+                crash_location = found_loc
+                failure_reason = loc_msg
+
+    # [3] Fallback Reason Capture
+    # If we found a bug but have no reason yet, grab the first ERROR line.
+    if bug_found and not failure_reason:
+        for line in full_log.splitlines():
+            if "KLEE: ERROR" in line:
+                failure_reason = line.strip()
+                break
+        if not failure_reason: failure_reason = "Unknown KLEE Error"
 
     if analysis_note:
         full_log += f"\n\n{analysis_note}\n"
@@ -2529,95 +2525,868 @@ def _copy_tree_filtered(src_root: Path, dst_root: Path) -> None:
     ignore = shutil.ignore_patterns(".git", "se_runs", "__pycache__", "*.o", "*.a", "*.so", "*.dSYM", "build", "cmake-build-*")
     shutil.copytree(src_root, dst_root, ignore=ignore, dirs_exist_ok=False)
 
-def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any]) -> List[str]:
+
+
+# -----------------------------
+# STAILOR statement-aware instrumentation helpers
+# -----------------------------
+
+def _stailor_strip_strings_and_line_comments(line: str) -> str:
+    """Best-effort removal of C string/char literals and // comments for lightweight parsing."""
+    # remove // comments first (not inside quotes; best-effort)
+    line = re.sub(r"//.*$", "", line)
+    # replace string and char literals with spaces
+    line = re.sub(r'"(?:\\.|[^"\\])*"', '""', line)
+    line = re.sub(r"'(?:\\.|[^'\\])*'", "''", line)
+    return line
+
+
+def _stailor_in_block_comment(lines: list[str], line_index: int) -> bool:
+    """Return True if position (before line_index) is within a /* ... */ block comment."""
+    depth = 0
+    for i in range(max(0, min(line_index, len(lines)))):
+        s = _stailor_strip_strings_and_line_comments(lines[i])
+        j = 0
+        while j < len(s):
+            if s.startswith('/*', j):
+                depth += 1
+                j += 2
+                continue
+            if s.startswith('*/', j) and depth > 0:
+                depth -= 1
+                j += 2
+                continue
+            j += 1
+    return depth > 0
+
+
+def _stailor_safe_insert_pos(lines: list[str], insert_pos: int) -> int:
+    """If insert_pos is inside a block comment, advance to the first line after the comment ends."""
+    insert_pos = max(0, min(insert_pos, len(lines)))
+    if not _stailor_in_block_comment(lines, insert_pos):
+        return insert_pos
+    # advance until we exit block comment
+    i = insert_pos
+    while i < len(lines):
+        # check state after consuming line i
+        if not _stailor_in_block_comment(lines, i + 1):
+            return i + 1
+        i += 1
+    return len(lines)
+
+
+def _stailor_insert_after_includes(lines: list[str], max_scan: int = 250) -> int:
+    """Choose a safe insertion point after the last #include in the first max_scan lines."""
+    last_inc = -1
+    for i, l in enumerate(lines[: min(len(lines), max_scan)]):
+        if re.match(r"\s*#\s*include\b", l):
+            last_inc = i
+    if last_inc >= 0:
+        return last_inc + 1
+    # fallback: after initial preprocessor prologue
+    last_pp = -1
+    for i, l in enumerate(lines[: min(len(lines), max_scan)]):
+        if re.match(r"\s*#\s*(define|if|ifdef|ifndef|pragma|elif|else|endif)\b", l):
+            last_pp = i
+    return (last_pp + 1) if last_pp >= 0 else 0
+
+
+def _stailor_locate_by_anchor(lines: list[str], anchor: dict) -> int | None:
+    """Locate a line by anchor: prefix + optional context-before/context-after strings."""
+    if not anchor:
+        return None
+    prefix = str(anchor.get('prefix') or '').strip()
+    if not prefix:
+        return None
+    before = anchor.get('before') if isinstance(anchor.get('before'), list) else []
+    after = anchor.get('after') if isinstance(anchor.get('after'), list) else []
+
+    def ctx_ok(i: int) -> bool:
+        # check before within 12 lines
+        if before:
+            window = ''.join(lines[max(0, i-12):i])
+            for b in before:
+                if b and str(b) not in window:
+                    return False
+        if after:
+            window = ''.join(lines[i+1:min(len(lines), i+13)])
+            for a in after:
+                if a and str(a) not in window:
+                    return False
+        return True
+
+    for i, l in enumerate(lines):
+        if prefix in l and ctx_ok(i):
+            return i
+    return None
+
+
+
+
+# -----------------------------------------------------------------------------
+# Statement-/function-aware instrumentation helpers (project-agnostic)
+# -----------------------------------------------------------------------------
+
+_C_KEYWORDS = {
+    "if","for","while","switch","return","sizeof","do","goto","case","break","continue",
+    "else","struct","union","enum","typedef","static","extern","volatile","const",
+}
+
+def _extract_function_spans_c(src_text: str) -> List[Dict[str, Any]]:
+    """Best-effort C function span extractor (no clang required).
+
+    Returns list of {name, start_line, end_line, is_static}.
+    Uses comment/string-masked brace matching.
+    """
+    masked = strip_c_comments_and_strings_preserve_lines(src_text)
+    # Match function headers conservatively: <ret stuff> <name>(...) {
+    rx = re.compile(r"(^|\n)\s*(?:([A-Za-z_][\w\s\*]*?)\s+)?([A-Za-z_][\w]*)\s*\([^;{}]*\)\s*\{", re.MULTILINE)
+    spans: List[Dict[str, Any]] = []
+    for m in rx.finditer(masked):
+        name = m.group(3)
+        hdr_start = m.start()
+        brace_open = masked.find("{", m.end()-1, m.end()+1)
+        if brace_open < 0: 
+            continue
+        # brace match
+        depth = 0
+        i = brace_open
+        end = -1
+        while i < len(masked):
+            ch = masked[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+            i += 1
+        if end < 0:
+            continue
+        start_line = src_text.count("\n", 0, brace_open) + 1
+        end_line   = src_text.count("\n", 0, end) + 1
+        # static heuristic: look backwards within header line(s)
+        hdr = src_text[hdr_start:brace_open]
+        is_static = bool(re.search(r"\bstatic\b", hdr))
+        spans.append({"name": name, "start_line": start_line, "end_line": end_line, "is_static": is_static})
+    return spans
+
+def _compute_in_path_funcs_for_file(src_text: str, target_line: int) -> Set[str]:
+    """Compute a conservative in-path (MUST_KEEP) set within a TU.
+
+    - Always includes the function that contains target_line.
+    - Includes *direct* and *transitive* callers within the same TU (backward slice).
+    This is project-agnostic and prevents stubbing the exact logic we need to reach.
+    """
+    spans = _extract_function_spans_c(src_text)
+    if not spans:
+        return set()
+    target_funcs = [s for s in spans if s["start_line"] <= target_line <= s["end_line"]]
+    if not target_funcs:
+        return set()
+    target_name = target_funcs[0]["name"]
+    keep: Set[str] = {target_name}
+
+    # Build a simple caller map within TU
+    masked = strip_c_comments_and_strings_preserve_lines(src_text)
+    bodies: Dict[str, str] = {}
+    for s in spans:
+        # extract body text by line range (approx)
+        body_lines = src_text.splitlines(True)[s["start_line"]-1:s["end_line"]]
+        bodies[s["name"]] = strip_c_comments_and_strings_preserve_lines("".join(body_lines))
+
+    # Caller graph: f -> set(callees)
+    call_rx = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.MULTILINE)
+    calls: Dict[str, Set[str]] = {}
+    for fn, body in bodies.items():
+        cs = set()
+        for m in call_rx.finditer(body):
+            cal = m.group(1)
+            if cal in _C_KEYWORDS:
+                continue
+            cs.add(cal)
+        calls[fn] = cs
+
+    # Reverse BFS from target to callers
+    changed = True
+    while changed:
+        changed = False
+        for caller, callees in calls.items():
+            if caller in keep:
+                continue
+            if any(c in keep for c in callees):
+                keep.add(caller)
+                changed = True
+
+    return keep
+
+def _extract_stubbed_function_name(code_snippet: str) -> Optional[str]:
+    """Try to recover the intended stubbed function name from injected code."""
+    if not code_snippet:
+        return None
+    m = re.search(r"\bStub\s+([A-Za-z_][A-Za-z0-9_]*)\b", code_snippet)
+    if m:
+        return m.group(1)
+    # common pattern in this pipeline: "/* Stub <name>: ... */"
+    m = re.search(r"/\*\s*Stub\s+([A-Za-z_][A-Za-z0-9_]*)\s*:", code_snippet)
+    if m:
+        return m.group(1)
+    return None
+
+
+# -----------------------------------------------------------------------------
+# STAILOR Patch: Statement-safe stubbing + intrinsic mitigation helpers
+# -----------------------------------------------------------------------------
+
+_RX_KLEE_UNIMPL_INTR = re.compile(r"unimplemented intrinsic:\s*([A-Za-z0-9\._]+)")
+_RX_KLEE_ERROR_LOC   = re.compile(r"KLEE:\s*ERROR:\s*([^:\s]+):(\d+):")
+_RX_KLEE_STACK_FUNC  = re.compile(r"\bin\s+([A-Za-z_]\w*)\s*\(")
+
+def _extract_klee_intrinsic_blocker(full_log: str) -> Dict[str, Any]:
+    """
+    Parse KLEE output for intrinsic blocker information.
+    Returns dict with keys: intrinsic, file, line, func (best-effort) or {}.
+    """
+    if "unimplemented intrinsic" not in full_log:
+        return {}
+    out: Dict[str, Any] = {}
+    m = _RX_KLEE_UNIMPL_INTR.search(full_log)
+    if m:
+        out["intrinsic"] = m.group(1)
+    m = _RX_KLEE_ERROR_LOC.search(full_log)
+    if m:
+        out["file"] = m.group(1)
+        try:
+            out["line"] = int(m.group(2))
+        except Exception:
+            pass
+    # Best-effort: take the first stack function name that appears after the ERROR line
+    # Many KLEE stacks include lines like: "in foo(...)".
+    m = _RX_KLEE_STACK_FUNC.search(full_log)
+    if m:
+        out["func"] = m.group(1)
+    return out
+
+def _strip_c_comments_and_strings_preserve_lines(text: str) -> str:
+    """Mask comments and strings but preserve newlines for line mapping."""
+    # Reuse if already defined
+    try:
+        return strip_c_comments_and_strings_preserve_lines(text)  # type: ignore[name-defined]
+    except Exception:
+        pass
+
+    out = []
+    i, n = 0, len(text)
+    state = "code"
+    while i < n:
+        ch = text[i]
+        nxt = text[i+1] if i+1 < n else ""
+        if state == "code":
+            if ch == "/" and nxt == "/":
+                out.append("  ")
+                i += 2
+                state = "line"
+                continue
+            if ch == "/" and nxt == "*":
+                out.append("  ")
+                i += 2
+                state = "block"
+                continue
+            if ch == '"':
+                out.append('"')
+                i += 1
+                state = "dstr"
+                continue
+            if ch == "'":
+                out.append("'")
+                i += 1
+                state = "sstr"
+                continue
+            out.append(ch)
+            i += 1
+        elif state == "line":
+            if ch == "\n":
+                out.append("\n")
+                i += 1
+                state = "code"
+            else:
+                out.append(" ")
+                i += 1
+        elif state == "block":
+            if ch == "*" and nxt == "/":
+                out.append("  ")
+                i += 2
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+        elif state == "dstr":
+            if ch == "\\" and i+1 < n:
+                out.append("  ")
+                i += 2
+            elif ch == '"':
+                out.append('"')
+                i += 1
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+        elif state == "sstr":
+            if ch == "\\" and i+1 < n:
+                out.append("  ")
+                i += 2
+            elif ch == "'":
+                out.append("'")
+                i += 1
+                state = "code"
+            else:
+                out.append("\n" if ch == "\n" else " ")
+                i += 1
+    return "".join(out)
+
+def _extract_stubbed_func_name_from_code(code: str) -> str:
+    """
+    Extract function name from injected stub code/comment.
+    Supports patterns:
+      - 'Stub <func>:'
+      - 'Stub_<func>' (rare)
+    """
+    m = re.search(r"\bStub\s+([A-Za-z_]\w*)\s*:", code)
+    if m: return m.group(1)
+    m = re.search(r"\bstub_([A-Za-z_]\w*)\b", code)
+    if m: return m.group(1)
+    return ""
+
+def _find_function_def_span(masked: str, func: str) -> Optional[Tuple[int, int]]:
+    """
+    Find the (start_line, brace_line) of a function definition in masked text.
+    brace_line is the line containing the opening '{'.
+    """
+    # Match return type + name + params + '{'
+    rx = re.compile(rf"(^|\n)\s*(?:static\s+)?[^\n;{{}}]*\b{re.escape(func)}\s*\([^;{{}}]*\)\s*\{{", re.MULTILINE)
+    m = rx.search(masked)
+    if not m:
+        return None
+    start_line = masked.count("\n", 0, m.start()) + 1
+    brace_line = masked.count("\n", 0, m.end()) + 1
+    # In practice start_line==brace_line often.
+    return (start_line, brace_line)
+
+def _infer_return_type_from_def_line(def_line: str, func: str) -> str:
+    """
+    Best-effort return type inference from a def line: '<ret> func(args) {'
+    """
+    # Remove attributes/macros
+    line = def_line.strip()
+    # Chop at function name
+    idx = line.find(func)
+    if idx <= 0:
+        return ""
+    ret = line[:idx].strip()
+    # Remove common qualifiers
+    ret = re.sub(r"\b(static|inline|extern|__inline__|__inline)\b", "", ret).strip()
+    ret = re.sub(r"\s+", " ", ret).strip()
+    return ret
+
+def _default_return_expr(ret_type: str, func_name: str = "") -> str:
+    """Generic safe return value expression as C code (single expression)."""
+    rt = ret_type.strip()
+    if rt == "" or rt == "int":
+        return "0"
+    if "void" in rt and "*" not in rt:
+        return ""  # indicates 'return;'
+    # Heuristic: string name getters
+    if "*" in rt and re.search(r"(?i)\bchar\b", rt):
+        return "\"UTF-8\""
+    if "*" in rt:
+        return "0"  # NULL (safe compile); reachability-friendly pointer needs modeling elsewhere
+    return "0"
+
+def _apply_stub_function_body_inplace(content: str, func: str, reason: str = "", *, force_return: Optional[str] = None) -> Tuple[str, bool, str]:
+    """
+    Rewrite the first executable line in function body to an early return, preserving line count.
+    - Comments out the original line with '//' and places the return on the same line when possible.
+    - Does NOT insert new lines.
+    """
+    lines = content.splitlines()
+    masked = _strip_c_comments_and_strings_preserve_lines(content)
+    span = _find_function_def_span(masked, func)
+    if not span:
+        return content, False, f"function '{func}' not found"
+    _, brace_line = span
+    brace_idx = brace_line - 1
+    # Find first line after opening brace that is not blank/comment/preprocessor
+    i = brace_idx
+    # If brace is on same line, start search at next line
+    i += 1
+    # track block comment state not necessary because masked already.
+    while i < len(lines):
+        mline = masked.splitlines()[i] if i < len(masked.splitlines()) else ""
+        raw = lines[i]
+        if raw.strip() == "":
+            i += 1
+            continue
+        if raw.lstrip().startswith("#"):
+            i += 1
+            continue
+        if mline.strip() == "":  # likely comment-only
+            i += 1
+            continue
+        # Skip simple C declarations to avoid removing local var declarations (keeps compilation).
+        decl = raw.strip()
+        if re.match(r"^[A-Za-z_][\w\s\*\(\)]+?\s+[A-Za-z_]\w*(\s*,\s*[A-Za-z_]\w*)*\s*;\s*$", decl) and "(" not in decl.split(";")[0]:
+            i += 1
+            continue
+        # Found candidate executable line
+        def_line = lines[brace_idx] if brace_idx < len(lines) else ""
+        ret_type = _infer_return_type_from_def_line(def_line, func)
+        # If function returns void (non-pointer), do not return a value even if force_return is provided.
+        if "void" in ret_type and "*" not in ret_type:
+            ret_expr = ""
+        else:
+            ret_expr = force_return if force_return is not None else _default_return_expr(ret_type, func)
+        if ret_expr == "":
+            new_stmt = f"return; // [STAILOR] stubbed {func} {reason}".rstrip()
+        else:
+            new_stmt = f"return {ret_expr}; // [STAILOR] stubbed {func} {reason}".rstrip()
+        # Replace this line with stub return, and preserve original as comment on next? can't add line.
+        # So embed original as a trailing comment (trim to avoid huge lines)
+        orig_trim = raw.strip().replace("/*", "/ *").replace("*/", "* /")
+        if len(orig_trim) > 160:
+            orig_trim = orig_trim[:157] + "..."
+        lines[i] = f"{new_stmt} /* ORIG: {orig_trim} */"
+        return "\n".join(lines) + ("\n" if content.endswith("\n") else ""), True, f"stubbed {func} at line {i+1}"
+    return content, False, f"no executable line found in '{func}'"
+
+def _find_first_path_with_basename(root: Path, base: str) -> Optional[Path]:
+    """Find first file under root whose basename matches base."""
+    try:
+        for p in root.rglob(base):
+            if p.is_file():
+                return p
+    except Exception:
+        return None
+    return None
+
+def _mitigate_intrinsic_blocker_in_src(src_root: Path, blocker: Dict[str, Any], execution_log: Optional[Path] = None) -> Tuple[bool, str]:
+    """
+    Patch the source file containing the intrinsic blocker by stubbing the crashing function body
+    (comment-safe, no line shifting).
+    Returns (ok, note).
+    """
+    func = str(blocker.get("func") or "").strip()
+    f = str(blocker.get("file") or "").strip()
+    if not func or not f:
+        return False, "blocker missing func/file"
+    base = os.path.basename(f)
+    p = _find_first_path_with_basename(src_root, base)
+    if not p:
+        return False, f"cannot locate {base} under src_root"
+    txt = p.read_text(encoding="utf-8", errors="replace")
+    # Special-case: name getters return UTF-8
+    force_ret = None
+    # If signature suggests char*, function body stub will return "UTF-8" automatically.
+    new_txt, ok, note = _apply_stub_function_body_inplace(txt, func, reason="(intrinsic mitigation)", force_return=force_ret)
+    if not ok:
+        return False, f"{p.name}: {note}"
+    p.write_text(new_txt, encoding="utf-8")
+    msg = f"[intrinsic-mitigation] stubbed {func} in {p.name} to avoid {blocker.get('intrinsic','intrinsic')}"
+    if execution_log:
+        try:
+            with open(execution_log, "a", encoding="utf-8") as f2:
+                f2.write(msg + "\n")
+        except Exception:
+            pass
+    return True, msg
+
+
+def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any], *, vul_file_rel: str = "", vul_line: int = 0, execution_log: Optional[Path] = None) -> List[str]:
+    """Apply plan["instrumentation"] directives.
+
+    Supported kinds (project-agnostic):
+      - insert_before / insert_after (legacy; line-based)  
+      - insert_after_includes (NEW; anchor-based safe injection)
+      - replace_in_line (NEW; line-based single-line replacement)
+      - replace_by_anchor (NEW; anchor-based single-line replacement)
+
+    Safety improvements:
+      - Never insert inside /* ... */ block comments (Doxygen-safe)
+      - Use // tags instead of /* */ to avoid nested-comment breakage
+      - Apply replacements before insertions for deterministic behavior
+    """
     actions: List[str] = []
     inst = plan.get("instrumentation", [])
-    if not isinstance(inst, list) or not inst: return actions
+    if not isinstance(inst, list) or not inst:
+        return actions
+
     file_map: Dict[str, List[Dict[str, Any]]] = {}
     for ent in inst:
-        if not isinstance(ent, dict): continue
+        if not isinstance(ent, dict):
+            continue
         rel = str(ent.get("file") or "").strip()
-        if not rel: continue
-        if rel not in file_map: file_map[rel] = []
-        file_map[rel].append(ent)
+        if not rel:
+            continue
+        file_map.setdefault(rel, []).append(ent)
+
     for rel, directives in file_map.items():
         target = (inst_root / rel).resolve()
         if not target.exists():
             actions.append(f"[instrumentation] missing file: {rel}")
             continue
-        directives.sort(key=lambda x: -int(x.get("line") or 0))
+
         lines = target.read_text(encoding="utf-8", errors="replace").splitlines(True)
         modified = False
-        for ent in directives:
-            line_idx = int(ent.get("line") or 0)
+        # Precompute a brace-depth map for statement-safe instrumentation.
+        # Depth is computed on comment/string-masked text so braces in comments don't count.
+        try:
+            _txt_full = "".join(lines)
+            _masked_full = _strip_c_comments_and_strings_preserve_lines(_txt_full)
+            _masked_lines = _masked_full.splitlines(True)
+            _brace_depth_before: List[int] = []
+            _d = 0
+            for _ln in _masked_lines:
+                _brace_depth_before.append(_d)
+                # update depth after this line
+                _d += _ln.count('{')
+                _d -= _ln.count('}')
+                if _d < 0: _d = 0
+        except Exception:
+            _brace_depth_before = [0 for _ in lines]
+
+
+        # Compute a conservative MUST_KEEP set for the vulnerable TU to avoid stubbing in-path helpers.
+        must_keep: Set[str] = set()
+        if vul_file_rel and vul_line > 0 and Path(rel).as_posix() == Path(vul_file_rel).as_posix():
+            try:
+                src_text_full = "".join(lines)
+                must_keep = _compute_in_path_funcs_for_file(src_text_full, vul_line)
+                if must_keep:
+                    msg = f"[stubs] MUST_KEEP_FUNCS({len(must_keep)}): " + ", ".join(sorted(list(must_keep))[:50])
+                    actions.append(msg)
+                    if execution_log:
+                        try:
+                            with open(execution_log, "a", encoding="utf-8") as f:
+                                f.write(msg + "\n")
+                        except Exception:
+                            pass
+            except Exception as e:
+                actions.append(f"[stubs] MUST_KEEP_FUNCS computation failed: {e}")
+
+        # Split by operation type
+        repl = [d for d in directives if str(d.get('kind') or '').strip() in ('replace_in_line','replace_by_anchor')]
+        ins  = [d for d in directives if str(d.get('kind') or 'insert_before').strip() not in ('replace_in_line','replace_by_anchor')]
+
+        # ----------------
+        # Replacements (top-down)
+        # ----------------
+        for ent in sorted(repl, key=lambda x: int(x.get('line') or 0) or 0):
+            kind = (ent.get('kind') or 'replace_in_line').strip()
+            code = str(ent.get('code') or '').rstrip('\n')
+            if not code:
+                continue
+
+            idx0: int | None = None
+            if kind == 'replace_by_anchor':
+                anchor = ent.get('anchor') if isinstance(ent.get('anchor'), dict) else {}
+                idx0 = _stailor_locate_by_anchor(lines, anchor)
+                if idx0 is None:
+                    actions.append(f"[instrumentation] replace_by_anchor MISS {rel}")
+                    continue
+            else:
+                line_idx_1 = int(ent.get('line') or 0)
+                if line_idx_1 <= 0 or line_idx_1 > len(lines):
+                    actions.append(f"[instrumentation] replace_in_line OOB {rel}:{line_idx_1}")
+                    continue
+                idx0 = line_idx_1 - 1
+
+            # Preserve newline convention
+            nl = "\n" if lines[idx0].endswith("\n") else ""
+            orig = lines[idx0].rstrip('\n')
+            flat = ' '.join(code.splitlines()).strip()
+            # Replace the statement in-place and keep the original as a trailing comment (no extra lines)
+            safe_orig = orig.strip().replace('/*','/ *').replace('*/','* /')
+            if len(safe_orig) > 180:
+                safe_orig = safe_orig[:177] + '...'
+            lines[idx0] = flat + f" /* ORIG: {safe_orig} */" + nl
+            actions.append(f"[instrumentation] {kind} {rel}:{idx0+1}")
+            modified = True
+
+        # ----------------
+        # Insertions (bottom-up)
+        # ----------------
+        # Legacy directives sorted descending line so indices remain stable
+        def _ins_sort_key(d: dict) -> int:
+            try:
+                return int(d.get('line') or 0)
+            except Exception:
+                return 0
+
+        ins.sort(key=_ins_sort_key, reverse=True)
+
+        for ent in ins:
             kind = (ent.get("kind") or "insert_before").strip()
             code = str(ent.get("code") or "").rstrip()
-            if line_idx > len(lines):
-                print(f"  [!] Skipping invalid instrumentation at {rel}:{line_idx} (File has {len(lines)} lines)")
+            if not code:
+                continue
+
+            # [STAILOR] Statement-aware stubbing / intrinsic mitigation
+            if kind == "stub_function_body":
+                func_name = str(ent.get("func") or "").strip()
+                reason = str(ent.get("reason") or "").strip()
+                force_ret = ent.get("force_return")
+                if not func_name:
+                    actions.append(f"[instrumentation] stub_function_body MISS func {rel}")
+                    continue
+                # Respect MUST_KEEP unless explicitly forced (blockers)
+                if func_name in must_keep and not ent.get("force"):
+                    msg = f"[stubs] SKIP in-path stub '{func_name}' via stub_function_body ({rel})"
+                    actions.append(msg)
+                    if execution_log:
+                        try:
+                            with open(execution_log, "a", encoding="utf-8") as f:
+                                f.write(msg + "\n")
+                        except Exception:
+                            pass
+                    continue
+                new_txt, ok, note = _apply_stub_function_body_inplace("".join(lines), func_name, reason, force_return=force_ret)
+                if ok:
+                    lines = new_txt.splitlines(True)
+                    modified = True
+                    actions.append(f"[instrumentation] stub_function_body {rel}:{func_name} ({note})")
+                else:
+                    actions.append(f"[instrumentation] stub_function_body FAIL {rel}:{func_name} ({note})")
+                continue
+
+            # Detect legacy body-stub inserts and relocate to function body instead of line-based insertion.
+            stub_func = _extract_stubbed_func_name_from_code(code)
+            is_body_stub = bool(stub_func) or code.lstrip().startswith("return ")
+
+            # Bare 'return ...;' snippets without an explicit target function/callsite are unsafe:
+            # they cannot be inserted at file scope, and guessing a function to patch is error-prone.
+            # Enforce: drop these directives and require callsite-aware replacement (replace_by_anchor)
+            # or explicit stub_function_body with 'func'.
+            if code.lstrip().startswith("return ") and not stub_func:
+                msg = f"[instrumentation] DROP unsafe bare-return insertion {rel}:{ent.get('line')}"
+                actions.append(msg)
+                if execution_log:
+                    try:
+                        with open(execution_log, "a", encoding="utf-8") as f:
+                            f.write(msg + "\n")
+                    except Exception:
+                        pass
+                continue
+
+            if is_body_stub and stub_func:
+                if stub_func in must_keep and not ent.get("force"):
+                    msg = f"[stubs] SKIP in-path stub '{stub_func}' at {rel}:{ent.get('line')}"
+                    actions.append(msg)
+                    if execution_log:
+                        try:
+                            with open(execution_log, "a", encoding="utf-8") as f:
+                                f.write(msg + "\n")
+                        except Exception:
+                            pass
+                    continue
+
+                # Apply as in-place function-body stub (no line shifting; do not inject into comments).
+                # For collision unlock stubs, prefer returning the constant present in code if any.
+                force_ret = None
+                mconst = re.search(r"return\s+((?:0x[0-9A-Fa-f]+)|(?:\d+))\s*;", code)
+                if mconst:
+                    force_ret = str(int(mconst.group(1), 0))
+                reason = "legacy relocated"
+                new_txt, ok, note = _apply_stub_function_body_inplace("".join(lines), stub_func, reason, force_return=(force_ret if force_ret is not None else None))
+                if ok:
+                    lines = new_txt.splitlines(True)
+                    modified = True
+                    actions.append(f"[instrumentation] relocated body-stub into {stub_func} ({note})")
+                else:
+                    actions.append(f"[instrumentation] relocate FAIL {rel}:{stub_func} ({note})")
+                continue
+
+            if kind == 'insert_after_includes':
+                insert_pos = _stailor_insert_after_includes(lines)
+                insert_pos = _stailor_safe_insert_pos(lines, insert_pos)
+                tag = "// [STAILOR] Injected after includes\n"
+                ins_txt = code + ("\n" if not code.endswith("\n") else "") + tag
+                lines.insert(insert_pos, ins_txt)
+                actions.append(f"[instrumentation] insert_after_includes {rel}:{insert_pos+1}")
+                modified = True
+                continue
+
+            line_idx = int(ent.get("line") or 0)
+            if line_idx <= 0 or line_idx > len(lines)+1:
                 actions.append(f"[instrumentation] SKIP OOB {rel}:{line_idx}")
                 continue
-            if line_idx <= 0 or not code: continue
+
             idx = max(0, min(len(lines), line_idx - 1))
-            debug_tag = f" /* [STAILOR] Injected at orig line {line_idx} */"
-            ins = f"{code}{debug_tag}\n" if not code.endswith("\n") else f"{code.rstrip()}{debug_tag}\n"
             insert_pos = idx + 1 if kind == "insert_after" else idx
-            if insert_pos > len(lines) and len(lines) > 0: continue
-            if insert_pos >= len(lines): lines.append(ins)
-            else: lines.insert(insert_pos, ins)
+            insert_pos = _stailor_safe_insert_pos(lines, insert_pos)
+
+            # Statement-safe splice: if this directive is a single C statement and we're inside a function
+            # (brace depth > 0), do NOT insert a new line. Instead, splice the instrumentation onto the
+            # same source statement line (no line shifting, Doxygen-safe).
+            try:
+                _depth = _brace_depth_before[idx] if idx < len(_brace_depth_before) else 0
+            except Exception:
+                _depth = 0
+            _flat = ' '.join(code.splitlines()).strip()
+            _looks_stmt = (('\n' not in code) and (not _flat.lstrip().startswith('#')) and (';' in _flat)) or _flat.lstrip().startswith(('return ','goto ','break','continue'))
+            if _looks_stmt:
+                if _depth <= 0:
+                    # File-scope insertion of statements is illegal C.
+                    msg = f"[instrumentation] DROP top-level statement injection {rel}:{line_idx}"
+                    actions.append(msg)
+                    if execution_log:
+                        try:
+                            with open(execution_log, 'a', encoding='utf-8') as f:
+                                f.write(msg + '\n')
+                        except Exception:
+                            pass
+                    continue
+                # Splice before/after on the same line.
+                if idx >= len(lines):
+                    # Nothing to splice; fallback to append as a new line.
+                    pass
+                else:
+                    _nl = '\n' if lines[idx].endswith('\n') else ''
+                    _orig = lines[idx].rstrip('\n')
+                    # Avoid nested block comment breaks in ORIG when embedding.
+                    _orig_s = _orig.replace('/*','/ *').replace('*/','* /')
+                    if kind == 'insert_after':
+                        lines[idx] = f"{_orig} {_flat} /* [STAILOR] splice_after */" + _nl
+                    else:
+                        lines[idx] = f"{_flat} {_orig} /* [STAILOR] splice_before */" + _nl
+                    actions.append(f"[instrumentation] splice_{kind} {rel}:{line_idx}")
+                    modified = True
+                    continue
+
+            tag = f"// [STAILOR] Injected at orig line {line_idx}\n"
+            ins_txt = code + ("\n" if not code.endswith("\n") else "") + tag
+
+            if insert_pos > len(lines):
+                lines.append(ins_txt)
+            else:
+                lines.insert(insert_pos, ins_txt)
+
             actions.append(f"[instrumentation] {kind} {rel}:{line_idx}")
             modified = True
-        if modified: target.write_text("".join(lines), encoding="utf-8")
-    return actions
 
+        if modified:
+            target.write_text(''.join(lines), encoding='utf-8')
+
+    return actions
 def build_instrumented_project_bc(
     *, src_root: Path, work_dir: Path, frozen_plan: Dict[str, Any], args: argparse.Namespace
 ) -> Tuple[Optional[Path], List[str], str]:
+    """
+    Builds an instrumented project.bc by copying src_root -> work_dir/instrumented_source,
+    applying frozen_plan["instrumentation"], and running args.build_project_bc_cmd.
+
+    Returns: (bc_path_or_none, actions_applied, error_message)
+    """
+    import shutil
+    from pathlib import Path
+    from typing import Any, Dict, List, Optional, Tuple
+
     inst = frozen_plan.get("instrumentation", [])
     if not isinstance(inst, list) or not inst:
         return (Path(args.project_bc) if args.project_bc else None, [], "")
+
     if not getattr(args, "build_project_bc_cmd", None):
         return (None, [], "Instrumentation required but --build-project-bc-cmd was not provided.")
+
     inst_root = work_dir / "instrumented_source"
     _copy_tree_filtered(src_root, inst_root)
-    klee_src_dir = None
-    candidates = []
-    if args.clang_flags:
+
+    # ------------------------------------------------------------
+    # Best-effort KLEE header injection
+    # ------------------------------------------------------------
+    klee_src_dir: Optional[Path] = None
+    candidates: List[Path] = []
+
+    if getattr(args, "clang_flags", None):
         for flag in args.clang_flags:
-            if flag.startswith("-I"):
-                p = Path(flag[2:]).resolve()
-                candidates.append(p)
-    candidates.extend([Path("/usr/include"), Path("/usr/local/include"), Path.home() / "tools/klee/include"])
+            if isinstance(flag, str) and flag.startswith("-I"):
+                candidates.append(Path(flag[2:]).resolve())
+
+    # also consider typical locations
+    candidates.extend([
+        Path("/usr/include"),
+        Path("/usr/local/include"),
+        Path.home() / "tools/klee/include",
+    ])
+
+    # if args.klee is set, also look near it
+    if getattr(args, "klee", None):
+        k = Path(str(args.klee)).resolve()
+        candidates.extend([
+            k.parent.parent / "include",   # .../build/../include
+            k.parent / "include",
+        ])
+
     for p in candidates:
         if (p / "klee" / "klee.h").exists():
             klee_src_dir = p / "klee"
             break
+
     if klee_src_dir:
         proj_inc = inst_root / "include"
-        if not proj_inc.exists(): proj_inc = inst_root
+        if not proj_inc.exists():
+            proj_inc = inst_root
         klee_dst_dir = proj_inc / "klee"
         try:
-            if klee_dst_dir.exists(): shutil.rmtree(klee_dst_dir)
+            if klee_dst_dir.exists():
+                shutil.rmtree(klee_dst_dir)
             shutil.copytree(klee_src_dir, klee_dst_dir)
             print(f"  [i] Pipeline: Injected KLEE headers into {klee_dst_dir} to fix build dependencies.")
         except Exception as e:
             print(f"  [!] Warning: Failed to inject KLEE headers: {e}")
     else:
-        print("  [!] Warning: Could not locate 'klee/klee.h' in CLANG_FLAGS. Instrumented build might fail.")
-    actions = apply_plan_instrumentation(inst_root, frozen_plan)
+        print("  [!] Warning: Could not locate 'klee/klee.h'. Instrumented build might fail.")
+
+    # Apply plan instrumentation
+    actions = apply_plan_instrumentation(inst_root, frozen_plan, vul_file_rel=str(getattr(args,'vul_file','') or ''), vul_line=int(getattr(args,'vul_line',0) or 0), execution_log=(work_dir / 'execution.log'))
+
+    # Emit a concise stub/in-path summary to the main execution log (stdout is tee'd).
+    if actions:
+        keep_lines = [a for a in actions if a.startswith("[stubs] MUST_KEEP_FUNCS")]
+        skip_lines = [a for a in actions if a.startswith("[stubs] SKIP")]
+        if keep_lines:
+            print("  " + keep_lines[-1])
+        if skip_lines:
+            print(f"  [stubs] Skipped {len(skip_lines)} in-path stub directives.")
     out_bc = inst_root / "project.bc"
     cmd_tmpl = str(args.build_project_bc_cmd)
     cmd = cmd_tmpl.format(SRC_ROOT=str(inst_root), OUT_BC=str(out_bc))
+
+    (work_dir / "instrumented_build.cmd").write_text(cmd + "\n", encoding="utf-8", errors="replace")
+
     rc, out, err, _ = run_cmd(["bash", "-lc", cmd], cwd=inst_root, timeout=1800)
     (work_dir / "instrumented_build.stdout").write_text(out, encoding="utf-8", errors="replace")
     (work_dir / "instrumented_build.stderr").write_text(err, encoding="utf-8", errors="replace")
+
     if rc != 0:
         return (None, actions, f"Instrumented build failed (rc={rc}). See instrumented_build.stderr/stdout.")
+
     if not out_bc.exists():
+        # fallback: locate produced bitcode(s)
         cands = list(inst_root.rglob("*.bc"))
-        if len(cands) == 1: out_bc = cands[0]
-        else: return (None, actions, "Instrumented build did not produce OUT_BC (project.bc). Provide a cmd that writes {OUT_BC}.")
+        if len(cands) == 1:
+            out_bc = cands[0]
+        else:
+            msg = (
+                "Instrumented build did not produce OUT_BC (project.bc).\n"
+                f"- expected: {out_bc}\n"
+                f"- found: {len(cands)} *.bc files\n"
+                "Fix --build-project-bc-cmd to write exactly {OUT_BC}."
+            )
+            return (None, actions, msg)
+
     return (out_bc, actions, "")
-    
+
+
 def validate_harness_calls_entrypoint(harness_src: str, entrypoint: str) -> bool:
     if not entrypoint: return True
     clean_code = strip_c_comments_and_strings(harness_src)
@@ -2650,52 +3419,87 @@ def _extract_bug_assert_predicate_from_main(harness_src: str) -> Optional[str]:
     return None
 
 def validate_harness_structure(
-    harness_src: str, required_entrypoint: str, policy: Dict[str, Any], rule_id: str, spec_stem: str, frozen_plan: Dict[str, Any] = None, defined_symbols: Set[str] = None
+    harness_src: str,
+    required_entrypoint: str,
+    policy: Dict[str, Any],
+    rule_id: str,
+    spec_stem: str,
+    frozen_plan: Dict[str, Any] = None,
+    defined_symbols: Set[str] = None,
+    allowed_entrypoints: List[str] = None,
 ) -> Tuple[bool, str]:
     required_markers = ["/* --- Global Constants --- */", "/* --- Stub Functions --- */", "/* --- Harness --- */"]
     for mk in required_markers:
-        if mk not in harness_src: return False, f"Missing required section marker: {mk}"
+        if mk not in harness_src:
+            return False, f"Missing required section marker: {mk}"
+
     try:
         global_sec, rest = harness_src.split("/* --- Stub Functions --- */", 1)
         stub_sec_raw, harness_sec = rest.split("/* --- Harness --- */", 1)
-    except Exception: return False, "Failed to split harness into sections. Ensure markers are present and ordered."
+    except Exception:
+        return False, "Failed to split harness into sections. Ensure markers are present and ordered."
+
     clean_harness = strip_c_comments_and_strings(harness_sec)
     clean_all = strip_c_comments_and_strings(harness_src)
+
+    # ------------------------------------------------------------
+    # Collision guard: don't define symbols that already exist
+    # ------------------------------------------------------------
     if defined_symbols:
         defn_pattern = re.compile(r"^\s*(?:[\w\s\*]+)\b([a-zA-Z_]\w*)\s*\([^;]*\)\s*\{", re.MULTILINE)
         for match in defn_pattern.finditer(clean_all):
             func_name = match.group(1)
-            if func_name == "main": continue
+            if func_name == "main":
+                continue
             if func_name in defined_symbols:
-                return False, (f"LINKER COLLISION: You defined '{func_name}', but it already exists in the target library.\nVIOLATION: Defining it creates a 'multiple definition' error.\nFIX: Use Macro Redirection to stub it safely.\nEXAMPLE:\n   char* stub_{func_name}(...) {{ ... }}\n   #define {func_name} stub_{func_name}")
+                return False, (
+                    f"LINKER COLLISION: You defined '{func_name}', but it already exists in the target library.\n"
+                    f"VIOLATION: Defining it creates a 'multiple definition' error.\n"
+                    f"FIX: Use Macro Redirection to stub it safely.\n"
+                    f"EXAMPLE:\n"
+                    f"   char* stub_{func_name}(...) {{ ... }}\n"
+                    f"   #define {func_name} stub_{func_name}"
+                )
 
     plan_inst = frozen_plan.get("instrumentation", []) if frozen_plan else []
     plan_assertions = frozen_plan.get("assertions", []) if frozen_plan else []
     has_source_bug = any("BUG_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
     has_source_reach = any("REACH_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
     uses_check_read = any(a.get("id") == "CHECK_READ" for a in plan_assertions)
+
     if uses_check_read and "#define CHECK_READ" not in clean_all:
         return False, "Plan requires 'CHECK_READ' but harness missing '#define CHECK_READ'."
+
     inverted_assert_re = re.compile(r"BUG_ASSERT\s*\(\s*(1|true)\s*\)", re.IGNORECASE)
     if inverted_assert_re.search(clean_harness):
         return False, "INVALID SENTINEL: 'BUG_ASSERT(1)' forces a crash immediately. Use 'BUG_ASSERT(0)' for Safe Landing."
+
     if has_source_bug:
         if re.search(r"BUG_ASSERT\s*\(", clean_harness):
-             return False, ("STRATEGY VIOLATION: You placed BUG_ASSERT() in the Harness.\nREASON: The strategy uses 'instrumented_predicate', so the assertion is injected into the target file.\nACTION: DELETE BUG_ASSERT() from the harness. Just call the entrypoint.")
+            return False, (
+                "STRATEGY VIOLATION: You placed BUG_ASSERT() in the Harness.\n"
+                "REASON: The strategy uses 'instrumented_predicate', so the assertion is injected into the target file.\n"
+                "ACTION: DELETE BUG_ASSERT() from the harness. Just call the entrypoint."
+            )
     else:
         if not uses_check_read:
             if not _extract_bug_assert_predicate_from_main(harness_src):
-                 return False, "Harness is missing BUG_ASSERT(...) inside main()."
+                return False, "Harness is missing BUG_ASSERT(...) inside main()."
+
     if has_source_reach:
-        if re.search(r"REACH_ASSERT\s*\(", harness_sec): return False, "STRATEGY VIOLATION: You placed REACH_ASSERT() in the Harness. Delete it."
-    elif not re.search(r"REACH_ASSERT\s*\(", harness_sec): return False, "Harness missing REACH_ASSERT() sentinel."
+        if re.search(r"REACH_ASSERT\s*\(", harness_sec):
+            return False, "STRATEGY VIOLATION: You placed REACH_ASSERT() in the Harness. Delete it."
+    elif not re.search(r"REACH_ASSERT\s*\(", harness_sec):
+        return False, "Harness missing REACH_ASSERT() sentinel."
+
     if (not has_source_bug) and (not has_source_reach):
         _exec = re.sub(r"^\s*#.*$", " ", harness_sec, flags=re.MULTILINE)
         _exec = re.sub(r"/\*.*?\*/", " ", _exec, flags=re.S)
         _exec = re.sub(r"//.*?$", " ", _exec, flags=re.M)
         bug_pos = _exec.find("BUG_ASSERT(")
         reach_pos = _exec.find("REACH_ASSERT")
-        if reach_pos != -1 and bug_pos != -1 and reach_pos < bug_pos: return False, "Invalid ordering: REACH_ASSERT appears before BUG_ASSERT. Place Bug Oracle first."
+        if reach_pos != -1 and bug_pos != -1 and reach_pos < bug_pos:
+            return False, "Invalid ordering: REACH_ASSERT appears before BUG_ASSERT. Place Bug Oracle first."
 
     if frozen_plan and not has_source_bug and not uses_check_read:
         required_pred = ""
@@ -2709,51 +3513,118 @@ def validate_harness_structure(
                 req_norm = " ".join(required_pred.split())
                 act_norm = " ".join(actual_pred.split())
                 if req_norm != act_norm and act_norm not in ["1", "true", "0", "false"]:
-                     return False, (f"PLAN VIOLATION: Harness BUG_ASSERT predicate does not match Frozen Plan.\n   Required: {req_norm}\n   Found:    {act_norm}")
+                    return False, (
+                        "PLAN VIOLATION: Harness BUG_ASSERT predicate does not match Frozen Plan.\n"
+                        f"   Required: {req_norm}\n"
+                        f"   Found:    {act_norm}"
+                    )
 
-    if "Placeholder" in harness_sec: return False, "DETECTED PLACEHOLDER ASSERTION. You MUST implement the exact logic from the Frozen Plan."
-    if re.search(r"BUG_ASSERT\s*\(\s*len\s*>\s*0\s*\)", harness_sec): return False, "WEAK ASSERTION DETECTED: 'BUG_ASSERT(len > 0)' is too generic."
+    if "Placeholder" in harness_sec:
+        return False, "DETECTED PLACEHOLDER ASSERTION. You MUST implement the exact logic from the Frozen Plan."
+    if re.search(r"BUG_ASSERT\s*\(\s*len\s*>\s*0\s*\)", harness_sec):
+        return False, "WEAK ASSERTION DETECTED: 'BUG_ASSERT(len > 0)' is too generic."
+
     main_re = re.compile(r"^\s*(?:int|void)\s+main\s*\(", re.MULTILINE)
     if not main_re.search(harness_sec):
-        if main_re.search(global_sec) or main_re.search(stub_sec_raw): return False, "STRUCTURAL ERROR: main() is outside '/* --- Harness --- */'. Move it."
-        else: return False, "STRUCTURAL ERROR: Missing 'int main(...)' inside '/* --- Harness --- */'."
+        if main_re.search(global_sec) or main_re.search(stub_sec_raw):
+            return False, "STRUCTURAL ERROR: main() is outside '/* --- Harness --- */'. Move it."
+        else:
+            return False, "STRUCTURAL ERROR: Missing 'int main(...)' inside '/* --- Harness --- */'."
 
-    if required_entrypoint:
-        clean_no_defs = re.sub(r"^\s*(?:[\w\*]+\s+)+\b[\w]+\s*\(.*?\)\s*\{", " ", clean_harness, flags=re.MULTILINE | re.DOTALL)
-        if not re.search(rf"\b{re.escape(required_entrypoint)}\s*\(", clean_no_defs): return False, f"Harness does not CALL required entrypoint '{required_entrypoint}'."
-        redef_re = re.compile(rf"^\s*(?:[\w\s\*]+?)\b{re.escape(required_entrypoint)}\s*\([^;]*?\)\s*\{{", re.MULTILINE)
-        if redef_re.search(harness_sec): return False, f"ILLEGAL REDEFINITION: You defined '{required_entrypoint}' in the Harness. Delete it."
+    # ------------------------------------------------------------
+    # Entrypoint validation (FIX): allow multiple acceptable entrypoints
+    # ------------------------------------------------------------
+    entrypoints: List[str] = []
+    if allowed_entrypoints:
+        entrypoints = [e for e in allowed_entrypoints if isinstance(e, str) and e.strip()]
+    elif required_entrypoint:
+        entrypoints = [required_entrypoint]
 
+    # Remove function *definitions* so we only detect calls
+    clean_no_defs = re.sub(
+        r"^\s*(?:[\w\*]+\s+)+\b[\w]+\s*\(.*?\)\s*\{",
+        " ",
+        clean_harness,
+        flags=re.MULTILINE | re.DOTALL
+    )
+
+    called_entrypoints = [ep for ep in entrypoints if re.search(rf"\b{re.escape(ep)}\s*\(", clean_no_defs)]
+    if entrypoints and not called_entrypoints:
+        if allowed_entrypoints:
+            return False, f"Harness does not CALL any allowed entrypoint: {', '.join(entrypoints)}."
+        return False, f"Harness does not CALL required entrypoint '{required_entrypoint}'."
+
+    # Disallow redefining *any* acceptable entrypoint in the harness
+    for ep in entrypoints:
+        redef_re = re.compile(
+            rf"^\s*(?:[\w\s\*]+?)\b{re.escape(ep)}\s*\([^;]*?\)\s*\{{",
+            re.MULTILINE
+        )
+        if redef_re.search(harness_sec):
+            return False, f"ILLEGAL REDEFINITION: You defined '{ep}' in the Harness. Delete it."
+
+    # ------------------------------------------------------------
+    # Critical/Immutable stubs restriction
+    # ------------------------------------------------------------
     vcfg = (policy or {}).get("validation", {}) or {}
     replay_critical = set(vcfg.get("hash_function_names", []) or [])
-    if frozen_plan: replay_critical |= compute_immutable_set(frozen_plan)
+    if frozen_plan:
+        replay_critical |= compute_immutable_set(frozen_plan)
+
     clean_stub_sec = strip_c_comments_and_strings(stub_sec_raw)
     if replay_critical:
         for fn in replay_critical:
-             fn_def_re = re.compile(rf"^\s*(?:static\s+)?[A-Za-z0-9_]+\s+\b{re.escape(fn)}\s*\([^;]*\)\s*\{{", re.MULTILINE)
-             if fn_def_re.search(clean_stub_sec): return False, f"ILLEGAL DEFINITION: You defined '{fn}' in Stubs. It is Critical/Immutable."
+            fn_def_re = re.compile(
+                rf"^\s*(?:static\s+)?[A-Za-z0-9_]+\s+\b{re.escape(fn)}\s*\([^;]*\)\s*\{{",
+                re.MULTILINE
+            )
+            if fn_def_re.search(clean_stub_sec):
+                return False, f"ILLEGAL DEFINITION: You defined '{fn}' in Stubs. It is Critical/Immutable."
 
-    if required_entrypoint:
+    # ------------------------------------------------------------
+    # Self-fulfilling assertion check: must pass checked var to a called entrypoint
+    # ------------------------------------------------------------
+    if entrypoints:
         sym_vars = re.findall(r"klee_make_symbolic\s*\(\s*(?:&)?(\w+)", harness_sec)
         clean_code = strip_c_comments_and_strings(harness_sec)
+
+        # Prefer only entrypoints that are actually called (reduces false flags)
+        eps_for_flow = called_entrypoints if called_entrypoints else entrypoints
+
         for var in sym_vars:
-            if len(var) < 3 or var in ["key", "buf", "str", "ptr", "len", "ret"]: continue 
+            if len(var) < 3 or var in ["key", "buf", "str", "ptr", "len", "ret"]:
+                continue
             bug_assert_hit = re.search(rf"BUG_ASSERT\s*\(\s*(!\s*)?\b{re.escape(var)}\b", clean_code)
             check_read_hit = re.search(rf"CHECK_READ\s*\(\s*.*?\b{re.escape(var)}\b", clean_code)
-            if not (bug_assert_hit or check_read_hit): continue
-            passed_to_entry = re.search(rf"\b{re.escape(required_entrypoint)}\s*\([^;]*\b{re.escape(var)}\b", clean_code)
-            if not passed_to_entry: return False, f"SELF-FULFILLING ASSERTION: Variable '{var}' checked but not passed to entrypoint."
+            if not (bug_assert_hit or check_read_hit):
+                continue
 
+            passed = False
+            for ep in eps_for_flow:
+                if re.search(rf"\b{re.escape(ep)}\s*\([^;]*\b{re.escape(var)}\b", clean_code):
+                    passed = True
+                    break
+            if not passed:
+                return False, f"SELF-FULFILLING ASSERTION: Variable '{var}' checked but not passed to entrypoint."
+
+    # ------------------------------------------------------------
+    # Policy: small buffer constraints that prevent bug
+    # ------------------------------------------------------------
     buf_size_match = re.search(r"char\s+\w+\[(\d+)\]", clean_harness)
     buf_size = int(buf_size_match.group(1)) if buf_size_match else 0
     if buf_size > 0 and buf_size < 1024:
-        if re.search(r"klee_assume\s*\([^;]*\bsizeof\b", clean_harness): return False, "POLICY VIOLATION: Used 'sizeof' in klee_assume with small buffer (Safety Coupling)."
-        if re.search(rf"klee_assume\s*\([^;]*[<]=?\s*{buf_size}\s*\)", clean_harness): return False, f"POLICY VIOLATION: Constrained len < {buf_size}. This prevents the bug."
+        if re.search(r"klee_assume\s*\([^;]*\bsizeof\b", clean_harness):
+            return False, "POLICY VIOLATION: Used 'sizeof' in klee_assume with small buffer (Safety Coupling)."
+        if re.search(rf"klee_assume\s*\([^;]*[<]=?\s*{buf_size}\s*\)", clean_harness):
+            return False, f"POLICY VIOLATION: Constrained len < {buf_size}. This prevents the bug."
 
     forbidden_stubs = ["strlen", "malloc", "calloc", "free"]
     for func in forbidden_stubs:
-        if re.search(rf"^\s*#\s*define\s+\b{func}\b\s+stub_{func}", clean_harness, re.MULTILINE): return False, f"PHANTOM STUB DETECTED: Do not stub '{func}'. The target uses the real libc."
+        if re.search(rf"^\s*#\s*define\s+\b{func}\b\s+stub_{func}", clean_harness, re.MULTILINE):
+            return False, f"PHANTOM STUB DETECTED: Do not stub '{func}'. The target uses the real libc."
+
     return True, ""
+
 
 def find_typedef_global(src_root: Path, type_name: str) -> Optional[str]:
     cmd = ["grep", "-r", "-h", f"typedef .* {type_name};", str(src_root)]
@@ -2940,27 +3811,270 @@ def preflight_check(harness_src: str, strategy: str) -> List[str]:
             errors.append("PRE-FLIGHT ERROR: Detected 'klee_assume' using 'strlen'.\nCAUSE: KLEE's strlen is path-sensitive. Using it in an assumption often leads to 'invalid klee_assume call (provably false)' on edge cases (e.g. empty strings).\nFIX: Use C-level filtering instead: 'if (strlen(s) > MAX) return 0;'.\nOR: Construct the string with a known symbolic length variable and terminate it manually.")
     return errors
 
+class StatementGraph:
+    def __init__(self, inst_map, orig_map):
+        self.inst_map = inst_map
+        self.orig_map = orig_map
+        self.chain = []       # List of (func, file, line)
+        self.statuses = {}    # Node -> "PASSED" | "BLOCKED" | "TARGET" | "TIMEOUT"
+        self._file_cache = {}
+
+    def _fetch_code(self, fname, line, use_original=False):
+        # Choose the correct map based on node type
+        target_map = self.orig_map if use_original else self.inst_map
+        candidates = target_map.get(fname, [])
+        
+        if not candidates: 
+            return f"(Source unavailable in {'Original' if use_original else 'Instrumented'})"
+        
+        path = candidates[0]
+        try:
+            if path not in self._file_cache:
+                self._file_cache[path] = path.read_text(errors="replace").splitlines()
+            
+            lines = self._file_cache[path]
+            if 0 <= line - 1 < len(lines):
+                return lines[line - 1].strip()
+        except: pass
+        return "(Read Error)"
+
+    def update(self, stack_trace, is_blocker=True, is_timeout=False):
+        """
+        stack_trace: List of (func_name, file_name, line_num) from Root -> Leaf
+        """
+        if not stack_trace: return
+        self.chain = stack_trace
+
+        # Mark statuses for the prefix (Passed)
+        for node in stack_trace[:-1]:
+            self.statuses[node] = "PASSED"
+        
+        # Mark the frontier node
+        last = stack_trace[-1]
+        if is_timeout:
+            self.statuses[last] = "TIMEOUT"
+        elif is_blocker:
+            self.statuses[last] = "BLOCKED"
+        else:
+            self.statuses[last] = "PASSED"
+
+    def render(self):
+        if not self.chain: return "(No Execution Trace Available)"
+        
+        out = []
+        for i, node in enumerate(self.chain):
+            func, fname, fline = node
+            status = self.statuses.get(node, "UNKNOWN")
+            
+            # --- [FIX] Initialize variables for every iteration ---
+            icon = "   "
+            use_orig = False  # <--- Essential default value
+            
+            if status == "PASSED": 
+                icon = "[✓]"
+            elif status == "BLOCKED": 
+                icon = "[X]"
+            elif status == "TIMEOUT": 
+                icon = "[T]"
+            elif status == "TARGET": 
+                icon = "[!]"
+                use_orig = True # Only target uses Original Line Numbers
+            
+            # Visual Tree formatting
+            indent = "  " * i
+            out.append(f"{indent}{icon} {func} ({fname}:{fline})")
+            
+            # Fetch Code
+            if fline > 0:
+                # use_orig is guaranteed to be defined now (True or False)
+                code = self._fetch_code(fname, fline, use_original=use_orig)
+                out.append(f"{indent}      `{code}`")
+            
+            if i < len(self.chain) - 1:
+                out.append(f"{indent}      ↓")
+        
+        return "\n".join(out)
+
 def interactive_synthesizer(
-    frozen_plan: Dict[str, Any], ctx: Dict[str, Any], args: argparse.Namespace, builder_prompt: str,
-    out_dir: Path, src_root: Path, harness_dir: Path, logs_dir: Path, max_iters: int
+    frozen_plan: Dict[str, Any],
+    ctx: Dict[str, Any],
+    args: argparse.Namespace,
+    builder_prompt: str,
+    out_dir: Path,
+    src_root: Path,
+    harness_dir: Path,
+    logs_dir: Path,
+    max_iters: int
 ) -> Tuple[str, Dict[str, Any]]:
+    import datetime, json, re, shutil
+    from pathlib import Path
+    from typing import Any, Dict, List, Optional, Tuple
+
     harness_src = ""
-    history = []
-    opportunistic_history = [] 
-    dynamic_constraints: List[str] = []
-    current_timeout = args.timeout
-    best_stats = {
-        "status": "none", "score": 0, "failure_reason": "No iterations completed",
-        "final_harness": "", "best_ktest_path": "", "best_turn": -1, "bug_site_type": "-", "bug_location": "-"
-    } 
-    best_label = "E"
-    required_entrypoint = frozen_plan.get("entrypoint", {}).get("name")
-    
-    def _cap_text(s: str, n: int) -> str:
-        s = (s or "")
-        if len(s) <= n: return s
+    history: List[str] = []
+    saved_bugs: List[Dict[str, Any]] = []
+    saved_bugs_dir = out_dir / "saved_bugs"
+    saved_bugs_dir.mkdir(parents=True, exist_ok=True)
+
+    # --------------------------------------------------------------------------
+    # Helper: Save Bug
+    # --------------------------------------------------------------------------
+    def _record_saved_bug(
+        kind: str,
+        crash_location: Optional[str],
+        failure_reason: str,
+        klee_out_dir: Optional[Path],
+        turn_idx: int,
+        harness_src_for_record: Optional[str] = None
+    ) -> Dict[str, Any]:
+        rec: Dict[str, Any] = {
+            "kind": kind,
+            "crash_location": crash_location,
+            "failure_reason": failure_reason,
+            "turn": turn_idx,
+            "klee_out_dir": str(klee_out_dir) if klee_out_dir else None,
+            "ktests": [],
+            "validation": {"status": "PENDING", "result": None, "details": None},
+            "created_at": datetime.datetime.now().isoformat(),
+        }
+
+        bug_dir: Optional[Path] = None
+        if klee_out_dir and klee_out_dir.exists():
+            try:
+                ktests = sorted([p for p in klee_out_dir.glob("*.ktest") if p.is_file()])
+                if not ktests:
+                    ktests = sorted([p for p in klee_out_dir.glob("**/*.ktest") if p.is_file()])
+
+                bug_id = f"bug_{len(saved_bugs):03d}_turn{turn_idx}"
+                bug_dir = saved_bugs_dir / bug_id
+                bug_dir.mkdir(parents=True, exist_ok=True)
+
+                for kp in ktests:
+                    try:
+                        shutil.copy2(kp, bug_dir / kp.name)
+                        rec["ktests"].append(str(bug_dir / kp.name))
+                    except Exception:
+                        rec["ktests"].append(str(kp))
+
+                rec["bug_dir"] = str(bug_dir)
+
+                if harness_src_for_record:
+                    (bug_dir / "harness.c").write_text(harness_src_for_record, encoding="utf-8")
+                    rec["harness_path"] = str(bug_dir / "harness.c")
+            except Exception as e:
+                rec["ktests_error"] = str(e)
+
+        try:
+            out_json_base = bug_dir if bug_dir else saved_bugs_dir
+            out_json = out_json_base / f"record_{len(saved_bugs):03d}.json"
+            out_json.write_text(json.dumps(rec, indent=2, sort_keys=True), encoding="utf-8")
+            rec["record_path"] = str(out_json)
+        except Exception:
+            pass
+
+        saved_bugs.append(rec)
+        return rec
+
+    # --------------------------------------------------------------------------
+    # Helper: Text Cap
+    # --------------------------------------------------------------------------
+    def _cap_text(s: Any, n: int) -> str:
+        if not isinstance(s, str):
+            s = str(s)
+        if len(s) <= n:
+            return s
         keep = n // 2
         return s[:keep] + f"\n...[middle {len(s)-n} chars truncated]...\n" + s[-keep:]
+
+    # --------------------------------------------------------------------------
+    # Auto-Repair: Collision detection from compilation logs
+    # --------------------------------------------------------------------------
+    _RX_COLLISION = [
+        # clang/ld
+        re.compile(r"multiple definition of `([^`']+)`"),
+        re.compile(r"duplicate symbol: ([^\s]+)"),
+        re.compile(r"ld: error: duplicate symbol: ([^\s]+)"),
+        # lld variants
+        re.compile(r"error: duplicate symbol: ([^\s]+)"),
+        re.compile(r"symbol '([^']+)' is already defined"),
+        # llvm-link-ish
+        re.compile(r"multiply defined symbol\s+([^\s]+)"),
+    ]
+
+    def _extract_colliding_symbols(compiler_log: str) -> List[str]:
+        syms: List[str] = []
+        for line in compiler_log.splitlines():
+            for rx in _RX_COLLISION:
+                m = rx.search(line)
+                if m:
+                    sym = m.group(1).strip()
+                    # strip common decorations
+                    sym = sym.replace("@@", "").strip()
+                    if sym and sym not in syms:
+                        syms.append(sym)
+        return syms
+
+    def _rename_function_definition(code: str, old: str, new: str) -> str:
+        """
+        Rename the *definition* of a function and any direct calls inside the harness.
+        This is intentionally conservative to avoid breaking library headers.
+        """
+        # Rename function definitions:  <ret> old(<args>) {
+        def_rx = re.compile(
+            rf"(^\s*(?:[A-Za-z_]\w*[\s\*]+)+){re.escape(old)}(\s*\([^;]*\)\s*\{{)",
+            re.MULTILINE
+        )
+        code2 = def_rx.sub(rf"\1{new}\2", code)
+
+        # Rename direct calls: old(
+        call_rx = re.compile(rf"(?<![#\w]){re.escape(old)}\s*\(")
+        code2 = call_rx.sub(f"{new}(", code2)
+        return code2
+
+    def _auto_repair_collisions_from_log(code: str, compiler_log: str) -> Tuple[str, List[str]]:
+        """
+        If the harness defines a symbol that collides with project.bc, rename it and
+        add a macro alias ONLY if safe (i.e., the harness intended to override).
+        """
+        collisions = _extract_colliding_symbols(compiler_log)
+        if not collisions:
+            return code, []
+
+        repaired = code
+        applied: List[str] = []
+
+        # Identify functions actually *defined* in the harness.
+        defined_funcs = set(re.findall(
+            r"^\s*(?:[A-Za-z_]\w*[\s\*]+)+([A-Za-z_]\w*)\s*\([^;]*\)\s*\{",
+            repaired,
+            flags=re.MULTILINE
+        ))
+
+        for sym in collisions:
+            # Only fix if harness defines it (otherwise it isn't ours to rename).
+            if sym not in defined_funcs:
+                continue
+
+            new = f"stub_{sym}"
+            repaired = _rename_function_definition(repaired, sym, new)
+
+            # Add a macro alias so remaining references (incl. included code in harness) resolve.
+            # We place macros near the top, before includes, in a best-effort way.
+            if f"#define {sym} {new}" not in repaired:
+                repaired = f"#define {sym} {new}\n" + repaired
+
+            applied.append(sym)
+
+        return repaired, applied
+
+    # --------------------------------------------------------------------------
+    # Setup: Constraints & Oracle
+    # --------------------------------------------------------------------------
+    dynamic_constraints: List[str] = []
+    current_timeout = args.timeout
+    best_stats = {"status": "none", "score": 0, "failure_reason": "No iterations", "final_harness": "", "best_turn": -1}
+    best_label = "E"
+    required_entrypoint = str((frozen_plan.get("entrypoint", {}) or {}).get("name") or "unknown_entrypoint")
 
     immutable_funcs = compute_immutable_set(frozen_plan)
     immutable_str = ", ".join(sorted(immutable_funcs))
@@ -2968,375 +4082,473 @@ def interactive_synthesizer(
     fm = (frozen_plan or {}).get("frozen_meta", {}) or {}
     oracle_id = str(fm.get("frozen_assertion_id") or "").strip()
     oracle_call = str(fm.get("frozen_assertion_call") or "").strip()
+
     if oracle_id == "CHECK_READ":
-        oracle_snippet = ("/* FROZEN ORACLE (IMMUTABLE) */\n#define CHECK_READ(ptr, len) klee_check_memory_access((void*)(ptr), (size_t)(len))\n/* Must be placed immediately BEFORE the target statement */\n" + (oracle_call if oracle_call else 'CHECK_READ(/*ADDR_EXPR*/, /*SIZE_EXPR*/);') + "\n")
+        oracle_snippet = (
+            "/* FROZEN ORACLE */\n"
+            "#define CHECK_READ(ptr, len) klee_check_memory_access((void*)(ptr), (size_t)(len))\n"
+            + (oracle_call if oracle_call else "CHECK_READ(ptr, len);")
+            + "\n"
+        )
     elif oracle_id == "BUG_ASSERT":
-        oracle_snippet = ("/* FROZEN ORACLE (IMMUTABLE) */\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\n/* Must be placed at the specified target location */\n" + (oracle_call if oracle_call else 'BUG_ASSERT(/*BUG_CONDITION*/);') + "\n")
+        oracle_snippet = (
+            "/* FROZEN ORACLE */\n"
+            "#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\n"
+            + (oracle_call if oracle_call else "BUG_ASSERT(cond);")
+            + "\n"
+        )
     else:
-        oracle_snippet = "/* FROZEN ORACLE (IMMUTABLE) */\n/* You MUST include either BUG_ASSERT(...) or CHECK_READ(...) per the plan. */\n"
+        oracle_snippet = "/* FROZEN ORACLE */\n/* Must include BUG_ASSERT(...) or CHECK_READ(...) */\n"
 
     plan_constraints = ""
     for asm in frozen_plan.get("assumptions", []):
-        if asm.get("type") == "klee_assume":
-            plan_constraints += (f"- REQUIRED ASSUMPTION: {asm.get('constraint')}\n  * Rationale: {asm.get('rationale')}\n  * Syntax: klee_assume({asm.get('constraint').replace('len', 'variable')});\n")
-        elif asm.get("type") == "vulnerability_setup":
-            plan_constraints += (f"- MODELING SETUP: {asm.get('instruction')}\n  * Reason: {asm.get('rationale')}\n")
-        elif asm.get("type") == "constraint_policy":
-            plan_constraints += (f"- MODELING FORBIDDEN: {asm.get('instruction')}\n  * Reason: {asm.get('rationale')}\n")
-
-    rule_oracle = ""
-    strat_name = (ctx.get("strategy", {}).get("name") or str(args.rule_id)).upper()
-    assertion_macro = ctx.get("strategy", {}).get("assertion_macro", "")
-    if "CHECK_READ" in assertion_macro or "OOB" in strat_name:
-        rule_oracle = ("- RULE-SPECIFIC ORACLE (OOB READ):\n  1. DEFINITION: #define CHECK_READ(ptr, len) klee_check_memory_access((void*)(ptr), (size_t)(len))\n  2. USAGE: You MUST call 'CHECK_READ(ptr, len)' immediately before the vulnerable function.\n     (Do not rely on BUG_ASSERT(0) for OOB Reads. We need the memory check.)\n")
+        if isinstance(asm, dict) and asm.get("type") == "klee_assume":
+            plan_constraints += f"- REQUIRED ASSUMPTION: {asm.get('constraint')}\n"
 
     sticky_constraints = (
         "STICKY CONSTRAINTS (HARD):\n"
-        "- Preserve section markers exactly and in order.\n"
-        "- main() MUST be inside /* --- Harness --- */ only.\n"
-        f"- Entrypoint name is: {required_entrypoint}\n"
-        f"- IMMUTABLE FUNCTIONS (DO NOT STUB): {immutable_str}\n"
+        "- Preserve section markers.\n"
+        "- main() inside /* --- Harness --- */ only.\n"
+        f"- Entrypoint: {required_entrypoint}\n"
+        f"- IMMUTABLE: {immutable_str}\n"
         f"{plan_constraints}"
-        f"{rule_oracle}"
         f"{oracle_snippet}"
-        "- You may only stub EXTERNAL dependencies or COMPUTATIONAL HOTSPOTS not in the list above.\n"
+        "\nNOTE: HISTORY lines may include structured dumps; treat them as authoritative error reports.\n"
     )
 
     print("\n[=] PHASE 2: Iterative Refinement (Concrete -> Symbolic)")
     budget_used = 0
     total_turns = 0
-    max_total_limit = max_iters * 3 
+    max_total_limit = max_iters * 3
 
+    # --------------------------------------------------------------------------
+    # [DIAGNOSIS AGENT] 1. Signal Collector Setup
+    # --------------------------------------------------------------------------
+    inst_file_map: Dict[str, List[Path]] = {}
+    orig_file_map: Dict[str, List[Path]] = {}
+    inst_root = out_dir.parent / "instrumented_source"
+
+    if inst_root.exists():
+        for p in inst_root.rglob("*.[ch]*"):
+            inst_file_map.setdefault(p.name, []).append(p)
+
+    if src_root.exists():
+        for p in src_root.rglob("*.[ch]*"):
+            orig_file_map.setdefault(p.name, []).append(p)
+
+    statement_graph = StatementGraph(inst_file_map, orig_file_map)
+    blocker_memory: Dict[Tuple[str, str, str], int] = {}
+
+    target_f = Path(ctx["vul_file"]).name
+    target_l = int(ctx["vul_line"])
+    statement_graph.chain = [
+        (required_entrypoint, "harness.c", 0),
+        ("...", "", 0),
+        ("TARGET", target_f, target_l),
+    ]
+    statement_graph.statuses = {
+        (required_entrypoint, "harness.c", 0): "PASSED",
+        ("...", "", 0): "UNKNOWN",
+        ("TARGET", target_f, target_l): "TARGET",
+    }
+
+    print("\n*** STATEMENT GRAPH (MISSION OBJECTIVE) ***")
+    print(statement_graph.render())
+    print("*******************************************\n")
+
+    # --------------------------------------------------------------------------
+    # REFINEMENT LOOP
+    # --------------------------------------------------------------------------
     while budget_used < max_iters and total_turns < max_total_limit:
-        i = total_turns 
+        i = total_turns
         print(f"\n  --- [Refinement Turn {i+1} (Budget {budget_used+1}/{max_iters})] ---")
-        
+
         last_failure = _cap_text(history[-1], 2500) if history else "(none)"
         history_tail = "\n\n".join(_cap_text(h, 800) for h in history[-3:-1]) if len(history) > 1 else ""
-        feedback_section = (f"LAST FAILURE (most recent - READ CAREFULLY):\n{last_failure}\n\nPRIOR HISTORY:\n{history_tail}\n")
-        
-        anti_search_msg = ""
-        if len(ctx['enclosing_function'].splitlines()) > 50:
-            target_fname = Path(ctx['vul_file']).name
-            anti_search_msg = (f"\n[SYSTEM NOTICE]: FULL SOURCE for '{target_fname}' IS LOADED ABOVE.\n- DO NOT use `find` or `ls` to look for '{target_fname}'.\n- Focus on writing the harness. Only use shell if you need EXTERNAL headers.")
-        warning_msg = ""
-        if budget_used >= max_iters - 3: warning_msg = (f"\n\n[SYSTEM CRITICAL]: You have used {budget_used}/{max_iters} budget. You MUST stop analyzing and output a 'harness' NOW.")
-        dyn_constraints_text = ""
-        if dynamic_constraints: dyn_constraints_text = "\n[!!! ACTIVE CONSTRAINT ENFORCEMENT - DO NOT IGNORE !!!]\n" + "\n".join(dynamic_constraints) + "\n"
 
-        hotspots_env = os.environ.get("FORCE_STUB_CANDIDATES", "")
-        hotspot_guidance = ""
-        if hotspots_env:
-            candidates = [x.strip() for x in hotspots_env.split() if x.strip()]
-            valid_candidates = [c for c in candidates if c not in immutable_funcs]
-            if valid_candidates: hotspot_guidance = (f"\n[PERFORMANCE WARNING]: The following functions caused path explosion in previous runs:\n   {', '.join(valid_candidates)}\nACTION: You are strongly advised to STUB these functions (Level 1: return symbolic) to fix the timeout.\n")
+        anti_search_msg = ""
+        if len(ctx["enclosing_function"].splitlines()) > 50:
+            target_fname = Path(ctx["vul_file"]).name
+            anti_search_msg = f"\n[SYSTEM NOTICE]: Source for '{target_fname}' is loaded above. DO NOT use `find`."
+
+        dyn_constraints_text = ""
+        if dynamic_constraints:
+            dyn_constraints_text = (
+                "\n[!!! ACTIVE CONSTRAINT ENFORCEMENT - DO NOT IGNORE !!!]\n"
+                + "\n".join(dynamic_constraints)
+                + "\n"
+            )
 
         user_msg = (
             f"{sticky_constraints}\n"
-            f"{hotspot_guidance}\n"
-            f"{feedback_section}\n"
+            f"{dyn_constraints_text}\n"
+            f"LAST FAILURE (Read Carefully):\n{last_failure}\n\n"
+            f"PRIOR HISTORY:\n{history_tail}\n"
             f"TARGET CODE CONTEXT:\n```c\n{ctx['enclosing_function']}\n```\n"
-            f"Frozen Plan: {json.dumps(frozen_plan, indent=2)}\n"
             f"Current Harness:\n{_cap_text(harness_src, 2000)}\n"
-            f"{anti_search_msg}\n{warning_msg}\n"
-            f"{dyn_constraints_text}\n" 
+            f"{anti_search_msg}\n"
             "TASK: Fix errors. Output JSON only: { \"harness\": \"<C code>\" }"
         )
 
         ensure_dir(out_dir)
         messages = [{"role": "system", "content": builder_prompt}, {"role": "user", "content": user_msg}]
-        (out_dir / f"refine_T{i:02d}_messages.json").write_text(json.dumps(messages, indent=2), encoding="utf-8")
         raw_response, usage = llm_chat(messages)
         update_token_stats(usage)
         (out_dir / f"refine_T{i:02d}_raw_response.txt").write_text(str(raw_response), encoding="utf-8")
-        
-        try:
-            if '"action": "shell"' in str(raw_response):
-                resp_json = json.loads(extract_json_block(str(raw_response)))
-                if resp_json.get("action") == "shell": pass
-        except: pass
 
         code, _meta = extract_harness_code_from_llm_response(str(raw_response))
         if not code:
             print("  [!] Error: Agent returned no code.")
-            history.append("System: You failed to provide a ```c code block.")
-            if best_stats["score"] == 0: best_stats["failure_reason"] = "Agent returned no code"
+            history.append("SYSTEM: You failed to provide a ```c code block.")
+            if best_stats["score"] == 0:
+                best_stats["failure_reason"] = "No code returned"
             budget_used += 1
             total_turns += 1
             continue
 
-        func_def_pattern = re.compile(r"^\s*(?:[\w\*]+\s+)+([a-zA-Z0-9_]+)\s*\([^;]*\)\s*\{", re.MULTILINE)
-        known_collisions = ["xmlMalloc", "xmlFree", "xmlRealloc", "xmlMemStrdup", "xmlInitParser", "xmlStrQEqual"]
-        repaired_code = code
-        fixes_applied = []
-        for match in func_def_pattern.finditer(code):
-            func_name = match.group(1)
-            if func_name in known_collisions and f"stub_{func_name}" not in code:
-                def_line_regex = re.compile(rf"(\b){re.escape(func_name)}(\s*\()")
-                repaired_code = def_line_regex.sub(rf"\1stub_{func_name}\2", repaired_code, count=1)
-                if f"#define {func_name}" not in repaired_code:
-                    repaired_code = f"#define {func_name} stub_{func_name}\n" + repaired_code
-                fixes_applied.append(func_name)
-        if fixes_applied:
-            print(f"  [i] Auto-Repair: Fixed Linker Collisions for {fixes_applied}. (Renamed to stub_*)")
-            code = repaired_code
-            history.append(f"[SYSTEM] Auto-repaired Linker Collisions: {fixes_applied}. Proceeding.")
+        # Auto-Repair: Remove redundant assertions (if instrumented predicate strategy)
+        if "instrumented_predicate" in str(ctx.get("strategy")):
+            code = re.sub(r"\bBUG_ASSERT\s*\([^;]*\)\s*;?", "", code)
+            code = re.sub(r"\bREACH_ASSERT\s*\([^;]*\)\s*;?", "", code)
 
-        plan_inst = frozen_plan.get("instrumentation", []) if frozen_plan else []
-        strategy_oracle = ctx.get("strategy", {}).get("oracle_type", "")
-        is_instrumented = (strategy_oracle == "instrumented_predicate")
-        has_source_bug = any("BUG_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
-        has_source_reach = any("REACH_ASSERT" in str(i.get("code", "")) for i in plan_inst if isinstance(i, dict))
-        if has_source_bug or is_instrumented:
-            if re.search(r"BUG_ASSERT\s*\(", code):
-                print("  [i] Auto-Repair: Force-removing redundant 'BUG_ASSERT' from harness (Strategy is Instrumented).")
-                code = re.sub(r"BUG_ASSERT\s*\([^)]*\)\s*;?", "", code, flags=re.DOTALL)
-        if has_source_reach or is_instrumented:
-            if re.search(r"REACH_ASSERT\s*\(", code):
-                print("  [i] Auto-Repair: Force-removing redundant 'REACH_ASSERT' from harness (Strategy is Instrumented).")
-                code = re.sub(r"REACH_ASSERT\s*\([^)]*\)\s*;?", "", code, flags=re.DOTALL)
-
-        def _rewrite_unsafe_assumes(text: str) -> str:
-            def repl_less(m):
-                var, const = m.groups()
-                return f"if ({var} >= {const}) return 0; /* Auto-fixed unsafe assume */"
-            text = re.sub(r"klee_assume\s*\(\s*([A-Za-z0-9_]+)\s*<\s*(\d+)\s*\)\s*;", repl_less, text)
-            def repl_strlen(m):
-                s, op, const = m.groups()
-                inv_op = ">=" if "<" in op else ("<=" if ">" in op else "==")
-                return f"if (strlen({s}) {inv_op} {const}) return 0; /* Auto-fixed unsafe assume */"
-            text = re.sub(r"klee_assume\s*\(\s*strlen\s*\(([^)]+)\)\s*(<|<=|>|>=)\s*(\d+)\s*\)\s*;", repl_strlen, text)
-            return text
-        code = _rewrite_unsafe_assumes(code)
-
-        strategy_name = ((ctx.get('strategy') or {}).get('name') or '')
+        # Inject standard headers
+        strategy_name = ((ctx.get("strategy") or {}).get("name") or "")
         harness_src = inject_standard_headers(code, frozen_plan=frozen_plan, strategy=strategy_name)
-        harness_src = ensure_klee_shim(harness_src)
-        try:
-            vul_src = Path(ctx.get("local_source_path", ""))
-        except Exception:
-            vul_src = None
-        if isinstance(vul_src, Path) and str(vul_src):
-            harness_src = enforce_entrypoint_call(harness_src, required_entrypoint, vul_src)
 
+        # Pre-Flight
         pre_flight = preflight_check(harness_src, strategy_name)
-        if pre_flight:
-            print(f"  [!] Pre-flight checks flagged {len(pre_flight)} issue(s).")
-            for msg in pre_flight: print("      - " + msg.replace("\n", "\n        "))
+        if any("PRE-FLIGHT ERROR" in msg for msg in pre_flight):
+            print("      [!] Blocking Execution due to PRE-FLIGHT ERROR.")
             history.append("\n".join(pre_flight))
-            if any("PRE-FLIGHT ERROR" in msg for msg in pre_flight):
-                repaired = repair_symbolic_allocations(harness_src)
-                if repaired != harness_src:
-                    harness_src = repaired
-                    pre_flight = preflight_check_harness(harness_src, ctx)
-                if any("PRE-FLIGHT ERROR" in msg for msg in pre_flight):
-                    print("      [!] Blocking Execution due to PRE-FLIGHT ERROR.")
-                    if best_stats["score"] == 0: best_stats["failure_reason"] = "Pre-flight failure"
-                    budget_used += 1
-                    total_turns += 1
-                    continue
-            else:
-                print("      [i] Proceeding with execution (Warnings only).")
-
-        project_defined_symbols = set() 
-        if getattr(args, "project_bc", None) and Path(args.project_bc).exists():
-             try: project_defined_symbols = _project_defined_symbols(Path(args.project_bc), cwd=src_root)
-             except: pass
-
-        try:
-            is_valid, err_msg = validate_harness_structure(harness_src, required_entrypoint, args.validation_policy_obj, args.rule_id, args.spec_stem, frozen_plan, defined_symbols=project_defined_symbols)
-        except Exception as e:
-            history.append(f"SYSTEM ERROR: Validation crashed: {e}")
             budget_used += 1
             total_turns += 1
             continue
+
+        required_entrypoint = str((frozen_plan.get("entrypoint", {}) or {}).get("name") or "unknown_entrypoint")
+
+        allowed = set([required_entrypoint])
+        for x in (frozen_plan.get("reachability_chain") or []):
+            if isinstance(x, str) and x.strip():
+                allowed.add(x.strip())
+
+        # Validation
+        try:
+            is_valid, err_msg = validate_harness_structure(
+                harness_src, required_entrypoint,
+                args.validation_policy_obj, args.rule_id,
+                args.spec_stem, frozen_plan, allowed_entrypoints=sorted(allowed) 
+            )
+        except Exception as e:
+            is_valid, err_msg = False, str(e)
 
         if not is_valid:
             print(f"  [!] Harness Validation Failed: {err_msg}")
-            history.append(f"SYSTEM ERROR: Structure Invalid.\nREASON: {err_msg}")
+            if "does not CALL required entrypoint" in str(err_msg):
+                history.append(f"[RED CARD]: You removed the call to '{required_entrypoint}'. Restore it immediately.")
+            else:
+                history.append(f"SYSTEM ERROR: Structure Invalid.\nREASON: {err_msg}")
             budget_used += 1
             total_turns += 1
             continue
 
-        print(f"  [>] Generated Harness ({len(harness_src)} bytes).")
+        # Compilation
         ensure_dir(harness_dir)
         (harness_dir / "harness.c").write_text(harness_src, encoding="utf-8")
-
         print("  [*] Compiling to Bitcode...")
-        okc, msg, bc = compile_harness_to_bc(args, src_root, harness_dir/"harness.c", harness_dir/"harness.bc", Path(args.project_bc) if args.project_bc else None)[0:3]
-             
+
+        okc, msg, bc = compile_harness_to_bc(
+            args, src_root,
+            harness_dir / "harness.c",
+            harness_dir / "harness.bc",
+            Path(args.project_bc) if args.project_bc else None
+        )[0:3]
+
+        # If compilation fails, try collision auto-repair using the compiler log (generic)
         if not okc:
+            repaired, applied = _auto_repair_collisions_from_log(harness_src, msg or "")
+            if applied:
+                print(f"  [i] Auto-Repair: Renaming colliding stubs: {applied}")
+                history.append(f"[SYSTEM] Auto-repaired symbol collisions: {applied}")
+                harness_src = repaired
+                (harness_dir / "harness.c").write_text(harness_src, encoding="utf-8")
+                okc, msg, bc = compile_harness_to_bc(
+                    args, src_root,
+                    harness_dir / "harness.c",
+                    harness_dir / "harness.bc",
+                    Path(args.project_bc) if args.project_bc else None
+                )[0:3]
+
+        if not okc:
+            print("  [!] Compilation Failed.")
             summary = summarize_log(msg, "Clang Error")
-            print(f"  [!] Compilation Failed.")
-            feedback_buffer = []
-            redef_match = re.search(r"redefinition of '([^']+)'", msg)
-            if redef_match:
-                sym = redef_match.group(1)
-                print(f"  [i] Detected Redefinition Conflict for '{sym}'.")
-                feedback_buffer.append(f"COMPILATION ERROR: Redefinition of '{sym}'.\nCAUSE: The library headers declare '{sym}' as a variable/pointer/macro.\nFIX: Rename your function to 'stub_{sym}' and add '#define {sym} stub_{sym}' AFTER your includes.")
-            type_match = re.search(r"unknown type name '(.+?)'", msg)
-            if type_match:
-                missing_type = type_match.group(1)
-                td = find_typedef_global(src_root, missing_type)
-                if td: feedback_buffer.append(f"COMPILATION ERROR: Unknown type '{missing_type}'.\nSYSTEM HINT: I found a typedef in the project source. Copy it into the harness:\n```c\n{td}\n```")
-                else: feedback_buffer.append(f"COMPILATION ERROR: Unknown type '{missing_type}'.\nACTION: You must define this type or include the header defining it.")
-            struct_match = re.search(r"incomplete definition of type 'struct (.+?)'", msg) or re.search(r"incomplete type '(struct [A-Za-z0-9_]+)'", msg)
-            if struct_match:
-                missing_struct = struct_match.group(1).replace("struct ", "")
-                if f"struct {missing_struct}" not in str(history):
-                    print(f"  [i] Opaque struct '{missing_struct}' detected. Scanning source tree...")
-                    found_def = find_opaque_struct_global(src_root, missing_struct)
-                    if found_def:
-                        print(f"  [+] Found definition for '{missing_struct}'. Injecting hint.")
-                        feedback_buffer.append(f"COMPILATION ERROR: Opaque struct '{missing_struct}'.\nSYSTEM HINT: Add this definition:\n{found_def}")
-                    else: feedback_buffer.append(f"COMPILATION ERROR: Opaque type '{missing_struct}'.\nACTION: Find 'struct {missing_struct} {{ ... }};' in the TARGET CODE CONTEXT and COPY it.")
-            if "symbol multiply defined" in msg:
-                collided_sym_match = re.search(r"globals named '([^']+)'", msg)
-                if collided_sym_match:
-                    sym_name = collided_sym_match.group(1)
-                    print(f"  [!] Detected Linker Collision on {sym_name}. Injecting Constraint.")
-                    constraint = (f"VIOLATION RECORDED: You caused a Linker Collision on '{sym_name}'. DO NOT STUB '{sym_name}'. You MUST use the library version.")
-                    if constraint not in dynamic_constraints: dynamic_constraints.append(constraint)
-                    feedback_buffer.append(f"LINKER ERROR: Symbol '{sym_name}' is multiply defined.\nCAUSE: You defined '{sym_name}' in your stub section, but it already exists in the library.\nACTION: Remove your definition of '{sym_name}'.")
-            missing_syms = re.findall(r"undefined reference to `([^']+)'", msg)
-            missing_syms += re.findall(r"implicit declaration of function '([^']+)'", msg)
-            if missing_syms:
-                unique_missing = sorted(list(set(missing_syms)))
-                print(f"  [i] Auto-detected missing dependencies: {unique_missing}")
-                feedback_buffer.append(f"COMPILATION ERROR: Undefined symbols: {unique_missing}.\nSYSTEM OVERRIDE: You are granted permission to STUB these specific functions.")
-            if feedback_buffer: history.extend(feedback_buffer)
-            else: history.append(f"COMPILATION ERROR (Summarized):\n{summary}")
-            if best_stats["score"] == 0: best_stats["failure_reason"] = "Compilation/Linker Error"
+            history.append(f"COMPILATION ERROR:\n{summary}")
             budget_used += 1
             total_turns += 1
             continue
 
-        print(f"  [*] Running KLEE...")
-        stats = run_klee(bc, args.klee, args.klee_flags, current_timeout, logs_dir, i, ctx['vul_file'], ctx['vul_line'])
+        # Run KLEE
+        print("  [*] Running KLEE...")
+        stats = run_klee(
+            bc_path=bc,
+            klee=args.klee,
+            flags=args.klee_flags,
+            timeout=current_timeout,
+            log_dir=logs_dir,
+            idx=i,
+            target_file=ctx.get("vul_file", ""),
+            target_line=ctx.get("vul_line", 0),
+        )
 
-        total_inst = 0
-        match_inst = re.search(r"total instructions = (\d+)", stats.get('full_log', ''))
-        if match_inst: total_inst = int(match_inst.group(1))
-        
-        if total_inst > 0 and total_inst < 25000 and not stats.get('bug_found') and not stats.get('reach_assert_hit') and stats['status'] != "timeout":
-             print(f"  [!] Detected Premature Exit (Instructions: {total_inst}). Injecting feedback.")
-             setup_advice = "Use 'klee_assume(setup_call(...) == 0);' to force success."
-             if "if (" in code and "return 0" in code:
-                 setup_advice = "Replace 'if (err) return 0;' with 'klee_assume(!err);' (Force the solver to find a valid path)."
-             feedback_msg = (f"KLEE WARNING: Execution finished suspiciously fast ({total_inst} instructions).\nDIAGNOSIS: The harness likely hit a 'return 0;' error check during setup (e.g., malloc failed, API returned error).\nCRITICAL FIX: Do NOT handle setup errors with 'return'. You must FORCE the solver to find a successful path.\nACTION: {setup_advice}\n")
-             history.append(feedback_msg)
-             if best_stats["score"] == 0: best_stats["failure_reason"] = "Premature Exit (Setup Failed)"
 
-        degenerate_pattern = re.search(r"calling external:\s*(bcmp|memcmp|strncmp).*?,\s*0\s*\)", stats['full_log'], re.IGNORECASE)
-        if degenerate_pattern:
-            fn_name = degenerate_pattern.group(1)
-            history.append(f"KLEE WARNING: The harness reached the target, but used a degenerate length of 0 ({fn_name}).\nCRITICAL FIX: Add constraints: klee_assume(len > 0); klee_assume(name_buf[0] != 0);")
-
-        if stats.get("bug_found"):
-            ctype = stats.get("crash_type", "spec")
-            cloc = stats.get("crash_location", "unknown")
-            ktest_path = find_crash_ktest(logs_dir, i)
-
-            if ctype == "spec":
-                print(f"  [!] Spec-Guided Bug Found! (Candidate H2) -> {cloc}")
-                best_stats = stats
-                best_stats["score"] = 3
-                best_stats["failure_reason"] = f"Bug Found ({ctype})"
-                best_stats["final_harness"] = harness_src
-                best_stats["best_turn"] = i
-                best_stats["best_ktest_path"] = str(ktest_path or "")
-                best_stats["bug_site_type"] = ctype
-                best_stats["bug_location"] = cloc
-                return "H2_BUG_SPEC", best_stats
-
-            elif ctype == "opportunistic":
-                print(f"  [!] Opportunistic Bug Found at {cloc}. Validating & Resuming...")
-                is_new_location = (cloc not in opportunistic_history)
-                opportunistic_history.append(cloc)
-                verdict = "SKIPPED (Repeat)"
-                vmsg = "Bug at this location already validated."
-                if is_new_location and ktest_path and harness_src:
-                    verdict, vmsg = run_reproducer_suite(harness_src, src_root, out_dir, ktest_path, args)
-                    print(f"      Validation Verdict: {verdict}")
-                    if best_label != "H2_BUG_SPEC":
-                        best_stats = stats
-                        best_stats["score"] = 2.5 
-                        best_stats["failure_reason"] = f"Opportunistic Bug ({cloc})"
-                        best_stats["final_harness"] = harness_src
-                        best_stats["best_ktest_path"] = str(ktest_path)
-                        best_stats["bug_site_type"] = "opportunistic"
-                        best_stats["bug_location"] = cloc
-                        best_label = "H2_BUG_OPPORTUNISTIC"
-                        (logs_dir / f"opportunistic_bug_{i}.txt").write_text(f"LOC: {cloc}\nVERDICT: {verdict}\nLOG:\n{vmsg}", encoding="utf-8")
-                history.append(f"OPPORTUNISTIC BUG FOUND at {cloc}.\nValidation Verdict: {verdict}\nSTATUS: Bug recorded. BUT this is NOT the Spec Target.\nCRITICAL INSTRUCTION: Do not get stuck fixing this. You must REACH the Spec Target.\nACTION: Stub or bypass the crashing function immediately.\n   - If it's a library function (e.g. xmlMalloc), use Macro Redirection (#define) to stub it.\n   - If it's a logic crash, add 'return 0;' or 'klee_assume(0);' to kill this path.")
-                total_turns += 1
-                continue 
-
+        # [DIAG] Summarize this execution step for both the console log and LLM history.
+        diag_status = str(stats.get("status") or "unknown")
+        diag_reason = str(stats.get("failure_reason") or "")
+        diag_crash  = str(stats.get("crash_type") or "none")
+        diag_reach  = "REACH_ASSERT" if stats.get("reach_assert_hit") else ""
+        diag_bug    = "BUG_ASSERT" if stats.get("bug_assert_hit") else ""
+        diag_loc    = str(stats.get("crash_location") or "")
+        diag_line = f"[DIAG] exec: status={diag_status} crash={diag_crash} {diag_bug} {diag_reach} loc={diag_loc} reason={_cap_text(diag_reason,220)}"
+        print("  " + diag_line)
+        history.append(diag_line)
         klee_out_dir = logs_dir / f"klee-out-{i}"
-        if not stats.get("bug_found") and not stats.get("reach_assert_hit"):
-             if klee_out_dir.exists(): shutil.rmtree(klee_out_dir, ignore_errors=True)
-        if (harness_dir / "harness.bc").exists(): (harness_dir / "harness.bc").unlink()
-            
-        log_summary = summarize_log(stats['full_log'], "KLEE Log")
-        trace_msg = ""
-        if stats.get("execution_trace"):
-            target_name = Path(ctx['vul_file']).name
-            trace_msg = (f"\n\n[EXECUTION TRACE - LAST 30 STEPS]:\n{stats['execution_trace']}\n----------------------------------------\nTARGET GOAL: Reach {target_name}:{ctx['vul_line']}\nANALYSIS: Compare the last executed line in the trace with the TARGET GOAL.\n - If you stopped early, you likely took a False branch or hit a return.\n - If you looped, check your loop conditions.")
+        stack_tuples: List[Tuple[str, str, int]] = []
+        is_timeout = (stats.get("status") == "timeout")
 
-        incomplete_type_match = re.search(r"incomplete definition of type 'struct (.+?)'", stats['full_log'])
-        if incomplete_type_match:
-            struct_name = incomplete_type_match.group(1)
-            target_file_name = frozen_plan.get('context_file', os.path.basename(args.vul_file))
-            ctx_file_path = out_dir / "ctx" / target_file_name
-            if ctx_file_path.exists():
+        # Trace extraction (same logic, condensed)
+        if klee_out_dir.exists():
+            for err_file in sorted(klee_out_dir.glob("*.err")):
                 try:
-                    with open(ctx_file_path, 'r') as f: src_content = f.read()
-                    struct_regex = re.compile(rf"struct\s+{re.escape(struct_name)}\s*\{{([^}}]+?)\}};", re.DOTALL)
-                    definition_match = struct_regex.search(src_content)
-                    if definition_match:
-                        found_def = definition_match.group(0)
-                        hint_msg = (f"\n\n[SYSTEM HINT]: The compiler reported an opaque struct error for '{struct_name}'.\nI found the definition in {target_file_name}. YOU MUST COPY THIS INTO YOUR HARNESS:\n```c\n{found_def}\n```\n")
-                        log_summary += hint_msg
-                except Exception: pass
+                    content = err_file.read_text(errors="replace")
+                    matches = re.findall(
+                        r"^\s*#\S+\s+(?:0x[0-9a-fA-F]+\s+)?in\s+([^\s\(]+).*?at\s+([^:\n]+):(\d+)",
+                        content,
+                        flags=re.MULTILINE
+                    )
+                    if matches:
+                        for func, fpath, fline in matches[::-1]:
+                            stack_tuples.append((func, Path(fpath).name, int(fline)))
+                    if stack_tuples:
+                        break
+                except Exception:
+                    pass
 
-        current_score = 0
-        current_label = "E"
-        current_reason = "Unknown"
-        
-        if stats.get("reach_assert_hit"):
+        if not stack_tuples:
+            if is_timeout:
+                stack_tuples = [(required_entrypoint, "harness.c", 0)]
+            elif stats.get("bug_found"):
+                loc = stats.get("crash_location", "unknown:0")
+                m = re.search(r"([\w\-\.]+\.(?:c|cc|cpp|h|hpp)):(\d+)", str(loc))
+                if m:
+                    stack_tuples = [("UnknownFunc", m.group(1), int(m.group(2)))]
+                else:
+                    stack_tuples = [(required_entrypoint, "harness.c", 0)]
+            else:
+                stack_tuples = [(required_entrypoint, "harness.c", 0), ("Execution Finished", "", 0)]
+
+        if stack_tuples:
+            statement_graph.update(stack_tuples, is_blocker=bool(stats.get("bug_found")), is_timeout=is_timeout)
+
+        graph_visualization = statement_graph.render()
+        print("\n*** STATEMENT GRAPH (UPDATED) ***")
+        print(graph_visualization)
+        print("***********************************\n")
+
+        # SUCCESS
+        if stats.get("bug_found") and stats.get("crash_type") == "spec":
+            print(f"  [+] TARGET BUG REPRODUCED: {stats.get('failure_reason')}")
+            saved_bugs.append(stats)
+            best_stats = stats
+            best_label = "SPEC_BUG"
+            break
+
+        # FAILURE PATH
+        if stats.get("bug_found"):
+            _record_saved_bug(
+                stats.get("crash_type", "none"),
+                stats.get("crash_location"),
+                stats.get("failure_reason", ""),
+                klee_out_dir,
+                i,
+                harness_src_for_record=harness_src
+            )
+
+        c_file_name = stack_tuples[-1][1] if stack_tuples else ""
+        c_line = stack_tuples[-1][2] if stack_tuples else 0
+        c_func_name = stack_tuples[-1][0] if stack_tuples else "unknown_function"
+        if c_func_name.startswith("?"):
+            c_func_name = "the_crashing_function"
+
+        blocker_key = (c_func_name, c_file_name, str(c_line))
+        blocker_memory[blocker_key] = blocker_memory.get(blocker_key, 0) + 1
+        recurrence = blocker_memory[blocker_key]
+
+        # snippet extraction (best-effort)
+        context_snippet = ""
+        last_stmt_text = "(Unknown)"
+        if c_file_name:
+            candidates = inst_file_map.get(c_file_name, [])
+            if candidates:
+                try:
+                    lines = candidates[0].read_text(errors="replace").splitlines()
+                    if 0 <= c_line - 1 < len(lines):
+                        last_stmt_text = lines[c_line - 1].strip()
+                        start_l = max(0, c_line - 3)
+                        end_l = min(len(lines), c_line + 2)
+                        snippet = [
+                            f"{'>>' if (idx+1)==c_line else '  '} {idx+1}: {lines[idx]}"
+                            for idx in range(start_l, end_l)
+                        ]
+                        context_snippet = "\n".join(snippet)
+                except Exception:
+                    pass
+
+        log_summary = summarize_log(stats.get("full_log", ""), "KLEE Log")
+        graph_context = (
+            "\nSTATEMENT GRAPH (Execution Flow):\n"
+            "-------------------------------------------------\n"
+            f"{graph_visualization}\n"
+            "-------------------------------------------------\n"
+        )
+
+        escalation_msg = ""
+        if recurrence >= 2:
+            escalation_msg = (
+                f"\n[ESCALATION]: You have failed to fix this error {recurrence} times. "
+                f"IGNORE all other goals. FIX THIS CRASH."
+            )
+
+        # Key change: Intrinsic crashes are handled as “STEER AWAY” barriers, not “stub it”
+        failure_reason = str(stats.get("failure_reason", ""))
+        is_intrinsic = ("intrinsic" in failure_reason.lower()) or ("llvm.load.relative" in failure_reason.lower())
+
+        current_score = 0.5
+        current_label = "H0 (Miss)"
+        feedback_body = ""
+
+        if is_timeout:
+            current_score = 1
+            current_label = "H1 (Timeout)"
+            feedback_body = (
+                f"[DIAGNOSIS]: Execution TIMED OUT.\n"
+                f"STALLED AT: `{last_stmt_text}` inside `{c_func_name}`.\n"
+                f"ACTION: Stub `{c_func_name}` or reduce symbolic array sizes.{escalation_msg}"
+            )
+
+        elif stats.get("bug_found") and is_intrinsic:
+            current_score = 0.5
+            current_label = "BLOCKER (INTRINSIC)"
+            # [STAILOR] Intrinsic mitigation: patch the crashing project function body in instrumented source
+            blocker = _extract_klee_intrinsic_blocker(str(stats.get("full_log", "")))
+            if blocker:
+                ok_m, note_m = _mitigate_intrinsic_blocker_in_src(src_root, blocker, execution_log=(out_dir / "execution.log"))
+                if ok_m:
+                    history.append(f"[INTRINSIC-MITIGATION]: {note_m}")
+                else:
+                    history.append(f"[INTRINSIC-MITIGATION-FAIL]: {note_m}")
+
+            feedback_body = (
+                f"[DIAGNOSIS]: Execution BLOCKED by LLVM intrinsic in PROJECT bitcode.\n"
+                f"CRASH FUNCTION: `{c_func_name}` ({c_file_name}:{c_line})\n"
+                f"CRASH STMT: `{last_stmt_text}`\n"
+                f"REASON: {failure_reason}\n"
+                f"CRASH CONTEXT:\n{context_snippet}\n"
+                f"ACTION: Auto-mitigate intrinsic by stubbing the crashing function body in instrumented source (callsite-safe alternative when possible). {escalation_msg}"
+            )
+            # Make it sticky/hard so the agent stops trying to stub forbidden project funcs.
+            dynamic_constraints.append(
+                f"CRITICAL: Avoid calling `{c_func_name}` / error-reporting paths; do NOT define/stub it in harness."
+            )
+
+        elif stats.get("bug_found"):
+            current_score = 0.5
+            current_label = f"BLOCKER ({stats.get('crash_type')})"
+            feedback_body = (
+                f"[DIAGNOSIS]: Execution BLOCKED by {stats.get('crash_type','UNKNOWN').upper()} crash.\n"
+                f"CRASH FUNCTION: `{c_func_name}`\n"
+                f"CRASH STMT: `{last_stmt_text}`\n"
+                f"REASON: {failure_reason}\n"
+                f"CRASH CONTEXT:\n{context_snippet}\n"
+                f"ACTION: Fix setup so this path is avoided or made safe.{escalation_msg}"
+            )
+
+        elif stats.get("reach_assert_hit"):
             current_score = 2
             current_label = "H2_REACH"
-            current_reason = "Target Reached (No Bug)"
-            history.append(f"KLEE: REACHED target (H2_REACH), but BUG_ASSERT did not fire.\nANALYSIS: Execution reached the target function, but the specific state required for the bug was not present.\nACTION: Ensure you strictly follow the 'call_sequence' to build the necessary state.\n{trace_msg}")
-
-        elif stats["status"] == "timeout":
-            current_score = 1
-            current_label = "H1"
-            current_reason = "Timeout"
-            new_timeout = min(300, current_timeout * 2)
-            if new_timeout > current_timeout:
-                print(f"  [i] Timeout detected. Increasing limit: {current_timeout}s -> {new_timeout}s")
-                current_timeout = new_timeout
-            history.append(f"KLEE: Timeout reached ({stats['elapsed']:.1f}s). Exploration stuck.\nPOSSIBLE CAUSES:\n1. Path Explosion: Loops with symbolic bounds?\n2. Solver Stuck: Complex constraints (e.g. huge buffers, complex math)?\n3. External Calls: Are you calling a complex library function that should be stubbed?\nACTION: Simplify the harness. Reduce buffer sizes (e.g. 256 -> 64). Stub complex functions.\n{trace_msg}")
+            feedback_body = (
+                "KLEE: REACHED target (H2_REACH), but BUG_ASSERT did not fire.\n"
+                "ACTION: adjust setup so the bug condition is triggered at the target."
+            )
 
         else:
-            if not history or "Premature Exit" not in str(history[-1]):
-                current_score = 0.5
-                current_label = "H0"
-                history.append(f"KLEE: {stats['status']}\nLog Summary:\n{log_summary}\n{trace_msg}")
+            current_score = 0.5
+            current_label = "H0 (Miss)"
+            feedback_body = (
+                f"[DIAGNOSIS]: Execution Finished EARLY (Target Not Reached).\n"
+                f"LAST EXECUTED STATEMENT: `{last_stmt_text}`\n"
+                f"ACTION: Change the harness setup to satisfy the condition at this line."
+            )
+
+        full_msg = f"{feedback_body}\n{graph_context}\n\n[LOGS]:\n{log_summary}"
+
+        print("-" * 60)
+        print(" [DIAGNOSIS & STRATEGY SENT TO AGENT]")
+        print("-" * 60)
+        print(full_msg)
+        print("-" * 60)
+
+        history.append(full_msg)
 
         if current_score >= best_stats.get("score", 0):
-            best_stats = stats
+            best_stats = dict(stats)
             best_stats["score"] = current_score
-            best_stats["failure_reason"] = current_reason
+            best_stats["failure_reason"] = current_label
             best_stats["final_harness"] = harness_src
             best_stats["best_turn"] = i
             best_label = current_label
-            
+
+        # Cleanup
+        if not stats.get("bug_found") and not stats.get("reach_assert_hit") and not is_timeout:
+            if klee_out_dir.exists():
+                shutil.rmtree(klee_out_dir, ignore_errors=True)
+        if (harness_dir / "harness.bc").exists():
+            (harness_dir / "harness.bc").unlink(missing_ok=True)
+
         budget_used += 1
         total_turns += 1
 
+    # Validation: replay saved bugs (kept as-is)
+    if saved_bugs:
+        print("\n[=] VALIDATION: Concrete replay of all saved bugs (target + non-target)")
+        validation_root = out_dir / "validation"
+        validation_root.mkdir(parents=True, exist_ok=True)
+        for bi, rec in enumerate(saved_bugs):
+            try:
+                ktests = [Path(p) for p in rec.get("ktests", []) if p]
+                if not ktests:
+                    continue
+                bug_dir = Path(rec.get("bug_dir") or (validation_root / f"bug_{bi:03d}"))
+                bug_dir.mkdir(parents=True, exist_ok=True)
+
+                harness_text = rec.get("harness_path", "")
+                if harness_text and Path(harness_text).exists():
+                    harness_text = Path(harness_text).read_text(errors="ignore")
+                else:
+                    harness_text = harness_src
+
+                v_status, v_msg, v_assumptions = "SKIP", "No runnable ktest", []
+                for kt in ktests:
+                    v_status, v_msg, v_assumptions = run_reproducer_suite(harness_text, src_root, bug_dir, kt, args)
+                    if v_status != "SKIP":
+                        break
+
+                rec["validation"] = {"status": "DONE", "result": v_status, "details": {"message": v_msg}}
+                if rec.get("record_path"):
+                    Path(rec["record_path"]).write_text(json.dumps(rec, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+
     return best_label, best_stats
+
 
 def strip_c_comments_and_strings_preserve_lines(text: str) -> str:
     out = list(text)
@@ -3408,63 +4620,70 @@ def _parse_c_args(arg_str: str) -> List[Dict[str, Any]]:
         args.append({ "name": name.replace("[]", "").replace(";", ""), "base_type": base_type, "is_ptr": is_ptr, "is_const": is_const, "raw": raw })
     return args
 
+
 def auto_discover_stub_candidates(src_root: Path, vul_file_rel: str, rule_id: str) -> str:
+    """Project-agnostic *safe* stub guidance for the planner.
+
+    IMPORTANT: This function must NEVER propose body-level stubs for static helpers in the vulnerable TU.
+    Those helpers often build/maintain state required to reach the target (e.g., xmlDictFindEntry).
+
+    Instead, we only emit *gate unlock* guidance:
+      - Identify early-return/goto gates whose condition depends on a *call result*.
+      - Prefer callsite-aware macro overrides (or wrapper calls) that make gate conditions satisfiable.
+      - Do NOT hardcode constants unless they appear in the gate predicate itself.
+
+    This guidance is text-only; the actual enforcement happens during instrumentation filtering.
+    """
     target_file = src_root / vul_file_rel
-    if not target_file.exists(): return ""
-    rule_id = str(rule_id or "").lower()
+    if not target_file.exists():
+        return ""
+
     content = target_file.read_text(errors="replace")
     masked = strip_c_comments_and_strings_preserve_lines(content)
-    pattern = re.compile(r'static\s+([a-zA-Z0-9_][a-zA-Z0-9_\s\*]*?)\s*\b(\w+)\s*\(([^)]*)\)', re.MULTILINE | re.DOTALL)
-    candidates = []
-    for match in pattern.finditer(masked):
-        ret_type_str = match.group(1).strip()
-        func_name = match.group(2)
-        arg_str = match.group(3)
-        idx = match.end()
-        next_sig = re.search(r'[;{]', masked[idx:])
-        if not next_sig or next_sig.group(0) == ';': continue 
-        brace_pos = idx + next_sig.start()
-        line_num = content.count('\n', 0, brace_pos) + 1
-        args = _parse_c_args(arg_str)
-        is_void_ret = (ret_type_str == "void") or (ret_type_str.endswith("void") and "*" not in ret_type_str)
-        is_ptr_ret = "*" in ret_type_str
-        is_hash = re.search(r"(?i)(hash|digest|checksum|sign|crypt)", func_name)
-        is_cmp  = re.search(r"(?i)(cmp|compare|equal|same|match)", func_name)
-        len_in = None
-        len_out = None
-        for arg in args:
-            n = arg['name'].lower()
-            if "len" in n or "size" in n or "count" in n or "max" in n:
-                if arg['is_ptr'] and not arg['is_const']: len_out = arg['name'] 
-                elif not arg['is_ptr']: len_in = arg['name']
-        stub_lines = []
-        if is_void_ret: pass
-        elif is_ptr_ret:
-            stub_lines.append(f"/* Stub {func_name}: Pointer return default */")
-            stub_lines.append("return 0; /* NULL */")
-        else:
-            stub_lines.append(f"unsigned stub_ret; klee_make_symbolic(&stub_ret, sizeof(stub_ret), \"stub_{func_name}_ret\");")
-        if not is_void_ret and not is_ptr_ret:
-            if is_hash:
-                stub_lines.append("/* Case 1: Constrained (Force Collision) */")
-                stub_lines.append("klee_assume(stub_ret == 0x80000000u);")
-                if len_in and len_out: stub_lines.append(f"if ({len_out}) *{len_out} = {len_in};")
-            elif is_cmp:
-                stub_lines.append("/* Case 1: Constrained (Force Match) */")
-                stub_lines.append("klee_assume(stub_ret == 0);")
-            stub_lines.append("return stub_ret;")
-        if is_hash or is_cmp or stub_lines: candidates.append((func_name, line_num, stub_lines))
 
-    if not candidates: return ""
-    directives = []
-    seen = set()
-    for func, line, lines in candidates:
-        if func in seen: continue
-        seen.add(func)
-        code_blk = " ".join(lines) if lines else "/* skipped void stub */"
-        directives.append(f"   - BARRIER: '{func}' (Line {line})\n     ACTION: Inject Smart Stub (Side-Effect Model)\n     DIRECTIVE: {{ 'file': '{vul_file_rel}', 'line': {line}, 'kind': 'insert_after', 'code': '{code_blk}' }}")
+    # Locally-defined functions in this TU (avoid treating as external gatekeepers)
+    def_pat = re.compile(r"(^|\n)\s*(?:static\s+)?[\w\s\*]+?\b([A-Za-z_]\w*)\s*\([^;{}]*\)\s*\{", re.MULTILINE)
+    defined_funcs = set(m.group(2) for m in def_pat.finditer(masked))
 
-    return ("\n*** [AUTO-GENERATED] SMART STUBBING DIRECTIVES ***\n" + f"Analysis of '{vul_file_rel}': Generated {len(directives)} side-effect models.\nYou MUST include these directives in your Plan to enable deep reachability:\n" + "\n".join(directives) + "\n")
+    # Gate patterns: if (f(...) != CONST) return/goto;  and if (!f(...)) return/goto;
+    gate_cmp_pat = re.compile(
+        r"\bif\s*\(\s*([A-Za-z_]\w*)\s*\([^\)]*\)\s*(==|!=|<=|>=|<|>)\s*((?:0x[0-9A-Fa-f]+)|(?:\d+)|(?:NULL))\s*\)\s*\{?\s*(?:return\b|goto\b)",
+        re.MULTILINE,
+    )
+    gate_not_pat = re.compile(
+        r"\bif\s*\(\s*!\s*([A-Za-z_]\w*)\s*\([^\)]*\)\s*\)\s*\{?\s*(?:return\b|goto\b)",
+        re.MULTILINE,
+    )
+
+    gates = []
+    for m in gate_cmp_pat.finditer(masked):
+        fn, op, cst = m.group(1), m.group(2), m.group(3)
+        if fn in defined_funcs:
+            continue
+        line_no = content.count("\n", 0, m.start()) + 1
+        gates.append((fn, op, cst, line_no))
+    for m in gate_not_pat.finditer(masked):
+        fn = m.group(1)
+        if fn in defined_funcs:
+            continue
+        line_no = content.count("\n", 0, m.start()) + 1
+        gates.append((fn, "!", "", line_no))
+
+    if not gates:
+        return ""
+
+    # Render a short guidance block. The planner may translate this into callsite wrappers.
+    kept = ", ".join([f"{fn}{op}{cst}@L{ln}" for (fn, op, cst, ln) in gates[:12]])
+    more = "" if len(gates) <= 12 else f" (+{len(gates)-12} more)"
+    return (
+        "\n*** [AUTO-GENERATED] SAFE GATE-UNLOCK HINTS (NO BODY STUBS) ***\n"
+        f"File '{vul_file_rel}': found {len(gates)} external gate(s).\n"
+        f"Gates: {kept}{more}\n"
+        "Guidance:\n"
+        "- Do NOT inject body-level stubs into static helpers in this TU.\n"
+        "- Prefer callsite-aware wrappers or macro overrides that satisfy these gate predicates.\n"
+        "- Only constrain return values to constants that appear explicitly in the gate predicate.\n"
+    )
 
 # ---------------- MAIN ----------------
 def main():
@@ -3557,7 +4776,25 @@ def main():
         source_root=args.src_root,
     )
 
-    mindset_block = ("\n*** AGENT MINDSET: VULNERABILITY REPRODUCTION ***\n1. ROLE: You are an Adversarial Tester, NOT a Software Engineer.\n   - Developer Goal: Prevent crashes and handle errors gracefully.\n   - Your Goal: TRIGGER crashes and BYPASS safety checks.\n2. ANTI-PATTERN: 'Safe Coding' is your enemy.\n   - Developer Logic: 'I must make the buffer 4096 bytes so the data fits.' (WRONG)\n   - Attacker Logic: 'I must make the buffer 64 bytes so the 4096-byte data OVERFLOWS.' (CORRECT)\n3. DO NOT FIX THE BUG.\n   - If the Frozen Plan implies an unsafe condition, you MUST enable it.\n   - Never add safety checks (e.g., `if (len < size) return;`) that make the code safe.\n")
+    mindset_block = (
+        "\n*** AGENT MINDSET: VULNERABILITY REPRODUCTION ***\n"
+        "1. ROLE: You are an Adversarial Tester, NOT a Software Engineer.\n"
+        "   - Developer Goal: Prevent crashes and handle errors gracefully.\n"
+        "   - Your Goal: TRIGGER crashes and BYPASS safety checks.\n"
+        "2. ANTI-PATTERN: 'Safe Coding' is your enemy.\n"
+        "   - Developer Logic: 'I must make the buffer 4096 bytes so the data fits.' (WRONG)\n"
+        "   - Attacker Logic: 'I must make the buffer 64 bytes so the 4096-byte data OVERFLOWS.' (CORRECT)\n"
+        "3. DO NOT FIX THE BUG.\n"
+        "   - If the Frozen Plan implies an unsafe condition, you MUST enable it.\n"
+        "   - Never add safety checks (e.g., `if (len < size) return;`) that make the code safe.\n"
+        "4. LINKING HEURISTIC: 'Lazy Stubbing'\n"
+        "   - PROBLEM: You are linking against the FULL library (project.bc). Most functions ALREADY EXIST.\n"
+        "   - RULE: Do NOT define/stub a function unless the compiler reports 'undefined reference' or KLEE reports 'failed external call'.\n"
+        "   - IF UNSURE: Assume the function exists. Call it. If missing, the toolchain will tell you.\n"
+        f"5. ENTRYPOINT IS SACRED: You MUST call the target entrypoint.\n"
+        "   - Even if you are fixing a compilation error, NEVER remove the call to the entrypoint.\n"
+        "   - If the entrypoint requires complex setup, stub the SETUP functions, not the entrypoint itself.\n"
+    )
     strategy_block = (f"\n*** VULNERABILITY STRATEGY ENFORCEMENT ***\nStrategy: {strategy_name}\nOracle: {strategy_cfg.get('oracle_type')}\nPolicy:\n{augmented_instruction}\n")
     prompts["planner"] = mindset_block + prompts["planner"] + strategy_block
     prompts["builder"] = mindset_block + prompts["builder"] + strategy_block

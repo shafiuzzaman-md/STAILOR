@@ -73,6 +73,16 @@ bash sailr_cegir/run_worker.sh \
    "specs/libxml2_55980_vul/446_parser.c_12080_local_cpp_cwe-125-cursor-lookahead-missing-bytes-check.json" \
    "rules/stailor-queries/suites/stailor.qls"
 ```
+```
+CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I$(pwd)/dataset/62911/libxml2_62911_vul/build -I/home/shafi/tools/klee/include" \
+MAX_A=30 MAX_B=3 TIMEOUT=600 \
+BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
+bash sailr_cegir/run_worker.sh \
+   "62911/libxml2_62911_vul" \
+   "oob-read" \
+   "specs/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read.json" \
+   "rules/stailor-queries/suites/stailor.qls"
+```
 
 ## Batch mode
 ```
