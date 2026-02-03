@@ -1,12 +1,12 @@
 KLEE: NOTE: Using POSIX model: /home/shafi/tools/klee/build/runtime/lib/libkleeRuntimePOSIX64_Debug+Asserts.bca
 KLEE: NOTE: Using klee-uclibc : /home/shafi/tools/klee/build/runtime/lib/klee-uclibc.bca
-KLEE: output directory is "/media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-3"
+KLEE: output directory is "/media/shafi/Research/STAILOR/se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/logs/klee-out-4"
 KLEE: Using Z3 solver backend
 KLEE: Deterministic allocator: Using quarantine queue size 8
-KLEE: Deterministic allocator: globals (start-address=0x7bfa7fc00000 size=10 GiB)
-KLEE: Deterministic allocator: constants (start-address=0x7bf7ffc00000 size=10 GiB)
-KLEE: Deterministic allocator: heap (start-address=0x7af7ffc00000 size=1024 GiB)
-KLEE: Deterministic allocator: stack (start-address=0x7ad7ffc00000 size=128 GiB)
+KLEE: Deterministic allocator: globals (start-address=0x7437b1e00000 size=10 GiB)
+KLEE: Deterministic allocator: constants (start-address=0x743531e00000 size=10 GiB)
+KLEE: Deterministic allocator: heap (start-address=0x733531e00000 size=1024 GiB)
+KLEE: Deterministic allocator: stack (start-address=0x731531e00000 size=128 GiB)
 KLEE: WARNING ONCE: unsupported intrinsic llvm.load.relative.i64
 KLEE: WARNING: undefined reference to function: __isoc99_sscanf
 KLEE: WARNING: undefined reference to variable: __libc_single_threaded
@@ -55,33 +55,32 @@ KLEE: WARNING: undefined reference to function: pthread_mutex_lock
 KLEE: WARNING: undefined reference to function: pthread_mutex_unlock
 KLEE: WARNING: undefined reference to function: pthread_self
 KLEE: WARNING: undefined reference to function: pthread_setspecific
-KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 135113224486912) at runtime/POSIX/fd.c:997 10
+KLEE: WARNING ONCE: calling external: syscall(16, 0, 21505, 126579965427712) at runtime/POSIX/fd.c:997 10
 KLEE: WARNING ONCE: Alignment of memory from call "malloc" is not modelled. Using alignment of 8.
 KLEE: WARNING ONCE: calling __klee_posix_wrapped_main with extra arguments.
-KLEE: WARNING ONCE: calling external: pthread_mutex_init(136322140340224, 0) at threads.c:140 1
-KLEE: WARNING ONCE: calling external: pthread_key_create(136316972957696, 136307458179072) at globals.c:574 18
+KLEE: WARNING ONCE: calling external: pthread_mutex_init(127788881281024, 0) at threads.c:140 1
+KLEE: WARNING ONCE: calling external: pthread_key_create(127783713898496, 127774199119872) at globals.c:574 18
 KLEE: WARNING ONCE: calling external: pthread_self() at globals.c:574 16
-KLEE: WARNING ONCE: calling external: gettimeofday(135098192101376, 0) at runtime/POSIX/stubs.c:179 7
+KLEE: WARNING ONCE: calling external: gettimeofday(126564933042176, 0) at runtime/POSIX/stubs.c:179 7
 KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
 KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
 KLEE: WARNING ONCE: Alignment of memory from call "" is not modelled. Using alignment of 8.
-KLEE: WARNING ONCE: calling external: bcmp(135720962359336, 135188386414592, 0) at dict.c:544 1
-KLEE: ERROR: dict.c:544: ASSERTION FAIL: !(memcmp(entry->name, name, len) == 0) && "BUG_ASSERT"
+KLEE: ERROR: dict.c:548: ASSERTION FAIL: !(len > 1) && "BUG_ASSERT"
 KLEE: NOTE: now ignoring this error at this location
 KLEE: ERROR: EXITING ON ERROR:
-Error: ASSERTION FAIL: !(memcmp(entry->name, name, len) == 0) && "BUG_ASSERT"
+Error: ASSERTION FAIL: !(len > 1) && "BUG_ASSERT"
 File: dict.c
-Line: 544
-assembly.ll line: 44653
+Line: 548
+assembly.ll line: 44667
 State: 1
 Stack: 
-	#000044653 in xmlDictFindEntry(135583523405824, 135188386414592, 0, 4294830525, 135084770328576) at dict.c:544
-	#100044176 in xmlDictLookupInternal(135583523405824, 0, 135188386414592, symbolic, 1) at dict.c:688
-	#200043437 in xmlDictLookup(135583523405824, 135188386414592, symbolic) at dict.c:805
-	#300110724 in __klee_posix_wrapped_main(1, 135446084452352) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:109
-	#400012103 in __user_main(1, 136323868393472, 136323868393488) at runtime/POSIX/klee_init_env.c:244
-	#500005516 in __uClibc_main(136308022312960, 1, 136323868393472, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
-	#600005681 in main(1, 136323868393472)
+	#000044667 in xmlDictFindEntry(127050264346624, 0, 126655127355392, 5, symbolic, 126545068818432) at dict.c:548
+	#100044176 in xmlDictLookupInternal(127050264346624, 0, 126655127355392, symbolic, 1) at dict.c:692
+	#200043437 in xmlDictLookup(127050264346624, 126655127355392, symbolic) at dict.c:809
+	#300110842 in __klee_posix_wrapped_main(1, 126912825393152) at se_runs/sailr_cegir/libxml2_62911_vul/174_dict.c_541_local_cpp_cwe-125-oob-read/refinement/harness/harness.c:144
+	#400012103 in __user_main(1, 127790609334272, 127790609334288) at runtime/POSIX/klee_init_env.c:244
+	#500005516 in __uClibc_main(127774763253760, 1, 127790609334272, 0, 0, 0, 0) at libc/misc/internals/__uClibc_main.c:401
+	#600005681 in main(1, 127790609334272)
 
 
 

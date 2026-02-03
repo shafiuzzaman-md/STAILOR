@@ -1,8 +1,4 @@
-#include <stddef.h>
-#include <stdint.h>
-#include <assert.h>
-#include <stdbool.h>
-#include <stdio.h>
+#include <string.h>
 #include <pthread.h>
 
 /* [Auto-Fix] Concrete pthread_once for KLEE linking */
@@ -58,9 +54,43 @@ int pthread_once(pthread_once_t *once_control, void (*init_routine)(void)) {
 #endif
 
 /* --- Global Constants --- */
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <assert.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <klee/klee.h>
+#include <libxml/dict.h>
+#include <libxml/xmlmemory.h>
+
+#ifndef MAX_KEY_LEN
 #define MAX_KEY_LEN 4096
+#endif
 
 /* --- Stub Functions --- */
+#ifdef __KLEE__
+/* Concrete pthread_once for KLEE linking */
+#ifndef KLEE_ONCE_CACHE_SIZE
+#define KLEE_ONCE_CACHE_SIZE 64
+#endif
+static void* _klee_once_seen[KLEE_ONCE_CACHE_SIZE];
+static int _klee_once_count = 0;
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void)) {
+    for (int i = 0; i < _klee_once_count; i++) {
+        if (_klee_once_seen[i] == (void*)once_control) {
+            return 0;
+        }
+    }
+    if (init_routine) init_routine();
+    if (_klee_once_count < KLEE_ONCE_CACHE_SIZE) {
+        _klee_once_seen[_klee_once_count++] = (void*)once_control;
+    }
+    return 0;
+}
+#endif
+
 #ifndef __KLEE__
 #include <sys/mman.h>
 #include <unistd.h>
@@ -80,34 +110,39 @@ void* strict_alloc(size_t size) {
 /* None needed */
 
 /* --- Harness --- */
-#include <klee/klee.h>
-#include <stdlib.h>
-#include <string.h>
-#include <libxml/dict.h>
-
 int main(int argc, char **argv) {
-    /* Create a dictionary */
     xmlDictPtr dict = xmlDictCreate();
     if (dict == NULL) return 0;
 
-    /* Symbolic key length and key content */
-    int len;
+    /* Insert a short key */
+    const char *short_key = "short";
+    const xmlChar *inserted = xmlDictLookup(dict, (const xmlChar *)short_key, -1);
+    if (inserted == NULL) {
+        xmlDictFree(dict);
+        return 0;
+    }
+
+    /* Symbolic length for lookup */
+    unsigned int len;
     klee_make_symbolic(&len, sizeof(len), "len");
     klee_assume(len > 0);
-    klee_assume(len < MAX_KEY_LEN);
+    klee_assume(len < 4096);
+    klee_assume(len > 5); /* strlen("short") = 5 */
 
-    char key[MAX_KEY_LEN];
-    klee_make_symbolic(key, sizeof(key), "key");
-    /* Ensure null termination for string functions */
-    key[sizeof(key) - 1] = '\0';
+    /* Symbolic name buffer */
+    char name[MAX_KEY_LEN];
+    klee_make_symbolic(name, sizeof(name), "name");
+    name[sizeof(name) - 1] = '\0';
+    /* Force first 5 bytes to match "short" */
+    for (int i = 0; i < 5; i++) {
+        klee_assume(name[i] == short_key[i]);
+    }
+    /* Ensure null terminator at len to satisfy memcmp condition */
+    klee_assume(name[len] == '\0');
 
-    /* Insert a short key (length 1) to prime the dictionary */
-    const xmlChar *short_key = (const xmlChar *)"a";
-    xmlDictLookup(dict, short_key, -1);
-
-    /* Lookup with symbolic key and length */
-    const xmlChar *result = xmlDictLookup(dict, (const xmlChar *)key, len);
-    (void)result; /* unused */
+    /* Perform lookup with longer len */
+    const xmlChar *found = xmlDictLookup(dict, (const xmlChar *)name, len);
+    (void)found;
 
     xmlDictFree(dict);
     return 0;

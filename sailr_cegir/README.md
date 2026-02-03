@@ -27,7 +27,7 @@ Usage:
 
 Example:
 ```bash
-bash sailr_cegir/run_stailor.sh 62911/libxml2_62911_vul
+bash sailr_cegir/run_stailor.sh libxml2
 ```
 ---
 

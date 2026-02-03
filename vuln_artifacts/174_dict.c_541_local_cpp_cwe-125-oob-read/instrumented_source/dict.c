@@ -1,13 +1,3 @@
-#include <stdlib.h>
-#include <assert.h>
-#include <klee/klee.h>
-#ifndef BUG_ASSERT
-#define BUG_ASSERT(cond) klee_assert(!(cond) && "BUG_ASSERT")
-#endif
-#ifndef REACH_ASSERT
-#define REACH_ASSERT() klee_assert(0 && "REACH_ASSERT")
-#endif
-// [STAILOR] Injected at orig line 1
 /*
  * dict.c: dictionary of reusable strings, just used to avoid allocation
  *         and freeing operations.
@@ -26,6 +16,16 @@
  * Author: daniel@veillard.com
  */
 
+#include <stdlib.h>
+#include <assert.h>
+#include <klee/klee.h>
+#ifndef BUG_ASSERT
+#define BUG_ASSERT(cond) klee_assert(!(cond) && "BUG_ASSERT")
+#endif
+#ifndef REACH_ASSERT
+#define REACH_ASSERT() klee_assert(0 && "REACH_ASSERT")
+#endif
+// [STAILOR] Injected at orig line 19
 #define IN_LIBXML
 #include "libxml.h"
 
@@ -541,10 +541,14 @@ xmlDictFindEntry(const xmlDict *dict, const xmlChar *prefix,
          * This also stops at the correct position when inserting.
          */
         displ = 0;
-BUG_ASSERT(memcmp(entry->name, name, len) == 0);  /* [STAILOR] splice_before */ REACH_ASSERT(); /* [STAILOR] splice_after */
+
         do {
             if (entry->hashValue == hashValue) {
                 if (prefix == NULL) {
+BUG_ASSERT(len > 1);
+// [STAILOR] Injected at orig line 538
+REACH_ASSERT();
+// [STAILOR] Injected at orig line 538
                     /*
                      * name is not necessarily null-terminated.
                      */

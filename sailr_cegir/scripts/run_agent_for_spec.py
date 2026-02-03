@@ -1569,7 +1569,25 @@ def finalize_frozen_plan(
                 instr_list.append({
                     "file": ctx.get("vul_file"), "line": safe_line, "kind": "insert_before", "code": "REACH_ASSERT();"
                 })
-        
+            
+            has_bug = any("BUG_ASSERT" in i.get("code", "") for i in instr_list)
+            if not has_bug:
+                # Try to find the condition in the 'assertions' list
+                assertions = p.get("assertions", [])
+                bug_cond = ""
+                for a in assertions:
+                    if a.get("kind") == "bug" or a.get("id") == "BUG_ASSERT":
+                        bug_cond = a.get("condition") or a.get("predicate")
+                        break
+                
+                if bug_cond:
+                    print(f"  [i] Auto-Correct: Backfilling missing BUG_ASSERT from plan: '{bug_cond}'")
+                    instr_list.append({
+                        "file": ctx.get("vul_file"),
+                        "line": safe_line,
+                        "kind": "insert_before",
+                        "code": f"BUG_ASSERT({bug_cond});"
+                    })
         has_defs = any("#define BUG_ASSERT" in i.get("code", "") for i in instr_list)
         if not has_defs:
              instr_list.append({
@@ -1754,50 +1772,59 @@ def extract_call_arguments(stmt: str, func_name: str) -> List[str]:
     return args
 
 def validate_and_fix_assertions(src_root: Path, vul_file: str, plan: Dict[str, Any], rule_id: str) -> Dict[str, Any]:
-    """
-    Validates assertions but is PERMISSIVE.
-    It does NOT rewrite assertion logic (e.g. memcmp vs len) because specific bugs 
-    often require content checks. It only fixes structural issues (line placement).
-    """
     inst_list = plan.get("instrumentation", [])
     if not inst_list: return plan
+    try:
+        fpath = find_source_file(src_root, vul_file)
+        content = fpath.read_text(errors="replace").splitlines()
+    except Exception: return plan
 
-    # [FIX] REMOVED the "detected_sink" and "rewrite to len > 1" logic entirely.
-    # We trust the LLM's logic (whether it uses memcmp or array access).
-    
-    # 1. Structural Alignment Only (Move out of comments/braces)
+    for instr in inst_list:
+        if "BUG_ASSERT" not in instr.get("code", ""): continue
+        line_num = int(instr.get("line", 0))
+        if line_num <= 0 or line_num > len(content): continue
+        target_stmt = content[line_num - 1].strip()
+        detected_sink = None
+        critical_idx = -1
+        for func, idx in QL_SEMANTICS.items():
+            if re.search(rf"\b{re.escape(func)}\s*\(", target_stmt):
+                detected_sink = func
+                critical_idx = idx
+                break
+        if detected_sink:
+            print(f"  [i] QL-Validation: Identified Vulnerable Sink '{detected_sink}' at line {line_num}.")
+            args = extract_call_arguments(target_stmt, detected_sink)
+            if len(args) > critical_idx:
+                len_var_raw = args[critical_idx]
+                len_var_clean = re.sub(r"\([^\)]+\)", "", len_var_raw).strip()
+                if len_var_clean:
+                    print(f"      Critical Argument (Length): '{len_var_clean}'")
+                    current_code = instr["code"]
+                    deref_pattern = re.search(rf"\[\s*{re.escape(len_var_clean)}", current_code)
+                    if deref_pattern:
+                        print(f"  [!] REJECTED: Assertion checks CONTENT at index '{len_var_clean}' (Fragile).")
+                        print(f"      Violation of {rule_id}: OOB bugs must be detected by BOUNDS, not VALUES.")
+                        new_pred = f"BUG_ASSERT({len_var_clean} > 1);"
+                        instr["code"] = new_pred
+                        print(f"      [Auto-Fix] Rewrote assertion to QL-compliant bounds check: '{new_pred}'")
+                    elif len_var_clean not in current_code and "0" not in current_code:
+                         print(f"  [!] WARNING: Assertion does not reference the critical length variable '{len_var_clean}'.")
+
     for instr in inst_list:
         if "BUG_ASSERT" in instr.get("code", ""):
             orig_line = int(instr.get("line", 0))
             if orig_line <= 0: continue
-            
-            try:
-                fpath = find_source_file(src_root, vul_file)
-                content = fpath.read_text(errors="replace").splitlines()
-                # Check bounds
-                if orig_line - 1 >= len(content): continue
-                
-                target_text = content[orig_line - 1].strip()
-                
-                # Check if line is a comment or structural token
-                # This ensures we don't inject assertions into invalid C syntax contexts
-                is_weak = (not target_text) or target_text.startswith(("//", "/*", "*")) or target_text in ["}", "{", "else", "do {"]
-                
-                if is_weak:
-                    best_line = orig_line
-                    # Scan forward up to 6 lines for a real statement (ending in ;)
-                    for offset in range(1, 7):
-                        idx = orig_line + offset - 1
-                        if idx < len(content) and ";" in content[idx] and not content[idx].strip().startswith("//"):
-                            best_line = orig_line + offset
-                            break
-                    
-                    if best_line != orig_line:
-                        instr["line"] = best_line
-                        print(f"  [i] Auto-Align: Moved assertion from L{orig_line} to L{best_line} (Better Context)")
-            except Exception:
-                pass
-
+            target_text = content[orig_line - 1].strip()
+            is_weak = (not target_text) or target_text.startswith(("//", "/*", "*")) or target_text in ["}", "{", "else", "do {"]
+            if is_weak:
+                best_line = orig_line
+                for offset in range(1, 6):
+                    if orig_line + offset <= len(content) and ";" in content[orig_line + offset - 1]:
+                        best_line = orig_line + offset
+                        break
+                if best_line != orig_line:
+                    instr["line"] = best_line
+                    print(f"  [i] Auto-Align: Moved assertion from L{orig_line} to L{best_line}")
     return plan
 
 def fix_c_insertion_point(src_root: Path, vul_file: str, target_line: int, out_dir: Path = None) -> int:
@@ -1838,52 +1865,41 @@ def fix_c_insertion_point(src_root: Path, vul_file: str, target_line: int, out_d
         return target_line
 
     lines = content.splitlines()
-    curr_idx = target_line - 1 
+    if target_line - 1 >= len(lines): return target_line
     
-    if curr_idx < 0 or curr_idx >= len(lines):
-        return target_line
-
-    # 2. Backward Scan for Safe Insertion Point
+    # 1. Forward Scan: Find first non-comment/non-empty line starting from target
+    # This prevents inserting assertions into "/* Comment */ [HERE] code" which might break context
+    safe_idx = target_line - 1
+    while safe_idx < len(lines):
+        line = lines[safe_idx].strip()
+        if not line or line.startswith("//") or line.startswith("/*") or line.startswith("*"):
+            safe_idx += 1
+        else:
+            break
+            
+    # 2. Backward Scan: Ensure we are not inside a multi-line statement
+    # (Same logic as before, checking for line continuations like '||', '&&', '(')
+    curr_idx = safe_idx
     scan_limit = 50
     while scan_limit > 0 and curr_idx > 0:
-        prev_line_raw = lines[curr_idx - 1]
-        
-        # Strip C comments (//... and /*...*/) and whitespace
-        # Note: Simple regex, doesn't handle strings like " // " perfectly but sufficient for code structure
-        prev_line_clean = re.sub(r'//.*', '', prev_line_raw)
-        prev_line_clean = re.sub(r'/\*.*?\*/', '', prev_line_clean).strip()
-        
-        # If line is empty after cleaning, keep going up
-        if not prev_line_clean:
+        prev = lines[curr_idx - 1].strip()
+        # Check for statement terminators
+        if prev.endswith(";") or prev.endswith("}") or prev.endswith("{") or prev.endswith(":"):
+            break
+        # Check for continuations
+        if re.search(r'(?:[,\.\->(\[\{=+\-*/%&|^!?:<>]|&&|\|\|)\s*$', prev):
             curr_idx -= 1
-            scan_limit -= 1
-            continue
-
-        # Check for Line Continuations
-        # If the previous line ends with any of these, the statement is NOT finished.
-        # Operators: , . -> ( [ { = + - * / % & | ^ ! ? : < >
-        # Logical: && ||
-        continuation_regex = r'(?:[,\.\->(\[\{=+\-*/%&|^!?:<>]|&&|\|\|)\s*$'
-        
-        if re.search(continuation_regex, prev_line_clean):
+        elif re.match(r'^\s*(if|while|for|switch|else)\b', prev) and not prev.endswith((';', '{', '}')):
             curr_idx -= 1
-            continue
-            
-        # Check for Control Flow headers (if/while/for) that don't have a body start yet
-        # e.g., "if (condition)" (without { or ;) -> implies next line is body/continuation
-        if re.match(r'^\s*(if|while|for|switch|else)\b', prev_line_clean):
-            if not prev_line_clean.endswith((';', '{', '}')):
-                curr_idx -= 1
-                continue
+        else:
+            break # Assume stable
+        scan_limit -= 1
 
-        # If none of the above, we found a stable break point (e.g., ends in ; or })
-        break
+    final_line = curr_idx + 1
+    if final_line != target_line:
+        print(f"  [i] Syntax Safety: Re-aligned insertion {target_line} -> {final_line} (Target: {lines[curr_idx].strip()[:30]}...)")
         
-    safe_line = curr_idx + 1
-    if safe_line != target_line:
-        print(f"  [i] Syntax Safety: Moved insertion {target_line} -> {safe_line} (File: {found_path.name})")
-        
-    return safe_line
+    return final_line
 
 ENTRYPOINT_LINK_CACHE: Dict[str, bool] = {}
 
@@ -2442,10 +2458,8 @@ def run_klee(bc_path: Path, klee: str, flags: List[str], timeout: int, log_dir: 
         crash_type = "spec"
         crash_location = f"{Path(target_file).name}:{target_line} (Oracle)"
         failure_reason = "Oracle BUG_ASSERT triggered"
-
-    elif "KLEE: ERROR" in full_log:
-        bug_found = True
-        
+    elif "KLEE: ERROR" in full_log and not reach_assert:
+        bug_found = True 
         # [NEW] Priority Check for Intrinsics (Critical for Diagnosis)
         if "unimplemented intrinsic" in full_log:
              crash_type = "intrinsic"
@@ -2730,21 +2744,29 @@ def _extract_stubbed_function_name(code_snippet: str) -> Optional[str]:
 # STAILOR Patch: Statement-safe stubbing + intrinsic mitigation helpers
 # -----------------------------------------------------------------------------
 
+STAILOR_INPATH_FUNCS: Set[str] = set()
 _RX_KLEE_UNIMPL_INTR = re.compile(r"unimplemented intrinsic:\s*([A-Za-z0-9\._]+)")
 _RX_KLEE_ERROR_LOC   = re.compile(r"KLEE:\s*ERROR:\s*([^:\s]+):(\d+):")
 _RX_KLEE_STACK_FUNC  = re.compile(r"\bin\s+([A-Za-z_]\w*)\s*\(")
 
 def _extract_klee_intrinsic_blocker(full_log: str) -> Dict[str, Any]:
-    """
-    Parse KLEE output for intrinsic blocker information.
-    Returns dict with keys: intrinsic, file, line, func (best-effort) or {}.
+    """Parse KLEE output for intrinsic blocker information.
+
+    Returns dict with keys:
+      - intrinsic: str
+      - file: str
+      - line: int
+      - stack: List[str]   (best-effort list of function names from stack)
+      - func: str          (top frame func name, best-effort)
     """
     if "unimplemented intrinsic" not in full_log:
         return {}
+
     out: Dict[str, Any] = {}
     m = _RX_KLEE_UNIMPL_INTR.search(full_log)
     if m:
         out["intrinsic"] = m.group(1)
+
     m = _RX_KLEE_ERROR_LOC.search(full_log)
     if m:
         out["file"] = m.group(1)
@@ -2752,11 +2774,12 @@ def _extract_klee_intrinsic_blocker(full_log: str) -> Dict[str, Any]:
             out["line"] = int(m.group(2))
         except Exception:
             pass
-    # Best-effort: take the first stack function name that appears after the ERROR line
-    # Many KLEE stacks include lines like: "in foo(...)".
-    m = _RX_KLEE_STACK_FUNC.search(full_log)
-    if m:
-        out["func"] = m.group(1)
+
+    stack = _RX_KLEE_STACK_FUNC.findall(full_log)
+    if stack:
+        out["stack"] = stack
+        out["func"] = stack[0]
+
     return out
 
 def _strip_c_comments_and_strings_preserve_lines(text: str) -> str:
@@ -2850,35 +2873,30 @@ def _extract_stubbed_func_name_from_code(code: str) -> str:
     return ""
 
 def _find_function_def_span(masked: str, func: str) -> Optional[Tuple[int, int]]:
-    """
-    Find the (start_line, brace_line) of a function definition in masked text.
-    brace_line is the line containing the opening '{'.
-    """
-    # Match return type + name + params + '{'
-    rx = re.compile(rf"(^|\n)\s*(?:static\s+)?[^\n;{{}}]*\b{re.escape(func)}\s*\([^;{{}}]*\)\s*\{{", re.MULTILINE)
+    # [FIX] Robust Regex: Allow newlines in return type (e.g. "static\nunsigned\nfunc")
+    # Change [^;{}]* to [^;{}]*? to match minimally across lines
+    rx = re.compile(rf"(^|\n)\s*(?:static\s+)?[^;{{}}]{{0,1000}}\b{re.escape(func)}\s*\([^;{{}}]*\)\s*\{{", re.MULTILINE)
     m = rx.search(masked)
     if not m:
         return None
     start_line = masked.count("\n", 0, m.start()) + 1
     brace_line = masked.count("\n", 0, m.end()) + 1
-    # In practice start_line==brace_line often.
     return (start_line, brace_line)
 
 def _infer_return_type_from_def_line(def_line: str, func: str) -> str:
     """
-    Best-effort return type inference from a def line: '<ret> func(args) {'
+    Best-effort return type inference from a *signature blob* that includes the function name.
+    Accepts multi-line signatures flattened into one line.
     """
-    # Remove attributes/macros
-    line = def_line.strip()
-    # Chop at function name
+    line = re.sub(r"\s+", " ", (def_line or "").strip())
     idx = line.find(func)
     if idx <= 0:
         return ""
     ret = line[:idx].strip()
-    # Remove common qualifiers
     ret = re.sub(r"\b(static|inline|extern|__inline__|__inline)\b", "", ret).strip()
     ret = re.sub(r"\s+", " ", ret).strip()
     return ret
+
 
 def _default_return_expr(ret_type: str, func_name: str = "") -> str:
     """Generic safe return value expression as C code (single expression)."""
@@ -2894,110 +2912,23 @@ def _default_return_expr(ret_type: str, func_name: str = "") -> str:
         return "0"  # NULL (safe compile); reachability-friendly pointer needs modeling elsewhere
     return "0"
 
-def _stailor_sanitize_orig_snippet(raw: str) -> str:
+
+def _apply_stub_function_body_inplace(
+    content: str, func: str, reason: str = "", *, force_return: Optional[str] = None
+) -> Tuple[str, bool, str]:
     """
-    Produce a comment-safe, single-line snippet of `raw` for logging/debug.
-    Project-agnostic: length is configurable via STAILOR_ORIG_SNIPPET_MAX (default: 120).
-    """
-    s = raw.strip()
-    # Avoid nested comment terminators and confusing // sequences inside our annotations.
-    s = s.replace("/*", "/ *").replace("*/", "* /").replace("//", "/ /")
-    # Avoid NULs and very long lines.
-    max_len = 120
-    try:
-        max_len = int(os.getenv("STAILOR_ORIG_SNIPPET_MAX", "120"))
-    except Exception:
-        max_len = 120
-    max_len = max(0, min(max_len, 1000))
-    if max_len == 0:
-        return ""
-    if len(s) > max_len:
-        # leave room for ellipsis without hardcoding magic numbers
-        keep = max(0, max_len - 3)
-        s = s[:keep] + "..."
-    return s
+    Rewrite the first *safe* executable line in function body to an early return,
+    preserving line count and avoiding syntax breakage.
 
-
-def _infer_return_type_from_signature(sig_text: str, func: str) -> str:
-    """
-    Best-effort return type inference from a (possibly multi-line) signature string
-    like '<ret> func(args) {'.
-
-    Returns the textual return-type portion, normalized, or "" if unknown.
-    """
-    line = " ".join(sig_text.replace("\n", " ").split())
-    idx = line.find(func)
-    if idx <= 0:
-        return ""
-    ret = line[:idx].strip()
-    # Drop common qualifiers/attrs (best-effort, project-agnostic)
-    ret = re.sub(r"\b(static|inline|extern|__inline__|__inline|__attribute__\s*\(\([^)]*\)\)|__declspec\([^)]+\))\b", "", ret)
-    ret = re.sub(r"\s+", " ", ret).strip()
-    return ret
-
-
-def _looks_like_local_decl(stmt: str) -> bool:
-    """
-    Heuristic: detect simple local variable declarations (optionally with initializer),
-    so we avoid injecting a stub in front of them (would break compilation if we "return"
-    before declarations that introduce identifiers later used in the function).
-    """
-    s = stmt.strip()
-    if not s.endswith(";"):
-        return False
-    head = s[:-1].strip()
-    # Skip if this "declaration" looks like a call or macro invocation.
-    if "(" in head:
-        return False
-    # Common control keywords that can also end with ';'
-    if re.match(r"^(return|goto|break|continue)\b", head):
-        return False
-    # Very conservative C-decl shape:
-    #   <type-ish> <name> [= init] (, <name> [= init])*
-    # We allow pointers and qualifiers in the type-ish part.
-    decl_rx = re.compile(
-        r"^[A-Za-z_]\w*(?:\s+[\w\*\(\)]+)*\s+\**\s*[A-Za-z_]\w*(?:\s*=\s*[^;]+)?(?:\s*,\s*\**\s*[A-Za-z_]\w*(?:\s*=\s*[^;]+)?)*\s*$"
-    )
-    return bool(decl_rx.match(head))
-
-
-def _is_unsafe_insertion_target(stmt: str) -> bool:
-    """
-    Statements we must NOT prepend with 'return' on the same line (syntax would break):
-      - case/default labels
-      - arbitrary labels (foo:)
-    """
-    s = stmt.lstrip()
-    if re.match(r"^(case\b|default\b)\b", s):
-        return True
-    # label:
-    if re.match(r"^[A-Za-z_]\w*\s*:\s*(//.*)?$", s):
-        return True
-    return False
-
-
-def _apply_stub_function_body_inplace(content: str, func: str, reason: str = "", *, force_return: Optional[str] = None) -> Tuple[str, bool, str]:
-    """
-    Reachability-friendly, compilation-safe in-place stubbing.
-
-    Goal:
-      - Make the function return early (to bypass expensive/irrelevant behavior),
-        WITHOUT breaking parsing/compilation, and WITHOUT shifting line numbers.
-
-    Strategy:
-      - Find the function body opening brace.
-      - Skip over local declarations, preprocessor lines, and comment-only lines.
-      - Find the first *executable* statement that is safe to prefix on the same line.
-      - Prefix that line with a `return ...;` statement.
-        (We do NOT delete the original code; it stays on the same line after the return.)
-
-    This avoids earlier failures like:
-      - "void function should not return a value"
-      - undeclared identifiers due to removing local decls
-      - "case statement not in switch statement" due to touching 'case:' labels
+    Key safety rules:
+      - Never replace/erase the original line; always prepend return and keep raw.
+      - Never stub on switch/case/default labels or on declarations (incl. initialized decls).
+      - Infer return type from the full signature region (start_line..brace_line).
     """
     lines = content.splitlines()
     masked = _strip_c_comments_and_strings_preserve_lines(content)
+    mlines = masked.splitlines()
+
     span = _find_function_def_span(masked, func)
     if not span:
         return content, False, f"function '{func}' not found"
@@ -3005,57 +2936,75 @@ def _apply_stub_function_body_inplace(content: str, func: str, reason: str = "",
     start_line, brace_line = span
     brace_idx = brace_line - 1
 
-    # Build a robust signature string (may span multiple lines).
-    sig_lo = max(0, start_line - 1)
-    sig_hi = min(len(lines), brace_line)
-    sig_text = "\n".join(lines[sig_lo:sig_hi])
-    ret_type = _infer_return_type_from_signature(sig_text, func) or _infer_return_type_from_def_line(lines[brace_idx] if brace_idx < len(lines) else "", func)
+    # Build a signature blob for robust return-type inference (multi-line defs)
+    sig_blob = " ".join(
+        (lines[j].strip() for j in range(start_line - 1, min(brace_idx + 1, len(lines))))
+    )
+    ret_type = _infer_return_type_from_def_line(sig_blob, func)
 
-    # Find first injectable statement after opening brace.
+    # start scanning after '{'
     i = brace_idx + 1
-    masked_lines = masked.splitlines()
+
+    # Regexes for declaration skipping (project-agnostic)
+    # 1) plain decl: type name;
+    rx_plain_decl = re.compile(
+        r"^\s*[A-Za-z_]\w*(?:\s+[\w\*\s]+)?\s+\**\s*[A-Za-z_]\w*(?:\s*,\s*\**\s*[A-Za-z_]\w*)*\s*;\s*$"
+    )
+    # 2) initialized decl: type name = expr;
+    rx_init_decl = re.compile(
+        r"^\s*[A-Za-z_][\w\s\*]*\s+\**\s*[A-Za-z_]\w*\s*=\s*[^;]+;\s*$"
+    )
+
     while i < len(lines):
         raw = lines[i]
-        mline = masked_lines[i] if i < len(masked_lines) else ""
+        mline = mlines[i] if i < len(mlines) else ""
 
-        if raw.strip() == "" or raw.lstrip().startswith("#") or mline.strip() == "":
+        if raw.strip() == "":
+            i += 1
+            continue
+        if raw.lstrip().startswith("#"):
+            i += 1
+            continue
+        if mline.strip() == "":  # comment-only line after masking
             i += 1
             continue
 
-        # Avoid breaking control-structure headers and labels.
-        if _is_unsafe_insertion_target(raw):
+        s = raw.strip()
+
+        # Avoid stubbing on labels / switch scaffolding
+        if re.match(r"^(case\b|default\b)", s):
+            i += 1
+            continue
+        if s.startswith("switch"):
             i += 1
             continue
 
-        # Avoid injecting before declarations (including "char *x = NULL;").
-        if _looks_like_local_decl(raw):
+        # Skip declarations (including initialized declarations)
+        if rx_plain_decl.match(raw) or rx_init_decl.match(raw):
             i += 1
             continue
 
-        # Avoid injecting on a bare '{' / '}' line.
-        if raw.strip() in ("{", "}"):
-            i += 1
-            continue
-
-        # Compute return expression.
+        # Determine return expression
         if "void" in ret_type and "*" not in ret_type:
             ret_expr = ""
         else:
             ret_expr = force_return if force_return is not None else _default_return_expr(ret_type, func)
 
-        new_stmt = (f"return; // [STAILOR] stubbed {func} {reason}".rstrip()
-                    if ret_expr == "" else
-                    f"return {ret_expr}; // [STAILOR] stubbed {func} {reason}".rstrip())
-
-        orig_snip = _stailor_sanitize_orig_snippet(raw)
-        if orig_snip:
-            lines[i] = f"{new_stmt} {raw.rstrip()} /* ORIG: {orig_snip} */"
+        if ret_expr == "":
+            new_stmt = f"return; // [STAILOR] stubbed {func} {reason}".rstrip()
         else:
-            lines[i] = f"{new_stmt} {raw.rstrip()}"
+            new_stmt = f"return {ret_expr}; // [STAILOR] stubbed {func} {reason}".rstrip()
 
+        # Keep original text on the same line to preserve parsing context.
+        # [FIX] Do NOT append /* ORIG: ... */. 
+        # If 'raw' contains an opening '/*', our closing '*/' would break the comment structure.
+        # We simply prepend the return statement. The original code remains but becomes dead code.
+        lines[i] = f"{new_stmt} {raw.rstrip()}"
         return "\n".join(lines) + ("\n" if content.endswith("\n") else ""), True, f"stubbed {func} at line {i+1}"
 
     return content, False, f"no safe executable line found in '{func}'"
+
+
 def _find_first_path_with_basename(root: Path, base: str) -> Optional[Path]:
     """Find first file under root whose basename matches base."""
     try:
@@ -3066,28 +3015,79 @@ def _find_first_path_with_basename(root: Path, base: str) -> Optional[Path]:
         return None
     return None
 
-def _mitigate_intrinsic_blocker_in_src(src_root: Path, blocker: Dict[str, Any], execution_log: Optional[Path] = None) -> Tuple[bool, str]:
+def _locate_function_def_file(src_root: Path, func: str) -> Optional[Path]:
     """
-    Patch the source file containing the intrinsic blocker by stubbing the crashing function body
-    (comment-safe, no line shifting).
-    Returns (ok, note).
+    Locate the first .c/.cc/.cpp file under src_root that contains a *definition*
+    of `func` (not just a declaration or call).
+
+    Project-agnostic and robust to comments/strings.
     """
+    func = (func or "").strip()
+    if not func:
+        return None
+
+    # Definition pattern: <stuff> func ( ... ) {
+    # Keep it permissive but require the opening brace.
+    rx = re.compile(
+        rf"(^|\n)\s*(?:[A-Za-z_][\w\s\*\(\),\[\]]+?\s+)?\b{re.escape(func)}\s*\([^;{{}}]*\)\s*\{{",
+        re.MULTILINE
+    )
+
+    exts = (".c", ".cc", ".cpp", ".cxx")
+    try:
+        for p in src_root.rglob("*"):
+            if not p.is_file():
+                continue
+            if p.suffix.lower() not in exts:
+                continue
+            try:
+                txt = p.read_text(encoding="utf-8", errors="replace")
+            except Exception:
+                continue
+            masked = _strip_c_comments_and_strings_preserve_lines(txt)
+            if rx.search(masked):
+                return p
+    except Exception:
+        return None
+
+    return None
+
+def _mitigate_intrinsic_blocker_in_src(
+    src_root: Path,
+    blocker: Dict[str, Any],
+    execution_log: Optional[Path] = None,
+    *,
+    inpath_funcs: Optional[Set[str]] = None,
+) -> Tuple[bool, str]:
     func = str(blocker.get("func") or "").strip()
     f = str(blocker.get("file") or "").strip()
-    if not func or not f:
-        return False, "blocker missing func/file"
-    base = os.path.basename(f)
-    p = _find_first_path_with_basename(src_root, base)
+    if not func:
+        return False, "blocker missing func"
+
+    # Respect in-path keep set: never mitigate by stubbing an in-path function.
+    # (If you want an escape hatch, gate it by blocker.get("force") or similar.)
+    if inpath_funcs and func in inpath_funcs:
+        return False, f"skip intrinsic mitigation for in-path func '{func}'"
+
+    # Prefer locating by definition site
+    p = _locate_function_def_file(src_root, func)
+
+    # Fallback: locate by basename from blocker["file"]
+    if not p and f:
+        base = os.path.basename(f)
+        p = _find_first_path_with_basename(src_root, base)
+
     if not p:
-        return False, f"cannot locate {base} under src_root"
+        return False, f"cannot locate definition site for {func}"
+
     txt = p.read_text(encoding="utf-8", errors="replace")
-    # Special-case: name getters return UTF-8
-    force_ret = None
-    # If signature suggests char*, function body stub will return "UTF-8" automatically.
-    new_txt, ok, note = _apply_stub_function_body_inplace(txt, func, reason="(intrinsic mitigation)", force_return=force_ret)
+    new_txt, ok, note = _apply_stub_function_body_inplace(
+        txt, func, reason="(intrinsic mitigation)", force_return=None
+    )
     if not ok:
         return False, f"{p.name}: {note}"
     p.write_text(new_txt, encoding="utf-8")
+
     msg = f"[intrinsic-mitigation] stubbed {func} in {p.name} to avoid {blocker.get('intrinsic','intrinsic')}"
     if execution_log:
         try:
@@ -3096,6 +3096,115 @@ def _mitigate_intrinsic_blocker_in_src(src_root: Path, blocker: Dict[str, Any], 
         except Exception:
             pass
     return True, msg
+
+
+def stageA_target_keep_and_aggressive_stub_plan(
+    inst_root: Path,
+    plan: Dict[str, Any],
+    *,
+    vul_file_rel: str,
+    vul_line: int,
+    execution_log: Optional[Path] = None,
+    extra_keep: Optional[Set[str]] = None,
+) -> Set[str]:
+    """
+    Stage A (deterministic, project-agnostic):
+      1) Compute a TARGET-DRIVEN keep-set from the vulnerable translation unit around (vul_file_rel, vul_line).
+      2) Generate an AGGRESSIVE stub plan that stubs every *defined* function outside the keep-set.
+         This is purely a *plan* mutation: it does not modify source yet.
+
+    Rationale:
+      - The keep-set defines the "in-path" slice we want KLEE to focus on.
+      - Aggressive stubbing prevents symbolic exploration drifting into unrelated subsystems
+        (e.g., error reporting, encoding tables), while still allowing compilation.
+
+    Returns:
+      The computed keep-set (including extra_keep).
+    """
+    keep: Set[str] = set(extra_keep or set())
+
+    # ---- 1) keep-set from vulnerable TU ----
+    try:
+        p_v = inst_root / vul_file_rel
+        if p_v.exists() and vul_line > 0:
+            src = p_v.read_text(encoding="utf-8", errors="replace")
+            keep |= _compute_in_path_funcs_for_file(src, int(vul_line))
+    except Exception:
+        pass
+
+    # Always keep entrypoints explicitly named in the spec/plan if available.
+    for k in ("entrypoint", "entry_point", "target_func", "target_function"):
+        try:
+            v = str(plan.get(k) or "").strip()
+            if v:
+                keep.add(v)
+        except Exception:
+            pass
+
+    # Add a minimal never-stub list (project-agnostic safety).
+    keep |= {
+        "main",
+        "__libc_start_main",
+    }
+
+    msg = f"[stageA] KEEP_FUNCS({len(keep)}): " + ", ".join(sorted(list(keep))[:60])
+    if execution_log:
+        try:
+            with open(execution_log, "a", encoding="utf-8") as f:
+                f.write(msg + "\n")
+        except Exception:
+            pass
+
+    # ---- 2) aggressive stub plan generation ----
+    inst_list = plan.get("instrumentation")
+    if not isinstance(inst_list, list):
+        inst_list = []
+        plan["instrumentation"] = inst_list
+
+    # Build a set of (file, func) already planned to avoid duplicates.
+    existing = set()
+    for d in inst_list:
+        if isinstance(d, dict) and d.get("kind") == "stub_function_body":
+            existing.add((str(d.get("file") or ""), str(d.get("func") or "")))
+
+    # Deterministic scan of C sources.
+    c_files = sorted([p for p in inst_root.rglob("*.c") if p.is_file()])
+    # New (Safe Limit: {0,1000})
+    rx_def = re.compile(r"(^|\n)\s*(?:static\s+)?[^;{{}}]{{0,1000}}\b([A-Za-z_]\w*)\s*\([^;{{}}]*\)\s*\{", re.MULTILINE)    
+    added = 0
+    for p in c_files:
+        rel = p.relative_to(inst_root).as_posix()
+        try:
+            txt = p.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        masked = _strip_c_comments_and_strings_preserve_lines(txt)
+        for m in rx_def.finditer(masked):
+            fn = m.group(2)
+            if not fn or fn in keep:
+                continue
+            key = (rel, fn)
+            if key in existing:
+                continue
+
+            inst_list.append({
+                "kind": "stub_function_body",
+                "file": rel,
+                "func": fn,
+                "reason": "(stageA aggressive out-of-path stub)",
+                "force": True,
+            })
+            existing.add(key)
+            added += 1
+
+    msg2 = f"[stageA] Added {added} aggressive stub_function_body directives"
+    if execution_log:
+        try:
+            with open(execution_log, "a", encoding="utf-8") as f:
+                f.write(msg2 + "\n")
+        except Exception:
+            pass
+    return keep
 
 
 def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any], *, vul_file_rel: str = "", vul_line: int = 0, execution_log: Optional[Path] = None) -> List[str]:
@@ -3126,6 +3235,29 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any], *, vul_fil
             continue
         file_map.setdefault(rel, []).append(ent)
 
+    # [STAILOR] Pre-process "auto_located" stubs for Probe & Patch strategy
+    if "auto_located" in file_map:
+        auto_entries = file_map.pop("auto_located")
+        for ent in auto_entries:
+            func_name = str(ent.get("func") or "").strip()
+            if not func_name:
+                actions.append("[instrumentation] skipping auto_located stub with no func name")
+                continue
+            
+            # Use the existing helper to find the definition in the instrumented source
+            found_path = _locate_function_def_file(inst_root, func_name)
+            if found_path:
+                try:
+                    # Relocate the stub directive to the actual file
+                    new_rel = str(found_path.relative_to(inst_root))
+                    ent["file"] = new_rel
+                    file_map.setdefault(new_rel, []).append(ent)
+                    actions.append(f"[stubs] Auto-located '{func_name}' in '{new_rel}'")
+                except ValueError:
+                    actions.append(f"[stubs] Auto-location path error for '{func_name}'")
+            else:
+                actions.append(f"[stubs] FAILED to auto-locate definition for '{func_name}'")
+
     for rel, directives in file_map.items():
         target = (inst_root / rel).resolve()
         if not target.exists():
@@ -3153,22 +3285,31 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any], *, vul_fil
 
 
         # Compute a conservative MUST_KEEP set for the vulnerable TU to avoid stubbing in-path helpers.
+
         must_keep: Set[str] = set()
         if vul_file_rel and vul_line > 0 and Path(rel).as_posix() == Path(vul_file_rel).as_posix():
             try:
                 src_text_full = "".join(lines)
                 must_keep = _compute_in_path_funcs_for_file(src_text_full, vul_line)
-                if must_keep:
-                    msg = f"[stubs] MUST_KEEP_FUNCS({len(must_keep)}): " + ", ".join(sorted(list(must_keep))[:50])
-                    actions.append(msg)
-                    if execution_log:
-                        try:
-                            with open(execution_log, "a", encoding="utf-8") as f:
-                                f.write(msg + "\n")
-                        except Exception:
-                            pass
             except Exception as e:
                 actions.append(f"[stubs] MUST_KEEP_FUNCS computation failed: {e}")
+
+        # Optional: expose keep-set to downstream phases via ctx if present
+        try:
+            if isinstance(plan, dict):
+                plan.setdefault("_inpath_must_keep_funcs", sorted(must_keep))
+        except Exception:
+            pass
+
+        if must_keep:
+            msg = f"[stubs] MUST_KEEP_FUNCS({len(must_keep)}): " + ", ".join(sorted(list(must_keep))[:50])
+            actions.append(msg)
+            if execution_log:
+                try:
+                    with open(execution_log, "a", encoding="utf-8") as f:
+                        f.write(msg + "\n")
+                except Exception:
+                    pass
 
         # Split by operation type
         repl = [d for d in directives if str(d.get('kind') or '').strip() in ('replace_in_line','replace_by_anchor')]
@@ -3329,8 +3470,13 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any], *, vul_fil
             except Exception:
                 _depth = 0
             _flat = ' '.join(code.splitlines()).strip()
+            # [FIX] Do not splice if the original line contains comments (// or /*).
+            # Splicing might prematurely close a block comment or put code inside a // comment.
+            _orig_has_comment = ("//" in lines[idx]) or ("/*" in lines[idx]) or ("*/" in lines[idx])
+
             _looks_stmt = (('\n' not in code) and (not _flat.lstrip().startswith('#')) and (';' in _flat)) or _flat.lstrip().startswith(('return ','goto ','break','continue'))
-            if _looks_stmt:
+            
+            if _looks_stmt and not _orig_has_comment:  
                 if _depth <= 0:
                     # File-scope insertion of statements is illegal C.
                     msg = f"[instrumentation] DROP top-level statement injection {rel}:{line_idx}"
@@ -3349,12 +3495,19 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any], *, vul_fil
                 else:
                     _nl = '\n' if lines[idx].endswith('\n') else ''
                     _orig = lines[idx].rstrip('\n')
-                    # Avoid nested block comment breaks in ORIG when embedding.
-                    _orig_s = _orig.replace('/*','/ *').replace('*/','* /')
+                    
                     if kind == 'insert_after':
-                        lines[idx] = f"{_orig} {_flat} /* [STAILOR] splice_after */" + _nl
+                        # Note: Splicing AFTER a comment line is still risky (code ends up inside comment).
+                        # We force newline if comment is detected, otherwise splice clean.
+                        if "//" in _orig or "/*" in _orig:
+                             lines.insert(idx + 1, code + _nl) # Fallback to new line
+                        else:
+                             lines[idx] = f"{_orig} {_flat}" + _nl # Clean splice
                     else:
-                        lines[idx] = f"{_flat} {_orig} /* [STAILOR] splice_before */" + _nl
+                        # insert_before / replace
+                        # Safe to splice BEFORE a comment, provided we don't add our own closing tag.
+                        lines[idx] = f"{_flat} {_orig}" + _nl
+
                     actions.append(f"[instrumentation] splice_{kind} {rel}:{line_idx}")
                     modified = True
                     continue
@@ -3374,6 +3527,7 @@ def apply_plan_instrumentation(inst_root: Path, plan: Dict[str, Any], *, vul_fil
             target.write_text(''.join(lines), encoding='utf-8')
 
     return actions
+
 def build_instrumented_project_bc(
     *, src_root: Path, work_dir: Path, frozen_plan: Dict[str, Any], args: argparse.Namespace
 ) -> Tuple[Optional[Path], List[str], str]:
@@ -3383,9 +3537,6 @@ def build_instrumented_project_bc(
 
     Returns: (bc_path_or_none, actions_applied, error_message)
     """
-    import shutil
-    from pathlib import Path
-    from typing import Any, Dict, List, Optional, Tuple
 
     inst = frozen_plan.get("instrumentation", [])
     if not isinstance(inst, list) or not inst:
@@ -3442,6 +3593,16 @@ def build_instrumented_project_bc(
             print(f"  [!] Warning: Failed to inject KLEE headers: {e}")
     else:
         print("  [!] Warning: Could not locate 'klee/klee.h'. Instrumented build might fail.")
+
+
+    # Stage A — target-driven keep-set + aggressive stubbing plan (deterministic)
+    _keep = stageA_target_keep_and_aggressive_stub_plan(
+        inst_root,
+        frozen_plan,
+        vul_file_rel=str(getattr(args, 'vul_file', '') or ''),
+        vul_line=int(getattr(args, 'vul_line', 0) or 0),
+        execution_log=(work_dir / 'execution.log'),
+    )
 
     # Apply plan instrumentation
     actions = apply_plan_instrumentation(inst_root, frozen_plan, vul_file_rel=str(getattr(args,'vul_file','') or ''), vul_line=int(getattr(args,'vul_line',0) or 0), execution_log=(work_dir / 'execution.log'))
@@ -3722,6 +3883,43 @@ def validate_harness_structure(
 
     return True, ""
 
+def create_validation_plan(frozen_plan: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Creates a 'Validation Plan' that retains assertions/probes but removes
+    semantic stubs. This ensures we verify against REAL code logic.
+    """
+    val_plan = deepcopy(frozen_plan)
+    
+    # 1. Filter Instrumentation: Keep assertions, remove stubs
+    if "instrumentation" in val_plan:
+        kept_instr = []
+        for instr in val_plan["instrumentation"]:
+            code = instr.get("code", "")
+            kind = instr.get("kind", "")
+            
+            # KEEP: Assertions and Headers
+            if "BUG_ASSERT" in code or "REACH_ASSERT" in code or "include" in code:
+                kept_instr.append(instr)
+            # KEEP: Safety headers injected at top of file
+            elif kind == "insert_before" and instr.get("line") == 1:
+                kept_instr.append(instr)
+            # DROP: Function body stubs (return X;)
+            elif kind == "stub_function_body":
+                print(f"  [Validation] Dropping stub for '{instr.get('func')}'")
+                continue
+            # DROP: Legacy stubs (return ...)
+            elif "return " in code:
+                print(f"  [Validation] Dropping return stub at {instr.get('file')}:{instr.get('line')}")
+                continue
+            else:
+                # Default: Keep innocuous changes
+                kept_instr.append(instr)
+        val_plan["instrumentation"] = kept_instr
+
+    # 2. Clear Stub Contracts (prevent linker replacement)
+    val_plan["stub_contracts"] = []
+    
+    return val_plan
 
 def find_typedef_global(src_root: Path, type_name: str) -> Optional[str]:
     cmd = ["grep", "-r", "-h", f"typedef .* {type_name};", str(src_root)]
@@ -3991,6 +4189,36 @@ class StatementGraph:
                 out.append(f"{indent}      ↓")
         
         return "\n".join(out)
+
+def extract_failing_assumption_context(full_log: str, harness_src: str) -> Optional[Dict[str, Any]]:
+    """
+    Parses KLEE log for 'invalid klee_assume call' and correlates it with the harness source
+    to identify the failing condition.
+    """
+    # Pattern: KLEE: ERROR: /path/to/harness.c:123: invalid klee_assume call (provably false)
+    match = re.search(r"KLEE: ERROR: ([^:]+):(\d+): invalid klee_assume call \(provably false\)", full_log)
+    if not match:
+        return None
+        
+    fpath, line_num_str = match.groups()
+    # We only care if the assumption failed in the harness itself
+    if "harness.c" not in Path(fpath).name:
+        return None 
+        
+    line_num = int(line_num_str)
+    lines = harness_src.splitlines()
+    
+    # Safety check for line bounds
+    if line_num - 1 < 0 or line_num - 1 >= len(lines):
+        return None
+        
+    failing_code = lines[line_num - 1].strip()
+    
+    return {
+        "line": line_num,
+        "code": failing_code,
+        "raw_error": match.group(0)
+    }
 
 def interactive_synthesizer(
     frozen_plan: Dict[str, Any],
@@ -4396,6 +4624,72 @@ def interactive_synthesizer(
             target_line=ctx.get("vul_line", 0),
         )
 
+        # [NEW] PROBE & PATCH LOGIC
+        if stats["status"] == "harness_constraint_error":
+            fail_ctx = extract_failing_assumption_context(stats["full_log"], harness_src)
+            
+            if fail_ctx:
+                print(f"  [PROBE] Detected 'Provably False' assumption at line {fail_ctx['line']}: `{fail_ctx['code']}`")
+                
+                # A. Ask LLM to identify the blocker function
+                diag_prompt = (
+                    f"DIAGNOSIS TASK:\n"
+                    f"The assumption `{fail_ctx['code']}` at line {fail_ctx['line']} failed (Provably False).\n"
+                    f"This means the solver cannot satisfy this condition given the current code logic.\n"
+                    f"Look at the harness code above. Which function call computed the variables used in this assumption?\n"
+                    f"Return ONLY the function name in JSON: {{ \"blocker_function\": \"Name\" }}"
+                )
+                
+                # We use a temp history so this query doesn't pollute the main conversation
+                diag_msgs = [{"role": "system", "content": builder_prompt}, {"role": "user", "content": user_msg + "\n" + diag_prompt}]
+                diag_resp = call_llm_json(builder_prompt, user_msg + "\n" + diag_prompt, out_dir, f"diag_T{i:02d}")
+                blocker_func = diag_resp.get("blocker_function")
+                
+                if blocker_func and blocker_func not in ["unknown", "klee_assume", "klee_make_symbolic"]:
+                    print(f"  [AUTO-FIX] Identified blocker function: '{blocker_func}'. Stubbing to force path.")
+                    
+                    # B. Check for loops (don't re-stub the same function)
+                    frozen_plan.setdefault("instrumentation", [])
+                    already_stubbed = any(
+                        (i.get("func") == blocker_func and str(i.get("force_return")) == "1")
+                        for i in frozen_plan["instrumentation"]
+                    )
+                    
+                    if not already_stubbed:
+                        # C. Inject the Stub Directive
+                        stub_entry = {
+                            "kind": "stub_function_body",
+                            "file": "auto_located", # Will be resolved by build system
+                            "func": blocker_func,
+                            "reason": f"Auto-Stub: Failed Probe on {fail_ctx['code']}",
+                            "force": True,
+                            "force_return": "1" # <--- THE PATCH (Force Collision/Success)
+                        }
+                        frozen_plan["instrumentation"].append(stub_entry)
+                        
+                        # D. Rebuild Project Bitcode
+                        print(f"  [*] Re-building project.bc with new stub for {blocker_func}...")
+                        proj_bc, inst_actions, inst_err = build_instrumented_project_bc(
+                            src_root=src_root, work_dir=run_dir, frozen_plan=frozen_plan, args=args
+                        )
+                        
+                        if proj_bc:
+                            args.project_bc = str(proj_bc)
+                            history.append(f"[AUTO-FIX] Stubbed `{blocker_func}` to return 1. Re-compiling harness...")
+                            
+                            # E. Retry immediately without burning a budget turn
+                            # We must re-compile the harness against the NEW bitcode
+                            (harness_dir / "harness.bc").unlink(missing_ok=True)
+                            okc, msg, bc = compile_harness_to_bc(args, src_root, harness_dir / "harness.c", harness_dir / "harness.bc", Path(args.project_bc))
+                            if okc:
+                                print(f"  [*] Re-running KLEE with patched bitcode...")
+                                stats = run_klee(bc, args.klee, args.klee_flags, current_timeout, logs_dir, i, ctx.get("vul_file", ""), ctx.get("vul_line", 0))
+                                # Loop continues with NEW stats
+                            else:
+                                history.append(f"[AUTO-FIX-FAIL] Harness re-compilation failed: {msg}")
+                        else:
+                            history.append(f"[AUTO-FIX-FAIL] Could not re-build project after stubbing {blocker_func}: {inst_err}")
+
 
         # [DIAG] Summarize this execution step for both the console log and LLM history.
         diag_status = str(stats.get("status") or "unknown")
@@ -4537,7 +4831,7 @@ def interactive_synthesizer(
             # [STAILOR] Intrinsic mitigation: patch the crashing project function body in instrumented source
             blocker = _extract_klee_intrinsic_blocker(str(stats.get("full_log", "")))
             if blocker:
-                ok_m, note_m = _mitigate_intrinsic_blocker_in_src(src_root, blocker, execution_log=(out_dir / "execution.log"))
+                ok_m, note_m = _mitigate_intrinsic_blocker_in_src(src_root, blocker, execution_log=(out_dir / "execution.log"), inpath_funcs=set(ctx.get("must_keep_funcs", [])) or STAILOR_INPATH_FUNCS)
                 if ok_m:
                     history.append(f"[INTRINSIC-MITIGATION]: {note_m}")
                 else:
@@ -4571,10 +4865,109 @@ def interactive_synthesizer(
         elif stats.get("reach_assert_hit"):
             current_score = 2
             current_label = "H2_REACH"
-            feedback_body = (
-                "KLEE: REACHED target (H2_REACH), but BUG_ASSERT did not fire.\n"
-                "ACTION: adjust setup so the bug condition is triggered at the target."
-            )
+            
+            # [DIAGNOSIS AGENT] - Trigger if we are stuck in a Reach loop
+            if recurrence >= 2:
+                print(f"  [DIAGNOSIS] Stuck on Reach-But-Miss ({recurrence} times). Invoking Diagnosis Agent...")
+                
+                # 1. Ask LLM to find the "Gatekeeper" function (e.g., Hash Function)
+                diag_prompt = (
+                    f"DIAGNOSIS TASK:\n"
+                    f"We are reaching the target at `{c_file_name}:{c_line}`, but the bug condition is not triggering.\n"
+                    f"This usually means a complex function (like a hash, checksum, or cryptographic signature) is preventing a collision or specific state.\n"
+                    f"Look at the `TARGET CODE CONTEXT` above.\n"
+                    f"Which function computes the values used in the condition around line {c_line}?\n"
+                    f"Return ONLY the function name in JSON: {{ \"gatekeeper_function\": \"Name\" }}\n"
+                    f"(Hint: look for functions like xmlDictComputeHash, CalculateChecksum, etc.)"
+                )
+                
+                diag_msgs = [{"role": "system", "content": builder_prompt}, {"role": "user", "content": user_msg + "\n" + diag_prompt}]
+                diag_resp = call_llm_json(builder_prompt, user_msg + "\n" + diag_prompt, out_dir, f"diag_reach_T{i:02d}")
+                gatekeeper = diag_resp.get("gatekeeper_function")
+                
+                # 2. Auto-Stub the Gatekeeper
+                if gatekeeper and gatekeeper not in ["unknown", "memcmp", "strlen", "strcmp"]:
+                    print(f"  [AUTO-PATCH] Diagnosis identified '{gatekeeper}' as the blocker. Stubbing to force collisions.")
+                    
+                    # Check if already stubbed
+                    frozen_plan.setdefault("instrumentation", [])
+                    already_stubbed = any(
+                        (i.get("func") == gatekeeper and str(i.get("force_return")) == "1")
+                        for i in frozen_plan["instrumentation"]
+                    )
+                    
+                    if not already_stubbed:
+                        # Inject Stub
+                        stub_entry = {
+                            "kind": "stub_function_body",
+                            "file": "auto_located",
+                            "func": gatekeeper,
+                            "reason": "Diagnosis: Force Hash Collision",
+                            "force": True,
+                            "force_return": "1"
+                        }
+                        frozen_plan["instrumentation"].append(stub_entry)
+                        
+                        # Rebuild
+                        print(f"  [*] Re-building project with collision stub for {gatekeeper}...")
+                        # CORRECTED
+                        proj_bc, _, _ = build_instrumented_project_bc(src_root=src_root, work_dir=out_dir.parent, frozen_plan=frozen_plan, args=args)
+                        
+                        if proj_bc:
+                            args.project_bc = str(proj_bc)
+                            # Clear old harness bitcode to force recompile
+                            (harness_dir / "harness.bc").unlink(missing_ok=True)
+                            feedback_body = (
+                                f"[AUTO-PATCH] The system detected that `{gatekeeper}` was preventing the bug.\n"
+                                f"ACTION: I have STUBBED `{gatekeeper}` to always return 1.\n"
+                                f"RESULT: Hash collisions are now guaranteed. Retry your harness immediately."
+                            )
+                            # Reset recurrence so we don't loop diagnosis
+                            blocker_memory[blocker_key] = 0
+                        else:
+                            feedback_body = f"[AUTO-PATCH FAIL] Could not stub {gatekeeper}."
+                    else:
+                        feedback_body = f"[DIAGNOSIS] {gatekeeper} is already stubbed. The issue lies elsewhere."
+                else:
+                    # [GENERALIZED DIAGNOSIS] Value/Logic Mismatch
+                    print(f"  [DIAGNOSIS] No external blocker found. Analyzing logic mismatch at {c_file_name}:{c_line}...")
+                    
+                    # 1. Construct a generic prompt asking "Why did this assertion fail?"
+                    # We use 'last_stmt_text' which contains the actual C code line (e.g., BUG_ASSERT(len > entry->len))
+                    value_diag_prompt = (
+                        f"DIAGNOSIS TASK (VALUE MISMATCH):\n"
+                        f"We successfully executed the line `{c_file_name}:{c_line}`.\n"
+                        f"However, the assertion failed (evaluated to FALSE), so the bug did not trigger.\n\n"
+                        f"TARGET CODE: `{last_stmt_text}`\n\n"
+                        f"ANALYSIS INSTRUCTIONS:\n"
+                        f"1. Identify the condition inside `BUG_ASSERT(...)`.\n"
+                        f"2. Explain logically why it might evaluate to False given typical harness inputs.\n"
+                        f"3. Dictate the specific constraint the Harness must add to make it TRUE.\n"
+                        f"   (e.g., 'Constraint: The lookup key must be longer than the inserted key.')\n"
+                        f"RETURN ONLY THE INSTRUCTION."
+                    )
+
+                    # 2. Ask the LLM (Reuse builder context so it knows the current harness state)
+                    v_msgs = [{"role": "system", "content": builder_prompt}, {"role": "user", "content": user_msg + "\n" + value_diag_prompt}]
+                    
+                    # We use a distinct tag to avoid overwriting other logs
+                    try:
+                        v_resp_raw, _ = llm_chat(v_msgs, spec_id=f"diag_val_T{i:02d}")
+                        v_instruction = str(v_resp_raw).strip()
+                    except Exception as e:
+                        v_instruction = "Analyze the condition variables and adjust inputs to force the TRUE branch."
+
+                    # 3. Feed the instruction back to the loop
+                    feedback_body = (
+                        f"KLEE: REACHED target (H2_REACH), but BUG_ASSERT did not fire.\n"
+                        f"STATUS: The path is open (no hash blockers), but input values are wrong.\n"
+                        f"DIAGNOSIS & ACTION:\n{v_instruction}"
+                    )
+            else:
+                feedback_body = (
+                    "KLEE: REACHED target (H2_REACH), but BUG_ASSERT did not fire.\n"
+                    "ACTION: adjust setup so the bug condition is triggered at the target."
+                )
 
         else:
             current_score = 0.5
@@ -4645,7 +5038,6 @@ def interactive_synthesizer(
                 pass
 
     return best_label, best_stats
-
 
 def strip_c_comments_and_strings_preserve_lines(text: str) -> str:
     out = list(text)
@@ -4892,9 +5284,20 @@ def main():
         "   - Even if you are fixing a compilation error, NEVER remove the call to the entrypoint.\n"
         "   - If the entrypoint requires complex setup, stub the SETUP functions, not the entrypoint itself.\n"
     )
+
+    probe_instruction = (
+        "\n6. PROBE THE SOLVER (The 'Reach-But-Miss' Protocol):\n"
+        "   - IF you hit 'REACH_ASSERT' but missed 'BUG_ASSERT', it means the solver found the code path\n"
+        "     but AVOIDED the bug condition (e.g., it picked a safe hash match instead of a collision).\n"
+        "   - ACTION: You MUST inject `klee_assume(BUG_PREDICATE)` into the harness setup.\n"
+        "   - GOAL: Force the solver to attempt the bug condition. If it fails (provably false), we will know\n"
+        "     exactly which function is blocking it (e.g., a complex hash function).\n"
+        "   - EXAMPLE: `unsigned h = ComputeHash(k); klee_assume(h == target_h);`\n"
+    )
+
     strategy_block = (f"\n*** VULNERABILITY STRATEGY ENFORCEMENT ***\nStrategy: {strategy_name}\nOracle: {strategy_cfg.get('oracle_type')}\nPolicy:\n{augmented_instruction}\n")
     prompts["planner"] = mindset_block + prompts["planner"] + strategy_block
-    prompts["builder"] = mindset_block + prompts["builder"] + strategy_block
+    prompts["builder"] = mindset_block + probe_instruction + prompts["builder"] + strategy_block
 
     if args.reproduce:
         print("\n[=] MODE: Validation Only (Skipping Agents)")
@@ -4967,7 +5370,47 @@ def main():
         if harness_path.exists() and ktest_path.exists():
             print(f"  [*] Replaying Artifacts:\n      Harness: {harness_path.name}\n      Input:   {ktest_path.name}")
             harness_src = harness_path.read_text(encoding="utf-8")
-            verdict, msg = run_reproducer_suite(harness_src, Path(args.src_root), run_dir, ktest_path, args)
+
+            # [NEW] STEP A: Build Validation Binary (Stubs REMOVED, Assertions KEPT)
+            print("  [*] Building Validation Binary (Real Code)...")
+            validation_plan = create_validation_plan(frozen_plan)
+            
+            # Use a separate directory to avoid overwriting the 'instrumented_source'
+            val_work_dir = run_dir / "validation_build"
+            ensure_dir(val_work_dir)
+            
+            # Temporary variables for the swap
+            stm_bc = args.project_bc
+            verdict = "FAIL"
+            msg = "Validation build failed"
+
+            try:
+                # Re-run build with the clean plan
+                val_bc, _, build_err = build_instrumented_project_bc(
+                    src_root=src_root,
+                    work_dir=val_work_dir,
+                    frozen_plan=validation_plan,
+                    args=args
+                )
+                
+                if val_bc:
+                    print(f"  [*] Validation Bitcode Built: {val_bc}")
+                    # Swap the bitcode path so run_reproducer_suite uses the validation BC
+                    args.project_bc = str(val_bc)
+                    
+                    # [NEW] STEP B: Run Replay
+                    verdict, msg = run_reproducer_suite(harness_src, Path(args.src_root), run_dir, ktest_path, args)
+                else:
+                    print(f"  [!] Validation Build Failed: {build_err}")
+                    msg = f"Could not build validation binary: {build_err}"
+
+            except Exception as e:
+                print(f"  [!] Critical Validation Error: {e}")
+                msg = str(e)
+            finally:
+                # Restore original bitcode path to keep state consistent
+                if stm_bc:
+                    args.project_bc = stm_bc
             print(f"  [*] Validation Verdict: {verdict}")
             if verdict == "CONFIRMED":
                 final_status = "H2_BUG_CONFIRMED"

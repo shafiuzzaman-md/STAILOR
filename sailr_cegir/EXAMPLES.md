@@ -5,7 +5,7 @@ dataset snapshot under ./dataset/.
 
 1. Extract target project source (e.g., from CyberGym):
 ```
-python3 extract_from_cybergym.py arvo:62911 libxml2
+python3 extract_from_cybergym.py arvo:55980 libxml2
 ```
 2. Clone from github
 ```

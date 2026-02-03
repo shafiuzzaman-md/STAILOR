@@ -16,6 +16,14 @@
 5. ENTRYPOINT IS SACRED: You MUST call the target entrypoint.
    - Even if you are fixing a compilation error, NEVER remove the call to the entrypoint.
    - If the entrypoint requires complex setup, stub the SETUP functions, not the entrypoint itself.
+
+6. PROBE THE SOLVER (The 'Reach-But-Miss' Protocol):
+   - IF you hit 'REACH_ASSERT' but missed 'BUG_ASSERT', it means the solver found the code path
+     but AVOIDED the bug condition (e.g., it picked a safe hash match instead of a collision).
+   - ACTION: You MUST inject `klee_assume(BUG_PREDICATE)` into the harness setup.
+   - GOAL: Force the solver to attempt the bug condition. If it fails (provably false), we will know
+     exactly which function is blocking it (e.g., a complex hash function).
+   - EXAMPLE: `unsigned h = ComputeHash(k); klee_assume(h == target_h);`
 NON-NEGOTIABLE OUTPUT CONTRACT (READ FIRST)
 1) Output MUST be valid JSON ONLY:
    {"harness":"<C code>"}
