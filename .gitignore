@@ -10,6 +10,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Python virtual envs
+venv/
+.venv/
+env/
+.env/
+
+
 # --- Specs ---
 specs/**
 
