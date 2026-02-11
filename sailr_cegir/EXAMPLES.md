@@ -1,18 +1,31 @@
 # Quick Start
+**1. Environment setup (run once)**
 
-## Dataset
-dataset snapshot under ./dataset/.
+```bash
+bash sailr_cegir/setup_env.sh
+```
+
+**2. Prepare the source under test**
+Projects live under `./dataset/.`
 
 1. Extract target project source (e.g., from CyberGym):
 ```
 python3 extract_from_cybergym.py arvo:55980 libxml2
 ```
 2. Clone from github
+
 ```
 mkdir dataset
 cd dataset
 git clone https://github.com/GNOME/libxml2.git
+
 ```
+
+**3. Configure the LLM key**
+```
+export DEEPSEEK_API_KEY=""
+```
+
 ## Fetch ground-truth metadata 
 ```
 python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911 
@@ -21,6 +34,7 @@ python3 fetch_cybergym_data.py --repo-dir ./cybergym_data arvo:62911
 ## Pipeline
 Example 1 (Cyber_gym):
 ```
+# Ensure configs/libxml2_55980_vul_config.sh exists first!
 bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul
 ```
 
@@ -61,12 +75,16 @@ chmod +x codeql_scan.sh
 
 
 ## Run Single Spec
+source configs/libxml2_55980_vul_config.sh
 ```
-SA_OUT_DIR=sa_outputs \
-DATASET_ROOT=$(pwd)/dataset \
+CLANG="/usr/lib/llvm-14/bin/clang" \
+LLVM_LINK="/usr/lib/llvm-14/bin/llvm-link" \
 CLANG_FLAGS="-I$(pwd)/dataset/55980/libxml2_55980_vul/include -I$(pwd)/dataset/55980/libxml2_55980_vul/build -I/home/shafi/tools/klee/include" \
-MAX_A=30 MAX_B=3 TIMEOUT=600 \
+MAX_TURNS=60 \
+TIMEOUT=600 \
 BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
+MANUAL_STUBS="${MANUAL_STUBS}" \
+EXTRA_AGENT_ARGS="${EXTRA_AGENT_ARGS}" \
 bash sailr_cegir/run_worker.sh \
    "55980/libxml2_55980_vul" \
    "oob-read" \
@@ -75,7 +93,8 @@ bash sailr_cegir/run_worker.sh \
 ```
 ```
 CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I$(pwd)/dataset/62911/libxml2_62911_vul/build -I/home/shafi/tools/klee/include" \
-MAX_A=30 MAX_B=3 TIMEOUT=600 \
+MAX_TURNS=60 \
+TIMEOUT=600 \
 BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
 bash sailr_cegir/run_worker.sh \
    "62911/libxml2_62911_vul" \
@@ -94,5 +113,7 @@ bash sailr_cegir/run_batch.sh \
   "62911/libxml2_62911_vul" \
   "oob-read" \
   "specs" \
-  4
+  4\
+  "${EXTRA_AGENT_ARGS}" \
+  "${MANUAL_STUBS}"
 ```
