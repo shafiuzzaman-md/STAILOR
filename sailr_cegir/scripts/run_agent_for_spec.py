@@ -42,7 +42,6 @@ def run_cmd(cmd, cwd=None, timeout=120, env=None, stream=False) -> Tuple[int, st
     t0 = time.time()
     try:
         if stream:
-            # Stream output in real-time (for long-running commands like KLEE)
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, cwd=cwd, env=env, bufsize=1
@@ -51,7 +50,6 @@ def run_cmd(cmd, cwd=None, timeout=120, env=None, stream=False) -> Tuple[int, st
             try:
                 for line in proc.stdout:
                     lines.append(line)
-                    # Print important lines in real-time
                     stripped = line.strip()
                     if stripped and any(k in stripped for k in [
                         "KLEE:", "STAILOR_PROBE", "STAILOR_TRAP", "STAILOR_SUSPECT",
@@ -63,6 +61,15 @@ def run_cmd(cmd, cwd=None, timeout=120, env=None, stream=False) -> Tuple[int, st
                 proc.kill()
                 proc.wait()
                 return -1, "".join(lines), "TIMEOUT", time.time() - t0
+            finally:
+                # Properly close pipes to avoid sys.unraisablehook exceptions
+                try:
+                    if proc.stdout:
+                        proc.stdout.close()
+                    if proc.stderr:
+                        proc.stderr.close()
+                except Exception:
+                    pass
             return proc.returncode, "".join(lines), "", time.time() - t0
         else:
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=cwd, env=env)
@@ -163,18 +170,59 @@ def run_klee(bc_path: Path, klee_bin: str, flags: List[str], timeout: int,
     # --- Parse .err files (KLEE-detected crashes) ---
     err_files = sorted(out_dir.glob("*.err")) if out_dir.exists() else []
     if err_files:
-        err_content = err_files[0].read_text(errors="replace")
         stats["bug_found"] = True
-        # .err files named like test000001.ptr.err — extract type from stem
-        stem_parts = err_files[0].stem.split(".")
-        stats["crash_type"] = stem_parts[-1] if len(stem_parts) > 1 else "unknown"
-        m = re.search(r'File:\s*(\S+)', err_content)
-        if m: stats["error_file"] = m.group(1)
-        m = re.search(r'Line:\s*(\d+)', err_content)
-        if m: stats["error_line"] = int(m.group(1))
-        stats["ktest_file"] = str(err_files[0]).replace(".err", ".ktest")
-        stats["diagnosis"] = f"CRASH: {stats['crash_type']} at {stats.get('error_file')}:{stats.get('error_line')}"
         stats["total_errors"] = len(err_files)
+        
+        # --- PRIORITIZE: real code crashes > driver/stubs crashes ---
+        # Parse ALL .err files, classify each, pick the best primary crash.
+        # Priority: 1. crash in harness source (real bug)
+        #           2. crash from assert (sink reached)
+        #           3. crash in driver.c/stubs.c (harness bug)
+        harness_skip = {"driver.c", "stubs.c", "smart_stubs.c", "auto_stubs.c"}
+        all_crashes = []
+        for ef in err_files:
+            ec = ef.read_text(errors="replace")
+            stem_parts = ef.stem.split(".")
+            ctype = stem_parts[-1] if len(stem_parts) > 1 else "unknown"
+            mf = re.search(r'File:\s*(\S+)', ec)
+            ml = re.search(r'Line:\s*(\d+)', ec)
+            crash_file = mf.group(1).strip() if mf else ""
+            crash_line = int(ml.group(1)) if ml else 0
+            crash_basename = os.path.basename(crash_file)
+            
+            # Classify priority
+            if crash_basename in harness_skip:
+                priority = 3  # lowest — harness/driver bug
+            elif ctype == "assert":
+                priority = 1  # highest — assertion (sink reached)
+            elif ctype in ("ptr", "div", "free"):
+                priority = 0  # highest — real memory error in source
+            else:
+                priority = 2
+            
+            all_crashes.append({
+                "err_file": ef, "content": ec, "crash_type": ctype,
+                "crash_file": crash_file, "crash_line": crash_line,
+                "crash_basename": crash_basename, "priority": priority,
+            })
+        
+        # Sort by priority (lowest number = highest priority)
+        all_crashes.sort(key=lambda x: (x["priority"], x["err_file"].name))
+        primary = all_crashes[0]
+        
+        stats["crash_type"] = primary["crash_type"]
+        stats["error_file"] = primary["crash_file"]
+        stats["error_line"] = primary["crash_line"]
+        stats["ktest_file"] = str(primary["err_file"]).replace(".err", ".ktest")
+        stats["diagnosis"] = f"CRASH: {primary['crash_type']} at {primary['crash_file']}:{primary['crash_line']}"
+        
+        # Log if we deprioritized a driver crash in favor of a real crash
+        if all_crashes[0]["priority"] < 3 and any(c["priority"] == 3 for c in all_crashes):
+            driver_crashes = [c for c in all_crashes if c["priority"] == 3]
+            print(f"    [KLEE] Note: {len(driver_crashes)} driver crash(es) deprioritized in favor of real crash at {primary['crash_file']}:{primary['crash_line']}")
+        
+        # Store all crashes for comprehensive reporting
+        stats["all_crashes"] = all_crashes
     
     # --- Parse counters from KLEE log ---
     for pattern, key in [
@@ -483,10 +531,23 @@ def run_klee(bc_path: Path, klee_bin: str, flags: List[str], timeout: int,
                     elif reached_funcs:
                         last = reached_funcs[-1]
                         events = sorted(spine_hits.get(last, set()))
+                        
+                        # Determine WHERE the call chain breaks
+                        # Find the next spine function that should be called
+                        last_idx = spine.index(last) if last in spine else -1
+                        next_func = spine[last_idx + 1] if last_idx >= 0 and last_idx + 1 < len(spine) else vul_func
+                        
                         diagnostics.append(
                             f"BLOCKED: Reached {last} ({', '.join(events)}) "
-                            f"but {vul_func} NOT REACHED. "
-                            f"Fix driver/stubs so the call from {last} to {vul_func} succeeds.")
+                            f"but {vul_func} NOT REACHED.")
+                        diagnostics.append(
+                            f"The call chain breaks at {last} → {next_func}. "
+                            f"LIKELY CAUSE: The harness 'neutralized' {last} too aggressively, "
+                            f"removing the call to {next_func}. "
+                            f"FIX: In WriteHarness, ensure {last} CALLS {next_func}. "
+                            f"Neutralization must KEEP calls to spine functions "
+                            f"(remove only off-path code, NOT the call to the next spine function). "
+                            f"Check the harness .c file for a call to {next_func}().")
                     else:
                         diagnostics.append(
                             f"TARGET {vul_func} NOT REACHED and no spine functions entered. "
@@ -863,6 +924,88 @@ def run_frozen_analysis(ctx: Dict, src_root: Path, spec: Dict = None) -> Dict:
     if not spine: spine = [entry, vul_func] if entry != vul_func else [vul_func]
     seen = set()
     spine = [x for x in spine if not (x in seen or seen.add(x))]
+    
+    # --- CRITICAL: Ensure entry point is PUBLIC (non-static) ---
+    # A static entry function can't be called from driver.c across translation units.
+    # If the entry is static, walk UP the call chain to find the closest public caller.
+    if src_file and src_file.exists():
+        src_text = src_file.read_text(errors="replace")
+        
+        def _is_static(func_name, src):
+            """Check if a function is declared static in the source."""
+            # Match: static [qualifiers] return_type func_name(
+            pat = re.compile(
+                rf'^\s*static\s+[\w\s\*]*\b{re.escape(func_name)}\s*\(',
+                re.MULTILINE
+            )
+            return bool(pat.search(src))
+        
+        if _is_static(entry, src_text):
+            print(f"  [!] Entry '{entry}' is static — searching for public caller")
+            
+            # Build a simple caller map: for each function, who calls it?
+            callers_of = {}  # func -> list of callers
+            for fname, (s, e) in func_spans.items():
+                fspan = find_function_span(src_text, fname)
+                if fspan:
+                    body = src_text[fspan[1]:fspan[2]]
+                    for other_fname in func_spans:
+                        if other_fname != fname:
+                            if re.search(rf'\b{re.escape(other_fname)}\s*\(', body):
+                                callers_of.setdefault(other_fname, []).append(fname)
+            
+            # BFS upward from entry to find closest public caller
+            visited = set()
+            queue = [entry]
+            public_entry = None
+            path_to_public = []  # track the chain
+            
+            # BFS with parent tracking
+            parent = {entry: None}
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+                
+                # Check if current is public (non-static) and NOT the original entry
+                if current != entry and not _is_static(current, src_text):
+                    public_entry = current
+                    # Reconstruct path from public_entry down to original entry
+                    # BFS walked UP (callee→caller), so tracing parent gives
+                    # public_entry → ... → original_entry (already top-down)
+                    path_to_public = []
+                    node = current
+                    while node is not None:
+                        path_to_public.append(node)
+                        node = parent.get(node)
+                    # path is [public_entry, ..., original_entry] — already top-down
+                    break
+                
+                # Add callers to queue
+                for caller in callers_of.get(current, []):
+                    if caller not in visited:
+                        parent[caller] = current
+                        queue.append(caller)
+            
+            if public_entry:
+                print(f"  [✓] Found public entry: {public_entry}")
+                
+                # Rebuild spine: public_entry → ... → old_entry → vul_func
+                # The path trace goes from public_entry back to original entry (top-down)
+                new_spine = list(path_to_public)
+                if vul_func not in new_spine:
+                    new_spine.append(vul_func)
+                print(f"  [✓] New spine: {' → '.join(new_spine)}")
+                if vul_func not in new_spine:
+                    new_spine.append(vul_func)
+                # Deduplicate preserving order
+                seen2 = set()
+                spine = [x for x in new_spine if not (x in seen2 or seen2.add(x))]
+                entry = public_entry
+            else:
+                print(f"  [!] No public caller found — keeping static entry '{entry}'")
+                print(f"  [!] A public trampoline will be generated at compile time")
     
     # 3. Get stub candidates, type defs, signatures from SA (only if dict format)
     sa_stubs = []
@@ -1440,26 +1583,47 @@ class SliceTools:
         result = {}
         skip_files = {"driver.c", "stubs.c", "smart_stubs.c", "auto_stubs.c"}
         
+        # Build a normalized lookup for fuzzy matching
+        # Normalize: strip variable prefixes, collapse whitespace, remove casts
+        def normalize_code(s):
+            """Normalize code for fuzzy matching — strip variable name differences."""
+            s = s.strip()
+            # Remove common variable prefixes/renames agents use
+            # e.g., ctxt_ptr->field becomes ctxt->field
+            s = re.sub(r'\b\w+_ptr\b', 'PTR', s)
+            s = re.sub(r'\b\w+_arg\b', 'PTR', s)
+            # Collapse multiple spaces
+            s = re.sub(r'\s+', ' ', s)
+            # Remove casts like (void*), (char*), (xmlParserCtxtPtr)
+            s = re.sub(r'\(\s*\w[\w\s\*]*\s*\)\s*', '', s)
+            return s
+        
+        # Build normalized lookup from original source
+        norm_lookup = {}
+        for i, line in enumerate(orig_lines):
+            stripped = line.strip()
+            if stripped and not stripped.startswith(('/*', '//', '*', '#define STAILOR', 'klee_')):
+                normed = normalize_code(stripped)
+                if len(normed) > 10:  # skip trivial lines
+                    norm_lookup.setdefault(normed, []).append(i + 1)
+        
         for hf in self.harness_dir.glob("*.c"):
             if hf.name in skip_files:
                 continue
             h_lines = hf.read_text(errors="replace").splitlines()
             fmap = {}
-            # Track last matched orig_line to prefer sequential matches
             last_orig = 0
             
             for h_idx, h_line in enumerate(h_lines):
                 stripped = h_line.strip()
-                # Skip non-code lines
                 if not stripped or stripped.startswith(('/*', '//', '*', 'klee_warning', 'klee_assert', 'SPINE_PROBE')):
                     continue
-                # Skip injected probes
                 if 'STAILOR_SINK_REACHED' in stripped or 'SPINE_PROBE' in stripped:
                     continue
                 
+                # Try exact match first
                 if stripped in orig_lookup:
                     candidates = orig_lookup[stripped]
-                    # Prefer the candidate closest to last_orig (sequential matching)
                     if last_orig > 0:
                         best = min(candidates, key=lambda x: abs(x - last_orig))
                     else:
@@ -1469,6 +1633,24 @@ class SliceTools:
                         "orig_file": vul_file,
                         "orig_line": best,
                         "code": stripped,
+                    }
+                    last_orig = best + 1
+                    continue
+                
+                # Try normalized/fuzzy match
+                normed = normalize_code(stripped)
+                if len(normed) > 10 and normed in norm_lookup:
+                    candidates = norm_lookup[normed]
+                    if last_orig > 0:
+                        best = min(candidates, key=lambda x: abs(x - last_orig))
+                    else:
+                        best = candidates[0]
+                    
+                    fmap[h_idx + 1] = {
+                        "orig_file": vul_file,
+                        "orig_line": best,
+                        "code": stripped,
+                        "match_type": "fuzzy",
                     }
                     last_orig = best + 1
             
@@ -1506,6 +1688,25 @@ class SliceTools:
                     entry = fmap[candidate].copy()
                     entry["offset"] = offset
                     return entry
+        
+        # --- FALLBACK: vulnerability site mapping ---
+        # When the agent rewrites the vulnerable statement (e.g., simplifies snprintf),
+        # textual matching fails. But if the crash is near the SINK assertion,
+        # we KNOW it's at the vulnerability site. Map directly to vul_line.
+        vul_file_base = os.path.basename(self.frozen.get("vul_file", ""))
+        if harness_file == vul_file_base:
+            vul_loc = self.resolve_vul_line()
+            if vul_loc:
+                sink_line = int(vul_loc.get("harness_line", 0))
+                if sink_line > 0 and abs(harness_line - sink_line) <= 15:
+                    vul_line = int(self.ctx.get("vul_line", 0))
+                    if vul_line > 0:
+                        return {
+                            "orig_file": self.frozen.get("vul_file", ""),
+                            "orig_line": vul_line,
+                            "code": f"(vulnerability site — mapped via sink proximity, offset={abs(harness_line - sink_line)})",
+                            "match_type": "vul_site_fallback",
+                        }
         
         return {}
     
@@ -1676,19 +1877,53 @@ class SliceTools:
         print(f"    [ASan] Wrote replay driver: {replay_driver_path.name}")
         
         # Copy harness .c files (except driver.c) → clean klee references
+        # CRITICAL: inject concrete ktest values (not zeros) for klee_make_symbolic
+        # in ALL files. Stubs in parser.c/stubs.c need the actual crashing values,
+        # not memset(0), which kills the path to the vulnerability.
         harness_c_files = []
+        
+        # Parse ktest objects into a name→bytes map for ALL files
+        primary_ktest = err_ktests[0] if err_ktests else {}
+        obj_map = {obj["name"]: obj for obj in primary_ktest.get("objects", [])}
+        
+        def _replace_symbolic_concrete(m):
+            """Replace klee_make_symbolic with concrete ktest bytes or memset(0)."""
+            args_str = m.group(1)
+            parts = [p.strip() for p in args_str.split(',')]
+            if len(parts) < 3:
+                return f'memset({parts[0]}, 0, {parts[1] if len(parts) > 1 else "1"}); /* replay fallback */'
+            ptr, size, name_raw = parts[0], parts[1], parts[2].strip('"').strip("'")
+            
+            if name_raw in obj_map:
+                obj = obj_map[name_raw]
+                data_str = obj.get("data", "")
+                obj_size = obj.get("size", 0)
+                byte_values = self._parse_ktest_data(data_str, obj_size)
+                if byte_values:
+                    hex_vals = ', '.join(f'0x{b:02x}' for b in byte_values[:512])
+                    safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', name_raw)
+                    return (
+                        f'{{ /* replay: concrete "{name_raw}" ({len(byte_values)} bytes) */\n'
+                        f'  static const unsigned char {safe_name}_data[] = {{{hex_vals}}};\n'
+                        f'  memcpy({ptr}, {safe_name}_data, ({size}) < {len(byte_values)} ? ({size}) : {len(byte_values)});\n'
+                        f'}}'
+                    )
+            
+            return f'memset({ptr}, 0, {size}); /* replay: "{name_raw}" not in ktest */'
+        
         for hf in sorted(self.harness_dir.glob("*.c")):
             if hf.name == "driver.c":
                 continue
-            # Clean KLEE references from the harness source for ASan compilation
             src = hf.read_text(errors="replace")
             clean = src
-            clean = re.sub(r'#include\s*[<"]klee/klee\.h[>"]', '// klee removed', clean)
+            clean = re.sub(r'#include\s*[<"]klee/klee\.h[>"]', '// klee removed for ASan replay', clean)
             clean = re.sub(r'\bklee_warning_once\([^)]*\)\s*;', '/* probe removed */', clean)
             clean = re.sub(r'\bklee_warning\([^)]*\)\s*;', '/* probe removed */', clean)
             clean = re.sub(r'\bklee_assert\([^)]*\)\s*;', '/* assert removed */', clean)
             clean = re.sub(r'\bklee_check_memory_access\([^)]*\)\s*;', '/* check removed */', clean)
-            clean = re.sub(r'\bklee_make_symbolic\([^)]*\)\s*;', '/* symbolic removed */', clean)
+            # CRITICAL: inject concrete ktest values, not zeros
+            # Regex handles nested parens like sizeof(ret) in klee_make_symbolic(&ret, sizeof(ret), "name")
+            clean = re.sub(r'\bklee_make_symbolic\s*\(((?:[^()]|\([^()]*\))+)\)', _replace_symbolic_concrete, clean)
             clean = re.sub(r'\bklee_assume\([^)]*\)\s*;', '/* assume removed */', clean)
             
             clean_path = replay_dir / hf.name
@@ -1705,9 +1940,9 @@ class SliceTools:
         
         # Compile with ASan
         out_bin = replay_dir / "replay_bin"
-        cflags = ["-fsanitize=address", "-fno-omit-frame-pointer", "-g", "-O0"]
+        cflags = ["-fsanitize=address", "-fno-omit-frame-pointer", "-g", "-O0", "-w"]
         cflags.extend(inc_flags)
-        # Add project cflags (but skip optimization and KLEE-specific flags)
+        # Add project cflags (skip optimization and KLEE-specific flags)
         for cf in self.project_cflags:
             if cf not in ('-emit-llvm', '-c') and not cf.startswith('-O'):
                 cflags.append(cf)
@@ -1717,15 +1952,16 @@ class SliceTools:
         rc, stdout, stderr, _ = run_cmd(cmd, timeout=60)
         
         if rc != 0:
-            # Try clang if gcc fails
+            print(f"    [ASan] gcc failed:\n{stderr[:500]}")
             cmd[0] = "clang"
-            print(f"    [ASan] gcc failed, trying clang...")
+            print(f"    [ASan] Trying clang...")
             rc, stdout, stderr, _ = run_cmd(cmd, timeout=60)
         
         if rc != 0:
+            print(f"    [ASan] clang also failed:\n{stderr[:500]}")
             return {
                 "success": False,
-                "error": "ASan compilation failed",
+                "error": f"ASan compilation failed: {stderr[:300]}",
                 "compile_stderr": stderr[:2000],
             }
         
@@ -1827,7 +2063,8 @@ class SliceTools:
             
             return f'memset({ptr}, 0, {size}); /* replay: "{name}" (not in ktest) */'
         
-        replay = re.sub(r'klee_make_symbolic\(([^)]+)\)', replace_symbolic, replay)
+        # Updated regex to handle one level of nested parentheses (e.g., sizeof(...))
+        replay = re.sub(r'klee_make_symbolic\s*\(((?:[^()]|\([^()]*\))+)\)', replace_symbolic, replay)
         
         # Remove klee_assume (constraints not needed — ASan catches the bug)
         replay = re.sub(r'klee_assume\([^)]+\)\s*;', '/* klee_assume removed for replay */', replay)
@@ -2200,8 +2437,7 @@ class SliceTools:
         
         sig_start, _, body_end = span
         func_text = src[sig_start:body_end]
-        # Remove 'static' qualifier so the function is visible across translation units
-        func_text = re.sub(r'^\s*static\s+', '', func_text, count=1)
+        # Keep 'static' qualifier — _ensure_public_entry() will add a public trampoline
         
         # Note: Smart slicing happens in compile_slice after ALL functions are extracted
         
@@ -2566,6 +2802,7 @@ class SliceTools:
         """
         vul_file = self.frozen.get("vul_file", "harness.c")
         target = self.harness_dir / os.path.basename(vul_file)
+        
         target.write_text(code, encoding="utf-8")
         print(f"    [+] Wrote harness: {target.name} ({len(code.split(chr(10)))} lines)")
         
@@ -2587,6 +2824,30 @@ class SliceTools:
         # Build line map for original↔harness correspondence
         self._post_harness_line_map()
         
+        # --- VERIFY: spine call chain is intact ---
+        # After writing, check that each spine function calls the next one.
+        # This catches the common agent mistake of "neutralizing" too aggressively.
+        try:
+            hsrc = target.read_text(errors="replace")
+            spine = self.frozen.get("spine", [])
+            for i in range(len(spine) - 1):
+                caller = spine[i]
+                callee = spine[i + 1]
+                caller_span = find_function_span(hsrc, caller)
+                if caller_span:
+                    caller_body = hsrc[caller_span[1]:caller_span[2]]
+                    if not re.search(rf'\b{re.escape(callee)}\s*\(', caller_body):
+                        print(f"    [⚠] BROKEN CALL CHAIN: {caller} does NOT call {callee}!")
+                        print(f"    [⚠] The harness must preserve calls to spine functions.")
+                        print(f"    [⚠] Add '{callee}(...)' inside {caller}'s body.")
+                else:
+                    if i == 0:
+                        # Entry function missing entirely
+                        print(f"    [⚠] Entry function '{caller}' not found in harness!")
+                        print(f"    [⚠] The harness must define all spine functions: {' → '.join(spine)}")
+        except Exception as e:
+            pass
+        
         return f"OK: Wrote harness/{target.name}"
     
     def _post_harness_line_map(self):
@@ -2603,6 +2864,14 @@ class SliceTools:
         This just compiles whatever .c files exist in the harness directory.
         """
         print("  [Tool] CompileSlice")
+        
+        # --- Public trampoline for static entry functions ---
+        # If the entry function is declared static in the harness, driver.c can't call it.
+        # Instead of removing static (which breaks header compat), we:
+        # 1. Keep the static function as-is
+        # 2. Append a public trampoline to the SAME .c file
+        # 3. Rewrite driver.c to call the trampoline
+        self._ensure_public_entry()
         
         # Auto-generate smart stubs on first compile
         if self.iteration == 0:
@@ -2845,6 +3114,98 @@ class SliceTools:
         return {"success": True, "klee_stats": stats}
 
 
+    def _ensure_public_entry(self):
+        """Ensure the entry function is callable from driver.c.
+        
+        If the entry function is `static` in the harness, driver.c can't call it
+        across translation units. Instead of removing `static` (which can break
+        header compatibility), we:
+        1. Keep the static function intact
+        2. Append a non-static trampoline to the SAME .c file
+        3. Rewrite driver.c to call the trampoline name
+        
+        The trampoline is in the same translation unit → can call static functions.
+        """
+        entry = self.frozen.get("entry", "")
+        if not entry:
+            return
+        
+        vul_file = os.path.basename(self.frozen.get("vul_file", ""))
+        harness_file = self.harness_dir / vul_file if vul_file else None
+        if not harness_file or not harness_file.exists():
+            return
+        
+        hsrc = harness_file.read_text(errors="replace")
+        
+        # Check if entry function is static
+        # Match: static [qualifiers] return_type entry_name(params)
+        static_pat = re.compile(
+            rf'^(\s*)static\s+((?:inline\s+)?[\w\s\*]+\b{re.escape(entry)}\s*)\(([^)]*)\)',
+            re.MULTILINE
+        )
+        m = static_pat.search(hsrc)
+        if not m:
+            # Entry is not static — no trampoline needed
+            return
+        
+        trampoline_marker = f"__stailor_entry_{entry}"
+        if trampoline_marker in hsrc:
+            # Already have a trampoline
+            return
+        
+        # Parse the signature
+        sig_prefix = m.group(2).strip()  # e.g., "const xmlChar * xmlDictLookupInternal"
+        params_str = m.group(3).strip()  # e.g., "xmlDictPtr dict, const xmlChar *name, int len, ..."
+        
+        # Extract return type from sig_prefix by removing the function name
+        # sig_prefix = "const xmlChar * xmlDictLookupInternal"
+        # return_type = "const xmlChar *"
+        name_pos = sig_prefix.rfind(entry)
+        if name_pos < 0:
+            return
+        return_type = sig_prefix[:name_pos].strip()
+        if not return_type:
+            return_type = "int"  # fallback
+        
+        # Parse parameter names from params_str
+        # "xmlDictPtr dict, const xmlChar *name, int len" → "dict, name, len"
+        param_names = []
+        if params_str and params_str != "void":
+            for param in params_str.split(','):
+                param = param.strip()
+                if not param:
+                    continue
+                # Last word (possibly with * prefix) is the param name
+                # Handle: "const xmlChar *name" → "name", "int len" → "len"
+                tokens = re.findall(r'[*]?(\w+)', param)
+                if tokens:
+                    param_names.append(tokens[-1])
+        
+        call_args = ", ".join(param_names)
+        
+        # Build trampoline
+        trampoline = f"""
+/* Public entry point — calls static {entry} from driver.c */
+{return_type} {trampoline_marker}({params_str}) {{
+    return {entry}({call_args});
+}}
+"""
+        # Append trampoline to harness file
+        hsrc += trampoline
+        harness_file.write_text(hsrc, encoding="utf-8")
+        print(f"    [+] Added public trampoline: {trampoline_marker}()")
+        
+        # Rewrite driver.c to call the trampoline
+        driver_path = self.harness_dir / "driver.c"
+        if driver_path.exists():
+            dsrc = driver_path.read_text(errors="replace")
+            # Replace calls: entry(args) → trampoline(args)
+            # Also replace extern declarations
+            new_dsrc = dsrc.replace(entry, trampoline_marker)
+            if new_dsrc != dsrc:
+                driver_path.write_text(new_dsrc, encoding="utf-8")
+                print(f"    [+] Rewrote driver.c: {entry} → {trampoline_marker}")
+    
     def _write_smart_stubs(self, prescriptions):
         """Generate smart stubs for external functions.
         Only runs once — does NOT regenerate on subsequent CompileSlice calls.
@@ -3305,6 +3666,158 @@ class SliceTools:
         return result
     
 
+    def _auto_generate_driver(self) -> str:
+        """Auto-generate a correct driver when the agent's driver keeps crashing.
+        
+        Uses frozen plan data (entry func, struct groom, driver hint) to produce
+        a driver with CONCRETE allocations and proper symbolic content.
+        """
+        entry = self.frozen.get("entry", "")
+        vul_func = self.frozen.get("vul_func", "")
+        if not entry:
+            return ""
+        
+        # Get struct groom info for allocation sizes
+        groom = self.frozen.get("struct_groom", {})
+        guards = groom.get("guards", {})
+        constants = groom.get("constants", {})
+        sub_structs = groom.get("sub_structs", {})
+        
+        # Get entry function signature from harness
+        entry_sig = ""
+        for hf in self.harness_dir.glob("*.c"):
+            if hf.name in ("driver.c", "stubs.c", "smart_stubs.c"):
+                continue
+            hsrc = hf.read_text(errors="replace")
+            # Look for entry function signature
+            m = re.search(rf'(\w[\w\s\*]*)\b{re.escape(entry)}\s*\(([^)]*)\)', hsrc)
+            if m:
+                entry_sig = m.group(0)
+                break
+        
+        # Get driver hint from SA context
+        driver_hint = ""
+        sa_dir = self.harness_dir.parent / "sa_context"
+        hint_file = sa_dir / "vulnerability_summary.json"
+        if hint_file.exists():
+            try:
+                summary = read_json(hint_file)
+                driver_hint = summary.get("driver_hint", "")
+            except Exception:
+                pass
+        
+        # Build the driver
+        lines = []
+        lines.append("/* AUTO-GENERATED DRIVER — concrete allocations, symbolic content */")
+        lines.append("#include <stdlib.h>")
+        lines.append("#include <string.h>")
+        lines.append("#include <klee/klee.h>")
+        lines.append("")
+        
+        # Add project includes from harness preamble
+        for hf in self.harness_dir.glob("*.c"):
+            if hf.name in ("driver.c", "stubs.c", "smart_stubs.c"):
+                continue
+            for line in hf.read_text(errors="replace").split('\n')[:50]:
+                if line.strip().startswith('#include') and 'klee' not in line.lower():
+                    lines.append(line)
+            break
+        
+        lines.append("")
+        
+        # Declare entry function if signature found
+        if entry_sig:
+            lines.append(f"extern {entry_sig};")
+        else:
+            lines.append(f"extern int {entry}();")
+        
+        lines.append("")
+        lines.append("int main() {")
+        
+        # Determine parameter types from signature
+        # For now, generate a generic driver that works for most cases
+        # Key rule: ALL sizes are CONCRETE, content is SYMBOLIC
+        
+        # Allocate main context struct with concrete size
+        lines.append("    // Step 1: Concrete struct allocations")
+        lines.append("    // Using char arrays to avoid incomplete type issues")
+        
+        # Generic parameter setup
+        # If we have guard info, use it to set up fields
+        if guards or constants:
+            lines.append("    // Struct with space for fields (from SA analysis)")
+            lines.append("    char ctx_buf[4096];")
+            lines.append("    memset(ctx_buf, 0, sizeof(ctx_buf));")
+            lines.append("    void *ctx = (void*)ctx_buf;")
+            lines.append("")
+            
+            # Set guard values at known offsets
+            for field, val in guards.items():
+                lines.append(f"    // Guard: {field} = {val}")
+            for name, val in constants.items():
+                lines.append(f"    // Constant: {name} = {val}")
+        
+        lines.append("")
+        lines.append("    // Step 2: Symbolic input buffers (CONCRETE size, SYMBOLIC content)")
+        lines.append("    char sym_name[256];")
+        lines.append("    klee_make_symbolic(sym_name, sizeof(sym_name), \"name\");")
+        lines.append("    sym_name[255] = '\\0';  // null-terminate")
+        lines.append("")
+        lines.append("    int sym_len;")
+        lines.append("    klee_make_symbolic(&sym_len, sizeof(sym_len), \"len\");")
+        lines.append("    klee_assume(sym_len > 0 && sym_len < 256);")
+        lines.append("")
+        
+        # Sub-struct allocations
+        if sub_structs:
+            lines.append("    // Step 3: Sub-struct allocations (from SA groom)")
+            for var, subs in sub_structs.items():
+                for sub, fields in subs.items():
+                    lines.append(f"    // {var}->{sub}: fields {', '.join(fields[:5])}")
+                    lines.append(f"    char {sub}_buf[1024];")
+                    lines.append(f"    memset({sub}_buf, 0, sizeof({sub}_buf));")
+            lines.append("")
+        
+        # Call entry function
+        lines.append("    // Step 4: Call entry function")
+        if "xmlDict" in entry:
+            # Special case for xmlDict targets
+            lines.append("    // xmlDict-specific setup")
+            lines.append("    typedef struct { unsigned int hashValue; const char *name; } entry_t;")
+            lines.append("    typedef struct {")
+            lines.append("        int seed; int size; int limit; void *subdict;")
+            lines.append("        entry_t *table; int nbElems;")
+            lines.append("    } dict_t;")
+            lines.append("")
+            lines.append("    dict_t *dict = (dict_t*)calloc(1, sizeof(dict_t));")
+            lines.append("    dict->size = 8;")
+            lines.append("    dict->limit = 1000;")
+            lines.append("    dict->subdict = NULL;")
+            lines.append("")
+            lines.append("    // Allocate hash table with concrete size")
+            lines.append("    entry_t *table = (entry_t*)calloc(dict->size, sizeof(entry_t));")
+            lines.append("    dict->table = table;")
+            lines.append("")
+            lines.append("    // Set up one entry with symbolic name") 
+            lines.append("    char entry_name[64];")
+            lines.append("    klee_make_symbolic(entry_name, sizeof(entry_name), \"entry_name\");")
+            lines.append("    table[0].name = entry_name;")
+            lines.append("    unsigned int sym_hash;")
+            lines.append("    klee_make_symbolic(&sym_hash, sizeof(sym_hash), \"hash\");")
+            lines.append("    klee_assume(sym_hash != 0);")
+            lines.append("    table[0].hashValue = sym_hash;")
+            lines.append("")
+            lines.append(f"    {entry}((void*)dict, sym_name, sym_len, NULL, 0);")
+        else:
+            # Generic call
+            lines.append(f"    {entry}(sym_name, sym_len);")
+        
+        lines.append("")
+        lines.append("    return 0;")
+        lines.append("}")
+        
+        return '\n'.join(lines)
+
     def _auto_stub_constructors(self, bc_files, linked_bc):
         """Auto-generate stubs for constructor functions called in driver.c but not defined in harness.
         
@@ -3763,8 +4276,131 @@ ANTI-PATTERNS:
 - Do NOT extract entire 12000-line files. Use GatherCode for specific functions.
 - Do NOT make entire structs symbolic. Only specific fields.
 
+CRITICAL — VULNERABLE STATEMENT MUST BE VERBATIM:
+  When writing the harness, COPY the vulnerable statement EXACTLY from the original source
+  (as shown in vulnerability_summary source_context). Do NOT simplify, rewrite, or abbreviate it.
+  For example, if the original is:
+    snprintf(buffer, 149, "Bytes: 0x%%02X 0x%%02X\\n", ctxt->input->cur[0], ctxt->input->cur[1]);
+  then your harness MUST contain that EXACT line, not a simplified version like:
+    snprintf(buffer, 149, "%%02X", cur[0], cur[1]);
+  The line mapping system matches harness lines against the original source by text.
+  Rewriting the vulnerable statement breaks this mapping and prevents bug detection.
+
 RESPONSE FORMAT: {"thought": "...", "tool": "ToolName", "args": {...}}
 """
+
+def _generate_baseline_driver(frozen, func_sigs, src_root) -> str:
+    """Auto-generate a baseline driver.c from frozen plan data.
+    
+    Uses entry function signature and struct groom data to produce a driver
+    with CONCRETE allocations and symbolic content. This avoids the common
+    agent mistake of using symbolic values for malloc sizes.
+    """
+    entry = frozen.get("entry", "")
+    vul_func = frozen.get("vul_func", "")
+    if not entry:
+        return ""
+    
+    groom = frozen.get("struct_groom", {})
+    constants = groom.get("constants", {})
+    
+    # Get entry signature
+    entry_sig = func_sigs.get(entry, "")
+    
+    # Parse parameters from signature
+    params = []
+    if entry_sig:
+        m = re.search(rf'{re.escape(entry)}\s*\(([^)]*)\)', entry_sig)
+        if m:
+            param_str = m.group(1).strip()
+            if param_str and param_str != "void":
+                for p in param_str.split(','):
+                    p = p.strip()
+                    # Extract type and name: "const xmlChar *name" → ("const xmlChar *", "name")
+                    tokens = p.rsplit(None, 1)
+                    if len(tokens) == 2:
+                        ptype, pname = tokens
+                        # Handle pointer in name: "*name" → type="...*", name="name"
+                        while pname.startswith('*'):
+                            ptype += '*'
+                            pname = pname[1:]
+                        params.append((ptype.strip(), pname.strip()))
+                    elif tokens:
+                        params.append((tokens[0], f"arg{len(params)}"))
+    
+    lines = []
+    lines.append("/* AUTO-GENERATED baseline driver — concrete sizes, symbolic content */")
+    lines.append("#include <stdlib.h>")
+    lines.append("#include <string.h>")
+    lines.append("#include <klee/klee.h>")
+    lines.append("")
+    
+    # Add project header includes from the harness source
+    vul_file = frozen.get("vul_file", "")
+    src_file = find_source_file(src_root, vul_file) if vul_file else None
+    if src_file:
+        for line in src_file.read_text(errors="replace").split('\n')[:30]:
+            stripped = line.strip()
+            if stripped.startswith('#include') and 'klee' not in stripped.lower():
+                lines.append(stripped)
+                break  # just one project include is enough
+    
+    lines.append("")
+    
+    # Forward declare entry
+    if entry_sig:
+        # Clean the signature for extern declaration
+        clean_sig = re.sub(r'\bstatic\s+', '', entry_sig).strip()
+        if not clean_sig.endswith(';'):
+            clean_sig += ';'
+        lines.append(f"extern {clean_sig}")
+    
+    lines.append("")
+    lines.append("int main(void) {")
+    lines.append("    /* All allocations use CONCRETE sizes */")
+    lines.append("")
+    
+    # Generate parameter setup based on types
+    call_args = []
+    for ptype, pname in params:
+        if '*' in ptype and ('char' in ptype.lower() or 'xmlchar' in ptype.lower() or 'byte' in ptype.lower()):
+            # String/buffer parameter: allocate concrete, make symbolic
+            lines.append(f"    /* {ptype} {pname} — symbolic string buffer */")
+            lines.append(f"    char {pname}_buf[256];")
+            lines.append(f"    klee_make_symbolic({pname}_buf, sizeof({pname}_buf), \"{pname}\");")
+            lines.append(f"    {pname}_buf[255] = '\\0';")
+            call_args.append(f"(void*){pname}_buf")
+        elif '*' in ptype:
+            # Pointer to struct: allocate concrete
+            lines.append(f"    /* {ptype} {pname} — concrete struct allocation */")
+            lines.append(f"    char {pname}_mem[4096];")
+            lines.append(f"    memset({pname}_mem, 0, sizeof({pname}_mem));")
+            lines.append(f"    klee_make_symbolic({pname}_mem, 512, \"{pname}\");")
+            call_args.append(f"(void*){pname}_mem")
+        elif 'int' in ptype.lower() or 'size' in ptype.lower() or 'len' in ptype.lower():
+            # Integer parameter: symbolic with constraints
+            lines.append(f"    /* {ptype} {pname} — symbolic integer */")
+            lines.append(f"    int {pname}_val;")
+            lines.append(f"    klee_make_symbolic(&{pname}_val, sizeof({pname}_val), \"{pname}\");")
+            lines.append(f"    klee_assume({pname}_val > 0 && {pname}_val < 256);")
+            call_args.append(f"{pname}_val")
+        else:
+            # Default: symbolic
+            lines.append(f"    /* {ptype} {pname} */")
+            lines.append(f"    {ptype} {pname}_val;")
+            lines.append(f"    klee_make_symbolic(&{pname}_val, sizeof({pname}_val), \"{pname}\");")
+            call_args.append(f"{pname}_val")
+        lines.append("")
+    
+    # Call entry
+    lines.append(f"    /* Call entry function */")
+    lines.append(f"    {entry}({', '.join(call_args)});")
+    lines.append("")
+    lines.append("    return 0;")
+    lines.append("}")
+    
+    return '\n'.join(lines)
+
 
 def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=None):
     spec = spec or {}
@@ -3907,6 +4543,26 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
     the summary already contains that information.
     """
     history.append({"role": "user", "content": msg})
+    
+    # --- AUTO-GENERATE BASELINE DRIVER ---
+    # The LLM consistently fails at driver writing (uses symbolic malloc sizes).
+    # Generate a correct baseline driver from frozen plan data BEFORE the agent starts.
+    # The agent can then modify it if needed.
+    driver_path = tools.harness_dir / "driver.c"
+    if not driver_path.exists():
+        try:
+            auto_driver = _generate_baseline_driver(frozen, func_sigs, tools.src_root)
+            if auto_driver:
+                driver_path.write_text(auto_driver, encoding="utf-8")
+                print(f"  [i] Auto-generated baseline driver.c ({len(auto_driver)} chars)")
+                history[0]["content"] += (
+                    "\n\nNOTE: A baseline driver.c has been auto-generated for you. "
+                    "It uses CONCRETE allocations and satisfies known guards. "
+                    "You may need to adjust field values, but DO NOT replace it with symbolic malloc sizes. "
+                    "All malloc/calloc sizes MUST be concrete numbers."
+                )
+        except Exception as e:
+            print(f"  [!] Auto-driver generation failed: {e}")
     
     persistent_notes = []  # Track key discoveries so agent doesn't re-discover after trimming
     
@@ -4165,7 +4821,33 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                         res_parts.append("The vulnerable statement CRASHED. Send to concrete validation.")
                     elif stats.get("site_reached"):
                         res_parts.append("SITE REACHED (klee_assert fired) but the vulnerable statement did NOT crash.")
-                        res_parts.append("The code is reachable but no bug was triggered. Possible FP, or needs different symbolic input to trigger.")
+                        
+                        # CWE-specific guidance for triggering the actual bug
+                        spec_name = os.path.basename(ctx.get("spec_path", ""))
+                        cwe_m = re.search(r'cwe-(\d+)', spec_name, re.IGNORECASE)
+                        cwe_id = cwe_m.group(1) if cwe_m else ""
+                        
+                        if cwe_id in ("125", "787", "119", "122", "121"):
+                            # OOB read/write
+                            res_parts.append(
+                                "CWE-125/787 TRIGGER: The buffer access was in-bounds. To trigger OOB:\n"
+                                "  - Allocate the TARGET buffer SMALL (e.g., 4-8 bytes)\n"
+                                "  - Make the LENGTH/INDEX parameter symbolic and LARGER than the buffer\n"
+                                "  - Example: char buf[4]; klee_assume(len > 4 && len < 256);\n"
+                                "  - The key is: buffer_size < access_length")
+                        elif cwe_id == "416":
+                            res_parts.append(
+                                "CWE-416 TRIGGER: Use-after-free. Ensure the pointer is freed BEFORE the use.\n"
+                                "  - The stub for the free function must actually call free()")
+                        elif cwe_id == "476":
+                            res_parts.append(
+                                "CWE-476 TRIGGER: NULL deref. Ensure the pointer CAN be NULL.\n"
+                                "  - Make the pointer symbolic or returned from a stub that can return NULL")
+                        else:
+                            res_parts.append(
+                                "The code is reachable but no bug was triggered. Adjust symbolic inputs:\n"
+                                "  - Make buffers SMALLER than the length parameters\n"
+                                "  - Ensure guard conditions allow the vulnerable path")
                     else:
                         res_parts.append("VULNERABILITY SITE NOT REACHED.")
                     
@@ -4173,18 +4855,94 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                     if stats.get("bug_found"):
                         crash_line = stats.get('error_line', '')
                         crash_file = stats.get('error_file', '')
-                        res_parts.append(f"KLEE CRASH: {stats['diagnosis']}")
+                        crash_file_base = os.path.basename(crash_file) if crash_file else ""
                         
-                        # Show original source line mapping
-                        if crash_file and crash_line:
-                            crash_file_base = os.path.basename(crash_file)
-                            try:
-                                orig = tools.lookup_original_line(crash_file_base, int(crash_line))
-                                if orig:
-                                    res_parts.append(
-                                        f"ORIGINAL SOURCE: {orig['orig_file']}:{orig['orig_line']} → {orig['code']}")
-                            except Exception:
-                                pass
+                        # --- DRIVER CRASH DETECTION ---
+                        # If crash is in driver.c/stubs.c, diagnose the KLEE error and give fix
+                        if crash_file_base in ("driver.c", "stubs.c", "smart_stubs.c"):
+                            res_parts.append(f"⚠ DRIVER BUG: Crash in {crash_file_base}:{crash_line} — NOT a real vulnerability!")
+                            res_parts.append("The entry function was NEVER reached. Fix driver.c first.")
+                            
+                            # Parse KLEE errors for specific diagnosis
+                            klee_log = stats.get("full_log", "") + "\n" + stats.get("warnings_text", "")
+                            driver_fixes = []
+                            
+                            if "concretized symbolic size" in klee_log or "huge malloc" in klee_log:
+                                driver_fixes.append(
+                                    "SYMBOLIC SIZE ERROR: You used a symbolic value as malloc/calloc size. "
+                                    "KLEE needs CONCRETE sizes. FIX: Use concrete size, e.g.:\n"
+                                    "  char *buf = (char*)malloc(1024);  // concrete size\n"
+                                    "  klee_make_symbolic(buf, 1024, \"buf\");  // symbolic CONTENT")
+                            
+                            if "calling external" in klee_log:
+                                # Extract which functions are called externally
+                                ext_funcs = set(re.findall(r'calling external: (\w+)\(', klee_log))
+                                entry = self.frozen.get("entry", "")
+                                spine = self.frozen.get("spine", [])
+                                ext_spine = ext_funcs & set(spine)
+                                if ext_spine:
+                                    driver_fixes.append(
+                                        f"UNLINKED SPINE FUNCTIONS: {', '.join(ext_spine)} "
+                                        f"are treated as EXTERNAL by KLEE — likely declared 'static' in the harness. "
+                                        f"The system should auto-generate a public trampoline on next CompileSlice. "
+                                        f"If it persists, ensure the function is defined (not just declared) in the harness .c file.")
+                                elif ext_funcs:
+                                    driver_fixes.append(
+                                        f"EXTERNAL CALLS: {', '.join(list(ext_funcs)[:5])} are not defined. "
+                                        f"Add stubs in WriteStubs or ensure the harness defines them.")
+                            
+                            if "invalid klee_assume" in klee_log or "provably false" in klee_log:
+                                driver_fixes.append(
+                                    "FALSE ASSUME: klee_assume condition is always false (e.g., NULL != NULL after failed malloc). "
+                                    "FIX: Remove the klee_assume or fix the allocation it depends on.")
+                            
+                            if "Wrong size given to klee_make_symbolic" in klee_log:
+                                driver_fixes.append(
+                                    "WRONG SYMBOLIC SIZE: klee_make_symbolic size doesn't match the allocation. "
+                                    "FIX: Ensure sizeof matches: klee_make_symbolic(&var, sizeof(var), \"name\")")
+                            
+                            if "memory error: out of bound" in klee_log:
+                                driver_fixes.append(
+                                    "OOB IN DRIVER: Accessing memory out of bounds in driver.c. "
+                                    "FIX: Allocate enough space and check pointer arithmetic.")
+                            
+                            if "ASSERTION FAIL" in klee_log and crash_file_base == "driver.c":
+                                driver_fixes.append(
+                                    "ASSERT IN DRIVER: An assertion failed in driver.c. "
+                                    "FIX: Remove defensive assertions from driver — let KLEE explore all paths.")
+                            
+                            if not driver_fixes:
+                                driver_fixes.append(
+                                    f"Driver crashed at {crash_file_base}:{crash_line}. "
+                                    "Read the error details below and fix driver.c.")
+                            
+                            for fix in driver_fixes:
+                                res_parts.append(f"  → {fix}")
+                            
+                            res_parts.append(
+                                "\nDRIVER TEMPLATE (symbolic-first pattern):\n"
+                                "  // 1. Concrete allocation\n"
+                                "  struct MyType *obj = (struct MyType*)calloc(1, sizeof(struct MyType));\n"
+                                "  // 2. Symbolic sub-buffers with concrete sizes\n"
+                                "  char *name = (char*)malloc(64);\n"
+                                "  klee_make_symbolic(name, 64, \"name\");\n"
+                                "  obj->name = name;\n"
+                                "  // 3. Concrete scalars that satisfy guards\n"
+                                "  obj->size = 8;\n"
+                                "  // 4. Call entry\n"
+                                "  entry_func(obj, name, 64);")
+                        else:
+                            res_parts.append(f"KLEE CRASH: {stats['diagnosis']}")
+                            
+                            # Show original source line mapping
+                            if crash_file and crash_line:
+                                try:
+                                    orig = tools.lookup_original_line(crash_file_base, int(crash_line))
+                                    if orig:
+                                        res_parts.append(
+                                            f"ORIGINAL SOURCE: {orig['orig_file']}:{orig['orig_line']} → {orig['code']}")
+                                except Exception:
+                                    pass
                         
                         err_files = sorted(out_dir.glob("*.err")) if out_dir.exists() else []
                         for ef in err_files[:2]:
@@ -4277,6 +5035,9 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                     
                     elif crash_category == "TARGET_BUG":
                         # Category C: crash at vulnerability site → save for validation
+                        # Reset driver crash counter (we got past the driver!)
+                        if hasattr(tools, '_driver_crash_count'):
+                            tools._driver_crash_count = 0
                         action = (
                             f"ACTION: KLEE crash at {crash_file}:{crash_line} is AT the vulnerability site. "
                             f"Call Done(verdict='TP'). Save KLEE test case for concrete validation."
@@ -4284,18 +5045,52 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                     
                     elif crash_category == "HARNESS_BUG":
                         # Category A: crash in harness code → fix immediately
-                        action = (
-                            f"HARNESS ERROR: KLEE crash at {crash_basename}:{crash_line}. "
-                            f"This is a bug in YOUR harness/driver/stubs, not the target vulnerability. "
-                            f"Fix immediately:\n"
-                            f"  1. ExploreKleeOutput() — read the .err file to see the exact crash\n"
-                            f"  2. If NULL deref in driver.c → fix struct allocation in WriteDriver\n"
-                            f"  3. If crash in stubs.c → fix stub return value in WriteStubs\n"
-                            f"  4. CompileSlice to retry"
-                        )
+                        # Track consecutive driver crashes
+                        if not hasattr(tools, '_driver_crash_count'):
+                            tools._driver_crash_count = 0
+                        tools._driver_crash_count += 1
+                        
+                        if tools._driver_crash_count >= 2:
+                            # AUTO-FIX: Generate a correct driver after repeated failures
+                            print(f"  [System] {tools._driver_crash_count} consecutive driver crashes — auto-generating driver")
+                            try:
+                                auto_driver = tools._auto_generate_driver()
+                                if auto_driver:
+                                    driver_path = tools.harness_dir / "driver.c"
+                                    driver_path.write_text(auto_driver, encoding="utf-8")
+                                    print(f"  [System] Auto-wrote driver.c ({len(auto_driver)} chars)")
+                                    action = (
+                                        f"SYSTEM AUTO-FIX: Driver crashed {tools._driver_crash_count} times. "
+                                        f"Auto-generated a new driver.c with concrete allocations. "
+                                        f"Call CompileSlice to retry."
+                                    )
+                                else:
+                                    action = (
+                                        f"HARNESS ERROR (x{tools._driver_crash_count}): Auto-fix could not generate driver. "
+                                        f"Rewrite driver.c manually. RULE: All malloc sizes MUST be concrete numbers."
+                                    )
+                            except Exception as e:
+                                print(f"  [!] Auto-driver failed: {e}")
+                                action = (
+                                    f"HARNESS ERROR: KLEE crash at {crash_basename}:{crash_line}. "
+                                    f"This is YOUR driver bug. All malloc/calloc sizes MUST be concrete numbers, not symbolic."
+                                )
+                        else:
+                            action = (
+                                f"HARNESS ERROR: KLEE crash at {crash_basename}:{crash_line}. "
+                                f"This is a bug in YOUR harness/driver/stubs, not the target vulnerability. "
+                                f"CRITICAL RULES:\n"
+                                f"  - All malloc/calloc sizes MUST be concrete (e.g., malloc(1024), NOT malloc(sym_size))\n"
+                                f"  - klee_make_symbolic on CONTENT, not on size/pointer\n"
+                                f"  - Use calloc(1, sizeof(struct)) for structs, then set fields\n"
+                                f"  Fix driver.c and CompileSlice to retry."
+                            )
                     
                     elif crash_category == "NONTARGET_REAL_BUG":
                         # Category B: crash in real code but NOT at vulnerability site
+                        # Reset driver crash counter (we got past the driver!)
+                        if hasattr(tools, '_driver_crash_count'):
+                            tools._driver_crash_count = 0
                         # → SAVE this as a surprise finding for concrete validation
                         # → ALSO bypass it so KLEE can continue toward the target
                         vul_loc = tools.resolve_vul_line()
