@@ -1458,9 +1458,9 @@ class SliceTools:
         self.harness_line_map = {}  # harness_file -> {harness_line -> {orig_file, orig_line, code}}
         self._sliced = False  # guard: neutralize only once
         self.se_config = se_config or {}
-        self.project_cflags = frozen.get("compile_flags", [])
+        self.project_cflags = self.frozen.get("compile_flags", [])
         self.extra_cflags = (extra_cflags or []) + self.se_config.get("extra_cflags", [])
-        self.include_paths = frozen.get("include_paths", []) + self.se_config.get("extra_includes", [])
+        self.include_paths = self.frozen.get("include_paths", []) + self.se_config.get("extra_includes", [])
         self.klee_include = str(Path(klee).resolve().parent.parent / "include")
         # Cache: original source lines around vul_line for fingerprinting
         self._vul_fingerprints = self._build_vul_fingerprints()
@@ -1742,7 +1742,11 @@ class SliceTools:
         # --- Step 1: Collect ALL .err + .ktest pairs ---
         err_ktests = []
         for ef in sorted(out_dir.glob("*.err")):
-            ktest = ef.with_suffix(".ktest")
+            # KLEE .err files: test000002.ptr.err, test000001.user.err
+            # Corresponding .ktest: test000002.ktest (base name before first dot)
+            # ef.with_suffix(".ktest") is WRONG: gives test000002.ptr.ktest
+            ktest_name = ef.name.split(".")[0] + ".ktest"  # test000002.ktest
+            ktest = ef.parent / ktest_name
             err_content = ef.read_text(errors="replace")
             # Parse err_type from filename: test000001.ptr.err → "ptr"
             err_type = ef.stem.split(".")[-1] if "." in ef.stem else "unknown"
@@ -1784,18 +1788,51 @@ class SliceTools:
             if not kt["ktest"]:
                 kt["decoded"] = "(no .ktest file)"
                 kt["objects"] = []
+                print(f"    [!] No .ktest file for {os.path.basename(kt.get('err_file', ''))}")
                 continue
             rc, out, stderr_out, _ = run_cmd(["ktest-tool", kt["ktest"]], timeout=10)
             if rc == 0:
                 kt["decoded"] = out
                 objects = []
-                for m in re.finditer(r"object\s+(\d+):\s*name:\s*'([^']+)'\s*size:\s*(\d+)\s*data:\s*(b'[^']*'|0x[0-9a-f]+)", out):
-                    objects.append({
-                        "index": int(m.group(1)),
-                        "name": m.group(2),
-                        "size": int(m.group(3)),
-                        "data": m.group(4),
-                    })
+                # ktest-tool outputs EACH field on its own line:
+                #   object 0: name: b'sym_name'
+                #   object 0: size: 4
+                #   object 0: data: b'\xfb\xff\xff\xff'
+                # Parse by collecting fields per object index.
+                obj_fields = {}  # index → {name, size, data}
+                for line in out.splitlines():
+                    m = re.match(r'\s*object\s+(\d+):\s*(\w+):\s*(.*)', line)
+                    if m:
+                        idx = int(m.group(1))
+                        field = m.group(2).strip()
+                        value = m.group(3).strip()
+                        if idx not in obj_fields:
+                            obj_fields[idx] = {}
+                        obj_fields[idx][field] = value
+                
+                for idx in sorted(obj_fields.keys()):
+                    fields = obj_fields[idx]
+                    name_raw = fields.get("name", "")
+                    # name is like b'sym_name' — strip b'' wrapper
+                    nm = re.match(r"b'([^']*)'", name_raw)
+                    name = nm.group(1) if nm else name_raw.strip("'\"")
+                    
+                    size_str = fields.get("size", "0")
+                    try:
+                        size = int(size_str)
+                    except ValueError:
+                        size = 0
+                    
+                    data = fields.get("data", "")
+                    
+                    if name:
+                        objects.append({
+                            "index": idx,
+                            "name": name,
+                            "size": size,
+                            "data": data,
+                        })
+                
                 kt["objects"] = objects
                 print(f"    [i] Decoded {kt['ktest']}: {len(objects)} symbolic objects")
             else:
@@ -2824,12 +2861,13 @@ class SliceTools:
         # Build line map for original↔harness correspondence
         self._post_harness_line_map()
         
-        # --- VERIFY: spine call chain is intact ---
+        # --- VERIFY & AUTO-FIX: spine call chain is intact ---
         # After writing, check that each spine function calls the next one.
-        # This catches the common agent mistake of "neutralizing" too aggressively.
+        # If broken, AUTO-INJECT the missing call — don't rely on the agent to fix it.
         try:
             hsrc = target.read_text(errors="replace")
             spine = self.frozen.get("spine", [])
+            chain_fixed = False
             for i in range(len(spine) - 1):
                 caller = spine[i]
                 callee = spine[i + 1]
@@ -2838,15 +2876,60 @@ class SliceTools:
                     caller_body = hsrc[caller_span[1]:caller_span[2]]
                     if not re.search(rf'\b{re.escape(callee)}\s*\(', caller_body):
                         print(f"    [⚠] BROKEN CALL CHAIN: {caller} does NOT call {callee}!")
-                        print(f"    [⚠] The harness must preserve calls to spine functions.")
-                        print(f"    [⚠] Add '{callee}(...)' inside {caller}'s body.")
+                        # AUTO-FIX: inject a call to callee at the START of caller's body
+                        # Find the callee's signature to build a valid call
+                        callee_span = find_function_span(hsrc, callee)
+                        if callee_span:
+                            callee_sig = hsrc[callee_span[0]:callee_span[1]].strip()
+                            # Extract parameter names from callee signature
+                            pm = re.search(rf'{re.escape(callee)}\s*\(([^)]*)\)', callee_sig)
+                            if pm:
+                                param_str = pm.group(1).strip()
+                                # Build call with matching arg names from caller's params
+                                caller_sig = hsrc[caller_span[0]:caller_span[1]].strip()
+                                cm = re.search(rf'{re.escape(caller)}\s*\(([^)]*)\)', caller_sig)
+                                caller_params = []
+                                if cm:
+                                    for p in cm.group(1).split(','):
+                                        tokens = p.strip().split()
+                                        if tokens:
+                                            name = tokens[-1].lstrip('*')
+                                            caller_params.append(name)
+                                
+                                # Build callee args: match by position or use caller's params + defaults
+                                callee_params = []
+                                for p in param_str.split(','):
+                                    tokens = p.strip().split()
+                                    if tokens:
+                                        callee_params.append(tokens[-1].lstrip('*'))
+                                
+                                # Use caller's params where names match, else use 0/NULL
+                                call_args = []
+                                for cp in callee_params:
+                                    if cp in caller_params:
+                                        call_args.append(cp)
+                                    elif any(cp.lower() in ca.lower() for ca in caller_params):
+                                        match = [ca for ca in caller_params if cp.lower() in ca.lower()][0]
+                                        call_args.append(match)
+                                    else:
+                                        call_args.append("0")
+                                
+                                inject_call = f"    {callee}({', '.join(call_args)});"
+                                # Insert right after the opening brace of caller
+                                insert_pos = caller_span[1]
+                                hsrc = hsrc[:insert_pos] + f"\n{inject_call}  /* AUTO-INJECTED: spine call chain */\n" + hsrc[insert_pos:]
+                                chain_fixed = True
+                                print(f"    [✓] AUTO-FIX: Injected '{callee}(...)' into {caller}'s body")
                 else:
                     if i == 0:
-                        # Entry function missing entirely
                         print(f"    [⚠] Entry function '{caller}' not found in harness!")
                         print(f"    [⚠] The harness must define all spine functions: {' → '.join(spine)}")
+            
+            if chain_fixed:
+                target.write_text(hsrc, encoding="utf-8")
+                print(f"    [✓] Harness call chain auto-fixed and saved")
         except Exception as e:
-            pass
+            print(f"    [!] Call chain verification error: {e}")
         
         return f"OK: Wrote harness/{target.name}"
     
@@ -4877,8 +4960,8 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                             if "calling external" in klee_log:
                                 # Extract which functions are called externally
                                 ext_funcs = set(re.findall(r'calling external: (\w+)\(', klee_log))
-                                entry = self.frozen.get("entry", "")
-                                spine = self.frozen.get("spine", [])
+                                entry = frozen.get("entry", "")
+                                spine = frozen.get("spine", [])
                                 ext_spine = ext_funcs & set(spine)
                                 if ext_spine:
                                     driver_fixes.append(
@@ -4989,13 +5072,13 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                     diag = stats.get("diagnostics_summary", "")
                     
                     # Track crash patterns
-                    if not hasattr(self, '_crash_history'):
-                        self._crash_history = []
+                    if not hasattr(tools, '_crash_history'):
+                        tools._crash_history = []
                     crash_sig = f"{stats.get('error_file', '')}:{stats.get('error_line', '')}:{stats.get('crash_type', '')}"
                     if stats.get("bug_found"):
-                        self._crash_history.append(crash_sig)
+                        tools._crash_history.append(crash_sig)
                     
-                    vul_func = self.frozen.get("vul_func", "")
+                    vul_func = frozen.get("vul_func", "")
                     spine_cov = stats.get("spine_coverage", {})
                     
                     # --- CRASH CLASSIFICATION ---
@@ -5012,7 +5095,7 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                     
                     if stats.get("bug_found") and crash_file:
                         crash_basename = os.path.basename(crash_file)
-                        vul_basename = os.path.basename(self.frozen.get("vul_file", ""))
+                        vul_basename = os.path.basename(frozen.get("vul_file", ""))
                         
                         # Category A: crash in harness/infrastructure files
                         if crash_basename in ("driver.c", "stubs.c", "smart_stubs.c", "auto_stubs.c"):
@@ -5097,16 +5180,16 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                         vul_line_str = vul_loc.get('harness_line', '?') if vul_loc else '?'
                         
                         # Record surprise finding
-                        if not hasattr(self, '_surprise_findings'):
-                            self._surprise_findings = []
+                        if not hasattr(tools, '_surprise_findings'):
+                            tools._surprise_findings = []
                         finding = {
                             "file": crash_file, "line": crash_line,
                             "type": stats.get("crash_type", ""),
                             "diagnosis": stats.get("diagnosis", ""),
                             "ktest": stats.get("ktest_file", ""),
                         }
-                        self._surprise_findings.append(finding)
-                        n_surprise = len(self._surprise_findings)
+                        tools._surprise_findings.append(finding)
+                        n_surprise = len(tools._surprise_findings)
                         
                         action = (
                             f"SURPRISE FINDING #{n_surprise}: KLEE crash at {crash_basename}:{crash_line} "
