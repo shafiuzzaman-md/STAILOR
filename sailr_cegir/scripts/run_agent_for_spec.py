@@ -90,10 +90,10 @@ def find_llvm14_tool(name: str) -> str:
 def call_llm(system: str, messages: List[Dict], out_dir: Path, tag: str) -> Dict:
     import openai
     client = openai.OpenAI(
-        api_key=os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", "none")),
-        base_url=os.environ.get("LLM_API_BASE", "https://api.deepseek.com"),
+        api_key=os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", "")),
+        base_url=os.environ.get("LLM_API_BASE", ""),
     )
-    model = os.environ.get("LLM_MODEL", "deepseek-chat")
+    model = os.environ.get("LLM_MODEL", "")
     try:
         resp = client.chat.completions.create(
             model=model, messages=[{"role": "system", "content": system}] + messages,
@@ -5939,6 +5939,22 @@ def main():
     parser.add_argument("--build-cmd", default=os.environ.get("BUILD_PROJECT_BC_CMD", ""), help="Build command template for the project. Use {SRC_ROOT} and {OUT_BC} placeholders.")
     args, _ = parser.parse_known_args()
     
+    # Validate LLM configuration
+    missing = []
+    if not os.environ.get("LLM_API_KEY") and not os.environ.get("OPENAI_API_KEY"):
+        missing.append("LLM_API_KEY")
+    if not os.environ.get("LLM_API_BASE"):
+        missing.append("LLM_API_BASE")
+    if not os.environ.get("LLM_MODEL"):
+        missing.append("LLM_MODEL")
+    if missing:
+        print(f"[ERROR] Missing required environment variables: {', '.join(missing)}")
+        print("  Set them before running:")
+        print("    export LLM_API_KEY=your-api-key")
+        print("    export LLM_API_BASE=https://api.openai.com/v1  # or any OpenAI-compatible endpoint")
+        print("    export LLM_MODEL=gpt-4o  # or deepseek-chat, claude-3-sonnet, etc.")
+        sys.exit(1)
+    
     # 1. Setup Logging (RESTORED)
     run_dir = ensure_dir(Path(args.run_dir))
     log_file = run_dir / "execution.log"
@@ -6238,24 +6254,55 @@ def main():
                        extra_cflags=extra_cflags)
     findings = run_agent(ctx, frozen, tools, run_dir, max_turns, run_timeout, time.time(), spec=spec)
     
-    # Assemble final report
-    final_report = {
-        "findings": findings,
-        "line_map": tools.harness_line_map,
-    }
+    # Determine search status from findings / bug report
+    search_status = "NO_BUG"
+    verdict = "FP"
+    bug_report = None
     
-    # Include bug report if it exists
     bug_report_path = run_dir / "harness" / ".." / "bug_report.json"
     actual_bug_report = run_dir / "bug_report.json"
     for brp in [actual_bug_report, bug_report_path]:
         if brp.exists():
             try:
-                final_report["bug_report"] = read_json(brp)
+                bug_report = read_json(brp)
+                verdict = bug_report.get("summary", {}).get("verdict", "LIKELY_TP")
             except Exception:
                 pass
             break
     
-    write_json(run_dir/"report.json", final_report)
+    if verdict in ("TP",):
+        search_status = "FOUND_TP"
+    elif verdict in ("LIKELY_TP",):
+        search_status = "FOUND_LIKELY_TP"
+    elif findings:
+        search_status = "FOUND_UNTARGETED"
+    
+    # Assemble report.json (internal detailed report)
+    final_report = {
+        "findings": findings,
+        "line_map": tools.harness_line_map,
+    }
+    if bug_report:
+        final_report["bug_report"] = bug_report
+    write_json(run_dir / "report.json", final_report)
+    
+    # Assemble run_report.json (expected by run_worker.sh)
+    run_report = {
+        "search_status": search_status,
+        "verdict": verdict,
+        "metrics": {
+            "tokens_total": _TOKEN_TOTAL,
+            "tokens_prompt": _TOKEN_PROMPT,
+            "tokens_completion": _TOKEN_COMPLETION,
+        },
+        "spec": str(args.spec),
+        "vul_file": args.vul_file,
+        "vul_line": args.vul_line,
+    }
+    if bug_report:
+        run_report["bug_report"] = bug_report
+    write_json(run_dir / "run_report.json", run_report)
+    
     print("Done.")
     log_fh.close()
 
