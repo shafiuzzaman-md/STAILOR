@@ -19,10 +19,24 @@ OUTPUT_BC="$(realpath -m "$OUT_ARG")"
 export LLVM_COMPILER=clang
 export CC=wllvm
 export CXX=wllvm++
-export CFLAGS="-g -O1 -fno-inline-functions -Wno-error"
 
-# [FIX] Auto-detect the correct llvm-link binary
-if command -v llvm-link-14 &> /dev/null; then
+# --- HARDEN FLAGS (avoid PIC/PIE lowering like llvm.load.relative) ---
+# Some build systems append -fPIC/-fPIE anyway; we add explicit negations and also
+# provide LDFLAGS to force non-PIE linking when relevant.
+BASE_CFLAGS="-g -O1 -fno-inline-functions -Wno-error"
+NOPIC_FLAGS="-fno-pic -fno-pie"
+export CFLAGS="${CFLAGS:-} ${BASE_CFLAGS} ${NOPIC_FLAGS}"
+export CXXFLAGS="${CXXFLAGS:-} ${BASE_CFLAGS} ${NOPIC_FLAGS}"
+export LDFLAGS="${LDFLAGS:-} -no-pie"
+
+# If a build system injects -fPIC/-fPIE, our explicit -fno-pic/-fno-pie should win
+# for clang, but not all wrappers behave perfectly. We'll verify at the end.
+
+
+# [FIX] Use LLVM_LINK from environment if set, otherwise auto-detect
+if [[ -n "${LLVM_LINK:-}" ]] && command -v "$LLVM_LINK" &> /dev/null; then
+    : # Already set and valid
+elif command -v llvm-link-14 &> /dev/null; then
     LLVM_LINK=llvm-link-14
 elif command -v llvm-link &> /dev/null; then
     LLVM_LINK=llvm-link
@@ -59,6 +73,9 @@ if [ -f "./configure" ]; then
         "--disable-werror"
         "MAKEINFO=true"
     )
+    # Prefer static if possible (reduces chance of forced PIC objects)
+    # Not all projects support these, but they're common and harmless if unknown.
+    CONFIG_FLAGS+=("--disable-shared" "--enable-static")
 
     if [ -d "bfd" ]; then
         echo "[*] Detected Binutils. Disabling optional tools..."
@@ -83,10 +100,16 @@ elif [ -f "CMakeLists.txt" ]; then
 
     mkdir -p build
     cd build
+    # shellcheck disable=SC2086
     cmake .. \
         -DCMAKE_C_COMPILER=wllvm \
         -DCMAKE_CXX_COMPILER=wllvm++ \
-        -DBUILD_SHARED_LIBS=OFF
+        -DBUILD_SHARED_LIBS=OFF \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=OFF \
+        -DCMAKE_C_FLAGS="${CFLAGS}" \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+        -DCMAKE_EXE_LINKER_FLAGS="${LDFLAGS}" \
+        ${CMAKE_EXTRA_OPTS:-}
     make -j"$(nproc)" || true
     cd ..
 
@@ -183,4 +206,14 @@ if [ -f "$OUTPUT_BC" ]; then
 else
     echo "[!] Failed to create bitcode."
     exit 1
+fi
+
+# --- FAIL-FAST VERIFY: llvm.load.relative should not exist for KLEE-friendly bc ---
+if command -v llvm-dis &>/dev/null; then
+    if llvm-dis "$OUTPUT_BC" -o - | grep -q "llvm.load.relative"; then
+        echo "[!] FATAL: llvm.load.relative still present in bitcode."
+        echo "    Likely cause: build system forced PIC/PIE (e.g., extracted from .so or injected -fPIC/-fPIE)."
+        echo "    Action: ensure static build artifacts exist and avoid extracting from .so; verify compile flags."
+        exit 2
+    fi
 fi
