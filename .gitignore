@@ -2,6 +2,7 @@
 runs/
 codeql-db/
 dataset/
+cybergym_data/
 **/llm_usage.tsv
 **/*.bc
 
