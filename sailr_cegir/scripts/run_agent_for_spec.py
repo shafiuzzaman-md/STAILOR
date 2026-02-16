@@ -6997,7 +6997,7 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
             obs = obs[:2500] + "\n... (truncated) ...\n" + obs[-1500:]
         history.append({"role": "user", "content": f"Observation:\n{obs}"})
         
-    return findings
+    return findings, turn + 1  # return (findings_list, total_turns_used)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -7394,7 +7394,7 @@ def main():
                       and v}
         write_json(sa_dir / "se_config_summary.json", se_summary)
     
-    findings = run_agent(ctx, frozen, tools, run_dir, max_turns, run_timeout, time.time(), spec=spec)
+    findings, agent_turns = run_agent(ctx, frozen, tools, run_dir, max_turns, run_timeout, time.time(), spec=spec)
     
     # Determine search status from findings / bug report
     search_status = "NO_BUG"
@@ -7423,6 +7423,47 @@ def main():
     elif findings:
         search_status = "FOUND_UNTARGETED"
     
+    # --- Granular NO_BUG sub-status ---
+    # When no bug found, determine WHY for actionable diagnostics.
+    failure_reason = ""
+    if search_status == "NO_BUG":
+        klee_ran = tools.iteration > 0
+        # Check KLEE logs for last run stats
+        last_klee_log = None
+        logs_dir = run_dir / "logs"
+        if logs_dir.exists():
+            klee_logs = sorted(logs_dir.glob("klee_*.log"), reverse=True)
+            if klee_logs:
+                try:
+                    last_klee_log = klee_logs[0].read_text(errors="replace")
+                except Exception:
+                    pass
+        
+        if not klee_ran:
+            # Agent never compiled successfully
+            search_status = "BUILD_ERROR"
+            failure_reason = "Agent never reached successful KLEE execution"
+        elif last_klee_log:
+            # Parse last KLEE log for clues
+            if "KLEE EXIT ERROR" in (last_klee_log or "") or "Exit code: 1" in (last_klee_log or ""):
+                search_status = "KLEE_ERROR"
+                failure_reason = "KLEE crashed or failed to run"
+            elif "SPINE_PROBE:" in (last_klee_log or ""):
+                # Check which spine functions were reached
+                vf = frozen.get("vul_func", "")
+                if vf and f"SPINE_PROBE:{vf}" in (last_klee_log or ""):
+                    search_status = "REACHED_NO_BUG"
+                    failure_reason = f"Reached {vf} but no bug triggered"
+                else:
+                    search_status = "UNREACHABLE"
+                    failure_reason = f"Could not reach {vf} via spine"
+            else:
+                search_status = "UNREACHABLE"
+                failure_reason = "KLEE ran but no spine functions reached"
+        else:
+            search_status = "TIMEOUT"
+            failure_reason = "Agent timed out or exhausted turns"
+    
     # Assemble report.json (internal detailed report)
     final_report = {
         "findings": findings,
@@ -7432,23 +7473,57 @@ def main():
         final_report["bug_report"] = bug_report
     write_json(run_dir / "report.json", final_report)
     
+    # --- Extract bug location details for TSV ---
+    bug_type = ""
+    bug_file = ""
+    bug_line = 0
+    bug_func = ""
+    asan_confirmed = False
+    if bug_report:
+        summary = bug_report.get("summary", {})
+        klee_crash = bug_report.get("klee_crash", {})
+        asan_data = bug_report.get("asan_result", {})
+        bug_type = klee_crash.get("error_type", "")
+        bug_file = klee_crash.get("original_file", "") or klee_crash.get("harness_file", "")
+        bug_line = klee_crash.get("original_line", 0) or klee_crash.get("harness_line", 0)
+        bug_func = bug_report.get("vulnerability", {}).get("function", "")
+        asan_confirmed = asan_data.get("triggered", False)
+        if asan_confirmed and asan_data.get("error_type"):
+            bug_type = asan_data["error_type"]
+            if asan_data.get("original_file"):
+                bug_file = asan_data["original_file"]
+                bug_line = asan_data.get("original_line", 0)
+    
     # Assemble run_report.json (expected by run_worker.sh)
     secondary_count = 0
     crash_relevance = ""
+    cwe_id = ""
     if bug_report:
         summary = bug_report.get("summary", {})
         secondary_count = summary.get("secondary_bugs", 0)
         crash_relevance = summary.get("crash_relevance", "")
+        cwe_id = summary.get("cwe", "")
     
     run_report = {
         "search_status": search_status,
         "verdict": verdict,
         "crash_relevance": crash_relevance,
         "secondary_bugs": secondary_count,
+        "failure_reason": failure_reason,
         "metrics": {
             "tokens_total": _TOKEN_TOTAL,
             "tokens_prompt": _TOKEN_PROMPT,
             "tokens_completion": _TOKEN_COMPLETION,
+            "turns": agent_turns,
+            "klee_runs": tools.iteration,
+        },
+        "bug": {
+            "type": bug_type,
+            "file": bug_file,
+            "line": bug_line,
+            "function": bug_func,
+            "asan_confirmed": asan_confirmed,
+            "cwe": cwe_id,
         },
         "spec": str(args.spec),
         "vul_file": args.vul_file,
@@ -7463,7 +7538,47 @@ def main():
     write_json(run_dir / "run_report.json", run_report)
     
     print("Done.")
+    # Restore original streams BEFORE closing log file to avoid
+    # "Exception ignored in sys.unraisablehook" during interpreter shutdown
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
     log_fh.close()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise  # Let sys.exit() through
+    except Exception as e:
+        # Emergency: write a minimal run_report.json so run_worker.sh always has data
+        import traceback
+        traceback.print_exc()
+        try:
+            import argparse as _ap
+            # Try to find run_dir from sys.argv
+            _parser = _ap.ArgumentParser()
+            _parser.add_argument("--run-dir", default="")
+            _parser.add_argument("--spec", default="")
+            _parser.add_argument("--vul-file", default="")
+            _parser.add_argument("--vul-line", default="0")
+            _known, _ = _parser.parse_known_args()
+            if _known.run_dir:
+                _rd = Path(_known.run_dir)
+                _rd.mkdir(parents=True, exist_ok=True)
+                _rr = {
+                    "search_status": "CRASHED",
+                    "verdict": "FP",
+                    "failure_reason": f"Unhandled exception: {type(e).__name__}: {str(e)[:200]}",
+                    "crash_relevance": "",
+                    "secondary_bugs": 0,
+                    "metrics": {"tokens_total": _TOKEN_TOTAL, "tokens_prompt": _TOKEN_PROMPT,
+                                "tokens_completion": _TOKEN_COMPLETION, "turns": 0, "klee_runs": 0},
+                    "bug": {"type": "", "file": "", "line": 0, "function": "",
+                            "asan_confirmed": False, "cwe": ""},
+                    "spec": _known.spec, "vul_file": _known.vul_file, "vul_line": _known.vul_line,
+                }
+                write_json(_rd / "run_report.json", _rr)
+                print(f"[EMERGENCY] Wrote crash run_report.json to {_rd}")
+        except Exception:
+            pass
+        sys.exit(1)
