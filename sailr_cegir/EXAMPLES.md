@@ -23,7 +23,10 @@ git clone https://github.com/GNOME/libxml2.git
 
 **3. Configure the LLM key**
 ```
-export DEEPSEEK_API_KEY=""
+export LLM_MODEL=deepseek-chat        # or gpt-4, claude-3, etc.
+export LLM_API_BASE=https://api.deepseek.com  
+export LLM_API_KEY=your-key
+./stailor.sh 55980/libxml2_55980_vul
 ```
 
 ## Fetch ground-truth metadata 
@@ -40,7 +43,7 @@ bash sailr_cegir/run_stailor.sh 55980/libxml2_55980_vul
 
 Example 2:
 ```
-bash sailr_cegir/run_stailor.sh libxml2
+bash sailr_cegir/stailor.sh libxml2_62911_vul
 ```
 ## Result Collection
 ```
@@ -75,25 +78,29 @@ chmod +x codeql_scan.sh
 
 
 ## Run Single Spec
+# 1. Source your config first to load STUBS and FLAGS
 source configs/libxml2_55980_vul_config.sh
-```
+
+# 2. Run Worker with the Setup Script
 CLANG="/usr/lib/llvm-14/bin/clang" \
-LLVM_LINK="/usr/lib/llvm-14/bin/llvm-link" \
-CLANG_FLAGS="-I$(pwd)/dataset/55980/libxml2_55980_vul/include -I$(pwd)/dataset/55980/libxml2_55980_vul/build -I/home/shafi/tools/klee/include" \
-MAX_TURNS=60 \
+LLVM_LINK="/usr/bin/llvm-link-14" \
+CLANG_FLAGS="-I$(pwd)/dataset/55980/libxml2_55980_vul/include -I$(pwd)/dataset/55980/libxml2_55980_vul/build -I/home/shafi/tools/klee/include ${EXTRA_CFLAGS}" \
+MAX_TURNS=80 \
 TIMEOUT=600 \
 BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
 MANUAL_STUBS="${MANUAL_STUBS}" \
 EXTRA_AGENT_ARGS="${EXTRA_AGENT_ARGS}" \
+PROJECT_SETUP_SCRIPT="$(pwd)/configs/libxml2_55980_vul_setup.sh" \
 bash sailr_cegir/run_worker.sh \
    "55980/libxml2_55980_vul" \
    "oob-read" \
    "specs/libxml2_55980_vul/446_parser.c_12080_local_cpp_cwe-125-cursor-lookahead-missing-bytes-check.json" \
    "rules/stailor-queries/suites/stailor.qls"
 ```
-```
+CLANG="/usr/lib/llvm-14/bin/clang" \
+LLVM_LINK="/usr/bin/llvm-link-14" \
 CLANG_FLAGS="-I$(pwd)/dataset/62911/libxml2_62911_vul/include -I$(pwd)/dataset/62911/libxml2_62911_vul/build -I/home/shafi/tools/klee/include" \
-MAX_TURNS=60 \
+MAX_TURNS=80 \
 TIMEOUT=600 \
 BUILD_PROJECT_BC_CMD="export CFLAGS='-I/home/shafi/tools/klee/include'; bash $(pwd)/sailr_cegir/build_project_bc.sh {SRC_ROOT} {OUT_BC}" \
 bash sailr_cegir/run_worker.sh \
