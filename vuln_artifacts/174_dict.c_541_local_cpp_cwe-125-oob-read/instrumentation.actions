@@ -1,6 +1,0 @@
-[stubs] MUST_KEEP_FUNCS(6): xmlDictExists, xmlDictFindEntry, xmlDictLookup, xmlDictLookupHashed, xmlDictLookupInternal, xmlDictQLookup
-[instrumentation] insert_before dict.c:538
-[instrumentation] insert_after dict.c:538
-[instrumentation] DROP unsafe bare-return insertion dict.c:320
-[instrumentation] DROP unsafe bare-return insertion dict.c:300
-[instrumentation] insert_before dict.c:19
