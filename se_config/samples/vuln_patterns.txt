@@ -1,0 +1,35 @@
+# vuln_patterns.txt — Vulnerability patterns for LLM-assisted spec generation
+#
+# Each PATTERN block describes a bug class to search for.
+# During stailor_prepare.sh, the LLM will analyze matching source files
+# and generate spec JSONs in extra_specs/.
+#
+# Format:
+#   PATTERN: <description>
+#     FILES: <glob patterns, comma-separated>
+#     CWE: <CWE number>
+#     HINT: <multi-line guidance for the LLM>
+#
+# Lines starting with # are comments.
+
+PATTERN: Integer overflow in size calculations before allocation
+  FILES: alloc.c, memory.c, buf.c, xmlmemory.c
+  CWE: 190
+  HINT: Look for multiply-before-allocate patterns like malloc(n * sizeof(T))
+        where n comes from untrusted input (parsed XML attributes, string lengths)
+        without overflow check. Also check realloc calls where new_size = old_size + delta
+        and delta is attacker-controlled.
+
+PATTERN: Use-after-free in reference-counted objects
+  FILES: dict.c, hash.c, tree.c, entities.c
+  CWE: 416
+  HINT: Objects freed in cleanup/error paths while still referenced by iterators,
+        callback contexts, or cached pointers. Check xmlFree() calls near loop
+        variables. Pay attention to xmlDictReference/xmlDictFree imbalance.
+
+PATTERN: Heap buffer overflow from unbounded string operations
+  FILES: uri.c, encoding.c, xmlIO.c, parser.c
+  CWE: 122
+  HINT: Fixed-size heap buffers filled by xmlStrncopy/memcpy/snprintf without
+        checking source length. Especially in URL normalization, encoding
+        conversion, and entity expansion paths.

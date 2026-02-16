@@ -1,0 +1,7 @@
+This project is libxml2. Key constraints for harness generation:
+
+- Always call xmlInitParser() before any libxml2 API usage
+- Do NOT call xmlCleanupParser() in the harness — it frees global state
+- Prefer xmlDictCreate() for dictionary initialization
+- xmlChar is unsigned char, not char — cast carefully
+- Many libxml2 functions return NULL on error, always check return values

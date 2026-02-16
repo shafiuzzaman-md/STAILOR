@@ -1,0 +1,13 @@
+{
+  "id": "manual_001",
+  "source": "manual",
+  "vul_file": "parser.c",
+  "vul_line": 234,
+  "vul_func": "xmlParseContent",
+  "entry_func": "xmlParseDocument",
+  "cwe_id": "787",
+  "title": "OOB write in parser content handling",
+  "description": "Potential buffer overflow when parsing oversized CDATA sections. The buffer is allocated based on initial content size but not reallocated when entity expansion increases the effective size.",
+  "spine": ["xmlParseDocument", "xmlParseContent"],
+  "context_lines": 5
+}

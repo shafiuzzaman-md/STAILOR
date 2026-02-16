@@ -25,6 +25,9 @@ export MAX_CYCLES="${MAX_CYCLES:-2}"
 export TIMEOUT="${TIMEOUT:-600}"
 export KLEE="${KLEE:-klee}"
 
+# --- SE Config Directory (optional, passed from stailor.sh or env) ---
+export SE_CONFIG_DIR="${SE_CONFIG_DIR:-}"
+
 # --- Paths ---
 export REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPTS_DIR="${REPO_ROOT}/sailr_cegir/scripts"
@@ -98,6 +101,151 @@ if [ -f "${RUN_DIR}/run_report.json" ]; then
     exit 0
 fi
 
+# ==============================================================================
+# SE-CONFIG EXTRAS RESOLUTION
+# Merges: auto-generated + global extras + per-spec extras
+# ==============================================================================
+resolve_se_config_extras() {
+    local CONFIG_DIR="$1"
+    local SPEC_STEM="$2"
+    local HARNESS_DIR="$3"
+
+    # Guard: refuse to use the samples directory
+    local DIR_BASENAME
+    DIR_BASENAME="$(basename "$CONFIG_DIR")"
+    if [[ "$DIR_BASENAME" == "samples" || "$CONFIG_DIR" == */samples/* ]]; then
+        echo "[ERROR] SE_CONFIG points to the samples directory."
+        echo "  Copy it first: cp -r se_config/samples/ se_config/my_project/"
+        exit 1
+    fi
+
+    local PER_SPEC_DIR="${CONFIG_DIR}/per_spec/${SPEC_STEM}"
+
+    # --- Load config.json overrides if present ---
+    if [ -f "${CONFIG_DIR}/config.json" ]; then
+        # Override MAX_TURNS, TIMEOUT etc. from config if set
+        local cfg_max_turns cfg_timeout cfg_max_cycles
+        cfg_max_turns=$("$PYTHON" -c "import json; c=json.load(open('${CONFIG_DIR}/config.json')); print(c.get('agent',{}).get('max_turns',''))" 2>/dev/null || echo "")
+        cfg_timeout=$("$PYTHON" -c "import json; c=json.load(open('${CONFIG_DIR}/config.json')); print(c.get('agent',{}).get('timeout',''))" 2>/dev/null || echo "")
+        cfg_max_cycles=$("$PYTHON" -c "import json; c=json.load(open('${CONFIG_DIR}/config.json')); print(c.get('agent',{}).get('max_cycles',''))" 2>/dev/null || echo "")
+
+        [ -n "$cfg_max_turns" ]  && export MAX_TURNS="$cfg_max_turns"
+        [ -n "$cfg_timeout" ]    && export TIMEOUT="$cfg_timeout"
+        [ -n "$cfg_max_cycles" ] && export MAX_CYCLES="$cfg_max_cycles"
+
+        # Additional KLEE flags from config
+        local cfg_klee_extra
+        cfg_klee_extra=$("$PYTHON" -c "
+import json
+c=json.load(open('${CONFIG_DIR}/config.json'))
+flags=c.get('klee',{}).get('additional_flags',[])
+print(' '.join(flags))
+" 2>/dev/null || echo "")
+        if [ -n "$cfg_klee_extra" ]; then
+            for flag in $cfg_klee_extra; do
+                append_klee_flag "$flag"
+            done
+        fi
+
+        echo "[SE-CONFIG] Loaded config.json from ${CONFIG_DIR}"
+    fi
+
+    # --- Stubs Extra: global + per-spec (appended to MANUAL_STUBS) ---
+    # We build a merged stubs_extra file in RUN_DIR and pass it
+    local MERGED_STUBS_EXTRA="${HARNESS_DIR}/stubs_extra_merged.c"
+    local HAS_STUBS_EXTRA=false
+
+    if [ -f "${CONFIG_DIR}/stubs_extra.c" ]; then
+        echo "/* === Global stubs_extra.c === */" > "$MERGED_STUBS_EXTRA"
+        cat "${CONFIG_DIR}/stubs_extra.c" >> "$MERGED_STUBS_EXTRA"
+        HAS_STUBS_EXTRA=true
+        echo "[SE-CONFIG] Found global stubs_extra.c"
+    fi
+
+    if [ -f "${PER_SPEC_DIR}/stubs_extra.c" ]; then
+        if [ "$HAS_STUBS_EXTRA" = true ]; then
+            echo "" >> "$MERGED_STUBS_EXTRA"
+        else
+            : > "$MERGED_STUBS_EXTRA"
+        fi
+        echo "/* === Per-spec stubs_extra.c (${SPEC_STEM}) === */" >> "$MERGED_STUBS_EXTRA"
+        cat "${PER_SPEC_DIR}/stubs_extra.c" >> "$MERGED_STUBS_EXTRA"
+        HAS_STUBS_EXTRA=true
+        echo "[SE-CONFIG] Found per-spec stubs_extra.c for ${SPEC_STEM}"
+    fi
+
+    if [ "$HAS_STUBS_EXTRA" = true ]; then
+        # Append to existing MANUAL_STUBS or set it
+        if [ -n "${MANUAL_STUBS:-}" ]; then
+            export MANUAL_STUBS="${MANUAL_STUBS},${MERGED_STUBS_EXTRA}"
+        else
+            export MANUAL_STUBS="${MERGED_STUBS_EXTRA}"
+        fi
+    fi
+
+    # --- Types Extra: global + per-spec ---
+    local MERGED_TYPES_EXTRA="${HARNESS_DIR}/types_extra_merged.h"
+    local HAS_TYPES_EXTRA=false
+
+    if [ -f "${CONFIG_DIR}/types_extra.h" ]; then
+        echo "/* === Global types_extra.h === */" > "$MERGED_TYPES_EXTRA"
+        cat "${CONFIG_DIR}/types_extra.h" >> "$MERGED_TYPES_EXTRA"
+        HAS_TYPES_EXTRA=true
+        echo "[SE-CONFIG] Found global types_extra.h"
+    fi
+
+    if [ -f "${PER_SPEC_DIR}/types_extra.h" ]; then
+        if [ "$HAS_TYPES_EXTRA" = true ]; then
+            echo "" >> "$MERGED_TYPES_EXTRA"
+        else
+            : > "$MERGED_TYPES_EXTRA"
+        fi
+        echo "/* === Per-spec types_extra.h (${SPEC_STEM}) === */" >> "$MERGED_TYPES_EXTRA"
+        cat "${PER_SPEC_DIR}/types_extra.h" >> "$MERGED_TYPES_EXTRA"
+        HAS_TYPES_EXTRA=true
+        echo "[SE-CONFIG] Found per-spec types_extra.h for ${SPEC_STEM}"
+    fi
+
+    if [ "$HAS_TYPES_EXTRA" = true ]; then
+        export TYPES_EXTRA_FILE="${MERGED_TYPES_EXTRA}"
+    fi
+
+    # --- Prompt Extra: config.json + global file + per-spec file ---
+    local PROMPT_EXTRA_COMBINED=""
+
+    # From config.json
+    if [ -f "${CONFIG_DIR}/config.json" ]; then
+        local cfg_prompt
+        cfg_prompt=$("$PYTHON" -c "import json; c=json.load(open('${CONFIG_DIR}/config.json')); print(c.get('llm',{}).get('prompt_extra',''))" 2>/dev/null || echo "")
+        if [ -n "$cfg_prompt" ]; then
+            PROMPT_EXTRA_COMBINED="${cfg_prompt}"
+        fi
+    fi
+
+    # Global file
+    if [ -f "${CONFIG_DIR}/prompt_extra.txt" ]; then
+        PROMPT_EXTRA_COMBINED="${PROMPT_EXTRA_COMBINED}
+
+$(cat "${CONFIG_DIR}/prompt_extra.txt")"
+        echo "[SE-CONFIG] Found global prompt_extra.txt"
+    fi
+
+    # Per-spec file
+    if [ -f "${PER_SPEC_DIR}/prompt_extra.txt" ]; then
+        PROMPT_EXTRA_COMBINED="${PROMPT_EXTRA_COMBINED}
+
+$(cat "${PER_SPEC_DIR}/prompt_extra.txt")"
+        echo "[SE-CONFIG] Found per-spec prompt_extra.txt for ${SPEC_STEM}"
+    fi
+
+    # Write merged prompt to file so agent can read it
+    if [ -n "$PROMPT_EXTRA_COMBINED" ]; then
+        local PROMPT_FILE="${HARNESS_DIR}/prompt_extra_merged.txt"
+        echo "$PROMPT_EXTRA_COMBINED" > "$PROMPT_FILE"
+        export PROMPT_EXTRA_FILE="${PROMPT_FILE}"
+    fi
+}
+
 # --- Argument Construction ---
 
 # 1. KLEE Flags
@@ -110,6 +258,14 @@ append_klee_flag() {
 append_klee_flag "--libc=uclibc"
 append_klee_flag "--posix-runtime"
 append_klee_flag "--max-memory=4096"
+
+# Apply SE config extras BEFORE finalizing flags
+# (creates merged files in RUN_DIR, may update KLEE_FLAGS, MANUAL_STUBS, etc.)
+if [ -n "${SE_CONFIG_DIR}" ] && [ -d "${SE_CONFIG_DIR}" ]; then
+    mkdir -p "${RUN_DIR}"
+    resolve_se_config_extras "${SE_CONFIG_DIR}" "${STEM}" "${RUN_DIR}"
+fi
+
 KLEE_FLAGS="$(echo "${KLEE_FLAGS:-}" | xargs)"
 
 KLEE_FLAGS_ARG=()
@@ -136,7 +292,7 @@ if [[ -f "${COMPILE_COMMANDS_JSON}" ]]; then
   COMPILE_COMMANDS_ARG=( --compile-commands "${COMPILE_COMMANDS_JSON}" )
 fi
 
-# 6. Manual Stubs (From Config)
+# 6. Manual Stubs (From Config + SE-Config extras)
 MANUAL_STUBS_ARG=()
 if [[ -n "${MANUAL_STUBS:-}" ]]; then
     MANUAL_STUBS_ARG=( --manual-stubs "${MANUAL_STUBS}" )
@@ -154,6 +310,18 @@ if [[ -n "${EXTRA_AGENT_ARGS:-}" ]]; then
     read -r -a EXTRA_ARGS_ARR <<< "${EXTRA_AGENT_ARGS}"
 fi
 
+# 9. Types Extra (From SE-Config)
+TYPES_EXTRA_ARG=()
+if [[ -n "${TYPES_EXTRA_FILE:-}" ]]; then
+    TYPES_EXTRA_ARG=( --types-extra "${TYPES_EXTRA_FILE}" )
+fi
+
+# 10. Prompt Extra (From SE-Config)
+PROMPT_EXTRA_ARG=()
+if [[ -n "${PROMPT_EXTRA_FILE:-}" ]]; then
+    PROMPT_EXTRA_ARG=( --prompt-extra-file "${PROMPT_EXTRA_FILE}" )
+fi
+
 echo "[WORKER] Processing: ${STEM} (Target: ${VUL_FILE}:${VUL_LINE})"
 
 # ==============================================================================
@@ -161,7 +329,9 @@ echo "[WORKER] Processing: ${STEM} (Target: ${VUL_FILE}:${VUL_LINE})"
 # ==============================================================================
 echo "[WORKER] Starting Search Phase..."
 
-# Call Python Driver
+# Call Python Driver — capture exit code but NEVER abort.
+# Phases 3+4 MUST always run to write summary.tsv / validation_summary.tsv.
+AGENT_RC=0
 "$PYTHON" "${SCRIPTS_DIR}/run_agent_for_spec.py" \
   --project-id "${PROJECT_ID}" \
   --src-root "${SRC_ROOT}" \
@@ -188,46 +358,110 @@ echo "[WORKER] Starting Search Phase..."
   "${BUILD_PROJECT_BC_CMD_ARG[@]}" \
   "${MANUAL_STUBS_ARG[@]}" \
   "${SETUP_SCRIPT_ARG[@]}" \
-  "${EXTRA_ARGS_ARR[@]}"
+  "${TYPES_EXTRA_ARG[@]}" \
+  "${PROMPT_EXTRA_ARG[@]}" \
+  "${EXTRA_ARGS_ARR[@]}" || AGENT_RC=$?
+
+if [[ $AGENT_RC -ne 0 ]]; then
+    echo "[WORKER] Agent exited with code $AGENT_RC"
+fi
 
 # ==============================================================================
 # PHASE 3: STRICT VALIDATION (The Judge)
 # ==============================================================================
 echo "[WORKER] Starting Validation Phase..."
 
-FINDINGS_DIR="${RUN_DIR}/findings"
-VALIDATOR_SCRIPT="${SCRIPTS_DIR}/validate_finding.py"
-
 VALIDATED_COUNT=0
 STUBBED_COUNT=0
 
-if [[ -d "$FINDINGS_DIR" && -f "$VALIDATOR_SCRIPT" ]]; then
-    # Iterate over every finding exported by the agent
-    while read -r finding_path; do
-        F_NAME=$(basename "$finding_path")
-        echo "[WORKER] Validating: ${F_NAME}"
-        
-        # Capture output. exit code 0 means "Reproduced"
-        VAL_OUT=$("$PYTHON" "$VALIDATOR_SCRIPT" --finding "$finding_path" --src-root "${SRC_ROOT}" 2>&1)
-        VAL_RC=$?
-        
-        echo "$VAL_OUT" | sed 's/^/    /' 
-        
-        VAL_RESULT="FAIL"
-        
-        if [[ $VAL_RC -eq 0 ]]; then
-            VALIDATED_COUNT=$((VALIDATED_COUNT + 1))
-            VAL_RESULT="PASS"
-        fi
-        
-        (
-          flock -x 200
-          echo -e "${STEM}\t${F_NAME}\t${VAL_RESULT}\t$(date -Iseconds)" >> "${VALIDATION_LOG}"
-        ) 200>"${VALIDATION_LOG}.lock"
-        
-    done < <(find "$FINDINGS_DIR" -mindepth 1 -maxdepth 1 -type d -name "finding_*" | sort)
+# Write validation_summary.tsv header if empty
+(
+  flock -x 200
+  if [ ! -s "$VALIDATION_LOG" ]; then
+      echo -e "Spec\tCrashIdx\tRelevance\tBugType\tBugFunc\tOrigFile\tOrigLine\tVerdict\tAsanConfirmed\tTimestamp" > "$VALIDATION_LOG"
+  fi
+) 200>"${VALIDATION_LOG}.lock"
+
+# Read ALL crashes from bug_report.json (the agent's output).
+# Each crash gets one row in validation_summary.tsv.
+BUG_REPORT="${RUN_DIR}/bug_report.json"
+if [[ ! -f "$BUG_REPORT" ]]; then
+    # Also check harness parent
+    BUG_REPORT="${RUN_DIR}/harness/../bug_report.json"
+fi
+
+if [[ -f "$BUG_REPORT" ]]; then
+    echo "[WORKER] Reading bug report: ${BUG_REPORT}"
+
+    # Extract all crashes via single Python call, output as TSV lines
+    CRASH_LINES=$("$PYTHON" -c "
+import json, sys
+try:
+    r = json.load(open('$BUG_REPORT'))
+    verdict = r.get('summary', {}).get('verdict', 'FP')
+    cwe = r.get('summary', {}).get('cwe', '')
+
+    crashes = r.get('all_asan_crashes', [])
+    if not crashes:
+        # Fallback: use primary asan_result if all_asan_crashes is empty
+        ar = r.get('asan_result', {})
+        if ar.get('triggered'):
+            crashes = [{
+                'error_type': ar.get('error_type', ''),
+                'crash_function': ar.get('crash_function', ''),
+                'original_file': ar.get('original_file', ''),
+                'original_line': ar.get('original_line', 0),
+                'relevance': r.get('summary', {}).get('crash_relevance', 'unknown'),
+            }]
+    if not crashes:
+        # Fallback: use klee_crash if no ASAN data
+        kc = r.get('klee_crash', {})
+        if kc.get('error_type'):
+            crashes = [{
+                'error_type': kc.get('error_type', ''),
+                'crash_function': r.get('vulnerability', {}).get('function', ''),
+                'original_file': kc.get('original_file', ''),
+                'original_line': kc.get('original_line', 0),
+                'relevance': 'klee_only',
+            }]
+
+    for i, c in enumerate(crashes):
+        def s(v): return str(v).replace('\t', ' ').replace('\n', ' ')[:200]
+        etype = s(c.get('error_type', ''))
+        func = s(c.get('crash_function', ''))
+        ofile = s(c.get('original_file', ''))
+        oline = c.get('original_line', 0)
+        rel = s(c.get('relevance', ''))
+        asan = 'true' if c.get('error_type') else 'false'
+        # TSV: idx, relevance, bug_type, func, file, line, verdict, asan
+        print(f'{i}\t{rel}\t{etype}\t{func}\t{ofile}\t{oline}\t{verdict}\t{asan}')
+except Exception as e:
+    print(f'ERR\t\t{e}\t\t\t\tFP\tfalse', file=sys.stderr)
+" 2>/dev/null) || true
+
+    if [[ -n "$CRASH_LINES" ]]; then
+        CRASH_COUNT=0
+        while IFS=$'\t' read -r C_IDX C_REL C_TYPE C_FUNC C_FILE C_LINE C_VERDICT C_ASAN; do
+            CRASH_COUNT=$((CRASH_COUNT + 1))
+            echo "[WORKER] Crash #${C_IDX}: ${C_TYPE} in ${C_FUNC} at ${C_FILE}:${C_LINE} [${C_REL}]"
+
+            # Count validated (ASan-confirmed) crashes
+            if [[ "$C_ASAN" == "true" ]]; then
+                VALIDATED_COUNT=$((VALIDATED_COUNT + 1))
+            fi
+
+            (
+              flock -x 200
+              echo -e "${STEM}\t${C_IDX}\t${C_REL}\t${C_TYPE}\t${C_FUNC}\t${C_FILE}\t${C_LINE}\t${C_VERDICT}\t${C_ASAN}\t$(date -Iseconds)" >> "${VALIDATION_LOG}"
+            ) 200>"${VALIDATION_LOG}.lock"
+
+        done <<< "$CRASH_LINES"
+        echo "[WORKER] Total crashes: $CRASH_COUNT (ASan-confirmed: $VALIDATED_COUNT)"
+    else
+        echo "[WORKER] Bug report exists but no crashes extracted."
+    fi
 else
-    echo "[WORKER] No findings to validate."
+    echo "[WORKER] No bug report found — no crashes to log."
 fi
 
 # ==============================================================================
@@ -236,16 +470,55 @@ fi
 END_TIME=$(date +%s)
 TOTAL_DURATION=$((END_TIME - START_TIME))
 
-# 1. Parse Agent Report
+# 1. Parse Agent Report — extract all fields from run_report.json
 REPORT_JSON="${RUN_DIR}/run_report.json"
 SEARCH_STATUS="UNKNOWN"
+VERDICT="FP"
 TOKENS=0
+TURNS=0
+KLEE_RUNS=0
+CRASH_RELEVANCE=""
+SECONDARY_BUGS=0
+FAILURE_REASON=""
+BUG_TYPE=""
+BUG_FILE=""
+BUG_LINE=0
+BUG_FUNC=""
+BUG_CWE=""
+ASAN_CONFIRMED="false"
 
 if [[ -f "$REPORT_JSON" ]]; then
-    SEARCH_STATUS=$("$PYTHON" -c "import json; print(json.load(open('$REPORT_JSON')).get('search_status', 'ERR'))")
-    TOKENS=$("$PYTHON" -c "import json; print(json.load(open('$REPORT_JSON')).get('metrics', {}).get('tokens_total', 0))")
+    # Single Python call to extract all fields at once (efficient)
+    # Values are single-quoted to handle spaces/special chars safely
+    eval "$("$PYTHON" -c "
+import json, sys
+try:
+    r = json.load(open('$REPORT_JSON'))
+    m = r.get('metrics', {})
+    b = r.get('bug', {})
+    # Shell-safe: replace tabs/newlines/single-quotes with spaces, then single-quote
+    def s(v): return str(v).replace('\t',' ').replace('\n',' ').replace(\"'\",\" \")[:200]
+    def q(v): return \"'\" + s(v) + \"'\"
+    print(f'SEARCH_STATUS={q(r.get(\"search_status\",\"ERR\"))}')
+    print(f'VERDICT={q(r.get(\"verdict\",\"FP\"))}')
+    print(f'TOKENS={m.get(\"tokens_total\",0)}')
+    print(f'TURNS={m.get(\"turns\",0)}')
+    print(f'KLEE_RUNS={m.get(\"klee_runs\",0)}')
+    print(f'CRASH_RELEVANCE={q(r.get(\"crash_relevance\",\"\"))}')
+    print(f'SECONDARY_BUGS={r.get(\"secondary_bugs\",0)}')
+    print(f'FAILURE_REASON={q(r.get(\"failure_reason\",\"\"))}')
+    print(f'BUG_TYPE={q(b.get(\"type\",\"\"))}')
+    print(f'BUG_FILE={q(b.get(\"file\",\"\"))}')
+    print(f'BUG_LINE={b.get(\"line\",0)}')
+    print(f'BUG_FUNC={q(b.get(\"function\",\"\"))}')
+    print(f'BUG_CWE={q(b.get(\"cwe\",\"\"))}')
+    print(f'ASAN_CONFIRMED={str(b.get(\"asan_confirmed\",False)).lower()}')
+except Exception as e:
+    print(f'SEARCH_STATUS=ERR', file=sys.stderr)
+" 2>/dev/null)" || true
 else
     SEARCH_STATUS="CRASHED"
+    FAILURE_REASON="run_report.json not found (agent exit code: ${AGENT_RC})"
 fi
 
 # 2. Determine Final Worker Status
@@ -261,12 +534,25 @@ elif [[ "$SEARCH_STATUS" == *"FOUND_UNTARGETED"* ]]; then
     FINAL_STATUS="FP_UNTARGETED"
 fi
 
-echo "[WORKER] Final Status: $FINAL_STATUS (Time: ${TOTAL_DURATION}s, Tokens: $TOKENS)"
+echo "[WORKER] Final Status: $FINAL_STATUS (Verdict: $VERDICT, Time: ${TOTAL_DURATION}s, Tokens: $TOKENS, Turns: $TURNS, KLEE: $KLEE_RUNS)"
+if [[ -n "$BUG_TYPE" ]]; then
+    echo "[WORKER] Bug: $BUG_TYPE at $BUG_FILE:$BUG_LINE ($BUG_FUNC) CWE=$BUG_CWE ASAN=$ASAN_CONFIRMED"
+fi
+if [[ -n "$CRASH_RELEVANCE" ]]; then
+    echo "[WORKER] Crash Relevance: $CRASH_RELEVANCE"
+fi
+if [[ -n "$FAILURE_REASON" ]]; then
+    echo "[WORKER] Failure: $FAILURE_REASON"
+fi
+if [[ "$SECONDARY_BUGS" -gt 0 ]]; then
+    echo "[WORKER] Secondary Bugs: $SECONDARY_BUGS"
+fi
 
+# 3. Write summary.tsv
 (
   flock -x 200
   if [ ! -s "$SUMMARY_TSV" ]; then
-      echo -e "Spec\tFinalStatus\tSearchStatus\tValTP\tValStub\tTime\tTokens" > "$SUMMARY_TSV"
+      echo -e "Spec\tFinalStatus\tVerdict\tSearchStatus\tValTP\tValStub\tTime\tTokens\tTurns\tKleeRuns\tBugType\tBugFile\tBugLine\tBugFunc\tCWE\tAsanConfirmed\tCrashRelevance\tSecondaryBugs\tFailureReason" > "$SUMMARY_TSV"
   fi
-  echo -e "${STEM}\t${FINAL_STATUS}\t${SEARCH_STATUS}\t${VALIDATED_COUNT}\t${STUBBED_COUNT}\t${TOTAL_DURATION}\t${TOKENS}" >> "$SUMMARY_TSV"
+  echo -e "${STEM}\t${FINAL_STATUS}\t${VERDICT}\t${SEARCH_STATUS}\t${VALIDATED_COUNT}\t${STUBBED_COUNT}\t${TOTAL_DURATION}\t${TOKENS}\t${TURNS}\t${KLEE_RUNS}\t${BUG_TYPE}\t${BUG_FILE}\t${BUG_LINE}\t${BUG_FUNC}\t${BUG_CWE}\t${ASAN_CONFIRMED}\t${CRASH_RELEVANCE}\t${SECONDARY_BUGS}\t${FAILURE_REASON}" >> "$SUMMARY_TSV"
 ) 200>"${SUMMARY_TSV}.lock"

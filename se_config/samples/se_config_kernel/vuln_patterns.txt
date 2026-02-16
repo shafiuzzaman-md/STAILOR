@@ -1,0 +1,46 @@
+# vuln_patterns.txt — WMI patterns for Linux kernel analysis
+# Each PATTERN corresponds to a Weird Machine Instruction type.
+
+PATTERN: WMI-1 Stale Reference — Object freed without clearing cross-subsystem pointers
+  FILES: net/netfilter/*.c, net/core/*.c, net/ipv4/*.c
+  CWE: 416
+  HINT: Look for kfree/put operations on objects (net_device, sock, nft_chain)
+        where other subsystems hold pointers (e.g., chain->dev, sk->sk_net).
+        The free path must NOT call back into referencing subsystems to clear
+        their pointers. Key indicator: unregister/destroy function that frees
+        the object without a "notify all holders" mechanism.
+
+PATTERN: WMI-1 Stale Reference — list_del without clearing back-pointers
+  FILES: net/netfilter/nf_tables_api.c, net/core/dev.c
+  CWE: 416
+  HINT: Look for list_del(&obj->list) followed by kfree(obj) where other
+        structs still hold a direct pointer (not list_head) to obj.
+        The list removal only unlinks from the container; back-references
+        from other structs remain dangling.
+
+PATTERN: WMI-2 Type Confusion Leak — Stale pointer dereference reads reclaimed memory
+  FILES: net/netfilter/*.c, include/net/netfilter/*.h
+  CWE: 125
+  HINT: Look for field reads through pointers to freed objects. After the
+        object is freed and memory reclaimed by a different type (same slab
+        size), reading obj->field returns data from the new occupant
+        interpreted as the old type. Key: print/dump/show functions that
+        dereference potentially-stale pointers (e.g., printing chain->dev->name).
+
+PATTERN: WMI-3 Arbitrary Free — Cleanup traverses attacker-controlled linked structure
+  FILES: net/netfilter/nf_tables_api.c, net/netfilter/nf_tables_core.c
+  CWE: 416
+  HINT: Look for destructor/cleanup functions that follow a pointer to find
+        objects to free. If the pointer can be stale (WMI-1) and the memory
+        reclaimed with attacker-controlled data, the cleanup iterates a fake
+        linked list and frees attacker-chosen addresses. Key: any loop in a
+        destroy function that reads list heads through dereferenced pointers.
+
+PATTERN: WMI-4 Write-What-Where — Reclaim freed memory and overwrite function pointers
+  FILES: fs/pipe.c, ipc/msg.c, net/packet/af_packet.c
+  CWE: 123
+  HINT: After an arbitrary free (WMI-3), the freed block can be reclaimed
+        by allocating same-sized objects. Look for structs with function
+        pointers in popular slab caches (kmalloc-64, kmalloc-128, kmalloc-256).
+        Key targets: pipe_buffer (ops), msg_msg (security), sk_buff (destructor),
+        file (f_op), timerfd_ctx (callback).

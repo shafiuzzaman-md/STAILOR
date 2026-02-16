@@ -61,20 +61,14 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             r"cwe-126"
         ],
         "suspect_calls": ["memcmp", "strcmp", "strncmp", "strchr", "strstr", "bcmp", "strlen", "strnlen"],
-        "oracle_type": "instrumented_predicate",
-        "assertion_macro": "BUG_ASSERT(condition)",
+        "oracle_type": "probe_trap",
+        "assertion_macro": "STAILOR_PROBE()",
         "planner_instruction": (
             "This is a Buffer Overread (CWE-125/126).\n"
-            "*** STRICT PLACEMENT & LOGIC RULES ***\n"
-            "1. ORACLE: Use 'instrumentation' to place BUG_ASSERT() immediately BEFORE the vulnerable read.\n"
-            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_before', 'code': 'BUG_ASSERT(...);' }\n"
-            "2. INJECT DEFINITIONS (CRITICAL): Inject at TOP of target file:\n"
-            "   - Directive: {\n"
-            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
-            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
-            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
-            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif'\n"
-            "     }\n"
+            "*** PROBE-TRAP PROTOCOL ***\n"
+            "1. ORACLE: Use 'instrumentation' to place STAILOR_PROBE() immediately BEFORE the vulnerable read.\n"
+            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_before', 'code': 'STAILOR_PROBE();' }\n"
+            "2. LOGIC TRAP: If KLEE is silent (masked bug), use ReplaceCode to inject `if (cond) STAILOR_TRAP();`.\n"
             "3. CONTAINER LOGIC: If the bug is a read past the end of a string/buffer, ensure the input length exceeds the buffer size.\n"
             "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX + "\n" + OOB_CONSTRAINT_GUIDE
         ),
@@ -108,28 +102,19 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
         ],
         "suspect_calls": ["memcpy", "memmove", "bcopy"],
         # OOB_READ often does NOT crash. We confirm via an instrumented, rule-driven predicate at the vuln site.
-        "oracle_type": "instrumented_predicate",
-        "assertion_macro": "BUG_ASSERT(condition)",
+        "oracle_type": "probe_trap",
+        "assertion_macro": "STAILOR_PROBE()",
         "planner_instruction": (
             "This is an Out-of-Bounds Read (CWE-125).\n"
-            "*** STRICT PLACEMENT & LOGIC RULES ***\n"
-            "1. NO HARNESS ASSERTIONS: Do NOT place BUG_ASSERT() or REACH_ASSERT() in the harness.\n"
-            "2. TARGET ASSERTION (BUG): Use 'instrumentation' to place BUG_ASSERT() immediately BEFORE the vulnerable line.\n"
-            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_before', 'code': 'BUG_ASSERT(...);' }\n"
-            "3. TARGET ASSERTION (REACH): Use 'instrumentation' to place REACH_ASSERT() immediately AFTER the vulnerable line.\n"
-            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_after', 'code': 'REACH_ASSERT();' }\n"
-            "4. INJECT DEFINITIONS (CRITICAL): You MUST inject these definitions at the TOP of the target file (Line 1).\n"
-            "   - Directive: {\n"
-            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
-            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
-            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
-            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif'\n"
-            "     }\n"
-            "5. SMART STUBBING: Identify static hash/crypto functions and stub them IN-SOURCE to return a CONSTANT to force collisions.\n"
+            "*** PROBE-TRAP PROTOCOL ***\n"
+            "1. NO HARNESS ASSERTIONS: Do NOT place STAILOR_TRAP() in the harness.\n"
+            "2. TARGET ORACLE (PROBE): Use 'instrumentation' to place STAILOR_PROBE() immediately BEFORE the vulnerable line.\n"
+            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_before', 'code': 'STAILOR_PROBE();' }\n"
+            "3. SMART STUBBING: Identify static hash/crypto functions and stub them IN-SOURCE to return a CONSTANT to force collisions.\n"
             "   IMPORTANT: Prefer a NONZERO constant (e.g., 0x80000000) if the data structure treats 0 as an 'empty/sentinel' hash.\n"
-            "6. CONTAINER LOGIC: Prime the state (concrete setup -> symbolic trigger).\n"
+            "4. CONTAINER LOGIC: Prime the state (concrete setup -> symbolic trigger).\n"
             "   - LENGTH-MISMATCH REQUIREMENT: If checking `entry->name[len]`, insert short key first, then lookup with larger length.\n"
-            "7. LOOP POLICY (IMPORTANT): Do NOT add new loops over symbolic arrays purely to constrain bytes.\n"
+            "5. LOOP POLICY (IMPORTANT): Do NOT add new loops over symbolic arrays purely to constrain bytes.\n"
             "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX + "\n" + OOB_CONSTRAINT_GUIDE
             + "\n" + IN_SOURCE_STUBBING
         ),
@@ -170,22 +155,14 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             r"classic-overflow"
         ],
         "suspect_calls": ["strcpy", "sprintf", "gets", "strcat"],
-        "oracle_type": "crash",
-        "assertion_macro": "BUG_ASSERT(0)",
+        "oracle_type": "probe_trap",
+        "assertion_macro": "STAILOR_PROBE()",
         "planner_instruction": (
             "This is a Classic Buffer Overflow (CWE-120).\n"
             "Input is copied without checking its size (e.g. strcpy, sprintf).\n"
             "*** ORACLE & PLACEMENT ***\n"
-            "1. ORACLE: Use 'BUG_ASSERT(0)' as a post-call landing marker *AFTER* the vulnerable call.\n"
+            "1. ORACLE: Use 'STAILOR_PROBE()' as a landing marker *BEFORE* the vulnerable call.\n"
             "2. GOAL: Provide an input larger than the destination buffer to trigger a crash.\n"
-            "*** INJECT DEFINITIONS ***\n"
-            "You MUST inject definitions at the TOP of the target file (Line 1):\n"
-            "   - Directive: {\n"
-            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
-            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
-            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
-            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif\\n'\n"
-            "     }\n"
             "\n" + GENERIC_STUBBING_POLICY + "\n" + GENERIC_LINKER_FIX
         ),
         "frozen_assumptions": [
@@ -215,24 +192,13 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             r"stack-overflow", r"length-misuse"
         ],
         "suspect_calls": ["memcpy", "memmove", "memset", "snprintf"],
-        "oracle_type": "crash",
-        "assertion_macro": "BUG_ASSERT(0)",
+        "oracle_type": "probe_trap",
+        "assertion_macro": "STAILOR_PROBE()",
         "planner_instruction": (
             "This is a Memory Corruption bug (Write/Overflow: CWE-787/805).\n"
-            "ORACLE: Use 'BUG_ASSERT(0)' as a post-call landing marker *AFTER* the vulnerable call.\n"
-            "Logic: 'If I reach this line, the crash did NOT happen.' (KLEE/ASan will catch the crash automatically).\n"
+            "ORACLE: Use 'STAILOR_PROBE()' as a landing marker *BEFORE* the vulnerable call.\n"
+            "Logic: Probe confirms reachability. KLEE memory checker confirms the bug.\n"
             "HARNESS GOAL: Call the function with inputs that cause a write PAST the allocated buffer.\n"
-            "*** CRITICAL: INJECT DEFINITIONS ***\n"
-            "You MUST inject these definitions at the TOP of the target file (Line 1) to support the oracle:\n"
-            "   - Directive: {\n"
-            "       'file': '<target_file.c>', 'line': 1, 'kind': 'insert_before',\n"
-            "       'code': '#include <stdlib.h>\\n#include <assert.h>\\n#include <klee/klee.h>\\n"
-            "#ifndef BUG_ASSERT\\n#define BUG_ASSERT(cond) klee_assert(!(cond) && \"BUG_ASSERT\")\\n#endif\\n"
-            "#ifndef REACH_ASSERT\\n#define REACH_ASSERT() klee_assert(0 && \"REACH_ASSERT\")\\n#endif\\n'\n"
-            "     }\n"
-            "*** CRITICAL: PLACEMENT ***\n"
-            "For OOB_WRITE, you MUST use 'insert_after' for the BUG_ASSERT(0) directive.\n"
-            "Placing it 'insert_before' will crash the program before the bug triggers (False Positive).\n"
             "*** FORBIDDEN STUBS (CRITICAL) ***\n"
             "1. Do NOT stub 'strlen', 'malloc', 'calloc', or 'free' in the harness.\n"
             "   - Reason: The target library uses the REAL libc functions. Your harness #define may be ignored by the target (Phantom Stub).\n"
@@ -267,19 +233,18 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             r"use-after-free", 
             r"free-then-use", 
             r"free-then-deref", 
-            r"free-then-callarg",
+            r"free-then-callarg", 
             r"free-then-return",
             r"lookup-remove-use"
         ],
         "suspect_calls": ["free", "xmlFree", "xmlHashRemoveEntry", "xmlHashFree", "xmlDictFree"],
-        "oracle_type": "crash",
-        "assertion_macro": "BUG_ASSERT(0)",
+        "oracle_type": "probe_trap",
+        "assertion_macro": "STAILOR_PROBE()",
         "planner_instruction": (
             "This is a Use-After-Free (CWE-416).\n"
             "*** ORACLE & PLACEMENT ***\n"
-            "1. ORACLE: Use 'BUG_ASSERT(0)' as a post-use landing marker immediately AFTER the vulnerable use site.\n"
-            "   - Logic: If execution reaches this line, the UAF crash did NOT happen (or ASan missed it).\n"
-            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_after', 'code': 'BUG_ASSERT(0);' }\n"
+            "1. ORACLE: Use 'STAILOR_PROBE()' as a landing marker immediately BEFORE the vulnerable use site.\n"
+            "   - Directive: { 'file': '...', 'line': N, 'kind': 'insert_before', 'code': 'STAILOR_PROBE();' }\n"
             "2. TRIGGER SEQUENCE: You must construct a path: Allocate -> Free -> Use.\n"
             "   - Case A (Direct): free(p); use(p);\n"
             "   - Case B (Lookup-Remove-Use): \n"
@@ -306,13 +271,12 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             r"free-then-free"
         ],
         "suspect_calls": ["free", "xmlFree", "xmlHashFree"],
-        "oracle_type": "crash",
-        "assertion_macro": "BUG_ASSERT(0)",
+        "oracle_type": "probe_trap",
+        "assertion_macro": "STAILOR_PROBE()",
         "planner_instruction": (
             "This is a Double Free (CWE-415).\n"
             "*** ORACLE & PLACEMENT ***\n"
-            "1. ORACLE: Use 'BUG_ASSERT(0)' immediately AFTER the SECOND free call.\n"
-            "   - Logic: If execution survives the second free, the bug failed to trigger.\n"
+            "1. ORACLE: Use 'STAILOR_PROBE()' immediately BEFORE the SECOND free call.\n"
             "2. TRIGGER SEQUENCE: Allocate -> Free -> Free.\n"
             "   - Do NOT set the pointer to NULL between frees (that makes the second free safe).\n"
             "   - Ensure the execution path actually hits both frees.\n"
@@ -339,37 +303,43 @@ STRATEGIES: Dict[str, Dict[str, Any]] = {
             r"cwe-190", r"cwe-191", r"cwe-680", r"cwe-681",
         ],
         "oracle_type": "instrumented_predicate",
-        "assertion_macro": "BUG_ASSERT(condition)",
+        "assertion_macro": "STAILOR_TRAP()",
         "planner_instruction": (
             "This is an Integer Overflow / Size Computation bug (e.g., CWE-190/191/680).\n"
             "ORACLE: Use an instrumented predicate at the computation/alloc site.\n"
             "*** PLACEMENT RULES ***\n"
-            "1. Prefer target-site instrumentation: insert BUG_ASSERT(<overflow predicate>) immediately BEFORE the vulnerable computation or allocation.\n"
-            "2. Insert REACH_ASSERT() immediately AFTER the line to confirm reachability.\n"
+            "1. Prefer target-site instrumentation: insert `if (<overflow predicate>) STAILOR_TRAP();` immediately BEFORE the vulnerable computation or allocation.\n"
+            "2. Insert STAILOR_PROBE() immediately AFTER the line to confirm reachability.\n"
             "*** PREDICATE GUIDANCE ***\n"
             "You MUST express overflow using standard C idioms:\n"
             " - Prefer __builtin_add_overflow / __builtin_mul_overflow if available.\n"
             " - Otherwise use widening arithmetic (e.g., cast to unsigned __int128) and compare.\n"
             "Examples:\n"
-            " - size_t out; BUG_ASSERT(__builtin_add_overflow(a, b, &out));\n"
-            " - BUG_ASSERT((unsigned __int128)a * (unsigned __int128)b > (unsigned __int128)SIZE_MAX);\n"
+            " - size_t out; if (__builtin_add_overflow(a, b, &out)) STAILOR_TRAP();\n"
+            " - if ((unsigned __int128)a * (unsigned __int128)b > (unsigned __int128)SIZE_MAX) STAILOR_TRAP();\n"
         ),
     },
 
     "LOGIC": {
         "match": [],
         "oracle_type": "predicate",
-        "assertion_macro": "BUG_ASSERT(condition)",
+        "assertion_macro": "STAILOR_TRAP()",
         "planner_instruction": (
             "This is a Logic Bug or Integer Issue. "
             "You MUST write a C boolean expression (Predicate) that is TRUE when the bug happens. "
-            "Example: BUG_ASSERT(result < 0)."
+            "Example: if (result < 0) STAILOR_TRAP();"
         ),
     },
 }
 
 
 def infer_strategy(spec_json: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+    # 0) Honor an explicit strategy from upstream static analysis / spec when provided.
+    explicit = (spec_json.get('strategy_name') or spec_json.get('strategy') or '').strip()
+    if explicit:
+        key = explicit.upper()
+        if key in STRATEGIES:
+            return key, STRATEGIES[key]
     rule_id = str(spec_json.get("rule_id", "")).lower()
     msg = str(spec_json.get("message", "")).lower()
     filename = str(spec_json.get("file", "")).lower()

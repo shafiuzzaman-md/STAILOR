@@ -1,5 +1,5 @@
 # rules/stailor-queries/suites/stailor.qls
-- description: Comprehensive Candidate Generation (Standard + Custom + Integer Overflow + UAF)
+- description: Comprehensive Candidate Generation (Standard + Custom + Integer Overflow + UAF + WMI + Kernel)
   from: codeql/cpp-queries
   queries: '.'
   include:
@@ -31,12 +31,50 @@
 - query: queries/CWE-125_CursorLookaheadRead_MissingRemainingBytesCheck.ql 
 - query: queries/CWE-787_OutOfBoundsWrite.ql
 
-
-
-
 # Use-After-Free (Standardized Custom Rules)
-- query: queries/CWE-416_UseAfterFree_FreeThenDeref.ql        # formerly cwe-416-free-then-deref-intra.ql
-- query: queries/CWE-416_UseAfterFree_FreeThenUse.ql          # formerly cwe-416-free-then-use-intra-fieldcollapse.ql
-- query: queries/CWE-416_UseAfterFree_FreeThenCallArg.ql      # formerly cwe-416-free-then-callarg-intra-fieldcollapse.ql
-- query: queries/CWE-416_UseAfterFree_LookupRemoveUse.ql      # formerly cwe-416-lookup-remove-use-intra.ql
-- query: queries/CWE-416_UseAfterFree_FreeThenReturn.ql       # formerly cwe-416-libxml2-free-then-use-intra-fieldcollapse.ql
+- query: queries/CWE-416_UseAfterFree_FreeThenDeref.ql
+- query: queries/CWE-416_UseAfterFree_FreeThenUse.ql
+- query: queries/CWE-416_UseAfterFree_FreeThenCallArg.ql
+- query: queries/CWE-416_UseAfterFree_LookupRemoveUse.ql
+- query: queries/CWE-416_UseAfterFree_FreeThenReturn.ql
+
+# =============================================================================
+# Weird Machine Instruction (WMI) Rules — Multi-step Exploitation Primitives
+# =============================================================================
+# These rules detect the building blocks of UAF exploitation chains like
+# CVE-2024-26808 (Linux Netfilter). Each WMI is a step in the chain:
+#   WMI-1 → WMI-2 → WMI-3 → WMI-4 → Code Execution
+#
+# See README for full WMA/WMI/WMP taxonomy.
+
+# WMI-1: Stale Reference Creation
+#   Object freed without invalidating all pointers to it.
+#   Kernel: kfree(dev) without clearing chain->dev
+- query: queries/WMI-1_StaleReference_FreeWithoutInvalidation.ql
+- query: queries/WMI-1b_StaleReference_IncompleteUnlink.ql
+
+# WMI-2: Information Leak via Type Confusion
+#   Stale pointer dereferenced → reads reclaimed memory as original type.
+#   Kernel: reading chain->dev->name after dev reclaimed by packet_fanout
+- query: queries/WMI-2_TypeConfusionLeak_StaleDeref.ql
+
+# WMI-3: Arbitrary Free via Stale Traversal
+#   Cleanup function follows stale pointer to find objects to free.
+#   Kernel: chain destroy follows stale dev hook list → kfree(attacker_addr)
+- query: queries/WMI-3_ArbitraryFree_StaleTraversal.ql
+
+# WMI-4: Write-What-Where via Reclaim
+#   Freed memory reclaimed by attacker-controlled allocation, then written.
+#   Kernel: reclaim with pipe_buffer, overwrite ops pointer
+- query: queries/WMI-4_WriteWhatWhere_ReclaimOverwrite.ql
+
+# =============================================================================
+# Kernel-Specific: Structural Vulnerability Patterns
+# =============================================================================
+# Cross-subsystem lifetime mismatches and exploitation targets.
+
+# Lifecycle mismatch: pointer stored without refcount, dereferenced in destructor
+- query: queries/KernelLifecycleMismatch_DeviceRefcount.ql
+
+# Exploitation target: struct with function pointers in reclaimable slab
+- query: queries/KernelExploitTarget_FuncPtrInReclaimableStruct.ql

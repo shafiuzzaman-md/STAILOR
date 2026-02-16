@@ -1,0 +1,7 @@
+For this specific vulnerability (dict.c OOB read):
+
+- The OOB read is in xmlDictLookup when len=-1 and string is not null-terminated
+- Make the length parameter symbolic to explore the negative length path
+- The dict pointer must be concrete (from xmlDictCreate), not symbolic
+- The dictionary must have at least one entry before the vulnerable lookup
+- Focus on making the input string symbolic with bounded size (e.g., 64 bytes)

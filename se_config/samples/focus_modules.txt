@@ -1,0 +1,38 @@
+# focus_modules.txt — Limit analysis to specific files/directories
+#
+# One pattern per line. Supports glob syntax.
+# Lines starting with ! are exclusions.
+# Lines starting with # are comments.
+#
+# This is useful for large codebases (Linux kernel, Chromium, etc.)
+# where you only want to analyze a specific subsystem.
+
+# --- Example: libxml2 parser core ---
+parser.c
+parserInternals.c
+dict.c
+hash.c
+tree.c
+entities.c
+encoding.c
+xmlIO.c
+uri.c
+buf.c
+include/libxml/*.h
+
+# Exclude test and example code
+!testapi.c
+!testHTML.c
+!runtest.c
+!example/**
+
+# --- Example: Linux kernel networking (uncomment to use) ---
+# net/ipv4/*.c
+# net/ipv6/*.c
+# net/core/*.c
+# net/netfilter/*.c
+# include/net/*.h
+# include/linux/skbuff.h
+# include/linux/tcp.h
+# !net/*/test_*.c
+# !tools/**

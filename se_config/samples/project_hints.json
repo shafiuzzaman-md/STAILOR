@@ -1,0 +1,106 @@
+{
+  "_comment": "Project-specific hints for STAILOR. Place in se_config/<project>/project_hints.json",
+
+  "project": {
+    "name": "linux-kernel-net",
+    "description": "Linux kernel networking subsystem (net/ipv4, net/ipv6)",
+    "language": "c",
+    "build_system": "kbuild"
+  },
+
+  "scope": {
+    "description": "Limit analysis to specific modules/directories/files",
+    "include_paths": [
+      "net/ipv4/",
+      "net/ipv6/",
+      "net/core/",
+      "include/net/",
+      "include/linux/skbuff.h",
+      "include/linux/tcp.h"
+    ],
+    "exclude_paths": [
+      "drivers/",
+      "arch/",
+      "sound/",
+      "fs/"
+    ],
+    "include_functions": [],
+    "exclude_functions": [
+      "printk",
+      "pr_debug",
+      "WARN_ON",
+      "BUG_ON"
+    ]
+  },
+
+  "build_hints": {
+    "description": "Help the build system find headers and set correct flags",
+    "extra_cflags": [
+      "-D__KERNEL__",
+      "-DCONFIG_NET",
+      "-DCONFIG_INET",
+      "-DCONFIG_TCP_CONG_CUBIC",
+      "-include linux/kconfig.h"
+    ],
+    "extra_includes": [
+      "include/",
+      "arch/x86/include/",
+      "arch/x86/include/generated/"
+    ],
+    "stub_functions": [
+      "kmalloc",
+      "kfree",
+      "spin_lock",
+      "spin_unlock",
+      "rcu_read_lock",
+      "rcu_read_unlock",
+      "printk",
+      "pr_err",
+      "pr_warn"
+    ]
+  },
+
+  "type_hints": {
+    "description": "Help the agent understand project-specific types and patterns",
+    "key_types": {
+      "struct sk_buff": "Network packet buffer — contains data pointer, len, head/tail offsets",
+      "struct sock": "Network socket — contains protocol state, receive queue, send buffer",
+      "struct tcp_sock": "TCP-specific socket state — extends struct sock with TCP fields",
+      "struct tcphdr": "TCP header — 20 bytes minimum, contains flags, window, seq/ack numbers"
+    },
+    "allocation_patterns": {
+      "sk_buff": "Use alloc_skb(size, GFP_KERNEL); set skb->data, skb->len, skb->head",
+      "sock": "Cannot allocate directly — use sk_alloc() or mock with malloc + memset",
+      "tcp_sock": "Embedded in struct sock — cast via tcp_sk(sk)"
+    },
+    "common_macros": {
+      "likely(x)": "(x)",
+      "unlikely(x)": "(x)",
+      "BUG_ON(x)": "/* no-op in harness */",
+      "BUILD_BUG_ON(x)": "/* no-op */",
+      "EXPORT_SYMBOL(x)": "/* no-op */",
+      "EXPORT_SYMBOL_GPL(x)": "/* no-op */"
+    }
+  },
+
+  "analysis_hints": {
+    "description": "Domain knowledge for the LLM agent",
+    "entry_point_patterns": [
+      "Functions called from softirq context: tcp_v4_rcv, tcp_rcv_established",
+      "Syscall entry: tcp_sendmsg, tcp_recvmsg, tcp_connect",
+      "Timer callbacks: tcp_retransmit_timer, tcp_keepalive_timer"
+    ],
+    "common_vulnerability_patterns": [
+      "Unchecked option/extension lengths in packet parsing",
+      "Integer overflow in sequence number arithmetic",
+      "Use-after-free when socket is released during callback",
+      "Race conditions between user and softirq context"
+    ],
+    "symbolic_input_advice": [
+      "Make sk_buff->data symbolic (the packet payload)",
+      "Make sk_buff->len symbolic but constrained to reasonable range (0-65535)",
+      "TCP header fields (seq, ack_seq, window) should be symbolic",
+      "Keep socket state (tcp_sock fields) concrete — initialize to ESTABLISHED state"
+    ]
+  }
+}

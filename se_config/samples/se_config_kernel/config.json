@@ -1,0 +1,56 @@
+{
+  "_comment": "se_config for Linux kernel analysis — netfilter / UAF / WMI patterns",
+
+  "extra_cflags": [
+    "-D__KERNEL__",
+    "-DCONFIG_NETFILTER=1",
+    "-DCONFIG_NF_TABLES=1",
+    "-DCONFIG_IPV6=1",
+    "-DCONFIG_NET=1",
+    "-DCONFIG_INET=1",
+    "-DKBUILD_MODNAME=\"stailor\"",
+    "-D__CHECKER__",
+    "-Dlikely(x)=(x)",
+    "-Dunlikely(x)=(x)",
+    "-D__force=",
+    "-D__user=",
+    "-D__iomem=",
+    "-D__rcu=",
+    "-D__percpu=",
+    "-D__must_check=",
+    "-D__init=",
+    "-D__exit=",
+    "-DEXPORT_SYMBOL(x)=",
+    "-DEXPORT_SYMBOL_GPL(x)=",
+    "-DMODULE_LICENSE(x)=",
+    "-DMODULE_AUTHOR(x)="
+  ],
+
+  "extra_includes": [],
+
+  "skip_stubs": [
+    "printk", "pr_err", "pr_warn", "pr_info", "pr_debug",
+    "dump_stack", "WARN_ON", "WARN_ON_ONCE", "BUG_ON"
+  ],
+
+  "klee_flags": [
+    "--max-memory=4096",
+    "--search=dfs"
+  ],
+
+  "agent": {
+    "max_turns": 80,
+    "max_cycles": 3,
+    "timeout": 900
+  },
+
+  "focus": {
+    "modules": [],
+    "functions": [],
+    "exclude": [
+      "tools/**", "scripts/**", "samples/**",
+      "Documentation/**", "arch/*/boot/**"
+    ],
+    "description": "Linux kernel — analyzing for WMI exploitation chain patterns (UAF, type confusion, arbitrary free, write-what-where). Key subsystems: netfilter, networking, filesystem."
+  }
+}

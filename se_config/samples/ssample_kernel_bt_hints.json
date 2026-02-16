@@ -1,0 +1,44 @@
+{
+  "_comment": "Sample project hints file. Copy and customize for your project.",
+  "project": "linux_kernel_bluetooth",
+  "scope": "net/bluetooth/",
+  "default_cwe": "120",
+
+  "targets": [
+    {
+      "_comment": "Direct target: known vulnerability at a specific location",
+      "file": "net/bluetooth/l2cap_core.c",
+      "line": 3456,
+      "function": "l2cap_parse_conf_rsp",
+      "cwe": "120",
+      "description": "Stack buffer overflow in L2CAP config response parsing",
+      "entry": "l2cap_config_rsp",
+      "spine": ["l2cap_config_rsp", "l2cap_parse_conf_rsp"]
+    },
+    {
+      "_comment": "Pattern target: find all matching locations via grep",
+      "pattern": "copy_from_user\\s*\\([^,]+,\\s*[^,]+,\\s*\\w+->\\w*len",
+      "scope": "net/bluetooth/",
+      "cwe": "120",
+      "description": "Unchecked copy_from_user with user-controlled length"
+    },
+    {
+      "_comment": "Another pattern: memcpy with variable length in HCI",
+      "pattern": "memcpy\\s*\\([^,]+,\\s*[^,]+,\\s*ev->",
+      "scope": "net/bluetooth/",
+      "cwe": "122",
+      "description": "memcpy with event-sourced length in HCI event handling"
+    }
+  ],
+
+  "module_hints": {
+    "description": "Linux kernel Bluetooth subsystem (L2CAP, HCI, SMP, RFCOMM)",
+    "key_structs": [
+      "l2cap_conn", "l2cap_chan", "l2cap_conf_rsp",
+      "hci_dev", "hci_conn", "hci_ev_le_meta",
+      "bt_sock", "smp_chan"
+    ],
+    "init_functions": ["l2cap_init", "bt_init", "hci_init"],
+    "notes": "Complex state machine with multiple protocol layers. Channels can be in various states (BT_LISTEN, BT_CONNECTED, BT_CONFIG). Many vulnerabilities are in packet parsing where length fields from remote devices are trusted without validation. Use klee_assume to constrain state machine to reachable states. HCI events arrive via hci_event_packet() dispatcher."
+  }
+}

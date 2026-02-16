@@ -1,0 +1,49 @@
+This is Linux kernel code. Follow these rules for harness generation:
+
+MEMORY ALLOCATION:
+- Use kmalloc/kzalloc/kcalloc instead of malloc/calloc
+- Use kfree instead of free
+- For slab-allocated objects, use kmem_cache_alloc/kmem_cache_free
+- GFP flags: use GFP_KERNEL for sleepable context, GFP_ATOMIC for atomic
+- For KLEE: stub kmalloc → malloc, kfree → free (KLEE doesn't have kernel heap)
+
+STRUCT INITIALIZATION:
+- sk_buff: must use alloc_skb() or dev_alloc_skb(), NOT raw kmalloc
+- net_device: must use alloc_netdev_mqs(), has mandatory fields (name, ifindex)
+- sock: use sk_alloc(), requires net namespace and protocol family
+- nf_hook_ops: needs hooknum, pf, priority, hook function pointer
+- nft_chain: needs table pointer, name, type, hook registration
+- list_head: INIT_LIST_HEAD(&obj->list) or LIST_HEAD_INIT(obj.list)
+
+LOCKING (stub as no-ops for KLEE):
+- spin_lock/spin_unlock → no-op
+- mutex_lock/mutex_unlock → no-op
+- rcu_read_lock/rcu_read_unlock → no-op
+- rtnl_lock/rtnl_unlock → no-op
+- nfnl_lock/nfnl_unlock → no-op
+
+COMMON STUBS (return success):
+- printk, pr_err, pr_warn, pr_info → no-op
+- WARN_ON, WARN_ON_ONCE, BUG_ON → no-op (or klee_warning)
+- IS_ERR/PTR_ERR/ERR_PTR → stub with concrete values
+- rcu_dereference → direct pointer access
+- READ_ONCE/WRITE_ONCE → direct access
+- unlikely/likely → pass through
+
+NETFILTER SPECIFIC (CVE-2024-26808 pattern):
+- nf_tables chains are linked to net_device via basechain->ops.dev
+- Device deletion (unregister_netdevice) does NOT remove chain references
+- Chain destruction (nf_tables_chain_destroy) follows chain->ops.dev
+- The exploit requires: create chain → delete device → trigger chain cleanup
+- Key structs: nft_chain, nft_base_chain, nf_hook_ops, net_device
+- Key functions: nf_tables_newchain, nf_tables_delchain, nf_tables_chain_destroy
+
+WMI CHAIN DETECTION:
+When the spec indicates a WMI pattern, the harness should:
+1. WMI-1 (Stale Ref): Allocate object, store pointer in another struct, free object
+2. WMI-2 (Leak): Reclaim freed memory with different type, read through stale pointer
+3. WMI-3 (Arb Free): Set up fake struct at reclaimed location, trigger cleanup that frees via stale traversal
+4. WMI-4 (WWW): Free target, reclaim with controlled data, write through reclaimed pointer
+
+For symbolic execution: make the "reclaimed" memory symbolic. This lets KLEE
+explore whether the stale pointer dereference reads attacker-controlled values.

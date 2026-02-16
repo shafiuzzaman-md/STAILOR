@@ -4,6 +4,7 @@
 validate_plan_contract.py
 
 Deterministic Contract Validator (DCV) for the Planner output.
+Enforces strict schema and logical consistency between the Strategy and the generated Plan.
 """
 
 from __future__ import annotations
@@ -173,7 +174,8 @@ def validate_symbolic_setup(plan: Dict[str, Any]) -> List[str]:
 
 def validate_assertions(plan: Dict[str, Any], strategy: str = None) -> List[str]:
     """
-    Validate assertion schema and (optionally) strategy-specific oracle requirements.
+    Validate assertion schema and strategy-specific oracle requirements.
+    This ensures the Agent uses the correct BUG_ASSERT format (0 vs predicate) for the vulnerability type.
     """
     errs: List[str] = []
     assertions = normalize_assertions(plan.get("assertions", []))
@@ -220,14 +222,17 @@ def validate_assertions(plan: Dict[str, Any], strategy: str = None) -> List[str]
                 # Basic sanity: at least one entry includes BUG_ASSERT
                 if not any(isinstance(x, dict) and "BUG_ASSERT" in str(x.get("code") or "") for x in inst):
                     errs.append("plan.instrumentation must include code containing 'BUG_ASSERT(...)' for OOB_READ.")
-        elif strategy_u in {"OOB_WRITE", "UAF"}:
-            # Crash oracle: safe landing at BUG_ASSERT(0)
+        
+        elif strategy_u in {"OOB_WRITE", "UAF", "DOUBLE_FREE", "BUFFER_OVERFLOW"}:
+            # Crash oracle: safe landing at BUG_ASSERT(0) implies we survived the vuln line (which should have crashed)
             if bc_l not in {"0", "false"}:
                 errs.append(f"Strategy '{strategy_u}' requires a crash oracle: BUG_ASSERT condition must be '0' (or 'false').")
-        elif strategy_u == "LOGIC":
+        
+        elif strategy_u == "LOGIC" or strategy_u == "INT_OVERFLOW":
             # Semantic predicate oracle
             if bc_l in {"0", "false"}:
-                errs.append("Strategy 'LOGIC' requires a semantic predicate; BUG_ASSERT(0) is invalid here.")
+                errs.append(f"Strategy '{strategy_u}' requires a semantic predicate; BUG_ASSERT(0) is invalid here.")
+        
         else:
             # Generic: require non-empty condition
             if not bc:
@@ -235,7 +240,7 @@ def validate_assertions(plan: Dict[str, Any], strategy: str = None) -> List[str]
 
         if bc_l in {"1", "true"}:
             errs.append(
-                "BUG_ASSERT(1) is invalid: it triggers an unconditional crash. "
+                "BUG_ASSERT(1) is invalid: it triggers an unconditional crash (or no-op depending on macro). "
                 "Use a meaningful predicate for semantic bugs, or BUG_ASSERT(0) only for crash-oracle strategies."
             )
 

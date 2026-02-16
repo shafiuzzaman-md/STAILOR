@@ -1,0 +1,26 @@
+{
+  "_comment": "Copy this directory as se_config/<your_project>/ and customize.",
+
+  "extra_cflags": [],
+  "extra_includes": [],
+  "skip_macro_prefixes": [],
+  "skip_stubs": [],
+  "custom_stubs": {},
+  "extra_typedefs": [],
+  "struct_defs": [],
+  "klee_flags": [],
+  "prompt_extra": "",
+
+  "agent": {
+    "max_turns": 60,
+    "max_cycles": 2,
+    "timeout": 600
+  },
+
+  "focus": {
+    "modules": [],
+    "functions": [],
+    "exclude": [],
+    "description": ""
+  }
+}

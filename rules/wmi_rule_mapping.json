@@ -1,0 +1,101 @@
+{
+  "_comment": "Maps CodeQL rule IDs to CWE and WMI classifications for spec generation",
+
+  "wmi_rules": {
+    "stailor/wmi-1-stale-reference-creation": {
+      "cwe": "416",
+      "wmi_type": "WMI-1",
+      "wmi_name": "Stale Reference Creation",
+      "severity": "high",
+      "chainable": true,
+      "enables": ["WMI-2", "WMI-3"],
+      "klee_strategy": "Allocate object, store pointer in second struct, free first object. Assert stale pointer is non-NULL and dereferenceable.",
+      "driver_hint": "Create two linked objects. Free the first (referenced) object. The second object's pointer field should still point to freed memory. Make freed memory symbolic to detect reads."
+    },
+    "stailor/wmi-1b-stale-reference-incomplete-unlink": {
+      "cwe": "416",
+      "wmi_type": "WMI-1",
+      "wmi_name": "Stale Reference (Incomplete Unlink)",
+      "severity": "high",
+      "chainable": true,
+      "enables": ["WMI-2", "WMI-3"],
+      "klee_strategy": "Remove object from container, verify back-pointers not cleared.",
+      "driver_hint": "Add object to list/table, store direct pointer in another struct. list_del + kfree the object. Verify the direct pointer in the other struct is never nullified."
+    },
+    "stailor/wmi-2-type-confusion-leak": {
+      "cwe": "125",
+      "wmi_type": "WMI-2",
+      "wmi_name": "Information Leak via Type Confusion",
+      "severity": "high",
+      "chainable": true,
+      "requires": ["WMI-1"],
+      "enables": ["WMI-3", "WMI-4"],
+      "klee_strategy": "After free, allocate different-typed object in same memory. Read through stale pointer. Assert read value matches new object's field layout.",
+      "driver_hint": "Free object A. malloc(sizeof(B)) where sizeof(B)==sizeof(A). Write known value to B's field. Read through stale pointer to A — should see B's data reinterpreted as A's field."
+    },
+    "stailor/wmi-3-arbitrary-free-stale-traversal": {
+      "cwe": "416",
+      "wmi_type": "WMI-3",
+      "wmi_name": "Arbitrary Free",
+      "severity": "critical",
+      "chainable": true,
+      "requires": ["WMI-1"],
+      "enables": ["WMI-4"],
+      "klee_strategy": "Set up fake struct at reclaimed memory with controlled pointer fields. Trigger destructor that follows stale pointer, reads fake list, frees controlled address.",
+      "driver_hint": "Free referenced object. Reclaim with struct containing pointer to target address. Trigger cleanup function that walks the linked structure through stale reference. Verify target address is passed to free()."
+    },
+    "stailor/wmi-4-write-what-where-reclaim": {
+      "cwe": "123",
+      "wmi_type": "WMI-4",
+      "wmi_name": "Write-What-Where",
+      "severity": "critical",
+      "chainable": false,
+      "requires": ["WMI-3"],
+      "enables": ["code_execution"],
+      "klee_strategy": "After arbitrary free of target, allocate same-size object. Write controlled data. Verify data appears at target address.",
+      "driver_hint": "Free the target address (e.g., function pointer table). Immediately allocate same-size block. Write attacker-controlled value (e.g., address of win function). Verify the function pointer at target is overwritten."
+    },
+    "stailor/kernel-lifecycle-mismatch": {
+      "cwe": "416",
+      "wmi_type": "WMI-1",
+      "wmi_name": "Kernel Lifecycle Mismatch",
+      "severity": "critical",
+      "chainable": true,
+      "enables": ["WMI-2", "WMI-3"],
+      "klee_strategy": "Register subsystem A with object B. Destroy B. Trigger A's cleanup/access path that dereferences stale B pointer.",
+      "driver_hint": "Kernel-specific: Create net_device, attach nf_chain to device. Unregister device (triggers kfree). Trigger chain operation that dereferences chain->dev."
+    },
+    "stailor/kernel-funcptr-reclaimable-struct": {
+      "cwe": "416",
+      "wmi_type": "WMI-4-TARGET",
+      "wmi_name": "Exploitation Target (Function Pointer in Reclaimable Struct)",
+      "severity": "info",
+      "chainable": false,
+      "requires": ["WMI-3"],
+      "klee_strategy": "Informational: identifies structs suitable for WMI-4 reclamation.",
+      "driver_hint": "This is an exploitation target, not a standalone vulnerability. After WMI-3 frees an address in this struct's slab cache, reclaim with controlled data to overwrite the function pointer."
+    }
+  },
+
+  "wmi_chain_templates": {
+    "full_chain_netfilter": {
+      "description": "CVE-2024-26808 pattern: Netfilter UAF → Leak → Arb Free → WWW → LPE",
+      "steps": [
+        {"wmi": "WMI-1", "action": "Create nf chain attached to dummy device, delete device"},
+        {"wmi": "WMI-2", "action": "Reclaim device memory with packet_fanout, read chain->dev->name"},
+        {"wmi": "WMI-2", "action": "Reclaim with msg_msg, leak heap/text address"},
+        {"wmi": "WMI-3", "action": "Reclaim device with fake struct, destroy chain → kfree(controlled_addr)"},
+        {"wmi": "WMI-4", "action": "Reclaim freed pipe_buffer, vmsplice to get page address, overwrite core_pattern"}
+      ]
+    },
+    "generic_uaf_chain": {
+      "description": "Generic UAF exploitation chain for userspace programs",
+      "steps": [
+        {"wmi": "WMI-1", "action": "Free object while back-pointer exists"},
+        {"wmi": "WMI-2", "action": "Reclaim with different type, leak via type confusion"},
+        {"wmi": "WMI-3", "action": "Fake struct at reclaimed location, trigger cleanup → arbitrary free"},
+        {"wmi": "WMI-4", "action": "Reclaim freed function pointer table, overwrite with target"}
+      ]
+    }
+  }
+}

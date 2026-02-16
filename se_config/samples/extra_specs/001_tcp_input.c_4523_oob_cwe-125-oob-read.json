@@ -1,0 +1,38 @@
+{
+  "_comment": "User-written spec — place in se_config/<project>/extra_specs/",
+  "_naming": "Use format: <ID>_<file>_<line>_<type>_cwe-<NNN>-<description>.json",
+
+  "file": "net/ipv4/tcp_input.c",
+  "line": 4523,
+  "cwe_id": "125",
+  "cwe_description": "Out-of-bounds Read",
+  "title": "OOB read in tcp_parse_options due to unchecked option length",
+  "description": "When parsing TCP options, the length field from the packet is used without bounds checking, allowing a read past the end of the options buffer.",
+
+  "entry": "tcp_rcv_established",
+  "entry_func": "tcp_rcv_established",
+  "spine": [
+    "tcp_rcv_established",
+    "tcp_fast_parse_options",
+    "tcp_parse_options"
+  ],
+  "call_chain": [
+    "tcp_rcv_established",
+    "tcp_fast_parse_options",
+    "tcp_parse_options"
+  ],
+
+  "vulnerability_type": "oob-read",
+  "pattern": "unchecked-length-field",
+
+  "source_context": "4520:     while (length > 0) {\n4521:         int opcode = *ptr++;\n4522:         int opsize;\n4523:         opsize = *ptr++;  /* OOB read if length < 2 */\n4524:         if (opsize < 2)\n4525:             return;",
+
+  "data_flow": [
+    {"step": 1, "location": "tcp_rcv_established:1234", "note": "skb received from network"},
+    {"step": 2, "location": "tcp_fast_parse_options:456", "note": "options pointer passed unchecked"},
+    {"step": 3, "location": "tcp_parse_options:4523", "note": "ptr dereferenced without length check"}
+  ],
+
+  "rule_id": "manual/oob-read-unchecked-length",
+  "source": "manual"
+}
