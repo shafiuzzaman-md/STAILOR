@@ -315,13 +315,31 @@ def run_klee(bc_path: Path, klee_bin: str, flags: List[str], timeout: int,
     bug_triggered = False
     bug_triggered_details = ""
     if out_dir.exists() and sink_assert_line > 0:
+        # Determine which file contains the sink assertion (the harness spine file)
+        sink_file = ""
+        if harness_dir:
+            vul_file_base = os.path.basename(frozen.get("vul_file", "")) if frozen else ""
+            if vul_file_base:
+                sink_file = vul_file_base
+        
         for err_pattern in ("*.ptr.err", "*.div.err", "*.free.err"):
             for ef in out_dir.glob(err_pattern):
                 try:
                     content = ef.read_text(errors="replace")
                     m_line = re.search(r'Line:\s*(\d+)', content)
+                    m_file = re.search(r'File:\s*(\S+)', content)
                     if m_line:
                         err_line = int(m_line.group(1))
+                        err_file = os.path.basename(m_file.group(1)) if m_file else ""
+                        
+                        # Must be in the HARNESS file (not driver.c/stubs.c)
+                        if err_file in ("driver.c", "stubs.c", "smart_stubs.c", "auto_stubs.c"):
+                            continue
+                        
+                        # If we know the sink file, check it matches
+                        if sink_file and err_file and err_file != sink_file:
+                            continue
+                        
                         # Crash within ±10 lines of the sink assert = bug triggered
                         if abs(err_line - sink_assert_line) <= 10:
                             err_type = ef.suffix.replace('.err', '').replace('.', '')
@@ -1494,24 +1512,21 @@ class SliceTools:
     def resolve_vul_line(self) -> Dict:
         """Dynamically find the vulnerability line in the CURRENT harness file.
         Returns {"harness_file", "harness_line", "context"} or empty dict."""
-        # Strategy 1: Search for STAILOR_PROBE_SINK invocation (not definition)
+        # Strategy 1: Search for STAILOR_PROBE_SINK or STAILOR_SINK_REACHED
+        sink_markers = ["STAILOR_PROBE_SINK", "STAILOR_SINK_REACHED"]
         for harness_file in self.harness_dir.glob("*.c"):
             content = harness_file.read_text(errors="replace")
             lines = content.splitlines()
             
-            # Collect ALL lines with STAILOR_PROBE_SINK, then pick the right one
             candidates = []
             for i, line in enumerate(lines):
-                if "STAILOR_PROBE_SINK" not in line:
+                if not any(m in line for m in sink_markers):
                     continue
                 stripped = line.strip()
-                # Skip: macro definitions (#define STAILOR_PROBE_SINK ...)
                 if stripped.startswith('#define'):
                     continue
-                # Skip: comments
                 if stripped.startswith(('/*', '//', '*')):
                     continue
-                # Skip: inside macro expansion body (line right after #define)
                 if i > 0 and lines[i-1].strip().startswith('#define') and lines[i-1].strip().endswith('\\'):
                     continue
                 candidates.append(i)
@@ -1519,17 +1534,25 @@ class SliceTools:
             if not candidates:
                 continue
             
-            # Prefer the LAST match — the actual invocation is inside the function body,
-            # which comes after any preamble definitions
             best = candidates[-1]
             
             ctx_start = max(0, best - 2)
             ctx_end = min(len(lines), best + 8)
             context = '\n'.join(f"{j+1}: {lines[j]}" for j in range(ctx_start, ctx_end))
+            
+            # For STAILOR_SINK_REACHED, the vulnerable statement is the line BEFORE
+            # the assertion, not the assertion itself
+            marker_found = "STAILOR_PROBE_SINK"
+            if "STAILOR_SINK_REACHED" in lines[best] and "STAILOR_PROBE_SINK" not in lines[best]:
+                marker_found = "STAILOR_SINK_REACHED"
+                # Return the line BEFORE the assertion as the vulnerability line
+                if best > 0:
+                    best = best - 1
+            
             return {
                 "harness_file": harness_file.name,
                 "harness_line": best + 1,
-                "marker": "STAILOR_PROBE_SINK",
+                "marker": marker_found,
                 "context": context,
             }
 
@@ -1619,6 +1642,20 @@ class SliceTools:
                 if not stripped or stripped.startswith(('/*', '//', '*', 'klee_warning', 'klee_assert', 'SPINE_PROBE')):
                     continue
                 if 'STAILOR_SINK_REACHED' in stripped or 'SPINE_PROBE' in stripped:
+                    continue
+                
+                # Check for ORIG_LINE tag (from auto-generated harness)
+                orig_tag = re.search(r'/\*\s*ORIG_LINE:(\d+)\s*\*/', h_line)
+                if orig_tag:
+                    tagged_line = int(orig_tag.group(1))
+                    code = re.sub(r'\s*/\*\s*ORIG_LINE:\d+\s*\*/', '', h_line).strip()
+                    fmap[h_idx + 1] = {
+                        "orig_file": vul_file,
+                        "orig_line": tagged_line,
+                        "code": code,
+                        "match_type": "tagged",
+                    }
+                    last_orig = tagged_line + 1
                     continue
                 
                 # Try exact match first
@@ -1860,7 +1897,7 @@ class SliceTools:
                 kt["orig_code"] = ""
                 print(f"    [!] No mapping for harness {crash_file_base}:{crash_line}")
         
-        # --- Step 4: ASan replay ---
+        # --- Step 4: ASan replay (on harness slice) ---
         asan_result = {"success": False, "asan_triggered": False}
         try:
             asan_result = self._asan_replay(real_crashes)
@@ -1869,6 +1906,26 @@ class SliceTools:
             import traceback
             traceback.print_exc()
             asan_result = {"success": False, "error": str(e)}
+        
+        # --- Step 4b: ASan replay on REAL library source ---
+        real_asan_result = {"success": False, "asan_triggered": False}
+        try:
+            real_asan_result = self._asan_replay_real_library(real_crashes)
+        except Exception as e:
+            print(f"    [!] Real-library ASan replay failed: {e}")
+            real_asan_result = {"success": False, "error": str(e)}
+        
+        # Upgrade verdict if real library confirms
+        if real_asan_result.get("asan_triggered"):
+            asan_result["real_library_confirmed"] = True
+            asan_result["real_asan_result"] = real_asan_result
+            # If harness ASan didn't trigger but real library did, use real result
+            if not asan_result.get("asan_triggered"):
+                asan_result["asan_triggered"] = True
+                asan_result["asan_error_type"] = real_asan_result.get("asan_error_type", "")
+                asan_result["asan_func"] = real_asan_result.get("asan_func", "")
+                asan_result["asan_file"] = real_asan_result.get("asan_file", "")
+                asan_result["asan_line"] = real_asan_result.get("asan_line", 0)
         
         # --- Step 5: Build bug report ---
         report = self._build_bug_report(real_crashes, asan_result)
@@ -1883,8 +1940,6 @@ class SliceTools:
         for crash in report.get("all_crashes", []):
             orig_info = f" → {crash['original_file']}:{crash['original_line']}" if crash.get('original_line') else ""
             print(f"    [SUMMARY] {crash['error_type']} at harness {crash['harness_file']}:{crash['harness_line']}{orig_info}")
-        
-        return report
         
         return report
     
@@ -1954,10 +2009,20 @@ class SliceTools:
             src = hf.read_text(errors="replace")
             clean = src
             clean = re.sub(r'#include\s*[<"]klee/klee\.h[>"]', '// klee removed for ASan replay', clean)
+            # Remove klee function DECLARATIONS/PROTOTYPES before replacing calls
+            # e.g., extern void klee_make_symbolic(void *addr, size_t nbytes, const char *name);
+            clean = re.sub(r'^\s*extern\s+\w+\s+klee_\w+\s*\([^)]*\)\s*;', '/* klee decl removed */', clean, flags=re.MULTILINE)
+            clean = re.sub(r'^\s*void\s+klee_\w+\s*\([^)]*\)\s*;', '/* klee decl removed */', clean, flags=re.MULTILINE)
             clean = re.sub(r'\bklee_warning_once\([^)]*\)\s*;', '/* probe removed */', clean)
             clean = re.sub(r'\bklee_warning\([^)]*\)\s*;', '/* probe removed */', clean)
             clean = re.sub(r'\bklee_assert\([^)]*\)\s*;', '/* assert removed */', clean)
             clean = re.sub(r'\bklee_check_memory_access\([^)]*\)\s*;', '/* check removed */', clean)
+            # Remove STAILOR bounds checks that use klee_get_obj_size (KLEE-only)
+            clean = re.sub(r'/\*\s*STAILOR:.*?bounds check\s*\*/', '/* bounds check removed */', clean)
+            clean = re.sub(r'\bif\s*\(\s*klee_get_obj_size\b[^;]*klee_report_error\b[^;]*;', '/* STAILOR bounds check removed */', clean, flags=re.DOTALL)
+            clean = re.sub(r'\bif\s*\(\s*\(size_t\)[^;]*klee_get_obj_size\b[^;]*klee_report_error\b[^;]*;', '/* STAILOR bounds check removed */', clean, flags=re.DOTALL)
+            clean = re.sub(r'\bklee_report_error\([^)]*\)\s*;', '/* report removed */', clean)
+            clean = re.sub(r'\bklee_get_obj_size\([^)]*\)', '0 /* klee removed */', clean)
             # CRITICAL: inject concrete ktest values, not zeros
             # Regex handles nested parens like sizeof(ret) in klee_make_symbolic(&ret, sizeof(ret), "name")
             clean = re.sub(r'\bklee_make_symbolic\s*\(((?:[^()]|\([^()]*\))+)\)', _replace_symbolic_concrete, clean)
@@ -2040,6 +2105,401 @@ class SliceTools:
                 asan_info["note"] = f"Process exited with code {rc} (possible crash without ASan detection)"
         
         return asan_info
+    
+    def _asan_replay_real_library(self, err_ktests: List[Dict]) -> Dict:
+        """Phase 5b: Compile the REAL source file with ASan and replay.
+        
+        Unlike _asan_replay which validates on the harness slice, this compiles
+        the ACTUAL vulnerable source file from the original project with ASan
+        and links it with a concrete driver to confirm the bug exists in the
+        real code, not just our simplified slice.
+        """
+        replay_dir = ensure_dir(self.harness_dir.parent / "asan_real")
+        
+        build_dir = self.frozen.get("build_dir", "")
+        vul_file = self.frozen.get("vul_file", "")
+        entry_func = self.frozen.get("entry", "")
+        
+        if not build_dir or not vul_file or not entry_func:
+            return {"success": False, "error": "Missing build_dir/vul_file/entry for real replay"}
+        
+        # Find the real source file
+        real_src = find_source_file(self.src_root, vul_file)
+        if not real_src or not os.path.exists(real_src):
+            return {"success": False, "error": f"Real source not found: {vul_file}"}
+        
+        print(f"    [ASan-Real] Source: {real_src}")
+        
+        # Parse ktest objects for concrete values
+        primary_ktest = err_ktests[0] if err_ktests else {}
+        obj_map = {obj["name"]: obj for obj in primary_ktest.get("objects", [])}
+        
+        # Generate a minimal driver with concrete ktest values
+        # Read the harness driver.c to get the structure
+        driver_path = self.harness_dir / "driver.c"
+        driver_src = driver_path.read_text(errors="replace") if driver_path.exists() else ""
+        
+        replay_driver = self._generate_replay_driver(err_ktests[0], driver_src)
+        if not replay_driver:
+            return {"success": False, "error": "Could not generate replay driver for real library"}
+        
+        replay_driver_path = replay_dir / "replay_driver.c"
+        replay_driver_path.write_text(replay_driver, encoding="utf-8")
+        
+        # Build include flags from project
+        inc_flags = []
+        for ip in self.include_paths:
+            if os.path.isdir(ip):
+                inc_flags.extend(["-I", ip])
+        inc_flags.extend(["-I", str(self.src_root), "-I", str(self.harness_dir)])
+        if build_dir and os.path.isdir(build_dir):
+            inc_flags.extend(["-I", build_dir])
+        
+        # Auto-include config.h (same logic as compile_slice)
+        config_h = None
+        search_roots = [Path(build_dir)] if build_dir and os.path.isdir(build_dir) else []
+        search_roots.append(self.src_root)
+        for root in search_roots:
+            for rel in ["config.h", "include/config.h"]:
+                candidate = root / rel
+                if candidate.exists():
+                    config_h = candidate
+                    break
+            if config_h:
+                break
+            for candidate in root.glob("**/config.h"):
+                if ".git" not in str(candidate) and "test" not in str(candidate).lower():
+                    config_h = candidate
+                    break
+            if config_h:
+                break
+        if config_h:
+            inc_flags.extend(["-include", str(config_h)])
+            # Also add the directory containing config.h to -I so that
+            # #include "config.h" in source files can find it
+            config_dir = str(config_h.parent)
+            if config_dir not in [f for i, f in enumerate(inc_flags) if i > 0 and inc_flags[i-1] == "-I"]:
+                inc_flags.extend(["-I", config_dir])
+            print(f"    [ASan-Real] Auto-including {config_h} (-I {config_dir})")
+        
+        # Auto-detect IN_LIBFOO macros (e.g., -DIN_LIBXML)
+        for hfile in self.src_root.rglob("lib*.h"):
+            stem = hfile.stem.upper()
+            inc_flags.append(f"-D{f'IN_{stem}'}")
+            print(f"    [ASan-Real] Auto-adding -DIN_{stem}")
+            break
+        
+        # Project cflags (skip -c, -emit-llvm, optimization)
+        proj_cflags = []
+        for cf in self.project_cflags:
+            if cf not in ('-emit-llvm', '-c', '-o') and not cf.startswith('-O'):
+                proj_cflags.append(cf)
+        
+        # Strategy: compile the real source + our replay driver + stubs
+        # Copy stubs from harness (they provide the stubbed functions)
+        c_files = [str(replay_driver_path)]
+        
+        # Copy and clean stubs (remove klee references)
+        for stub_name in ["stubs.c", "smart_stubs.c", "auto_stubs.c"]:
+            stub_path = self.harness_dir / stub_name
+            if stub_path.exists():
+                src = stub_path.read_text(errors="replace")
+                clean = re.sub(r'#include\s*[<"]klee/klee\.h[>"]', '// klee removed', src)
+                clean = re.sub(r'\bklee_warning_once\([^)]*\)\s*;', '', clean)
+                clean = re.sub(r'\bklee_warning\([^)]*\)\s*;', '', clean)
+                clean = re.sub(r'\bklee_assert\([^)]*\)\s*;', '', clean)
+                clean = re.sub(r'\bklee_make_symbolic\s*\(((?:[^()]|\([^()]*\))+)\)',
+                               r'memset(\1) /* stub */;', clean)
+                clean = re.sub(r'\bklee_assume\([^)]*\)\s*;', '', clean)
+                clean_path = replay_dir / stub_name
+                clean_path.write_text(clean, encoding="utf-8")
+                c_files.append(str(clean_path))
+        
+        # Try to compile the REAL source file with ASan
+        asan_flags = ["-fsanitize=address", "-fno-omit-frame-pointer", "-g", "-O0", "-w"]
+        out_bin = replay_dir / "replay_real_bin"
+        rc = 1  # initialize to failure
+        stdout, stderr = "", ""
+        
+        # === APPROACH 1: Rebuild project with ASan using make ===
+        # The right way: use the project's own build system with ASan flags injected.
+        # This handles all dependencies, configure options, and struct definitions.
+        build_path = Path(build_dir)
+        build_cmd = self.ctx.get("build_cmd", "")
+        
+        asan_lib = None
+        asan_build_dir = ensure_dir(replay_dir / "asan_build")
+        
+        # === APPROACH 1A: Build project with ASan (mirrors build_project_bc.sh) ===
+        # Copy source to avoid modifying the original, then build with gcc + ASan.
+        if build_cmd or build_path.exists():
+            asan_cflags = "-fsanitize=address -fno-omit-frame-pointer -g -O0 -w"
+            # Stub out KLEE functions that may have been injected into the original source
+            klee_stubs = (
+                "-Dklee_warning(x)= "
+                "-Dklee_warning_once(x)= "
+                "-Dklee_assert(x)= "
+                "-Dklee_make_symbolic(a,b,c)= "
+                "-Dklee_assume(x)= "
+                "-Dklee_report_error(a,b,c,d)= "
+                "-Dklee_get_obj_size(x)=0 "
+                "-Dklee_check_memory_access(a,b)= "
+            )
+            asan_cflags_full = f"{asan_cflags} {klee_stubs}"
+            asan_ldflags = "-fsanitize=address"
+            
+            asan_env = dict(os.environ)
+            asan_env["CC"] = "gcc"
+            asan_env["CXX"] = "g++"
+            asan_env["CFLAGS"] = asan_cflags_full
+            asan_env["CXXFLAGS"] = asan_cflags_full
+            asan_env["LDFLAGS"] = asan_ldflags
+            # Remove wllvm env vars that might interfere
+            for k in ["LLVM_COMPILER", "LLVM_CC_NAME", "LLVM_CXX_NAME"]:
+                asan_env.pop(k, None)
+            
+            # Copy source tree to avoid modifying the original
+            # Copy from ORIGINAL source (not working copy which may have KLEE probes injected)
+            asan_src = replay_dir / "asan_src"
+            if asan_src.exists():
+                shutil.rmtree(str(asan_src), ignore_errors=True)
+            original_src = Path(self.ctx.get("src_root_original", str(self.src_root)))
+            print(f"    [ASan-Real] Copying source tree from {original_src} to {asan_src}...")
+            shutil.copytree(str(original_src), str(asan_src), symlinks=True,
+                           ignore=shutil.ignore_patterns('*.o', '*.bc', '*.bca', 'asan_build', 'asan_replay'))
+            
+            cmake_file = asan_src / "CMakeLists.txt"
+            configure_script = asan_src / "configure"
+            
+            built_ok = False
+            asan_build = None
+            
+            if cmake_file.exists():
+                # Mirror build_project_bc.sh: mkdir build; cd build; cmake ..
+                asan_build = asan_src / "build"
+                if asan_build.exists():
+                    shutil.rmtree(str(asan_build), ignore_errors=True)
+                asan_build.mkdir(parents=True, exist_ok=True)
+                
+                print(f"    [ASan-Real] CMake + ASan in {asan_build}...")
+                # Step 1: Configure WITHOUT ASan (ASan breaks cmake compiler probes)
+                clean_env = dict(os.environ)
+                clean_env["CC"] = "gcc"
+                clean_env["CXX"] = "g++"
+                for k in ["LLVM_COMPILER", "LLVM_CC_NAME", "LLVM_CXX_NAME"]:
+                    clean_env.pop(k, None)
+                
+                rc_cm, _, stderr_cm, _ = run_cmd([
+                    "cmake", "..",
+                    f"-DCMAKE_C_COMPILER=gcc",
+                    f"-DCMAKE_CXX_COMPILER=g++",
+                    f"-DBUILD_SHARED_LIBS=OFF",
+                ], timeout=120, cwd=str(asan_build), env=clean_env)
+                
+                if rc_cm == 0:
+                    # Step 2: Make WITH ASan flags (cmake probes already done)
+                    print(f"    [ASan-Real] CMake configured, building with ASan...")
+                    rc_mk, _, stderr_mk, _ = run_cmd(
+                        ["make", "-j4",
+                         f"CFLAGS={asan_cflags_full}",
+                         f"CXXFLAGS={asan_cflags_full}",
+                         f"LDFLAGS={asan_ldflags}"],
+                        timeout=300, cwd=str(asan_build), env=asan_env)
+                    if rc_mk == 0:
+                        built_ok = True
+                    else:
+                        print(f"    [ASan-Real] Make errors: {stderr_mk[:300]}")
+                        built_ok = True  # library might still exist from partial build
+                else:
+                    print(f"    [ASan-Real] CMake failed: {stderr_cm[:300]}")
+            
+            elif configure_script.exists():
+                asan_build = asan_src  # autotools builds in-tree
+                
+                # Clean first (like build_project_bc.sh)
+                print(f"    [ASan-Real] Cleaning previous build...")
+                run_cmd(["make", "distclean"], timeout=60, cwd=str(asan_src))
+                
+                print(f"    [ASan-Real] configure + ASan...")
+                rc_cf, _, stderr_cf, _ = run_cmd([
+                    str(configure_script),
+                    "--disable-shared", "--enable-static",
+                    "--disable-nls", "--disable-werror",
+                ], timeout=120, cwd=str(asan_src), env=asan_env)
+                
+                if rc_cf == 0:
+                    print(f"    [ASan-Real] Configured, running make...")
+                    rc_mk, _, stderr_mk, _ = run_cmd(
+                        ["make", "-j4"], timeout=300, cwd=str(asan_src), env=asan_env)
+                    if rc_mk == 0:
+                        built_ok = True
+                    else:
+                        print(f"    [ASan-Real] Make errors: {stderr_mk[:300]}")
+                        built_ok = True
+                else:
+                    print(f"    [ASan-Real] Configure failed: {stderr_cf[:300]}")
+            
+            if built_ok and asan_build:
+                # Search for resulting .a/.so (mirror build_project_bc.sh: find . -name "*.a")
+                for search_dir in [asan_build, asan_src]:
+                    for ext in ["*.a", "*.so"]:
+                        found = list(search_dir.rglob(ext))
+                        found = [f for f in found if "CMakeFiles" not in str(f) and "asan_replay" not in str(f)]
+                        if found:
+                            project_name = self.src_root.name.split("_")[0]
+                            matched = [f for f in found if project_name.lower() in f.name.lower()]
+                            asan_lib = matched[0] if matched else found[0]
+                            print(f"    [ASan-Real] Found ASan library: {asan_lib}")
+                            break
+                    if asan_lib:
+                        break
+                
+                if not asan_lib:
+                    # List what WAS built for debugging
+                    all_built = list(asan_build.rglob("*.a")) + list(asan_build.rglob("*.so"))
+                    all_built = [f for f in all_built if "CMakeFiles" not in str(f)]
+                    if all_built:
+                        print(f"    [ASan-Real] Libraries found but none matched: {[str(f) for f in all_built[:5]]}")
+                    else:
+                        print(f"    [ASan-Real] No .a/.so files produced by build")
+        
+        # === APPROACH 1B: Make with ASan flags (if Makefile exists) ===
+        if not asan_lib:
+            makefile_exists = any((d / mf).exists() 
+                                for d in [build_path, self.src_root] 
+                                for mf in ["Makefile", "makefile"]
+                                if d.exists())
+            
+            if makefile_exists:
+                make_dir = build_path if (build_path / "Makefile").exists() or (build_path / "makefile").exists() else self.src_root
+                asan_env = dict(os.environ)
+                asan_cflags = "-fsanitize=address -fno-omit-frame-pointer -g -O0"
+                asan_env["CFLAGS"] = asan_cflags
+                asan_env["CXXFLAGS"] = asan_cflags
+                asan_env["LDFLAGS"] = "-fsanitize=address"
+                
+                print(f"    [ASan-Real] Trying make with ASan in {make_dir}...")
+                run_cmd(["make", "-C", str(make_dir), "clean"], timeout=60, env=asan_env)
+                rc_make, _, stderr_make, _ = run_cmd(
+                    ["make", "-C", str(make_dir), "-j4"], timeout=300, env=asan_env)
+                if rc_make == 0:
+                    for ext in ["*.a", "*.so"]:
+                        lib_candidates = list(make_dir.rglob(ext))
+                        if lib_candidates:
+                            asan_lib = lib_candidates[0]
+                            break
+                    if asan_lib:
+                        print(f"    [ASan-Real] Make succeeded: {asan_lib}")
+                else:
+                    print(f"    [ASan-Real] Make failed: {stderr_make[:200]}")
+        
+        # === APPROACH 2: Link replay driver against ASan-rebuilt library ===
+        if asan_lib and asan_lib.exists():
+            print(f"    [ASan-Real] Linking replay driver against {asan_lib.name}...")
+            link_cmd = (["gcc"] + asan_flags + inc_flags + proj_cflags +
+                        c_files + [str(asan_lib), "-o", str(out_bin), 
+                        "-lm", "-lz", "-lpthread", "-ldl"])
+            rc, stdout, stderr, _ = run_cmd(link_cmd, timeout=120)
+            if rc != 0:
+                link_cmd[0] = "clang"
+                rc, stdout, stderr, _ = run_cmd(link_cmd, timeout=120)
+        
+        # === APPROACH 3: Link against existing (non-ASan) library ===
+        # This still validates the REAL code paths (just without ASan instrumentation
+        # in the library — crashes/SEGV will still be caught by the OS).
+        if rc != 0:
+            lib_files = []
+            # Search broadly: build_dir, its parent, src_root, and common sub-paths
+            search_dirs = set()
+            for d in [Path(build_dir), Path(build_dir).parent, self.src_root]:
+                if d.exists():
+                    search_dirs.add(d)
+            
+            for sd in search_dirs:
+                # Non-recursive: direct and .libs/
+                for ext in ["*.a", "*.so", "*.so.*"]:
+                    lib_files.extend(sd.glob(ext))
+                    lib_files.extend(sd.glob(f".libs/{ext}"))
+                # Recursive: find any .a/.so up to 3 levels deep
+                if not lib_files:
+                    for ext in ["*.a", "*.so"]:
+                        lib_files.extend(sd.glob(f"*/{ext}"))
+                        lib_files.extend(sd.glob(f"*/.libs/{ext}"))
+                        lib_files.extend(sd.glob(f"*/*/{ext}"))
+                        lib_files.extend(sd.glob(f"*/*/.libs/{ext}"))
+                if lib_files:
+                    break
+            
+            # Filter: prefer libxml2/libfoo matching the project name
+            project_name = self.src_root.name.split("_")[0] if self.src_root.name else ""
+            if lib_files and project_name:
+                matched = [f for f in lib_files if project_name.lower() in f.name.lower()]
+                if matched:
+                    lib_files = matched
+            
+            if lib_files:
+                lib_path = str(lib_files[0])
+                print(f"    [ASan-Real] Linking against existing library {lib_path}...")
+                cmd2 = (["gcc"] + asan_flags + proj_cflags + inc_flags +
+                        c_files + [lib_path, "-o", str(out_bin), "-lm", "-lz", "-lpthread"])
+                rc, stdout, stderr, _ = run_cmd(cmd2, timeout=120)
+                if rc != 0:
+                    cmd2[0] = "clang"
+                    rc, stdout, stderr, _ = run_cmd(cmd2, timeout=120)
+            else:
+                all_searched = ', '.join(str(d) for d in search_dirs)
+                print(f"    [ASan-Real] No .a/.so libraries found in: {all_searched}")
+        
+        # === APPROACH 4: Last resort — compile just the real source file directly ===
+        # This rarely works for large files with complex dependencies.
+        if rc != 0:
+            print(f"    [ASan-Real] Last resort: compiling real source directly...")
+            cmd = (["gcc"] + asan_flags + proj_cflags + inc_flags +
+                   [str(real_src)] + c_files + ["-o", str(out_bin), "-lm"])
+            rc, stdout, stderr, _ = run_cmd(cmd, timeout=120)
+            if rc != 0:
+                cmd[0] = "clang"
+                rc, stdout, stderr, _ = run_cmd(cmd, timeout=120)
+        
+        if rc != 0:
+            print(f"    [ASan-Real] All compilation approaches failed: {stderr[:300]}")
+            return {"success": False, "error": f"Real ASan compile failed: {stderr[:300]}"}
+        
+        print(f"    [ASan-Real] Compiled: {out_bin}")
+        
+        # Run the replay binary
+        env = dict(os.environ)
+        env["ASAN_OPTIONS"] = "detect_leaks=0:halt_on_error=1:print_stacktrace=1"
+        rc, stdout, stderr, elapsed = run_cmd([str(out_bin)], timeout=30, env=env)
+        
+        combined = stdout + "\n" + stderr
+        asan_triggered = "AddressSanitizer" in combined or rc == 139  # SIGSEGV
+        
+        result = {
+            "success": True,
+            "asan_triggered": asan_triggered,
+            "exit_code": rc,
+            "output": combined[:3000],
+            "elapsed": elapsed,
+            "validation_type": "real_library",
+        }
+        
+        if asan_triggered:
+            print(f"    [ASan-Real] *** Bug CONFIRMED in real library! ***")
+            m_type = re.search(r'ERROR: AddressSanitizer:\s*(\S+)', combined)
+            m_loc = re.search(r'#0\s+\S+\s+in\s+(\S+)\s+(\S+):(\d+)', combined)
+            if m_type:
+                result["asan_error_type"] = m_type.group(1)
+                print(f"    [ASan-Real] Error: {m_type.group(1)}")
+            if m_loc:
+                result["asan_func"] = m_loc.group(1)
+                result["asan_file"] = m_loc.group(2)
+                result["asan_line"] = int(m_loc.group(3))
+                print(f"    [ASan-Real] Location: {m_loc.group(1)} at {m_loc.group(2)}:{m_loc.group(3)}")
+        else:
+            print(f"    [ASan-Real] No ASan error on real library (exit code {rc})")
+        
+        return result
     
     def _generate_replay_driver(self, ktest_info: Dict, original_driver: str) -> str:
         """Generate a concrete replay driver from ktest decoded values.
@@ -2879,6 +3339,49 @@ class SliceTools:
                         # AUTO-FIX: inject a call to callee at the START of caller's body
                         # Find the callee's signature to build a valid call
                         callee_span = find_function_span(hsrc, callee)
+                        
+                        # If callee doesn't exist in harness, AUTO-GENERATE a minimal skeleton
+                        if not callee_span:
+                            print(f"    [⚠] {callee} not defined in harness — auto-generating skeleton")
+                            # Get callee signature from GatherCode/frozen data
+                            callee_sig = ""
+                            # Try to find signature from frozen gathered code
+                            gathered = self.frozen.get("gathered_code", "")
+                            sig_m = re.search(rf'(?:static\s+)?(?:const\s+)?\w[\w\s\*]*\b{re.escape(callee)}\s*\([^)]*\)', gathered)
+                            if sig_m:
+                                callee_sig = sig_m.group(0).strip()
+                            else:
+                                # Fallback: use void return type with caller's params
+                                caller_sig = hsrc[caller_span[0]:caller_span[1]].strip()
+                                cm = re.search(rf'{re.escape(caller)}\s*\(([^)]*)\)', caller_sig)
+                                params = cm.group(1) if cm else "void"
+                                callee_sig = f"void {callee}({params})"
+                            
+                            # Build skeleton with vulnerable statement from source_context
+                            src_ctx = self.frozen.get("source_context", "")
+                            vul_stmts = []
+                            for ctx_line in src_ctx.split('\n'):
+                                stripped = re.sub(r'^\d+:\s*', '', ctx_line).strip()
+                                if stripped and not stripped.startswith(('/*', '//', '#', '{', '}')):
+                                    vul_stmts.append(f"    {stripped}")
+                            
+                            if not vul_stmts:
+                                vul_stmts = [f"    /* vulnerable function body — no source_context */"]
+                            
+                            skeleton = (
+                                f"\n/* AUTO-GENERATED: missing spine function */\n"
+                                f"{callee_sig} {{\n"
+                                + "\n".join(vul_stmts) + "\n"
+                                f"    klee_assert(0 && \"STAILOR_SINK_REACHED\");\n"
+                                f"}}\n"
+                            )
+                            # Append skeleton before the caller function
+                            hsrc = hsrc[:caller_span[0]] + skeleton + "\n" + hsrc[caller_span[0]:]
+                            print(f"    [✓] AUTO-GENERATED skeleton for {callee} ({len(vul_stmts)} lines)")
+                            # Re-find spans after modification
+                            caller_span = find_function_span(hsrc, caller)
+                            callee_span = find_function_span(hsrc, callee)
+                        
                         if callee_span:
                             callee_sig = hsrc[callee_span[0]:callee_span[1]].strip()
                             # Extract parameter names from callee signature
@@ -2930,6 +3433,154 @@ class SliceTools:
                 print(f"    [✓] Harness call chain auto-fixed and saved")
         except Exception as e:
             print(f"    [!] Call chain verification error: {e}")
+        
+        # --- AUTO-INJECT SINK ASSERTION at the vulnerable statement ---
+        # The agent often places klee_assert at the function END instead of
+        # right after the vulnerable statement. Auto-fix this.
+        try:
+            hsrc = target.read_text(errors="replace")
+            vul_func = self.frozen.get("vul_func", "")
+            vul_line = int(self.ctx.get("vul_line", 0))
+            src_ctx = self.frozen.get("source_context", "")
+            
+            if vul_func and vul_line > 0:
+                vul_span = find_function_span(hsrc, vul_func)
+                if vul_span:
+                    # Check if there's already a correctly-placed STAILOR_SINK_REACHED
+                    func_body = hsrc[vul_span[1]:vul_span[2]]
+                    
+                    # Extract the vulnerable statement from source_context
+                    # source_context has lines like "541: memcmp(entry->name, name, len)"
+                    vul_stmt_patterns = []
+                    for ctx_line in src_ctx.split('\n'):
+                        ctx_stripped = re.sub(r'^\d+:\s*', '', ctx_line).strip()
+                        if ctx_stripped and not ctx_stripped.startswith(('/*', '//', '#', '{', '}')):
+                            # Normalize: remove extra spaces
+                            normalized = re.sub(r'\s+', ' ', ctx_stripped).strip()
+                            if len(normalized) > 10:
+                                vul_stmt_patterns.append(normalized)
+                    
+                    # Also use the line map to find harness lines near vul_line
+                    vul_harness_lines = []
+                    if self.harness_line_map:
+                        for h_line, orig in self.harness_line_map.items():
+                            if isinstance(orig, dict) and abs(orig.get("orig_line", 0) - vul_line) <= 5:
+                                vul_harness_lines.append(h_line)
+                            elif isinstance(orig, int) and abs(orig - vul_line) <= 5:
+                                vul_harness_lines.append(h_line)
+                    
+                    # Find the vulnerable statement in the harness by text matching
+                    hlines = hsrc.split('\n')
+                    best_vul_hline = 0
+                    
+                    # Method 1: line map
+                    if vul_harness_lines:
+                        best_vul_hline = max(vul_harness_lines)  # last matching line
+                    
+                    # Method 2: text match against source_context
+                    if not best_vul_hline and vul_stmt_patterns:
+                        for i, hline in enumerate(hlines):
+                            hn = re.sub(r'\s+', ' ', hline).strip()
+                            for pat in vul_stmt_patterns:
+                                # Check if key identifiers from vuln statement appear
+                                key_tokens = re.findall(r'\b\w+\b', pat)
+                                important_tokens = [t for t in key_tokens if len(t) > 2 and t not in (
+                                    'int', 'char', 'void', 'const', 'unsigned', 'return', 'if', 'for', 'while')]
+                                if important_tokens:
+                                    matches = sum(1 for t in important_tokens if t in hn)
+                                    if matches >= len(important_tokens) * 0.6:
+                                        best_vul_hline = i + 1
+                    
+                    if best_vul_hline > 0:
+                        # Check if there's already a SINK assertion within 3 lines after it
+                        has_nearby_sink = False
+                        for j in range(best_vul_hline, min(best_vul_hline + 4, len(hlines))):
+                            if 'STAILOR_SINK_REACHED' in hlines[j]:
+                                has_nearby_sink = True
+                                break
+                        
+                        if not has_nearby_sink:
+                            # Remove any existing STAILOR_SINK_REACHED that's far away
+                            new_hlines = []
+                            removed = 0
+                            for i, hl in enumerate(hlines):
+                                if 'STAILOR_SINK_REACHED' in hl:
+                                    removed += 1
+                                else:
+                                    new_hlines.append(hl)
+                            
+                            indent = re.match(r'^(\s*)', hlines[best_vul_hline - 1]).group(1)
+                            
+                            # --- CWE-125/787: inject bounds check BEFORE vulnerable statement ---
+                            # KLEE's heap OOB detection is unreliable with symbolic indices.
+                            # Use klee_get_obj_size() to explicitly check bounds.
+                            spec_path_for_cwe = self.harness_dir.parent / "sa_context" / "spec.json"
+                            cwe_id = ""
+                            if spec_path_for_cwe.exists():
+                                try:
+                                    spec_data = read_json(spec_path_for_cwe)
+                                    cwe_id = str(spec_data.get("cwe_id", spec_data.get("cwe", "")))
+                                except Exception:
+                                    pass
+                            if not cwe_id:
+                                spec_name_cwe = os.path.basename(self.ctx.get("spec_path", ""))
+                                cwe_m = re.search(r'cwe-(\d+)', spec_name_cwe, re.IGNORECASE)
+                                cwe_id = cwe_m.group(1) if cwe_m else ""
+                            
+                            bounds_check_lines = []
+                            if cwe_id in ("125", "787", "119", "122", "121"):
+                                # Find pointer and length in the vulnerable statement
+                                vul_text = hlines[best_vul_hline - 1].strip()
+                                # Common patterns: memcmp(ptr, x, len), memcpy(dst, src, len), ptr[idx]
+                                # Extract pointer+length from memcmp/memcpy/memmove/strncmp etc.
+                                mem_m = re.search(r'(memcmp|memcpy|memmove|strncmp|strncpy|memset)\s*\(\s*([^,]+),\s*[^,]+,\s*([^)]+)\)', vul_text)
+                                idx_m = re.search(r'(\w+(?:->\w+)*(?:\.\w+)*)\s*\[\s*(\w+)\s*\]', vul_text)
+                                
+                                if mem_m:
+                                    ptr_expr = mem_m.group(2).strip()
+                                    len_expr = mem_m.group(3).strip()
+                                    bounds_check_lines = [
+                                        f'{indent}/* STAILOR: CWE-{cwe_id} bounds check */',
+                                        f'{indent}if (klee_get_obj_size((void*){ptr_expr}) < (size_t)({len_expr}))',
+                                        f'{indent}  klee_report_error(__FILE__, {vul_line}, "STAILOR OOB: buffer too small for access length", "stailor.ptr.err");',
+                                    ]
+                                    print(f"    [+] Injected CWE-{cwe_id} bounds check: klee_get_obj_size({ptr_expr}) < {len_expr}")
+                                elif idx_m:
+                                    arr_expr = idx_m.group(1).strip()
+                                    idx_expr = idx_m.group(2).strip()
+                                    bounds_check_lines = [
+                                        f'{indent}/* STAILOR: CWE-{cwe_id} bounds check */',
+                                        f'{indent}if ((size_t)({idx_expr}) >= klee_get_obj_size((void*){arr_expr}))',
+                                        f'{indent}  klee_report_error(__FILE__, {vul_line}, "STAILOR OOB: index exceeds buffer size", "stailor.ptr.err");',
+                                    ]
+                                    print(f"    [+] Injected CWE-{cwe_id} bounds check: {idx_expr} >= klee_get_obj_size({arr_expr})")
+                            
+                            # Insert: bounds check BEFORE vuln stmt, sink assertion AFTER
+                            sink_line = f'{indent}klee_assert(0 && "STAILOR_SINK_REACHED");'
+                            # Re-find the line in new_hlines
+                            vul_text = hlines[best_vul_hline - 1].strip()
+                            insert_idx = best_vul_hline - removed  # approximate
+                            for idx, nl in enumerate(new_hlines):
+                                if nl.strip() == vul_text:
+                                    insert_idx = idx + 1
+                                    break
+                            
+                            # Insert bounds check BEFORE the vulnerable statement
+                            if bounds_check_lines:
+                                for bc_idx, bc_line in enumerate(bounds_check_lines):
+                                    new_hlines.insert(insert_idx - 1 + bc_idx, bc_line)
+                                insert_idx += len(bounds_check_lines)
+                            
+                            # Insert sink assertion AFTER the vulnerable statement
+                            new_hlines.insert(insert_idx, sink_line)
+                            hsrc = '\n'.join(new_hlines)
+                            target.write_text(hsrc, encoding="utf-8")
+                            if removed:
+                                print(f"    [✓] Moved SINK assertion: removed {removed} misplaced, injected after harness line {insert_idx + 1} (near vul_line {vul_line})")
+                            else:
+                                print(f"    [+] Injected SINK assertion after harness line {insert_idx + 1} (near vul_line {vul_line})")
+        except Exception as e:
+            print(f"    [!] Sink assertion injection error: {e}")
         
         return f"OK: Wrote harness/{target.name}"
     
@@ -3863,37 +4514,7 @@ class SliceTools:
         
         # Call entry function
         lines.append("    // Step 4: Call entry function")
-        if "xmlDict" in entry:
-            # Special case for xmlDict targets
-            lines.append("    // xmlDict-specific setup")
-            lines.append("    typedef struct { unsigned int hashValue; const char *name; } entry_t;")
-            lines.append("    typedef struct {")
-            lines.append("        int seed; int size; int limit; void *subdict;")
-            lines.append("        entry_t *table; int nbElems;")
-            lines.append("    } dict_t;")
-            lines.append("")
-            lines.append("    dict_t *dict = (dict_t*)calloc(1, sizeof(dict_t));")
-            lines.append("    dict->size = 8;")
-            lines.append("    dict->limit = 1000;")
-            lines.append("    dict->subdict = NULL;")
-            lines.append("")
-            lines.append("    // Allocate hash table with concrete size")
-            lines.append("    entry_t *table = (entry_t*)calloc(dict->size, sizeof(entry_t));")
-            lines.append("    dict->table = table;")
-            lines.append("")
-            lines.append("    // Set up one entry with symbolic name") 
-            lines.append("    char entry_name[64];")
-            lines.append("    klee_make_symbolic(entry_name, sizeof(entry_name), \"entry_name\");")
-            lines.append("    table[0].name = entry_name;")
-            lines.append("    unsigned int sym_hash;")
-            lines.append("    klee_make_symbolic(&sym_hash, sizeof(sym_hash), \"hash\");")
-            lines.append("    klee_assume(sym_hash != 0);")
-            lines.append("    table[0].hashValue = sym_hash;")
-            lines.append("")
-            lines.append(f"    {entry}((void*)dict, sym_name, sym_len, NULL, 0);")
-        else:
-            # Generic call
-            lines.append(f"    {entry}(sym_name, sym_len);")
+        lines.append(f"    {entry}(sym_name, sym_len);")
         
         lines.append("")
         lines.append("    return 0;")
@@ -4105,14 +4726,26 @@ STEP 3 (Turn 4) — WRITE HARNESS:
   WriteHarness with neutralized code. Use the excerpt + vulnerability_summary.
   If you don't have the full function body, THAT'S OK — you only need the
   target case and labels anyway. Write the neutralized version from what you have.
+  
+  CRITICAL — ENTRY FUNCTION MUST BE A SIMPLE PASS-THROUGH:
+  The entry function MUST be written as a direct call to the vulnerable function
+  with NO guards, NO NULL checks, NO early returns:
+    ReturnType entry_func(params...) {
+        vul_func(matching_params);  // DIRECT call, no guards
+        return 0;
+    }
+  Do NOT add if-conditions, NULL checks, early returns, or any other guards
+  before the call to the vulnerable function. Guards cause KLEE to take
+  alternative paths and NEVER reach the vulnerability. Strip ALL guards.
+  The driver already ensures inputs are valid — guards are unnecessary.
 
 STEP 4 (Turn 5) — WRITE DRIVER + STUBS:
   WriteDriver (symbolic-first) + WriteStubs (symbolic returns).
   Define any missing macros LOCALLY — do NOT search for them:
-    #ifndef XML_PARSER_BIG_BUFFER_SIZE
-    #define XML_PARSER_BIG_BUFFER_SIZE 300
+    #ifndef SOME_BUFFER_SIZE
+    #define SOME_BUFFER_SIZE 300
     #endif
-  Include project headers (#include <libxml/parser.h>) for type definitions.
+  Include project headers for type definitions.
 
 STEP 5 (Turn 6+) — COMPILE AND ITERATE:
   CompileSlice → fix errors → CompileSlice → KLEE → diagnose → fix → retry.
@@ -4124,9 +4757,9 @@ STEP 5 (Turn 6+) — COMPILE AND ITERATE:
 
 PRAGMATIC RULES:
   - If a macro value is unknown, DEFINE IT LOCALLY with a reasonable guess.
-    #define XML_PARSER_BIG_BUFFER_SIZE 300
-    #define XML_ERR_OK 0
-    #define XML_PARSER_EOF -1
+    #define SOME_BUFFER_SIZE 300
+    #define SOME_ERROR_OK 0
+    #define SOME_STATE_EOF -1
     You can always fix the value later if KLEE shows wrong behavior.
   - If a struct is opaque, allocate a char[1024] and cast.
   - If GatherCode truncates a function, DON'T retry. Use the excerpt.
@@ -4141,27 +4774,25 @@ PRAGMATIC RULES:
   
   DO NOT copy entire functions verbatim. NEUTRALIZE them:
   
-  For the ENTRY function (e.g., xmlParseChunk):
-    - Keep: function signature, variable declarations
-    - Keep: NULL/error guards (if (x == NULL) return)
-    - Keep: the CALL to vul_func (e.g., xmlParseTryOrFinish(ctxt, terminate))
-    - REMOVE: everything else — all other function calls, assignments, if-blocks
+  For the ENTRY function:
+    - Keep: function signature ONLY
+    - Keep: the CALL to vul_func
     - After the call to vul_func: just "return 0;"
+    - REMOVE EVERYTHING ELSE: NO NULL checks, NO error guards, NO if-conditions
+    - DO NOT add "if (ptr == NULL) return" — this causes KLEE to skip the call!
+    - The driver handles input validity. Entry function = pure pass-through.
     
-    Example (neutralized entry):
+    Example (neutralized entry — MANDATORY pattern):
     ```c
-    int xmlParseChunk(xmlParserCtxtPtr ctxt, const char *chunk, int size, int terminate) {
-        if (ctxt == NULL) return(-1);
-        if (size < 0) return(-1);
-        // ALL other code REMOVED — no xmlDetectSAX2, no xmlBufUse, etc.
-        xmlParseTryOrFinish(ctxt, terminate);
+    int entry_func(ContextType *ctx, const char *data, int size, int flag) {
+        vul_func(ctx, flag);
         return 0;
     }
     ```
   
-  For the VUL function (e.g., xmlParseTryOrFinish):
+  For the VUL function:
     - Keep: function signature, variable declarations
-    - Keep: the switch() header
+    - If there's a switch(): keep the switch header
     - ONLY the target case body — all other cases: just "break;"
     - Convert while(1)/for(;;) enclosing the switch to if(1)
     - Keep: goto labels that lead to the vulnerability
@@ -4175,7 +4806,7 @@ PRAGMATIC RULES:
     
     ```c
     // The vulnerable statement itself (KLEE catches crashes natively):
-    snprintf(buf, 149, "%02X", cur[0], cur[1], cur[2], cur[3]);
+    result = ptr[index];  // or memcpy, snprintf, etc.
     // AFTER — reachability probe (only fires if statement didn't crash):
     klee_assert(0 && "STAILOR_SINK_REACHED");
     ```
@@ -4186,11 +4817,11 @@ PRAGMATIC RULES:
     Example (neutralized switch):
     ```c
     if (1) {  // was while(1)
-        switch (ctxt->instate) {
-            case XML_PARSER_EOF: break;
-            case XML_PARSER_START: break;
+        switch (ctx->state) {
+            case STATE_A: break;
+            case STATE_B: break;
             // ... all other cases: just break;
-            case XML_PARSER_CDATA_SECTION:
+            case TARGET_STATE:
                 // KEEP ONLY THIS CASE BODY — the path to vulnerability
                 ...original code for this case...
                 break;
@@ -4228,67 +4859,67 @@ STUB GUIDELINES — SYMBOLIC, NOT HARDCODED:
   not hardcoded constants. KLEE needs freedom to find the triggering value.
   
   BAD (hardcoded — KLEE has no freedom):
-    int xmlCheckCdataPush(...) { return -300; }
+    int some_check_func(...) { return -300; }
   
   GOOD (symbolic — KLEE finds the right value):
-    int xmlCheckCdataPush(const xmlChar *cur, int len, int complete) {
+    int some_check_func(const char *data, int len, int flag) {
         int ret;
-        klee_make_symbolic(&ret, sizeof(ret), "xmlCheckCdataPush_ret");
-        klee_assume(ret < 0);  // must be negative to trigger encoding_error path
+        klee_make_symbolic(&ret, sizeof(ret), "check_ret");
+        klee_assume(ret < 0);  // constrain only if needed for path direction
         return ret;
     }
   
-  This lets KLEE choose the exact negative value that causes cur += (-ret) to
-  push cur past the end of the buffer, triggering the OOB read.
+  This lets KLEE choose the exact value that triggers the vulnerability path
+  (e.g., a negative return that causes a pointer offset to go out of bounds).
   
   RULE: If the vulnerability depends on a stub's return value (e.g., it controls
   a pointer offset, array index, or branch condition near the sink), make it SYMBOLIC.
-  Only hardcode returns for stubs that just need to "not crash" (e.g., xmlDetectSAX2).
+  Only hardcode returns for stubs that just need to "not crash" (e.g., init/setup helpers).
 
 DRIVER PHILOSOPHY — OVERAPPROXIMATE FIRST:
   Start with EVERYTHING symbolic. Add klee_assume constraints ONLY where needed
   to pass guards. This gives KLEE maximum freedom to find the vulnerability.
   
   WRONG approach (concrete-first — misses bugs):
-    ctxt->errNo = 0;             // hardcoded
-    ctxt->instate = 7;           // hardcoded
-    int size = 300;              // hardcoded
-    xmlCheckCdataPush() { return -300; }  // hardcoded
+    ctx->error_code = 0;          // hardcoded
+    ctx->state = 7;               // hardcoded
+    int size = 300;               // hardcoded
+    some_check_func() { return -300; }  // hardcoded
   
   RIGHT approach (symbolic-first — KLEE finds the bug):
     // Make ALL struct fields symbolic
-    klee_make_symbolic(ctxt, sizeof(*ctxt), "ctxt");
+    klee_make_symbolic(ctx, sizeof(*ctx), "ctx");
     
     // Constrain ONLY what's needed to pass guards
-    klee_assume(ctxt->errNo == 0);           // pass errNo guard
-    klee_assume(ctxt->disableSAX != 1);      // pass disableSAX guard
-    klee_assume(ctxt->instate == XML_PARSER_CDATA_SECTION);  // target case
+    klee_assume(ctx->error_code == 0);       // pass error guard
+    klee_assume(ctx->flags != DISABLED);     // pass flag guard
+    klee_assume(ctx->state == TARGET_STATE); // target case
     
     // Re-set pointer fields (symbolic overwrote them — pointers must be valid)
-    ctxt->input = calloc(1, sizeof(*ctxt->input));
-    klee_make_symbolic(ctxt->input, sizeof(*ctxt->input), "input");
+    ctx->input = calloc(1, sizeof(*ctx->input));
+    klee_make_symbolic(ctx->input, sizeof(*ctx->input), "input");
     
     // Buffer: allocate real memory, make content symbolic
-    xmlChar *buf = malloc(512);
+    char *buf = malloc(512);
     klee_make_symbolic(buf, 512, "buffer");
-    ctxt->input->base = buf;
-    ctxt->input->cur = buf;        // or buf + symbolic_offset
-    ctxt->input->end = buf + 512;  // MUST be set!
+    ctx->input->base = buf;
+    ctx->input->cur = buf;        // or buf + symbolic_offset
+    ctx->input->end = buf + 512;  // MUST be set!
     
     // Stubs: return SYMBOLIC values
-    int xmlCheckCdataPush(...) {
-        int ret; klee_make_symbolic(&ret, sizeof(ret), "cdata_ret");
-        return ret;  // KLEE explores all return values including negative
+    int some_check_func(...) {
+        int ret; klee_make_symbolic(&ret, sizeof(ret), "check_ret");
+        return ret;  // KLEE explores all return values
     }
 
   PATTERN: symbolic struct → klee_assume for guards → concrete pointers → symbolic buffers
 
 DRIVER CHECKLIST:
   Before CompileSlice, verify:
-  ✓ All guard fields symbolic with klee_assume (errNo, disableSAX, instate, etc.)
+  ✓ All guard fields symbolic with klee_assume (error codes, flags, state, etc.)
   ✓ Switch variable constrained to target case
-  ✓ Pointer fields (input, input->buf) are real allocations (not symbolic garbage)
-  ✓ input->end is SET (= buffer + size). If NULL → avail checks fail → early exit
+  ✓ Pointer fields are real allocations (not symbolic garbage)
+  ✓ End/limit pointers are SET (= buffer + size). If NULL → bounds checks fail → early exit
   ✓ base, cur, end all point into the SAME buffer allocation
   ✓ Buffer content is symbolic (klee_make_symbolic on the buffer bytes)
   ✓ Stubs on the path return SYMBOLIC values, not hardcoded constants
@@ -4299,20 +4930,20 @@ STUB PHILOSOPHY — SAME PRINCIPLE:
   Add klee_assume ONLY if unconstrained values cause infinite paths.
   
   // Good: KLEE explores all return values
-  int xmlCheckCdataPush(...) {
+  int some_check_func(...) {
       int ret; klee_make_symbolic(&ret, sizeof(ret), "ret");
       return ret;
   }
   
   // Also good: constrain when needed to avoid path explosion
-  int xmlBufUse(xmlBufPtr buf) {
-      int ret; klee_make_symbolic(&ret, sizeof(ret), "bufuse");
+  int some_size_func(void *obj) {
+      int ret; klee_make_symbolic(&ret, sizeof(ret), "size_ret");
       klee_assume(ret >= 0 && ret < 10000);  // reasonable range
       return ret;
   }
   
   // Bad: hardcoded → KLEE has ONE path, can't find the bug
-  int xmlCheckCdataPush(...) { return -300; }
+  int some_check_func(...) { return -300; }
 
 BUG CLASSIFICATION — THREE CATEGORIES:
   When KLEE finds a crash (bug_found=True), classify it:
@@ -5305,6 +5936,7 @@ def main():
     parser.add_argument("--vul-line", required=True)
     parser.add_argument("--sa-out-dir", required=True)
     parser.add_argument("--clang-flags", default=os.environ.get("CLANG_FLAGS", ""), help="Extra clang flags (or use CLANG_FLAGS env var)")
+    parser.add_argument("--build-cmd", default=os.environ.get("BUILD_PROJECT_BC_CMD", ""), help="Build command template for the project. Use {SRC_ROOT} and {OUT_BC} placeholders.")
     args, _ = parser.parse_known_args()
     
     # 1. Setup Logging (RESTORED)
@@ -5322,6 +5954,18 @@ def main():
 
     src_root = Path(args.src_root)
     
+    # --- WORKING COPY: copy source tree to run_dir so we never modify the original ---
+    src_copy = run_dir / "src_copy"
+    if not src_copy.exists():
+        print(f"  [i] Copying source tree to {src_copy}...")
+        shutil.copytree(str(src_root), str(src_copy), symlinks=True,
+                       ignore=shutil.ignore_patterns(
+                           '*.o', '*.bc', '*.bca', '*.pyc', '__pycache__',
+                           'asan_build', 'asan_replay', '.git'))
+        print(f"  [i] Source copy ready ({sum(1 for _ in src_copy.rglob('*'))} files)")
+    src_root_original = src_root  # keep reference to original for ASan real-library build
+    src_root = src_copy  # use copy everywhere from now on
+    
     # Load SA Data
     sa_data = {}
     for f in ["compile_commands.json", "fact_pack.json", "findings.json"]:
@@ -5333,7 +5977,7 @@ def main():
     # Load spec JSON (SA-computed vulnerability details)
     spec = load_spec(args.spec)
     
-    ctx = {"vul_file": args.vul_file, "vul_line": args.vul_line, "strategy_name": "oob", "sa_data": sa_data, "spec_path": args.spec}
+    ctx = {"vul_file": args.vul_file, "vul_line": args.vul_line, "strategy_name": "oob", "sa_data": sa_data, "spec_path": args.spec, "build_cmd": args.build_cmd, "src_root_original": str(src_root_original)}
     frozen = run_frozen_analysis(ctx, src_root, spec=spec)
     
     # --- COPY SA ARTIFACTS TO RUN DIR FOR AGENT ACCESS ---
