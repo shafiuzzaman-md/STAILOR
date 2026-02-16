@@ -11,7 +11,149 @@ import argparse, datetime, json, os, re, shlex, shutil, subprocess, sys, time, t
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-STAILOR_AGENT_VERSION = "v6.0-inline-headers"
+STAILOR_AGENT_VERSION = "v6.1-se-config"
+
+# ---------------------------------------------------------------------------
+# SE Config — Analyst Knowledge Injection
+# ---------------------------------------------------------------------------
+# The se_config/ folder lets analysts inject domain knowledge, bug
+# reproduction data, or manual verification hints into the STAILOR pipeline
+# WITHOUT modifying the engine itself.
+#
+# Structure:
+#   se_config/
+#     config.json          — structured settings (KLEE flags, timeouts, mode)
+#     analyst_notes.md     — freeform instructions for the LLM agent
+#     constraints.json     — klee_assume hints, struct field values, entry overrides
+#     seed_driver.c        — analyst-written driver.c (replaces auto-generated)
+#     seed_stubs.c         — analyst-written stubs
+#     seed_harness.c       — analyst-written harness (sliced spine code)
+#     crash_output.txt     — ASan/fuzzer crash log for stack trace analysis
+#     poc_input.bin        — proof-of-concept input for concrete replay
+#     extra_stubs.c        — additional stubs (merged, not replaced)
+# ---------------------------------------------------------------------------
+
+def load_se_config(se_config_dir: str) -> Dict:
+    """Load analyst-provided se_config/ folder into a structured dict.
+
+    All files are optional. Missing files are silently skipped.
+    Returns a dict with all loaded data, ready to be threaded through the pipeline.
+    """
+    d = Path(se_config_dir) if se_config_dir else None
+    cfg = {
+        # --- From config.json ---
+        "mode": "discover",          # "discover" (find bugs) or "verify" (reproduce known bug)
+        "klee_flags": [],            # extra KLEE CLI flags
+        "klee_timeout": 0,           # override KLEE timeout (0 = use default)
+        "max_turns": 0,              # override agent turn limit (0 = use default)
+        "extra_cflags": [],          # extra clang flags for compilation
+        "extra_includes": [],        # extra -I paths
+        "search_strategy": "",       # KLEE search: dfs, bfs, random-path, etc.
+        # --- From constraints.json ---
+        "entry_override": "",        # override the entry function
+        "spine_override": [],        # override the spine
+        "struct_field_values": {},   # {field: value} — concrete values to set in driver
+        "klee_assumes": [],          # ["sym_len > 64", "instate == 7"] — agent injects these
+        "stub_returns": {},          # {func: "symbolic"/"0"/"-1"/...} — stub return policy
+        # --- From files ---
+        "analyst_notes": "",         # freeform markdown text for agent
+        "crash_output": "",          # ASan/fuzzer output for stack trace
+        "poc_input_path": "",        # path to PoC input binary
+        "seed_driver": "",           # analyst driver.c source
+        "seed_stubs": "",            # analyst stubs.c source
+        "seed_harness": "",          # analyst harness source
+        "extra_stubs": "",           # additional stubs (merged into stubs.c)
+        # --- Meta ---
+        "se_config_dir": str(d) if d else "",
+        "loaded_files": [],          # which files were actually loaded
+    }
+
+    if not d or not d.is_dir():
+        return cfg
+
+    print(f"  [SE-Config] Loading from: {d}")
+
+    # --- config.json ---
+    config_path = d / "config.json"
+    if config_path.exists():
+        try:
+            raw = json.loads(config_path.read_text(encoding="utf-8"))
+            for key in ["mode", "search_strategy", "entry_override"]:
+                if key in raw and isinstance(raw[key], str):
+                    cfg[key] = raw[key]
+            for key in ["klee_timeout", "max_turns"]:
+                if key in raw:
+                    cfg[key] = int(raw[key])
+            for key in ["klee_flags", "extra_cflags", "extra_includes", "spine_override", "klee_assumes"]:
+                if key in raw and isinstance(raw[key], list):
+                    cfg[key] = raw[key]
+            for key in ["struct_field_values", "stub_returns"]:
+                if key in raw and isinstance(raw[key], dict):
+                    cfg[key] = raw[key]
+            cfg["loaded_files"].append("config.json")
+            print(f"    [+] config.json: mode={cfg['mode']}, klee_timeout={cfg['klee_timeout']}, "
+                  f"{len(cfg['klee_flags'])} klee_flags, {len(cfg['klee_assumes'])} assumes")
+        except Exception as e:
+            print(f"    [!] config.json parse error: {e}")
+
+    # --- constraints.json (alternative/supplement to config.json for constraints) ---
+    constraints_path = d / "constraints.json"
+    if constraints_path.exists():
+        try:
+            raw = json.loads(constraints_path.read_text(encoding="utf-8"))
+            if "entry_override" in raw and not cfg["entry_override"]:
+                cfg["entry_override"] = raw["entry_override"]
+            if "spine_override" in raw and not cfg["spine_override"]:
+                cfg["spine_override"] = raw["spine_override"]
+            for key in ["struct_field_values", "stub_returns"]:
+                if key in raw and isinstance(raw[key], dict):
+                    cfg[key].update(raw[key])
+            if "klee_assumes" in raw and isinstance(raw["klee_assumes"], list):
+                cfg["klee_assumes"].extend(raw["klee_assumes"])
+            cfg["loaded_files"].append("constraints.json")
+            print(f"    [+] constraints.json: {len(cfg['struct_field_values'])} field values, "
+                  f"{len(cfg['klee_assumes'])} assumes, {len(cfg['stub_returns'])} stub overrides")
+        except Exception as e:
+            print(f"    [!] constraints.json parse error: {e}")
+
+    # --- Text / binary files ---
+    text_files = {
+        "analyst_notes.md": "analyst_notes",
+        "crash_output.txt": "crash_output",
+        "seed_driver.c":    "seed_driver",
+        "seed_stubs.c":     "seed_stubs",
+        "seed_harness.c":   "seed_harness",
+        "extra_stubs.c":    "extra_stubs",
+    }
+    for fname, cfg_key in text_files.items():
+        fpath = d / fname
+        if fpath.exists():
+            try:
+                cfg[cfg_key] = fpath.read_text(encoding="utf-8")
+                cfg["loaded_files"].append(fname)
+                lines = cfg[cfg_key].count('\n') + 1
+                print(f"    [+] {fname}: {lines} lines")
+            except Exception as e:
+                print(f"    [!] {fname} read error: {e}")
+
+    # --- PoC input binary ---
+    poc_path = d / "poc_input.bin"
+    if poc_path.exists():
+        cfg["poc_input_path"] = str(poc_path)
+        cfg["loaded_files"].append("poc_input.bin")
+        print(f"    [+] poc_input.bin: {poc_path.stat().st_size} bytes")
+
+    # Summarize
+    if cfg["loaded_files"]:
+        print(f"  [SE-Config] Loaded {len(cfg['loaded_files'])} files: {', '.join(cfg['loaded_files'])}")
+        if cfg["mode"] == "verify":
+            print(f"  [SE-Config] MODE: VERIFY — agent will try to reproduce a known bug")
+        elif cfg["analyst_notes"]:
+            print(f"  [SE-Config] Analyst notes will be injected into agent context")
+    else:
+        print(f"  [SE-Config] Directory exists but no recognized files found")
+
+    return cfg
 
 # ---------------------------------------------------------------------------
 # Globals & Helpers
@@ -539,13 +681,30 @@ def run_klee(bc_path: Path, klee_bin: str, flags: List[str], timeout: int,
             
             if not_reached:
                 if vul_func in not_reached:
-                    # Don't report BLOCKED if the bug was actually triggered
-                    if stats.get("bug_triggered") or stats.get("site_reached"):
+                    if stats.get("bug_triggered"):
+                        # Bug was actually triggered (ptr.err near sink) — probe just didn't fire
                         diagnostics.append(
                             f"NOTE: Spine probe for {vul_func} didn't fire, but "
-                            f"the vulnerability WAS reached (bug_triggered={stats.get('bug_triggered')}, "
-                            f"site_reached={stats.get('site_reached')}). "
-                            f"The probe wasn't executed because KLEE crashed at the vulnerable statement first.")
+                            f"bug_triggered=True. KLEE crashed at the vulnerable statement "
+                            f"before the probe could execute.")
+                    elif stats.get("site_reached") and not stats.get("bug_triggered"):
+                        # SINK ASSERT FIRED but vul_func probe didn't fire AND no bug triggered.
+                        # This means the assert fired from a WRONG PATH — not the vulnerable code.
+                        # Common causes:
+                        # 1. Assert placed at end of function, fired from fall-through (loop skipped)
+                        # 2. Assert in auto-generated intermediate skeleton, not in vul_func
+                        # 3. Neutralized code has unsatisfiable guards (e.g., hashValue=0 contradiction)
+                        diagnostics.append(
+                            f"WARNING: SINK ASSERT FIRED but {vul_func} spine probe did NOT fire. "
+                            f"This means klee_assert fired from a WRONG CODE PATH — the vulnerable "
+                            f"statement was NOT actually executed. "
+                            f"LIKELY CAUSES: (1) A loop/if guard in your harness has concrete values "
+                            f"that make the vulnerable branch unsatisfiable (e.g., a variable is 0 but "
+                            f"the loop requires it non-zero). (2) The sink assert is at the end of the "
+                            f"function and fires from the fall-through/skip path, not the vulnerable path. "
+                            f"FIX: Make loop/branch guard variables SYMBOLIC (not hardcoded concrete) so "
+                            f"KLEE can explore the path into the vulnerable code. Ensure the sink assert "
+                            f"is placed INSIDE the vulnerable branch, not after the function's closing brace.")
                     elif reached_funcs:
                         last = reached_funcs[-1]
                         events = sorted(spine_hits.get(last, set()))
@@ -1897,17 +2056,96 @@ class SliceTools:
                 kt["orig_code"] = ""
                 print(f"    [!] No mapping for harness {crash_file_base}:{crash_line}")
         
-        # --- Step 4: ASan replay (on harness slice) ---
+        # --- Step 4: ASan replay — ALL unique ktests, not just the first ---
+        # Each ktest may trigger a different bug. We replay each and collect results.
         asan_result = {"success": False, "asan_triggered": False}
-        try:
-            asan_result = self._asan_replay(real_crashes)
-        except Exception as e:
-            print(f"    [!] ASan replay failed: {e}")
-            import traceback
-            traceback.print_exc()
-            asan_result = {"success": False, "error": str(e)}
+        all_asan_results = []  # Per-ktest ASAN results
         
-        # --- Step 4b: ASan replay on REAL library source ---
+        # Deduplicate by ktest path (multiple .err can share one .ktest)
+        seen_ktests = set()
+        unique_crashes = []
+        for kt in real_crashes:
+            ktest_path = kt.get("ktest", "")
+            if ktest_path and ktest_path not in seen_ktests:
+                seen_ktests.add(ktest_path)
+                unique_crashes.append(kt)
+            elif not ktest_path and kt not in unique_crashes:
+                unique_crashes.append(kt)
+        
+        print(f"    [i] Replaying {len(unique_crashes)} unique ktest(s) with ASan...")
+        
+        for idx, kt in enumerate(unique_crashes):
+            crash_label = f"{os.path.basename(kt.get('crash_file',''))}:{kt.get('crash_line',0)}"
+            print(f"    [ASan #{idx}] Replaying ktest for crash at {crash_label}")
+            try:
+                single_result = self._asan_replay([kt], replay_suffix=f"_{idx}" if idx > 0 else "")
+                single_result["source_ktest"] = kt.get("ktest", "")
+                single_result["source_crash_file"] = kt.get("crash_file", "")
+                single_result["source_crash_line"] = kt.get("crash_line", 0)
+                single_result["source_orig_file"] = kt.get("orig_file", "")
+                single_result["source_orig_line"] = kt.get("orig_line", 0)
+                all_asan_results.append(single_result)
+                
+                if single_result.get("asan_triggered"):
+                    asan_func = single_result.get("asan_func", "?")
+                    asan_err = single_result.get("asan_error_type", "?")
+                    print(f"    [ASan #{idx}] CONFIRMED: {asan_err} in {asan_func}")
+            except Exception as e:
+                print(f"    [ASan #{idx}] Replay failed: {e}")
+                all_asan_results.append({"success": False, "error": str(e),
+                                          "source_ktest": kt.get("ktest", "")})
+        
+        # Pick the BEST asan result: prefer one that's closest to the target
+        # Priority: target function > spine function > same file > any crash
+        vul_func_name = self.frozen.get("vul_func", "")
+        vul_file_name = self.frozen.get("vul_file", "")
+        spine_funcs = self.frozen.get("spine", [])
+        target_vul_line = int(self.ctx.get("vul_line", 0))
+        
+        def _asan_priority(ar):
+            """Lower = better match to target."""
+            if not ar.get("asan_triggered"):
+                return (100,)
+            func = ar.get("asan_func", "")
+            orig_file = ar.get("asan_orig_file", ar.get("source_orig_file", ""))
+            orig_line = ar.get("asan_orig_line", ar.get("source_orig_line", 0))
+            err_type = ar.get("asan_error_type", "").lower()
+            
+            same_func = (func == vul_func_name) if func and vul_func_name else False
+            same_file = False
+            if orig_file and vul_file_name:
+                same_file = (os.path.basename(orig_file) == os.path.basename(vul_file_name))
+            near = same_file and orig_line and target_vul_line and abs(orig_line - target_vul_line) <= 30
+            in_spine = func in spine_funcs if func else False
+            # Null-page SEGV is likely a harness bug
+            is_null_segv = ("segv" in err_type.lower() and 
+                           re.search(r'SEGV on unknown address 0x0{3,}[0-9a-f]{1,4}\b', ar.get("output", "")))
+            
+            if same_func or near:
+                return (0, 0 if near else 1)
+            if in_spine and same_file:
+                return (1, 0)
+            if same_file:
+                return (2, abs(orig_line - target_vul_line) if orig_line and target_vul_line else 999)
+            if in_spine:
+                return (3, 0)
+            if is_null_segv:
+                return (90, 0)  # Deprioritize null dereferences
+            return (50, 0)
+        
+        confirmed_results = [ar for ar in all_asan_results if ar.get("asan_triggered")]
+        if confirmed_results:
+            confirmed_results.sort(key=_asan_priority)
+            asan_result = confirmed_results[0]
+            asan_result["all_asan_crashes"] = confirmed_results
+            if len(confirmed_results) > 1:
+                print(f"    [ASan] {len(confirmed_results)} crashes confirmed. "
+                      f"Best match: {asan_result.get('asan_func', '?')} "
+                      f"({asan_result.get('asan_error_type', '?')})")
+        elif all_asan_results:
+            asan_result = all_asan_results[0]
+        
+        # --- Step 4b: ASan replay on REAL library source (use best ktest) ---
         real_asan_result = {"success": False, "asan_triggered": False}
         try:
             real_asan_result = self._asan_replay_real_library(real_crashes)
@@ -1943,15 +2181,19 @@ class SliceTools:
         
         return report
     
-    def _asan_replay(self, err_ktests: List[Dict]) -> Dict:
+    def _asan_replay(self, err_ktests: List[Dict], replay_suffix: str = "") -> Dict:
         """Compile harness with ASan and replay with concrete ktest inputs.
         
         Strategy: use the HARNESS files (already compile-tested with clang for KLEE)
         but swap driver.c for a replay driver with concrete values.
         The harness has the exact same code paths as the KLEE run, so if KLEE found
         a crash, ASan should confirm it.
+        
+        Args:
+            replay_suffix: suffix for the replay directory (e.g. "_1", "_2") to
+                          support replaying multiple ktests without clobbering.
         """
-        replay_dir = ensure_dir(self.harness_dir.parent / "asan_replay")
+        replay_dir = ensure_dir(self.harness_dir.parent / f"asan_replay{replay_suffix}")
         
         # Read driver.c to generate replay driver
         driver_path = self.harness_dir / "driver.c"
@@ -2670,13 +2912,29 @@ class SliceTools:
         spec_path = self.harness_dir.parent / "sa_context" / "spec.json"
         cwe_id = ""
         cwe_desc = ""
+        rule_id = ""
         if spec_path.exists():
             try:
                 spec = read_json(spec_path)
                 cwe_id = str(spec.get("cwe_id", spec.get("cwe", "")))
                 cwe_desc = spec.get("cwe_description", spec.get("title", ""))
+                rule_id = spec.get("rule_id", spec.get("query_id", ""))
             except Exception:
                 pass
+        
+        # WMI rule_id → CWE fallback (WMI rules may not have explicit CWE)
+        if not cwe_id and rule_id:
+            wmi_cwe_map = {
+                "wmi-1": "416",  # Stale Reference → UAF
+                "wmi-2": "416",  # Type Confusion Leak → UAF read
+                "wmi-3": "416",  # Arbitrary Free → UAF/double-free
+                "wmi-4": "416",  # Write-What-Where → UAF write
+            }
+            for prefix, cwe in wmi_cwe_map.items():
+                if prefix in str(rule_id).lower():
+                    cwe_id = cwe
+                    cwe_desc = f"WMI pattern ({prefix})"
+                    break
         
         # Primary crash (closest to vulnerability)
         primary = err_ktests[0] if err_ktests else {}
@@ -2713,10 +2971,84 @@ class SliceTools:
                         for i in range(start, end)
                     )
         
+        # --- Verdict: Check if ASAN crash is at/near the TARGET vulnerability ---
+        # A "TP" requires the ASAN crash to be in the same function or within
+        # ±30 lines of the original vulnerability. Otherwise it's a different
+        # bug triggered by the same harness → "LIKELY_TP_DIFFERENT_CRASH".
+        verdict = "LIKELY_TP"
+        crash_relevance = "no_asan"
+        
+        if asan_result.get("asan_triggered"):
+            asan_orig_line = asan_result.get("asan_orig_line", 0)
+            asan_orig_file = asan_result.get("asan_orig_file", "")
+            asan_crash_func = asan_result.get("asan_func", "")
+            
+            # Check 1: ASAN crash in the same function as the vulnerability
+            same_func = (asan_crash_func == vul_func) if (asan_crash_func and vul_func) else False
+            
+            # Check 2: ASAN crash in the same file and within ±30 lines
+            same_file = False
+            if asan_orig_file and vul_file:
+                same_file = (os.path.basename(asan_orig_file) == os.path.basename(vul_file)
+                             or asan_orig_file == vul_file)
+            near_target = same_file and asan_orig_line and vul_line and abs(asan_orig_line - vul_line) <= 30
+            
+            # Check 3: ASAN crash in a spine function (callee of target)
+            spine = self.frozen.get("spine", [])
+            in_spine = asan_crash_func in spine if asan_crash_func else False
+            
+            # Check 4: ASAN error type matches the CWE expectation
+            asan_error = asan_result.get("asan_error_type", "").lower()
+            cwe_match = False
+            if cwe_id:
+                cwe_to_asan = {
+                    "125": ["heap-buffer-overflow", "stack-buffer-overflow", "global-buffer-overflow", "SEGV"],
+                    "787": ["heap-buffer-overflow", "stack-buffer-overflow", "global-buffer-overflow"],
+                    "416": ["heap-use-after-free"],
+                    "415": ["double-free"],
+                    "476": ["SEGV", "null"],
+                    "122": ["heap-buffer-overflow"],
+                    "121": ["stack-buffer-overflow"],
+                }
+                expected = cwe_to_asan.get(str(cwe_id), [])
+                cwe_match = any(e.lower() in asan_error for e in expected)
+            
+            if same_func or near_target:
+                verdict = "TP"
+                crash_relevance = "exact_match"
+            elif in_spine and (cwe_match or same_file):
+                verdict = "TP"
+                crash_relevance = "spine_match"
+            elif same_file:
+                verdict = "LIKELY_TP"
+                crash_relevance = "same_file_different_location"
+            elif in_spine:
+                verdict = "LIKELY_TP"
+                crash_relevance = "spine_different_file"
+            else:
+                verdict = "LIKELY_TP_DIFFERENT_CRASH"
+                crash_relevance = "different_location"
+            
+            # SEGV at null page (address < 0x1000) with all-zero inputs is likely
+            # a harness initialization problem, not the real bug
+            asan_output = asan_result.get("output", "")
+            null_segv = ("SEGV" in asan_error and 
+                        re.search(r'SEGV on unknown address 0x0{3,}[0-9a-f]{1,4}\b', asan_output))
+            if null_segv and not same_func and not near_target:
+                verdict = "LIKELY_FP_NULL_DEREF"
+                crash_relevance = "null_deref_likely_harness_bug"
+                print(f"    [Report] WARNING: ASAN crash is a null-page SEGV, likely harness "
+                      f"initialization issue (not the target vulnerability)")
+            
+            print(f"    [Report] Crash relevance: {crash_relevance} "
+                  f"(asan={asan_crash_func}@{asan_orig_file}:{asan_orig_line}, "
+                  f"target={vul_func}@{vul_file}:{vul_line})")
+        
         report = {
             "summary": {
-                "verdict": "TP" if asan_result.get("asan_triggered") else "LIKELY_TP",
+                "verdict": verdict,
                 "asan_confirmed": asan_result.get("asan_triggered", False),
+                "crash_relevance": crash_relevance,
                 "cwe": f"CWE-{cwe_id}" if cwe_id else "unknown",
                 "cwe_description": cwe_desc,
             },
@@ -2753,7 +3085,63 @@ class SliceTools:
             },
             "line_map_file": str(self.harness_dir / "line_map.json"),
             "all_crashes": [],
+            "all_asan_crashes": [],
         }
+        
+        # Add ALL confirmed ASAN crashes (not just the primary)
+        for ar in asan_result.get("all_asan_crashes", []):
+            # Map each ASAN crash back to original source
+            ar_asan_file = ar.get("asan_file", "")
+            ar_asan_line = ar.get("asan_line", 0)
+            ar_orig_file = ""
+            ar_orig_line = 0
+            if ar_asan_file and ar_asan_line:
+                ar_orig = self.lookup_original_line(os.path.basename(ar_asan_file), ar_asan_line)
+                if ar_orig:
+                    ar_orig_file = ar_orig["orig_file"]
+                    ar_orig_line = ar_orig["orig_line"]
+            
+            # Classify relevance of this ASAN crash vs target
+            ar_func = ar.get("asan_func", "")
+            ar_same_func = (ar_func == vul_func) if ar_func and vul_func else False
+            ar_same_file = False
+            if ar_orig_file and vul_file:
+                ar_same_file = os.path.basename(ar_orig_file) == os.path.basename(vul_file)
+            ar_near = ar_same_file and ar_orig_line and vul_line and abs(ar_orig_line - vul_line) <= 30
+            ar_in_spine = ar_func in self.frozen.get("spine", []) if ar_func else False
+            
+            if ar_same_func or ar_near:
+                ar_relevance = "target_crash"
+            elif ar_in_spine and ar_same_file:
+                ar_relevance = "spine_crash"
+            elif ar_same_file:
+                ar_relevance = "same_file_crash"
+            elif ar_in_spine:
+                ar_relevance = "spine_crash"
+            else:
+                ar_relevance = "secondary_bug"
+            
+            report["all_asan_crashes"].append({
+                "error_type": ar.get("asan_error_type", ""),
+                "crash_function": ar.get("asan_func", ""),
+                "crash_file": ar_asan_file,
+                "crash_line": ar_asan_line,
+                "original_file": ar_orig_file or ar.get("source_orig_file", ""),
+                "original_line": ar_orig_line or ar.get("source_orig_line", 0),
+                "relevance": ar_relevance,
+                "source_ktest": ar.get("source_ktest", ""),
+            })
+        
+        # Update summary counts
+        report["summary"]["total_asan_crashes"] = len(report["all_asan_crashes"])
+        report["summary"]["target_asan_crashes"] = len([
+            c for c in report["all_asan_crashes"] 
+            if c["relevance"] in ("target_crash", "spine_crash")
+        ])
+        report["summary"]["secondary_asan_crashes"] = len([
+            c for c in report["all_asan_crashes"]
+            if c["relevance"] not in ("target_crash", "spine_crash")
+        ])
         
         # Add concrete inputs from ktest
         for kt in err_ktests:
@@ -2764,16 +3152,78 @@ class SliceTools:
                     "data": obj["data"][:200],
                 })
         
-        # Add all crash info with original line mapping
+        # Add all crash info with original line mapping + relevance classification
         for kt in err_ktests:
+            kt_orig_file = kt.get("orig_file", "")
+            kt_orig_line = kt.get("orig_line", 0)
+            kt_err_type = kt.get("err_type", "")
+            
+            # Classify this crash's relevance to the target vulnerability
+            kt_same_func = False
+            kt_near_target = False
+            kt_in_spine = False
+            
+            # Check function: parse from err_content stack trace
+            kt_crash_func = ""
+            stack_m = re.search(r'in\s+(\w+)\s*\(', kt.get("err_content", ""))
+            if stack_m:
+                kt_crash_func = stack_m.group(1)
+            
+            if kt_crash_func and vul_func and kt_crash_func == vul_func:
+                kt_same_func = True
+            
+            kt_same_file = False
+            if kt_orig_file and vul_file:
+                kt_same_file = (os.path.basename(kt_orig_file) == os.path.basename(vul_file)
+                                or kt_orig_file == vul_file)
+            kt_near_target = kt_same_file and kt_orig_line and vul_line and abs(kt_orig_line - vul_line) <= 30
+            
+            spine = self.frozen.get("spine", [])
+            if kt_crash_func and kt_crash_func in spine:
+                kt_in_spine = True
+            
+            if kt_same_func or kt_near_target:
+                kt_relevance = "target_crash"
+            elif kt_in_spine and kt_same_file:
+                kt_relevance = "spine_crash"
+            elif kt_same_file:
+                kt_relevance = "same_file_crash"
+            elif kt_in_spine:
+                kt_relevance = "spine_different_file"
+            else:
+                kt_relevance = "secondary_bug"
+            
             report["all_crashes"].append({
                 "harness_file": os.path.basename(kt.get("crash_file", "")),
                 "harness_line": kt.get("crash_line", 0),
-                "original_file": kt.get("orig_file", ""),
-                "original_line": kt.get("orig_line", 0),
-                "error_type": kt.get("err_type", ""),
+                "original_file": kt_orig_file,
+                "original_line": kt_orig_line,
+                "error_type": kt_err_type,
+                "crash_function": kt_crash_func,
+                "relevance": kt_relevance,
                 "ktest": kt.get("ktest", ""),
             })
+        
+        # Separate target-related vs secondary bugs for the summary
+        target_crashes = [c for c in report["all_crashes"] 
+                          if c["relevance"] in ("target_crash", "spine_crash")]
+        secondary_bugs = [c for c in report["all_crashes"]
+                          if c["relevance"] not in ("target_crash", "spine_crash")]
+        
+        report["summary"]["target_crashes"] = len(target_crashes)
+        report["summary"]["secondary_bugs"] = len(secondary_bugs)
+        
+        if secondary_bugs:
+            report["secondary_bugs"] = []
+            for sb in secondary_bugs:
+                report["secondary_bugs"].append({
+                    "original_file": sb["original_file"],
+                    "original_line": sb["original_line"],
+                    "error_type": sb["error_type"],
+                    "crash_function": sb.get("crash_function", ""),
+                    "relevance": sb["relevance"],
+                    "ktest": sb["ktest"],
+                })
         
         # Print summary
         print(f"    [Report] Verdict: {report['summary']['verdict']}")
@@ -2782,6 +3232,21 @@ class SliceTools:
         if asan_result.get("asan_triggered"):
             print(f"    [Report] ASan: {report['asan_result']['error_type']} at "
                   f"{report['asan_result']['original_file']}:{report['asan_result']['original_line']}")
+        if target_crashes:
+            print(f"    [Report] Target crashes: {len(target_crashes)}")
+        if secondary_bugs:
+            print(f"    [Report] Secondary bugs found: {len(secondary_bugs)}")
+            for sb in secondary_bugs[:5]:
+                print(f"      - {sb['error_type']} at {sb['original_file']}:{sb['original_line']} "
+                      f"({sb.get('crash_function', '?')}) [{sb['relevance']}]")
+        
+        # Print all ASAN-confirmed crashes
+        if report["all_asan_crashes"]:
+            print(f"    [Report] ASan-confirmed crashes: {len(report['all_asan_crashes'])}")
+            for ac in report["all_asan_crashes"]:
+                print(f"      - {ac['error_type']} in {ac.get('crash_function', '?')} "
+                      f"→ {ac.get('original_file', '?')}:{ac.get('original_line', '?')} "
+                      f"[{ac['relevance']}]")
         
         return report
 
@@ -3329,6 +3794,12 @@ class SliceTools:
         # Build line map for original↔harness correspondence
         self._post_harness_line_map()
         
+        # --- AUTO-GENERATE shared types header from harness preamble ---
+        try:
+            self._generate_harness_types_header(target)
+        except Exception as e:
+            print(f"    [!] harness_types.h generation error: {e}")
+        
         # --- VERIFY & AUTO-FIX: spine call chain is intact ---
         # After writing, check that each spine function calls the next one.
         # If broken, AUTO-INJECT the missing call — don't rely on the agent to fix it.
@@ -3373,16 +3844,100 @@ class SliceTools:
                                 if stripped and not stripped.startswith(('/*', '//', '#', '{', '}')):
                                     vul_stmts.append(f"    {stripped}")
                             
-                            if not vul_stmts:
-                                vul_stmts = [f"    /* vulnerable function body — no source_context */"]
+                            # CRITICAL: Only inject sink assertion and source_context if this IS
+                            # the vulnerable function. For intermediate spine functions, generate
+                            # a pass-through skeleton — the call chain injector below will add
+                            # the call to the next spine function.
+                            vul_func_name = self.frozen.get("vul_func", "")
                             
-                            skeleton = (
-                                f"\n/* AUTO-GENERATED: missing spine function */\n"
-                                f"{callee_sig} {{\n"
-                                + "\n".join(vul_stmts) + "\n"
-                                f"    klee_assert(0 && \"STAILOR_SINK_REACHED\");\n"
-                                f"}}\n"
-                            )
+                            if callee == vul_func_name:
+                                # This IS the vulnerable function — include source context + sink
+                                src_ctx = self.frozen.get("source_context", "")
+                                vul_stmts = []
+                                for ctx_line in src_ctx.split('\n'):
+                                    stripped = re.sub(r'^\d+:\s*', '', ctx_line).strip()
+                                    if stripped and not stripped.startswith(('/*', '//', '#', '{', '}')):
+                                        vul_stmts.append(f"    {stripped}")
+                                if not vul_stmts:
+                                    vul_stmts = [f"    /* vulnerable function body — no source_context */"]
+                                
+                                skeleton = (
+                                    f"\n/* AUTO-GENERATED: vulnerable function skeleton */\n"
+                                    f"{callee_sig} {{\n"
+                                    + "\n".join(vul_stmts) + "\n"
+                                    f"    klee_assert(0 && \"STAILOR_SINK_REACHED\");\n"
+                                    f"}}\n"
+                                )
+                            else:
+                                # INTERMEDIATE spine function — just a pass-through body.
+                                # Do NOT put source_context or klee_assert here — that kills
+                                # the path before reaching the actual vulnerable function.
+                                # Build actual pass-through that CALLS the next spine function.
+                                # Find the next spine function's signature to build the call.
+                                next_callee = spine[i + 2] if (i + 2) < len(spine) else ""
+                                next_sig = ""
+                                if next_callee:
+                                    ns_m = re.search(
+                                        rf'(?:static\s+)?(?:const\s+)?\w[\w\s\*]*\b{re.escape(next_callee)}\s*\([^)]*\)',
+                                        gathered)
+                                    if ns_m:
+                                        next_sig = ns_m.group(0).strip()
+                                
+                                # Extract param names from callee_sig for variable declarations
+                                pm_skel = re.search(rf'{re.escape(callee)}\s*\(([^)]*)\)', callee_sig)
+                                skel_params = pm_skel.group(1) if pm_skel else ""
+                                
+                                # Build the function body with the spine probe
+                                skel_body_lines = [
+                                    f'    klee_warning_once("SPINE_PROBE:{callee}:ENTRY");',
+                                ]
+                                
+                                # If there's a next spine function, build a call to it
+                                if next_callee and next_sig:
+                                    # Extract next callee's params
+                                    nc_pm = re.search(rf'{re.escape(next_callee)}\s*\(([^)]*)\)', next_sig)
+                                    if nc_pm:
+                                        nc_params = nc_pm.group(1).strip()
+                                        # Match params by name between current and next function
+                                        cur_param_names = []
+                                        for p in skel_params.split(','):
+                                            toks = p.strip().split()
+                                            if toks:
+                                                cur_param_names.append(toks[-1].lstrip('*'))
+                                        
+                                        nc_args = []
+                                        for p in nc_params.split(','):
+                                            toks = p.strip().split()
+                                            if toks:
+                                                pname = toks[-1].lstrip('*')
+                                                if pname in cur_param_names:
+                                                    nc_args.append(pname)
+                                                elif any(pname.lower() in cn.lower() for cn in cur_param_names):
+                                                    match = [cn for cn in cur_param_names if pname.lower() in cn.lower()][0]
+                                                    nc_args.append(match)
+                                                else:
+                                                    # Check type to provide reasonable default
+                                                    ptype = ' '.join(toks[:-1])
+                                                    if '*' in ptype or '*' in toks[-1]:
+                                                        nc_args.append("NULL")
+                                                    else:
+                                                        nc_args.append("0")
+                                        
+                                        skel_body_lines.append(f"    {next_callee}({', '.join(nc_args)});")
+                                
+                                # Determine return type
+                                ret_m = re.match(r'(.*?)\b' + re.escape(callee), callee_sig)
+                                ret_type = ret_m.group(1).strip() if ret_m else "void"
+                                ret_type = re.sub(r'\bstatic\b', '', ret_type).strip()
+                                if ret_type and ret_type != "void":
+                                    skel_body_lines.append(f"    return ({ret_type})0;")
+                                
+                                skeleton = (
+                                    f"\n/* AUTO-GENERATED: intermediate spine pass-through */\n"
+                                    f"{callee_sig} {{\n"
+                                    + "\n".join(skel_body_lines) + "\n"
+                                    f"}}\n"
+                                )
                             # Append skeleton before the caller function
                             hsrc = hsrc[:caller_span[0]] + skeleton + "\n" + hsrc[caller_span[0]:]
                             print(f"    [✓] AUTO-GENERATED skeleton for {callee} ({len(vul_stmts)} lines)")
@@ -3427,7 +3982,7 @@ class SliceTools:
                                 
                                 inject_call = f"    {callee}({', '.join(call_args)});"
                                 # Insert right after the opening brace of caller
-                                insert_pos = caller_span[1]
+                                insert_pos = caller_span[1] + 1  # +1 to get AFTER the '{'
                                 hsrc = hsrc[:insert_pos] + f"\n{inject_call}  /* AUTO-INJECTED: spine call chain */\n" + hsrc[insert_pos:]
                                 chain_fixed = True
                                 print(f"    [✓] AUTO-FIX: Injected '{callee}(...)' into {caller}'s body")
@@ -3590,7 +4145,74 @@ class SliceTools:
         except Exception as e:
             print(f"    [!] Sink assertion injection error: {e}")
         
-        return f"OK: Wrote harness/{target.name}"
+        types_hint = ""
+        types_path = self.harness_dir / "harness_types.h"
+        if types_path.exists():
+            types_hint = (
+                "\n\nIMPORTANT: harness_types.h has been auto-generated with the real struct "
+                "definitions from the harness preamble. Your driver.c MUST start with:\n"
+                '  #include "harness_types.h"\n'
+                "This gives you the correct struct layouts. Do NOT redefine these structs in driver.c."
+            )
+        
+        return f"OK: Wrote harness/{target.name}{types_hint}"
+    
+    def _generate_harness_types_header(self, harness_path: Path):
+        """Extract struct/typedef/enum definitions from harness into harness_types.h."""
+        hsrc = harness_path.read_text(errors="replace")
+        preamble_end = len(hsrc)
+        for marker in ['/* STAILOR_FUNC:', '/* --- SPINE FUNCTION', '/* Spine function']:
+            idx = hsrc.find(marker)
+            if idx >= 0:
+                preamble_end = min(preamble_end, idx)
+        lines = hsrc.splitlines()
+        brace_depth = 0
+        in_struct = False
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if re.match(r'^(typedef\s+)?(struct|enum|union)\s', stripped):
+                in_struct = True
+            if in_struct:
+                brace_depth += stripped.count('{') - stripped.count('}')
+                if brace_depth <= 0:
+                    in_struct = False
+                    brace_depth = 0
+                continue
+            if not in_struct and '{' in stripped:
+                prev_text = " ".join(lines[max(0, i-3):i+1])
+                if re.search(r'\w+\s*\([^)]*\)\s*\{?\s*$', prev_text) and \
+                   not re.match(r'^\s*(if|while|for|switch|do|else)\b', prev_text.strip()):
+                    preamble_end = sum(len(lines[k]) + 1 for k in range(max(0, i-1)))
+                    break
+        preamble = hsrc[:preamble_end]
+        if len(preamble.strip()) < 20:
+            return
+        header_lines = ["/* AUTO-GENERATED from harness preamble */", "#pragma once", ""]
+        # Filter: keep structs, typedefs, enums, #defines, and blank lines
+        # EXCLUDE: function prototypes/declarations (they break driver.c compilation)
+        for l in preamble.splitlines():
+            stripped = l.strip()
+            # Skip klee includes
+            if 'klee/klee.h' in l:
+                continue
+            # Skip function prototypes: lines that look like "type funcname(params);"
+            # but are NOT typedef, struct, enum, union, or #define
+            if stripped.endswith(';') and '(' in stripped and ')' in stripped:
+                # Check if it's a function prototype (not a typedef or struct field)
+                if not stripped.startswith(('typedef', 'struct', 'union', 'enum', '#')):
+                    # Check if it looks like a function declaration
+                    if re.match(r'^(?:static\s+|inline\s+|extern\s+|const\s+)*\w[\w\s\*]*\w+\s*\([^)]*\)\s*;', stripped):
+                        continue  # Skip function prototype
+            # Skip static declarations entirely (they cause "invalid storage class" in headers)
+            if stripped.startswith('static ') and ';' in stripped and '=' not in stripped:
+                continue
+            header_lines.append(l)
+        types_path = self.harness_dir / "harness_types.h"
+        types_path.write_text('\n'.join(header_lines) + '\n', encoding="utf-8")
+        n_structs = len(re.findall(r'\bstruct\s+\w+\s*\{', preamble))
+        n_typedefs = preamble.count('typedef')
+        print(f"    [+] Generated harness_types.h ({len(header_lines)} lines, {n_structs} structs, {n_typedefs} typedefs)")
+        print(f"    [i] Driver MUST: #include \"harness_types.h\" for correct struct layouts")
     
     def _post_harness_line_map(self):
         """Build line map after any harness file is written/modified."""
@@ -3606,6 +4228,24 @@ class SliceTools:
         This just compiles whatever .c files exist in the harness directory.
         """
         print("  [Tool] CompileSlice")
+        
+        # --- AUTO-INJECT harness_types.h into driver.c/stubs.c if missing ---
+        # Only inject if: (1) harness_types.h exists, (2) file doesn't already include it,
+        # (3) file doesn't define its own struct types (to avoid redefinition errors)
+        types_h = self.harness_dir / "harness_types.h"
+        for fname in ("driver.c", "stubs.c"):
+            fpath = self.harness_dir / fname
+            if types_h.exists() and fpath.exists():
+                fsrc = fpath.read_text(errors="replace")
+                if 'harness_types.h' not in fsrc:
+                    # Don't inject if file already defines structs (would cause redefinition)
+                    has_own_structs = bool(re.search(r'\bstruct\s+_?\w+\s*\{', fsrc))
+                    if not has_own_structs:
+                        fsrc = '#include "harness_types.h"\n' + fsrc
+                        fpath.write_text(fsrc, encoding="utf-8")
+                        print(f"    [i] Auto-injected #include \"harness_types.h\" into {fname}")
+                    else:
+                        print(f"    [i] Skipped harness_types.h injection into {fname} (has own struct defs)")
         
         # --- Public trampoline for static entry functions ---
         # If the entry function is declared static in the harness, driver.c can't call it.
@@ -4398,6 +5038,74 @@ class SliceTools:
                     injected = True
                     print(f"    [+] Injected sink assert after vuln-site match at line {best_line+1} (score={best_score})")
                 
+                # Strategy 2b: For CWE-125/787, find memcmp/memcpy/array-access inside
+                # vul_func and inject bounds check + assert BEFORE the vulnerable call.
+                # This works even when the agent rewrote the code and source_context
+                # patterns don't match exactly.
+                if not injected and vul_func:
+                    # Determine CWE
+                    cwe_for_2b = cwe_id
+                    if not cwe_for_2b:
+                        spec_name_2b = os.path.basename(self.ctx.get("spec_path", ""))
+                        cwe_m_2b = re.search(r'cwe-(\d+)', spec_name_2b, re.IGNORECASE)
+                        cwe_for_2b = cwe_m_2b.group(1) if cwe_m_2b else ""
+                    
+                    if cwe_for_2b in ("125", "787", "119", "122", "121"):
+                        in_vf = False
+                        vf_depth = 0
+                        vul_line_num = int(self.frozen.get("vul_line", 0))
+                        
+                        for i, line in enumerate(result_lines):
+                            stripped = line.strip()
+                            if re.match(rf'.*\b{re.escape(vul_func)}\b\s*\(', stripped):
+                                in_vf = True
+                            if in_vf:
+                                vf_depth += stripped.count('{') - stripped.count('}')
+                                if vf_depth <= 0 and i > 0:
+                                    break
+                                
+                                # Look for memcmp/memcpy/memmove/strncmp(ptr, x, len)
+                                mem_m = re.search(
+                                    r'(memcmp|memcpy|memmove|strncmp|strncpy|memset)\s*\(\s*([^,]+),\s*[^,]+,\s*([^)]+)\)',
+                                    stripped
+                                )
+                                if mem_m:
+                                    ptr_expr = mem_m.group(2).strip()
+                                    len_expr = mem_m.group(3).strip()
+                                    line_indent = re.match(r'^(\s*)', line).group(1) or "        "
+                                    
+                                    # Insert bounds check + assert BEFORE the memcmp line
+                                    inject_lines = [
+                                        f'{line_indent}/* STAILOR: CWE-{cwe_for_2b} bounds check — injected before vulnerable call */',
+                                        f'{line_indent}if (klee_get_obj_size((void*){ptr_expr}) < (size_t)({len_expr}))',
+                                        f'{line_indent}  klee_report_error(__FILE__, {vul_line_num}, "STAILOR OOB: buffer too small for access length", "stailor.ptr.err");',
+                                        f'{line_indent}klee_assert(0 && "STAILOR_SINK_REACHED");',
+                                    ]
+                                    for j, il in enumerate(inject_lines):
+                                        result_lines.insert(i + j, il)
+                                    injected = True
+                                    print(f"    [+] Injected CWE-{cwe_for_2b} bounds check + sink BEFORE {mem_m.group(1)}() at line {i+1}")
+                                    break
+                                
+                                # Look for ptr[idx] patterns
+                                idx_m = re.search(r'(\w+(?:->\w+)*)\s*\[\s*(\w+)\s*\]', stripped)
+                                if idx_m and not idx_m.group(2).isdigit():
+                                    arr_expr = idx_m.group(1).strip()
+                                    idx_expr = idx_m.group(2).strip()
+                                    line_indent = re.match(r'^(\s*)', line).group(1) or "        "
+                                    
+                                    inject_lines = [
+                                        f'{line_indent}/* STAILOR: CWE-{cwe_for_2b} bounds check — injected before vulnerable access */',
+                                        f'{line_indent}if ((size_t)({idx_expr}) >= klee_get_obj_size((void*){arr_expr}))',
+                                        f'{line_indent}  klee_report_error(__FILE__, {vul_line_num}, "STAILOR OOB: index exceeds buffer size", "stailor.ptr.err");',
+                                        f'{line_indent}klee_assert(0 && "STAILOR_SINK_REACHED");',
+                                    ]
+                                    for j, il in enumerate(inject_lines):
+                                        result_lines.insert(i + j, il)
+                                    injected = True
+                                    print(f"    [+] Injected CWE-{cwe_for_2b} bounds check + sink BEFORE {arr_expr}[{idx_expr}] at line {i+1}")
+                                    break
+                
                 # Strategy 3: Last resort — find any klee_warning PROBE_SINK or just the
                 # last line of vul_func
                 if not injected and vul_func:
@@ -4425,6 +5133,111 @@ class SliceTools:
                 result = '\n'.join(result_lines)
             else:
                 print(f"    [!] WARNING: Could not inject STAILOR_SINK_REACHED — no vulnerability site found")
+        
+        # =====================================================================
+        # ALWAYS-RUN: CWE-125/787 bounds check injection
+        # Runs REGARDLESS of whether STAILOR_SINK_REACHED was already present.
+        # Scans vul_func for memcmp/memcpy/ptr[idx] and injects klee_get_obj_size
+        # checks that produce .stailor.ptr.err for bug_triggered detection.
+        # =====================================================================
+        cwe_bc = ""
+        spec_p_bc = self.harness_dir.parent / "sa_context" / "spec.json"
+        if spec_p_bc.exists():
+            try:
+                sp_data = read_json(spec_p_bc)
+                cwe_bc = str(sp_data.get("cwe_id", sp_data.get("cwe", "")))
+            except Exception:
+                pass
+        if not cwe_bc:
+            sn_bc = os.path.basename(self.ctx.get("spec_path", ""))
+            cm_bc = re.search(r'cwe-(\d+)', sn_bc, re.IGNORECASE)
+            cwe_bc = cm_bc.group(1) if cm_bc else ""
+        
+        if cwe_bc in ("125", "787", "119", "122", "121"):
+            vf_bc = self.frozen.get("vul_func", "")
+            vl_bc = int(self.frozen.get("vul_line", 0))
+            if vf_bc and "klee_get_obj_size" not in result:
+                bc_lines = result.split('\n')
+                in_vf = False
+                vf_d = 0
+                bc_done = False
+                
+                for i, line in enumerate(bc_lines):
+                    stripped = line.strip()
+                    if re.match(rf'.*\b{re.escape(vf_bc)}\b\s*\(', stripped):
+                        in_vf = True
+                    if in_vf:
+                        vf_d += stripped.count('{') - stripped.count('}')
+                        if vf_d <= 0 and i > 0:
+                            break
+                        
+                        li = re.match(r'^(\s*)', line).group(1) or "        "
+                        
+                        mem_m = re.search(
+                            r'(memcmp|memcpy|memmove|strncmp|strncpy|memset)\s*\(\s*([^,]+),\s*[^,]+,\s*([^)]+)\)',
+                            stripped)
+                        if mem_m and not bc_done:
+                            pe = mem_m.group(2).strip()
+                            le = mem_m.group(3).strip()
+                            check = (f'{li}if (klee_get_obj_size((void*){pe}) < (size_t)({le})) '
+                                     f'klee_report_error(__FILE__, {vl_bc}, '
+                                     f'"STAILOR OOB: buffer too small", "stailor.ptr.err");')
+                            bc_lines.insert(i, check)
+                            bc_done = True
+                            print(f"    [+] CWE-{cwe_bc} bounds check: klee_get_obj_size({pe}) < {le}")
+                            break
+                        
+                        idx_m = re.search(r'(\w+(?:->\w+)*)\s*\[\s*(\w+)\s*\]', stripped)
+                        if idx_m and not mem_m and not bc_done and not idx_m.group(2).isdigit():
+                            ae = idx_m.group(1).strip()
+                            ie = idx_m.group(2).strip()
+                            check = (f'{li}if ((size_t)({ie}) >= klee_get_obj_size((void*){ae})) '
+                                     f'klee_report_error(__FILE__, {vl_bc}, '
+                                     f'"STAILOR OOB: index exceeds buffer", "stailor.ptr.err");')
+                            bc_lines.insert(i, check)
+                            bc_done = True
+                            print(f"    [+] CWE-{cwe_bc} bounds check: {ie} >= klee_get_obj_size({ae})")
+                            break
+                
+                if bc_done:
+                    result = '\n'.join(bc_lines)
+        
+        # =====================================================================
+        # ALWAYS-RUN: CWE-416/415 UAF/double-free detection
+        # For UAF specs, ensure free() stubs actually call free() and that
+        # KLEE's native .free.err detection can trigger. If the harness has
+        # a free() call inside vul_func, verify the sink assertion is AFTER
+        # a dereference of the freed pointer, not just after the free.
+        # =====================================================================
+        if cwe_bc in ("416", "415"):
+            vf_uaf = self.frozen.get("vul_func", "")
+            if vf_uaf and "STAILOR_SINK_REACHED" in result:
+                uaf_lines = result.split('\n')
+                in_vf_uaf = False
+                vf_uaf_d = 0
+                has_free = False
+                has_deref_after_free = False
+                
+                for i, line in enumerate(uaf_lines):
+                    stripped = line.strip()
+                    if re.match(rf'.*\b{re.escape(vf_uaf)}\b\s*\(', stripped):
+                        in_vf_uaf = True
+                    if in_vf_uaf:
+                        vf_uaf_d += stripped.count('{') - stripped.count('}')
+                        if vf_uaf_d <= 0 and i > 0:
+                            break
+                        # Detect free() calls
+                        if re.search(r'\b(free|kfree|kfree_rcu|kmem_cache_free|kvfree)\s*\(', stripped):
+                            has_free = True
+                        # Detect dereference after free (ptr->field or *ptr)
+                        if has_free and re.search(r'->|\*\s*\w+', stripped) and 'STAILOR' not in stripped:
+                            has_deref_after_free = True
+                
+                if has_free and has_deref_after_free:
+                    print(f"    [+] CWE-{cwe_bc} UAF pattern: free() + dereference found in {vf_uaf}")
+                elif has_free and not has_deref_after_free:
+                    print(f"    [!] CWE-{cwe_bc} WARNING: free() found but no dereference after it in {vf_uaf}")
+                    print(f"         KLEE needs a dereference AFTER free to generate .free.err")
         
         return result
     
@@ -4953,6 +5766,80 @@ DRIVER CHECKLIST:
   ✓ Buffer content is symbolic (klee_make_symbolic on the buffer bytes)
   ✓ Stubs on the path return SYMBOLIC values, not hardcoded constants
 
+=== CWE-416/415 USE-AFTER-FREE & DOUBLE-FREE (WMI patterns) ===
+
+  UAF vulnerabilities require a DIFFERENT driver strategy than OOB bugs:
+  The driver must create a TWO-PHASE lifecycle: allocate → free → use.
+  
+  HARNESS STRATEGY for CWE-416 (UAF):
+  The vul_func should contain BOTH the free AND the subsequent use of the pointer.
+  If free and use are in different functions, the harness must keep both on the path.
+  
+  DRIVER PATTERN for CWE-416:
+    1. Allocate the target struct concretely
+    2. Set up fields so the free-path is reachable
+    3. Call the entry function (which should free the object internally)
+    4. The vul_func then dereferences the freed pointer → KLEE detects .free.err
+  
+  Example driver for UAF:
+  ```c
+  int main() {
+      // Allocate container that holds the target pointer
+      Container *ctx = calloc(1, sizeof(Container));
+      Target *target = calloc(1, sizeof(Target));
+      klee_make_symbolic(target, sizeof(Target), "target");
+      ctx->target_ptr = target;  // back-pointer that becomes stale
+      
+      // Set fields to reach the free path first, then the use path
+      klee_make_symbolic(&ctx->state, sizeof(ctx->state), "state");
+      
+      // Call: entry_func will free target, then dereference target_ptr (UAF)
+      entry_func(ctx);
+      return 0;
+  }
+  ```
+  
+  CRITICAL FOR UAF:
+  - The free() stub MUST actually call free() — not return symbolic
+  - The NEUTRALIZED vul_func must keep BOTH the free AND the use
+  - Do NOT remove the free() call during neutralization
+  - The sink assertion goes AFTER the use-after-free dereference
+  
+  HARNESS PATTERN for UAF:
+  ```c
+  void vul_func(Container *ctx) {
+      Target *t = ctx->target_ptr;
+      // Phase 1: Free happens here (keep this!)
+      free(t);  // or kfree(t) in kernel code
+      // Phase 2: Stale dereference (the vulnerability)
+      int val = t->field;  // UAF! t is freed
+      klee_assert(0 && "STAILOR_SINK_REACHED");
+  }
+  ```
+  
+  KLEE DETECTION: KLEE natively detects UAF as .free.err when it sees a
+  dereference of a freed pointer. This produces a test case automatically.
+  
+  WMI (Weird Machine Instruction) PATTERNS:
+  WMI specs detect exploitation chain building blocks. They have rule IDs like
+  "stailor/wmi-1-*" through "stailor/wmi-4-*" or tags containing "wmi".
+  
+  WMI-1 (Stale Reference): free(A) without nullifying B->ptr_to_A
+    → Harness: Keep the free, keep the non-nullified back-pointer
+    → Driver: Set up A and B with cross-reference, call free function
+  
+  WMI-2 (Type Confusion Leak): Read field through stale pointer after realloc
+    → Harness: free(old_obj), alloc(new_obj) at same address, read via stale ptr
+    → Driver: malloc→free→malloc pattern to force reuse, then read
+  
+  WMI-3 (Arbitrary Free): Traversal through stale pointer frees controlled address
+    → Harness: Keep linked-list traversal + free loop
+    → Driver: Set up fake linked list, trigger destructor
+  
+  WMI-4 (Write-What-Where): Reclaim freed memory, overwrite function pointer
+    → Harness: free→reclaim→write pattern
+    → Driver: alloc→free→alloc→write→call pattern
+
 STUB PHILOSOPHY — SAME PRINCIPLE:
   Stubs should OVERAPPROXIMATE the real function's behavior.
   Return symbolic values so KLEE explores all possible behaviors.
@@ -5254,13 +6141,86 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                 for sub, fields in subs.items():
                     struct_groom_hint += f"      {var}->{sub}: fields accessed: {', '.join(fields[:8])}\n"
     
+    # --- SE CONFIG: Build analyst injection for agent context ---
+    se_config_hint = ""
+    se_cfg = frozen.get("se_config", {})
+    if se_cfg and se_cfg.get("loaded_files"):
+        se_parts = []
+        
+        # Verify mode: change the task framing
+        if se_cfg.get("mode") == "verify":
+            se_parts.append(
+                "*** VERIFY MODE ***\n"
+                "    An analyst has IDENTIFIED a specific bug and wants you to REPRODUCE it.\n"
+                "    Your goal is to write a harness that triggers this EXACT vulnerability,\n"
+                "    not discover new bugs. Focus on reproducing the analyst's scenario.")
+        
+        # Analyst notes (freeform — this is the most powerful injection)
+        if se_cfg.get("analyst_notes"):
+            notes = se_cfg["analyst_notes"].strip()
+            # Truncate if extremely long but keep it generous
+            if len(notes) > 4000:
+                notes = notes[:4000] + "\n    ... (analyst notes truncated)"
+            se_parts.append(f"*** ANALYST NOTES ***\n{notes}")
+        
+        # Crash output summary for context
+        if se_cfg.get("crash_output"):
+            crash = se_cfg["crash_output"]
+            # Extract just the stack trace lines for compactness
+            stack_lines = [l.strip() for l in crash.splitlines()
+                           if l.strip().startswith("#") or "ERROR:" in l or "SUMMARY:" in l]
+            if stack_lines:
+                stack_str = "\n    ".join(stack_lines[:20])
+                se_parts.append(f"*** CRASH STACK TRACE (from analyst) ***\n    {stack_str}")
+        
+        # Struct field values the analyst wants set
+        if se_cfg.get("struct_field_values"):
+            fields_str = "\n    ".join(f"{k} = {v}" for k, v in se_cfg["struct_field_values"].items())
+            se_parts.append(
+                f"*** REQUIRED STRUCT FIELD VALUES (from analyst) ***\n"
+                f"    Set these concrete values in driver.c:\n    {fields_str}")
+        
+        # klee_assume constraints
+        if se_cfg.get("klee_assumes"):
+            assumes_str = "\n    ".join(f"klee_assume({a});" for a in se_cfg["klee_assumes"])
+            se_parts.append(
+                f"*** REQUIRED KLEE CONSTRAINTS (from analyst) ***\n"
+                f"    Add these assumes to driver.c:\n    {assumes_str}")
+        
+        # Stub return policy overrides
+        if se_cfg.get("stub_returns"):
+            sr_str = "\n    ".join(f"{func}() → return {val}" for func, val in se_cfg["stub_returns"].items())
+            se_parts.append(
+                f"*** STUB RETURN OVERRIDES (from analyst) ***\n"
+                f"    Use these return values in stubs:\n    {sr_str}")
+        
+        # PoC input available
+        if se_cfg.get("poc_input_path"):
+            se_parts.append(
+                "*** PoC INPUT AVAILABLE ***\n"
+                "    A proof-of-concept input binary is at harness/poc_input.bin.\n"
+                "    You can read it in driver.c to use as concrete phase-1 input.")
+        
+        if se_parts:
+            se_config_hint = "\n    ANALYST CONFIGURATION (se_config/):\n    " + "\n\n    ".join(se_parts) + "\n"
+    
+    # --- Build seed file note for the agent ---
+    seed_file_note = ""
+    if se_cfg.get("seed_driver"):
+        seed_file_note += "\n    NOTE: An analyst-provided driver.c is pre-loaded in harness/. "
+        seed_file_note += "Review it before making changes — it contains domain-specific knowledge.\n"
+    if se_cfg.get("seed_stubs"):
+        seed_file_note += "    NOTE: Analyst-provided stubs.c is pre-loaded. It may contain critical stub implementations.\n"
+    if se_cfg.get("seed_harness"):
+        seed_file_note += "    NOTE: Analyst-provided parser.c is pre-loaded (replaces ExtractFunction output).\n"
+    
     msg = f"""
     CONTEXT:
     - Target: {ctx['vul_file']}:{ctx['vul_line']}
     - Vulnerable Function: {frozen['vul_func']}
     - Entry Point: {frozen['entry']}
     - Spine: {' -> '.join(frozen['spine'])}
-    {sig_hint}{stub_hint}{entry_preconditions}{struct_groom_hint}{vuln_context}
+    {sig_hint}{stub_hint}{entry_preconditions}{struct_groom_hint}{vuln_context}{se_config_hint}
     COMPILATION MODEL:
     - ExtractFunction creates harness/parser.c with the FULL preamble from the original source
       (all #includes, #defines, structs, typedefs). It compiles standalone — do NOT include it.
@@ -5284,13 +6244,14 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
     READ THIS FIRST. It has everything you need to write driver.c and stubs.c on Turn 1.
     Do NOT spend turns on ReadSource/GrepSource/FindDefinition to understand the vulnerability —
     the summary already contains that information.
-    """
+    {seed_file_note}"""
     history.append({"role": "user", "content": msg})
     
     # --- AUTO-GENERATE BASELINE DRIVER ---
     # The LLM consistently fails at driver writing (uses symbolic malloc sizes).
     # Generate a correct baseline driver from frozen plan data BEFORE the agent starts.
     # The agent can then modify it if needed.
+    # Skip if analyst already provided a seed driver
     driver_path = tools.harness_dir / "driver.c"
     if not driver_path.exists():
         try:
@@ -5397,7 +6358,28 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
             "ReadSAContext": 2,
             "ReadSource": 4,
             "SmartRecon": 2,
+            "ExploreKleeOutput": 8,
         }
+        
+        # --- Consecutive same-tool loop detector ---
+        if not hasattr(tools, '_last_tools'):
+            tools._last_tools = []
+        tools._last_tools.append(tool)
+        if len(tools._last_tools) > 5:
+            tools._last_tools = tools._last_tools[-5:]
+        consecutive_same = 0
+        for t in reversed(tools._last_tools):
+            if t == tool:
+                consecutive_same += 1
+            else:
+                break
+        if consecutive_same >= 3 and tool not in ("CompileSlice", "WriteHarness", "WriteDriver", "WriteStubs", "ReplaceCode"):
+            print(f"  [System] LOOP DETECTED: {tool} called {consecutive_same}x consecutively")
+            history.append({"role": "user", "content": 
+                f"SYSTEM: You have called {tool} {consecutive_same} times in a row — this is a loop. "
+                f"STOP calling {tool}. Fix with WriteHarness/WriteDriver/WriteStubs/ReplaceCode, "
+                f'then CompileSlice. For struct definitions, use #include "harness_types.h".'})
+            continue
         
         if tool in TOOL_LIMITS and tools._tool_counts[tool] > TOOL_LIMITS[tool]:
             limit = TOOL_LIMITS[tool]
@@ -5627,8 +6609,23 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                                 "  - The key is: buffer_size < access_length")
                         elif cwe_id == "416":
                             res_parts.append(
-                                "CWE-416 TRIGGER: Use-after-free. Ensure the pointer is freed BEFORE the use.\n"
-                                "  - The stub for the free function must actually call free()")
+                                "CWE-416 TRIGGER: Use-after-free. The driver must create a TWO-PHASE lifecycle:\n"
+                                "  1. Allocate the target object concretely (calloc, not symbolic)\n"
+                                "  2. Set up struct fields so the FREE path is reachable\n"
+                                "  3. The free() stub MUST actually call free() — not return symbolic\n"
+                                "  4. After free, the vul_func dereferences the freed pointer → .free.err\n"
+                                "  CRITICAL: Do NOT remove the free() call during neutralization.\n"
+                                "  The harness must keep BOTH the free AND the subsequent dereference.\n"
+                                "  KLEE detects UAF natively as .free.err when it dereferences freed memory.\n"
+                                "  If the free and use are in DIFFERENT functions, keep both in the harness.\n"
+                                "  WMI pattern: If this is a stale-reference bug (WMI-1), ensure the\n"
+                                "  back-pointer (e.g., trigger->owner) is NOT nullified after free.")
+                        elif cwe_id == "415":
+                            res_parts.append(
+                                "CWE-415 TRIGGER: Double free. The driver must call free() twice on same ptr:\n"
+                                "  1. Allocate object, call function that frees it\n"
+                                "  2. Call another function that frees the same pointer again\n"
+                                "  The harness must keep BOTH free paths. KLEE detects double-free natively.")
                         elif cwe_id == "476":
                             res_parts.append(
                                 "CWE-476 TRIGGER: NULL deref. Ensure the pointer CAN be NULL.\n"
@@ -6013,6 +7010,7 @@ def main():
     parser.add_argument("--sa-out-dir", required=True)
     parser.add_argument("--clang-flags", default=os.environ.get("CLANG_FLAGS", ""), help="Extra clang flags (or use CLANG_FLAGS env var)")
     parser.add_argument("--build-cmd", default=os.environ.get("BUILD_PROJECT_BC_CMD", ""), help="Build command template for the project. Use {SRC_ROOT} and {OUT_BC} placeholders.")
+    parser.add_argument("--se-config", default=os.environ.get("SE_CONFIG_DIR", ""), help="Path to se_config/ folder with analyst knowledge (notes, seeds, constraints)")
     args, _ = parser.parse_known_args()
     
     # Validate LLM configuration
@@ -6069,8 +7067,30 @@ def main():
     # Load spec JSON (SA-computed vulnerability details)
     spec = load_spec(args.spec)
     
+    # --- LOAD SE CONFIG (analyst knowledge injection) ---
+    se_config = load_se_config(args.se_config)
+    
+    # Inject crash output into spec for deep-bug analysis (if provided by analyst)
+    if se_config.get("crash_output") and "crash_output" not in spec:
+        spec["crash_output"] = se_config["crash_output"]
+    
     ctx = {"vul_file": args.vul_file, "vul_line": args.vul_line, "strategy_name": "oob", "sa_data": sa_data, "spec_path": args.spec, "build_cmd": args.build_cmd, "src_root_original": str(src_root_original)}
     frozen = run_frozen_analysis(ctx, src_root, spec=spec)
+    
+    # --- APPLY SE CONFIG OVERRIDES TO FROZEN PLAN ---
+    if se_config.get("entry_override"):
+        old_entry = frozen.get("entry", "")
+        frozen["entry"] = se_config["entry_override"]
+        if se_config["entry_override"] not in frozen.get("spine", []):
+            frozen["spine"] = [se_config["entry_override"]] + frozen.get("spine", [])
+        print(f"  [SE-Config] Entry override: {old_entry} → {frozen['entry']}")
+    if se_config.get("spine_override"):
+        frozen["spine"] = se_config["spine_override"]
+        frozen["entry"] = se_config["spine_override"][0]
+        print(f"  [SE-Config] Spine override: {' → '.join(frozen['spine'])}")
+    
+    # Store se_config in frozen for downstream access
+    frozen["se_config"] = se_config
     
     # --- COPY SA ARTIFACTS TO RUN DIR FOR AGENT ACCESS ---
     sa_dir = ensure_dir(run_dir / "sa_context")
@@ -6325,9 +7345,55 @@ def main():
     max_turns = int(os.environ.get("MAX_TURNS", 40))
     run_timeout = int(os.environ.get("TIMEOUT", 600))
     
+    # --- SE CONFIG: Apply KLEE + timeout overrides ---
+    klee_flags = []
+    if se_config.get("klee_flags"):
+        klee_flags.extend(se_config["klee_flags"])
+        print(f"  [SE-Config] KLEE flags: {' '.join(se_config['klee_flags'])}")
+    if se_config.get("search_strategy"):
+        klee_flags.append(f"--search={se_config['search_strategy']}")
+        print(f"  [SE-Config] Search strategy: {se_config['search_strategy']}")
+    if se_config.get("klee_timeout") and se_config["klee_timeout"] > 0:
+        run_timeout = se_config["klee_timeout"]
+        print(f"  [SE-Config] KLEE timeout override: {run_timeout}s")
+    if se_config.get("max_turns") and se_config["max_turns"] > 0:
+        max_turns = se_config["max_turns"]
+        print(f"  [SE-Config] Max turns override: {max_turns}")
+    
     tools = SliceTools(ctx, frozen, src_root, run_dir/"harness", run_dir/"logs",
-                       clang_bin, llvm_link_bin, klee_bin, [], run_timeout, time.time(),
-                       extra_cflags=extra_cflags)
+                       clang_bin, llvm_link_bin, klee_bin, klee_flags, run_timeout, time.time(),
+                       extra_cflags=extra_cflags, se_config=se_config)
+    
+    # --- SE CONFIG: Pre-populate harness with seed files ---
+    harness_dir = tools.harness_dir
+    if se_config.get("seed_driver"):
+        (harness_dir / "driver.c").write_text(se_config["seed_driver"], encoding="utf-8")
+        print(f"  [SE-Config] Seeded harness/driver.c ({se_config['seed_driver'].count(chr(10))+1} lines)")
+    if se_config.get("seed_stubs"):
+        (harness_dir / "stubs.c").write_text(se_config["seed_stubs"], encoding="utf-8")
+        print(f"  [SE-Config] Seeded harness/stubs.c")
+    if se_config.get("seed_harness"):
+        (harness_dir / "parser.c").write_text(se_config["seed_harness"], encoding="utf-8")
+        print(f"  [SE-Config] Seeded harness/parser.c")
+    if se_config.get("extra_stubs"):
+        extra_stubs_path = harness_dir / "analyst_stubs.c"
+        extra_stubs_path.write_text(se_config["extra_stubs"], encoding="utf-8")
+        print(f"  [SE-Config] Wrote harness/analyst_stubs.c (will be compiled + linked)")
+    if se_config.get("poc_input_path"):
+        poc_src = Path(se_config["poc_input_path"])
+        if poc_src.exists():
+            poc_dst = harness_dir / "poc_input.bin"
+            shutil.copy2(str(poc_src), str(poc_dst))
+            print(f"  [SE-Config] Copied PoC input to harness/ ({poc_src.stat().st_size} bytes)")
+    
+    # --- SE CONFIG: Write se_config summary to sa_context for agent reference ---
+    if se_config.get("loaded_files"):
+        se_summary = {k: v for k, v in se_config.items()
+                      if k not in ("seed_driver", "seed_stubs", "seed_harness",
+                                   "extra_stubs", "analyst_notes", "crash_output")
+                      and v}
+        write_json(sa_dir / "se_config_summary.json", se_summary)
+    
     findings = run_agent(ctx, frozen, tools, run_dir, max_turns, run_timeout, time.time(), spec=spec)
     
     # Determine search status from findings / bug report
@@ -6350,6 +7416,10 @@ def main():
         search_status = "FOUND_TP"
     elif verdict in ("LIKELY_TP",):
         search_status = "FOUND_LIKELY_TP"
+    elif verdict in ("LIKELY_TP_DIFFERENT_CRASH",):
+        search_status = "FOUND_DIFFERENT_CRASH"
+    elif verdict in ("LIKELY_FP_NULL_DEREF",):
+        search_status = "FOUND_LIKELY_FP_NULL_DEREF"
     elif findings:
         search_status = "FOUND_UNTARGETED"
     
@@ -6363,9 +7433,18 @@ def main():
     write_json(run_dir / "report.json", final_report)
     
     # Assemble run_report.json (expected by run_worker.sh)
+    secondary_count = 0
+    crash_relevance = ""
+    if bug_report:
+        summary = bug_report.get("summary", {})
+        secondary_count = summary.get("secondary_bugs", 0)
+        crash_relevance = summary.get("crash_relevance", "")
+    
     run_report = {
         "search_status": search_status,
         "verdict": verdict,
+        "crash_relevance": crash_relevance,
+        "secondary_bugs": secondary_count,
         "metrics": {
             "tokens_total": _TOKEN_TOTAL,
             "tokens_prompt": _TOKEN_PROMPT,
@@ -6377,6 +7456,10 @@ def main():
     }
     if bug_report:
         run_report["bug_report"] = bug_report
+        # Log secondary bugs
+        for sb in bug_report.get("secondary_bugs", [])[:10]:
+            print(f"  [Secondary] {sb['error_type']} at {sb['original_file']}:{sb['original_line']} "
+                  f"({sb.get('crash_function', '?')}) [{sb['relevance']}]")
     write_json(run_dir / "run_report.json", run_report)
     
     print("Done.")
