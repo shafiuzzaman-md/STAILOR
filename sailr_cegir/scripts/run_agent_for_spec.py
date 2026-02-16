@@ -2048,6 +2048,10 @@ class SliceTools:
         for cf in self.project_cflags:
             if cf not in ('-emit-llvm', '-c') and not cf.startswith('-O'):
                 cflags.append(cf)
+        # Add extra cflags (auto-fixed macros like -DXML_HIDDEN=)
+        for cf in self.extra_cflags:
+            if cf not in cflags:
+                cflags.append(cf)
         
         cmd = ["gcc"] + cflags + harness_c_files + ["-o", str(out_bin), "-lm"]
         print(f"    [ASan] Compiling {len(harness_c_files)} files with ASan...")
@@ -2193,6 +2197,10 @@ class SliceTools:
         proj_cflags = []
         for cf in self.project_cflags:
             if cf not in ('-emit-llvm', '-c', '-o') and not cf.startswith('-O'):
+                proj_cflags.append(cf)
+        # Add extra cflags (auto-fixed macros like -DXML_HIDDEN=)
+        for cf in self.extra_cflags:
+            if cf not in proj_cflags:
                 proj_cflags.append(cf)
         
         # Strategy: compile the real source + our replay driver + stubs
@@ -3698,38 +3706,59 @@ class SliceTools:
                 undefined_macros += re.findall(r"unknown type name '(\w+)'", err_str)
                 
                 # Common macros that should be empty/0
+                # Covers visibility macros, attribute macros, calling conventions
                 common_macro_fixes = {
-                    "XML_HIDDEN": "",
-                    "XMLPUBFUN": "",
-                    "XMLPUBVAR": "extern",
-                    "XMLCALL": "",
-                    "XMLCDECL": "",
                     "ATTRIBUTE_UNUSED": "",
                     "ATTRIBUTE_NO_SANITIZE_INTEGER": "",
-                    "LIBXML_ATTR_FORMAT": "",
-                    "LIBXML_ATTR_ALLOC_SIZE": "",
+                    "ATTRIBUTE_NO_SANITIZE": "",
                     "ATTRIBUTE_PRINTF": "",
                     "ATTRIBUTE_DESTRUCTOR": "",
-                    "ATTRIBUTE_NO_SANITIZE": "",
-                    "XML_DEPRECATED": "",
-                    "XMLPUBLIC": "",
                 }
+                
+                # Pattern-based: any macro matching these patterns is likely a
+                # visibility/attribute macro that should be defined empty
+                visibility_patterns = [
+                    r'^.*_HIDDEN$',       # XML_HIDDEN, SSL_HIDDEN, etc.
+                    r'^.*PUBFUN$',        # XMLPUBFUN, SSLPUBFUN, etc. 
+                    r'^.*PUBVAR$',        # XMLPUBVAR, etc.
+                    r'^.*CALL$',          # XMLCALL, APICALL, etc.
+                    r'^.*CDECL$',         # XMLCDECL, etc.
+                    r'^.*PUBLIC$',        # XMLPUBLIC, etc.
+                    r'^.*DEPRECATED$',    # XML_DEPRECATED, etc.
+                    r'^.*ATTR_FORMAT$',   # LIBXML_ATTR_FORMAT, etc.
+                    r'^.*ATTR_ALLOC_SIZE$',
+                    r'^.*_EXPORT$',       # API_EXPORT, LIB_EXPORT, etc.
+                    r'^.*_IMPORT$',       # API_IMPORT, etc.
+                    r'^.*_API$',          # PUBLIC_API, CURL_API, etc.
+                    r'^__.*attribute__$',  # compiler attributes
+                ]
                 
                 auto_defs = []
                 for macro in set(undefined_macros):
                     if macro in common_macro_fixes:
                         val = common_macro_fixes[macro]
                         auto_defs.append(f"#ifndef {macro}\n#define {macro} {val}\n#endif")
+                    elif any(re.match(pat, macro) for pat in visibility_patterns):
+                        auto_defs.append(f"#ifndef {macro}\n#define {macro}\n#endif")
                 
                 if auto_defs:
-                    # Auto-inject into the harness file
-                    hpath = self.harness_dir / sf.name
-                    hsrc = hpath.read_text(errors="replace")
-                    inject = '\n'.join(auto_defs) + '\n'
-                    if inject.strip() not in hsrc:
-                        hsrc = inject + hsrc
-                        hpath.write_text(hsrc, encoding="utf-8")
-                        diag += f"\n\n[AUTO-FIX] Defined {len(auto_defs)} common macros: {', '.join(m for m in set(undefined_macros) if m in common_macro_fixes)}"
+                    # Auto-inject as COMPILE FLAGS so they apply to ALL files
+                    # (including auto-generated smart_stubs.c)
+                    new_flags = []
+                    for macro in set(undefined_macros):
+                        if macro in common_macro_fixes:
+                            val = common_macro_fixes[macro]
+                            flag = f"-D{macro}={val}" if val else f"-D{macro}="
+                        elif any(re.match(pat, macro) for pat in visibility_patterns):
+                            flag = f"-D{macro}="
+                        else:
+                            continue
+                        if flag not in self.extra_cflags:
+                            self.extra_cflags.append(flag)
+                            new_flags.append(macro)
+                    
+                    if new_flags:
+                        diag += f"\n\n[AUTO-FIX] Added compile flags for {len(new_flags)} macros: {', '.join(new_flags)}"
                         diag += "\nRetry CompileSlice."
                         return {"success": False, "error": diag}
                 
@@ -5454,6 +5483,8 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                     # This means the actual vulnerable statement crashed — send to concrete validation.
                     # site_reached alone (klee_assert fired) does NOT auto-terminate — it just
                     # means the site is reachable, not that the bug was triggered.
+                    # HOWEVER: if sink_reached=True, the vulnerable code path IS feasible.
+                    # Auto-terminate as LIKELY_TP to avoid wasting turns.
                     if stats.get("bug_triggered"):
                         print(f"  [BUG] {stats.get('bug_triggered_details', '')}")
                         
@@ -5525,6 +5556,51 @@ def run_agent(ctx, frozen, tools, out_dir, max_turns, timeout, start_time, spec=
                         findings.append((verdict, details))
                         print(f"  [AUTO-DONE] verdict={verdict}, asan={asan_confirmed}")
                         break
+                    
+                    elif stats.get("site_reached"):
+                        # Sink reached = vulnerable code path IS feasible.
+                        # Give the agent a FEW more turns to adjust driver/stubs to trigger
+                        # the actual crash. If it can't within the budget, auto-terminate as LIKELY_TP.
+                        if not hasattr(tools, '_sink_reached_turn'):
+                            tools._sink_reached_turn = turn
+                            tools._sink_reached_klee_dir = stats.get("out_dir", "")
+                            print(f"  [SINK REACHED] Vulnerability reachable but no crash — giving agent {min(10, max_turns - turn)} more turns to trigger OOB")
+                            # Fall through to let agent see the CWE-specific guidance below
+                        else:
+                            # Agent already had extra turns since first sink_reached
+                            turns_since_sink = turn - tools._sink_reached_turn
+                            if turns_since_sink >= 10:
+                                # Budget exhausted — auto-terminate as LIKELY_TP
+                                print(f"  [SINK REACHED] {turns_since_sink} turns since sink reached — auto-terminating")
+                                
+                                try:
+                                    tools.build_line_map()
+                                except Exception:
+                                    pass
+                                
+                                # Validate with the BEST ktest we have (from first sink_reached run)
+                                best_klee_dir = tools._sink_reached_klee_dir or stats.get("out_dir", "")
+                                cv_result = {}
+                                try:
+                                    cv_result = tools.concrete_validate(best_klee_dir)
+                                except Exception as e:
+                                    print(f"  [!] Concrete validation error: {e}")
+                                    cv_result = {"validated": False, "error": str(e)}
+                                
+                                asan_confirmed = False
+                                if isinstance(cv_result, dict):
+                                    asan_confirmed = cv_result.get("asan_result", {}).get("triggered", False) if "asan_result" in cv_result else cv_result.get("summary", {}).get("asan_confirmed", False)
+                                
+                                verdict = "TP" if asan_confirmed else "LIKELY_TP"
+                                details = f"SINK REACHED — vulnerable code path confirmed feasible\n"
+                                details += f"Agent had {turns_since_sink} extra turns but could not trigger actual crash.\n"
+                                if asan_confirmed:
+                                    ar = cv_result.get("asan_result", {})
+                                    details += f"ASan CONFIRMED: {ar.get('error_type', '')} at {ar.get('crash_file', '')}:{ar.get('crash_line', '')}\n"
+                                
+                                findings.append((verdict, details))
+                                print(f"  [AUTO-DONE] verdict={verdict}, asan={asan_confirmed}")
+                                break
                     
                     res_parts = [f"KLEE Finished. Paths: {stats.get('completed_paths', 0)}, Tests: {stats.get('generated_tests', 0)}, Errors: {stats.get('total_errors', 0)}, Time: {stats.get('elapsed', 0):.1f}s"]
                     
